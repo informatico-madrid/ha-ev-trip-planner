@@ -15,6 +15,7 @@ class TestCallAsyncExecutorSync:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _call_async_executor_sync,
         )
+
         result = _call_async_executor_sync(None, lambda x: x * 2, 5)
         assert result == 10
 
@@ -28,6 +29,7 @@ class TestAwaitExecutorResult:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _await_executor_result,
         )
+
         result = await _await_executor_result(42)
         assert result == 42
 
@@ -42,6 +44,7 @@ class TestReadFileContent:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _read_file_content,
         )
+
         assert _read_file_content(str(f)) == "hello world"
 
     def test_read_nonexistent(self):
@@ -49,6 +52,7 @@ class TestReadFileContent:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _read_file_content,
         )
+
         with pytest.raises(FileNotFoundError):
             _read_file_content("/nonexistent/path/file.txt")
 
@@ -62,6 +66,7 @@ class TestWriteFileContent:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _write_file_content,
         )
+
         _write_file_content(str(f), "key: value")
         assert f.read_text() == "key: value"
 
@@ -73,6 +78,7 @@ class TestCheckPathExists:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _check_path_exists,
         )
+
         f = tmp_path / "exists"
         f.write_text("x")
         assert _check_path_exists(str(f)) is True
@@ -81,6 +87,7 @@ class TestCheckPathExists:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _check_path_exists,
         )
+
         assert _check_path_exists("/nonexistent/path") is False
 
 
@@ -92,6 +99,7 @@ class TestCreateDirectory:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             _create_directory,
         )
+
         _create_directory(str(target))
         assert target.is_dir()
 
@@ -105,6 +113,7 @@ class TestLoadTemplate:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             load_template,
         )
+
         with patch(
             "custom_components.ev_trip_planner.dashboard.template_manager.os.path.exists",
             return_value=True,
@@ -113,9 +122,7 @@ class TestLoadTemplate:
                 "custom_components.ev_trip_planner.dashboard.template_manager._read_file_content",
                 side_effect=RuntimeError("read fails"),
             ):
-                result = await load_template(
-                    MagicMock(), "v1", "V1", False
-                )
+                result = await load_template(MagicMock(), "v1", "V1", False)
                 assert result is None
 
 
@@ -129,6 +136,7 @@ class TestSaveLovelaceDashboard:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_lovelace_dashboard,
         )
+
         hass = MagicMock()
         hass.services.has_service.return_value = True
 
@@ -151,6 +159,7 @@ class TestSaveLovelaceDashboard:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_lovelace_dashboard,
         )
+
         hass = MagicMock()
         hass.services.has_service.return_value = True
         hass.services.async_call = AsyncMock()
@@ -173,6 +182,7 @@ class TestVerifyStoragePermissions:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             verify_storage_permissions,
         )
+
         hass = MagicMock()
         mock_store_instance = MagicMock()
         mock_store_instance.async_load = AsyncMock(return_value=None)
@@ -194,6 +204,7 @@ class TestVerifyStoragePermissions:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             verify_storage_permissions,
         )
+
         hass = MagicMock()
 
         class FailingStore:
@@ -217,6 +228,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(hass, None, "v1", "V1")
         assert result.success is False
@@ -227,6 +239,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(hass, {"views": []}, "v1", "V1")
         assert result.success is False
@@ -237,6 +250,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(hass, {"title": "T"}, "v1", "V1")
         assert result.success is False
@@ -247,6 +261,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(
             hass, {"title": "T", "views": "not list"}, "v1", "V1"
@@ -259,10 +274,9 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
-        result = await save_yaml_fallback(
-            hass, {"title": "T", "views": []}, "v1", "V1"
-        )
+        result = await save_yaml_fallback(hass, {"title": "T", "views": []}, "v1", "V1")
         assert result.success is False
 
     @pytest.mark.asyncio
@@ -271,6 +285,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         hass.config.config_dir = str(tmp_path)
 
@@ -287,11 +302,10 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         hass.config.config_dir = None
-        result = await save_yaml_fallback(
-            hass, {"title": "T", "views": []}, "v1", "V1"
-        )
+        result = await save_yaml_fallback(hass, {"title": "T", "views": []}, "v1", "V1")
         assert result.success is False
 
     @pytest.mark.asyncio
@@ -300,6 +314,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(
             hass, {"title": "T", "views": ["not a dict"]}, "v1", "V1"
@@ -312,6 +327,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(
             hass,
@@ -327,6 +343,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(
             hass,
@@ -342,6 +359,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         result = await save_yaml_fallback(
             hass,
@@ -357,6 +375,7 @@ class TestSaveYamlFallback:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             save_yaml_fallback,
         )
+
         hass = MagicMock()
         hass.config.config_dir = str(tmp_path)
 
@@ -379,6 +398,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         config = {
             "title": "Test",
             "views": [{"path": "v1", "title": "T", "cards": []}],
@@ -390,6 +410,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config("not a dict", "v1")
 
@@ -398,6 +419,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config({"views": []}, "v1")
 
@@ -406,6 +428,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config({"title": "T"}, "v1")
 
@@ -414,6 +437,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config({"title": "T", "views": "not list"}, "v1")
 
@@ -422,6 +446,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config({"title": "T", "views": []}, "v1")
 
@@ -430,6 +455,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config({"title": "T", "views": ["not dict"]}, "v1")
 
@@ -438,6 +464,7 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config(
                 {"title": "T", "views": [{"title": "T", "cards": []}]}, "v1"
@@ -448,16 +475,16 @@ class TestValidateConfig:
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
-            validate_config(
-                {"title": "T", "views": [{"path": "v", "cards": []}]}, "v1"
-            )
+            validate_config({"title": "T", "views": [{"path": "v", "cards": []}]}, "v1")
 
     def test_rejects_view_missing_cards(self):
         from custom_components.ev_trip_planner.dashboard import DashboardValidationError
         from custom_components.ev_trip_planner.dashboard.template_manager import (
             validate_config,
         )
+
         with pytest.raises(DashboardValidationError):
             validate_config(
                 {"title": "T", "views": [{"path": "v", "title": "T"}]}, "v1"

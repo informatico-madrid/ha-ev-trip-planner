@@ -138,11 +138,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Use YamlTripStorage for consistent storage mechanism
     storage = YamlTripStorage(hass, vehicle_id)
     trip_manager = TripManager(
-        hass, vehicle_id, TripManagerConfig(
+        hass,
+        vehicle_id,
+        TripManagerConfig(
             entry_id=entry.entry_id,
             presence_config=presence_config,
             storage=storage,
-        )
+        ),
     )
     await trip_manager._persistence.async_setup()
 
@@ -159,7 +161,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.data.get("planning_horizon_days") or entry.data.get(
         "max_deferrable_loads"
     ):
-        emhass_adapter = EMHASSAdapter(hass, entry)  # pragma: no cover reason=HA lifecycle — EMHASS adapter init during config entry setup
+        emhass_adapter = EMHASSAdapter(
+            hass, entry
+        )  # pragma: no cover reason=HA lifecycle — EMHASS adapter init during config entry setup
         await emhass_adapter.async_load()  # pragma: no cover reason=HA lifecycle — EMHASS adapter data loading during config entry setup
         # FR-2, AC-1.2: Set up config entry listener for charging power updates
         emhass_adapter.setup_config_entry_listener()  # pragma: no cover reason=HA lifecycle — part of entry setup
@@ -168,7 +172,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create coordinator BEFORE publishing to EMHASS, so sensor platform setup
     # always has a coordinator reference (even if empty EMHASS data initially).
     coordinator = TripPlannerCoordinator(
-        hass, entry, trip_manager,
+        hass,
+        entry,
+        trip_manager,
         CoordinatorConfig(emhass_adapter=emhass_adapter),
     )
     try:
@@ -188,9 +194,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Now that coordinator and runtime_data are ready, publish loaded trips to EMHASS.
     # This populates the EMHASS cache and triggers a coordinator refresh
     # so sensors see the correct data immediately (not waiting for periodic refresh).
-    if emhass_adapter is not None:  # pragma: no cover reason=HA lifecycle — branch coverage requires emhass_adapter to be set during entry setup
+    if (
+        emhass_adapter is not None
+    ):  # pragma: no cover reason=HA lifecycle — branch coverage requires emhass_adapter to be set during entry setup
         await trip_manager._schedule.publish_deferrable_loads()  # pragma: no cover reason=HA lifecycle — publish loaded trips during entry setup
-    await async_register_panel_for_entry(hass, entry, vehicle_id, vehicle_name)  # pragma: no cover reason=HA lifecycle — panel registration during entry setup
+    await async_register_panel_for_entry(
+        hass, entry, vehicle_id, vehicle_name
+    )  # pragma: no cover reason=HA lifecycle — panel registration during entry setup
 
     # T3.1: Setup hourly refresh timer OUTSIDE coordinator
     # This timer triggers every hour to rotate recurring trips
@@ -204,10 +214,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         timedelta(hours=1),
     )
 
-    register_services(hass)  # pragma: no cover reason=HA lifecycle — service registration during entry setup
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)  # pragma: no cover reason=HA lifecycle — platform forwarding during entry setup
-    await create_dashboard_input_helpers(hass, vehicle_id)  # pragma: no cover reason=HA lifecycle — dashboard helpers creation during entry setup
-    await async_import_dashboard_for_entry(hass, entry, vehicle_id)  # pragma: no cover reason=HA lifecycle — dashboard import during entry setup
+    register_services(
+        hass
+    )  # pragma: no cover reason=HA lifecycle — service registration during entry setup
+    await hass.config_entries.async_forward_entry_setups(
+        entry, PLATFORMS
+    )  # pragma: no cover reason=HA lifecycle — platform forwarding during entry setup
+    await create_dashboard_input_helpers(
+        hass, vehicle_id
+    )  # pragma: no cover reason=HA lifecycle — dashboard helpers creation during entry setup
+    await async_import_dashboard_for_entry(
+        hass, entry, vehicle_id
+    )  # pragma: no cover reason=HA lifecycle — dashboard import during entry setup
     return True  # pragma: no cover reason=HA lifecycle — success return from async_setup_entry
 
 
@@ -222,7 +240,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ):
         runtime_data.hourly_refresh_cancel()  # pragma: no cover reason=HA lifecycle — timer cancellation during entry unload
         runtime_data.hourly_refresh_cancel = None  # pragma: no cover reason=HA lifecycle — timer handle reset during entry unload
-        _LOGGER.debug("Cancelled hourly refresh timer for vehicle %s", entry.entry_id)  # pragma: no cover reason=HA lifecycle — debug log during entry unload
+        _LOGGER.debug(
+            "Cancelled hourly refresh timer for vehicle %s", entry.entry_id
+        )  # pragma: no cover reason=HA lifecycle — debug log during entry unload
 
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)

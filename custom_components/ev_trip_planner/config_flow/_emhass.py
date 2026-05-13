@@ -49,7 +49,11 @@ def extract_planning_horizon(config: Optional[Dict[str, Any]]) -> Optional[int]:
     if not config:
         return None
     end_timesteps = config.get("end_timesteps_of_each_deferrable_load")
-    if not end_timesteps or not isinstance(end_timesteps, list) or len(end_timesteps) == 0:
+    if (
+        not end_timesteps
+        or not isinstance(end_timesteps, list)
+        or len(end_timesteps) == 0
+    ):
         return None
     horizon_days = end_timesteps[0] // 24
     return horizon_days if horizon_days >= 1 else None
@@ -113,7 +117,9 @@ def validate_emhass_input(
         if planning_sensor:
             sensor_state = ctx.hass.states.get(planning_sensor)
             if sensor_state and sensor_state.state not in (
-                "unknown", "unavailable", "",
+                "unknown",
+                "unavailable",
+                "",
             ):
                 try:
                     sensor_horizon = int(float(sensor_state.state))

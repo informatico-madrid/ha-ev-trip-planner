@@ -697,7 +697,8 @@ async def test_unload_entry_cleanup_entity_registry_exception():
     mock_entry.runtime_data = None
 
     with patch.object(
-        cleanup.er, "async_entries_for_config_entry",
+        cleanup.er,
+        "async_entries_for_config_entry",
         side_effect=RuntimeError("registry error"),
     ):
         with patch(

@@ -209,7 +209,9 @@ async def test_soc_change_non_numeric_state(mock_hass):
     monitor = PresenceMonitor(mock_hass, "v1", config, trip_manager=trip_mgr)
     event = Mock()
     bad_state = Mock()
-    bad_state.state = "unavailable"  # will be caught at line 434; need numeric but fails float
+    bad_state.state = (
+        "unavailable"  # will be caught at line 434; need numeric but fails float
+    )
     event.data = {"old_state": Mock(state="50"), "new_state": bad_state}
     # State "unavailable" is caught at line 434, let's use "abc" which passes
     bad_state.state = "abc"

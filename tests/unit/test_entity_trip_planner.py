@@ -42,7 +42,10 @@ def _make_coordinator():
     tm._navigator.async_get_next_trip = MagicMock(return_value=None)
     config = CoordinatorConfig(emhass_adapter=None)
     return TripPlannerCoordinator(
-        hass=hass, entry=entry, trip_manager=tm, config=config,
+        hass=hass,
+        entry=entry,
+        trip_manager=tm,
+        config=config,
     )
 
 
@@ -51,6 +54,7 @@ def _make_sensor(coordinator, vehicle_id="test_vehicle", key="test_sensor"):
     from custom_components.ev_trip_planner.definitions import (
         TripSensorEntityDescription,
     )
+
     desc = TripSensorEntityDescription(key=key)
     return TripPlannerSensor(coordinator, vehicle_id, desc)
 
@@ -90,6 +94,7 @@ class TestTripPlannerSensorDeviceInfo:
         identifiers = info["identifiers"]
         assert isinstance(identifiers, set)
         from custom_components.ev_trip_planner.const import DOMAIN
+
         assert any(DOMAIN in item for item in identifiers)
         assert any("my_vehicle" in item for item in identifiers)
 

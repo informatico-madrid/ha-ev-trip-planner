@@ -24,7 +24,8 @@ SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
 def compute_safe_delta(
-    trip_time: datetime, now: datetime,
+    trip_time: datetime,
+    now: datetime,
 ) -> Optional[timedelta]:
     """Compute (trip_time - now) with timezone-safety fallback.
 

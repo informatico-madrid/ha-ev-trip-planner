@@ -499,9 +499,7 @@ class TestRegisterStaticPathsLegacy:
         path_spec.path = "/tmp/ev/"
         path_specs = [path_spec]
         _register_static_paths_legacy(hass, path_specs, "test_namedtuple")
-        hass.http.register_static_path.assert_called_once_with(
-            "/local/ev/", "/tmp/ev/"
-        )
+        hass.http.register_static_path.assert_called_once_with("/local/ev/", "/tmp/ev/")
 
     def test_already_registered_runtime_error_suppressed(self):
         """RuntimeError with 'already registered' is suppressed."""
@@ -548,6 +546,7 @@ class TestRegisterStaticPathsLegacy:
         ):
             _register_static_paths_legacy(hass, path_specs, "my_context")
             assert any(
-                "Registered static paths using legacy method (my_context)" in record.message
+                "Registered static paths using legacy method (my_context)"
+                in record.message
                 for record in caplog.records
             )

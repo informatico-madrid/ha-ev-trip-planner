@@ -48,17 +48,13 @@ class TestTripLifecycle(unittest.TestCase):
         from custom_components.ev_trip_planner.trip._trip_lifecycle import TripLifecycle
 
         self.assertTrue(hasattr(TripLifecycle, "async_pause_recurring_trip"))
-        self.assertTrue(
-            callable(getattr(TripLifecycle, "async_pause_recurring_trip"))
-        )
+        self.assertTrue(callable(getattr(TripLifecycle, "async_pause_recurring_trip")))
 
     def test_has_async_resume_recurring_trip(self):
         from custom_components.ev_trip_planner.trip._trip_lifecycle import TripLifecycle
 
         self.assertTrue(hasattr(TripLifecycle, "async_resume_recurring_trip"))
-        self.assertTrue(
-            callable(getattr(TripLifecycle, "async_resume_recurring_trip"))
-        )
+        self.assertTrue(callable(getattr(TripLifecycle, "async_resume_recurring_trip")))
 
     def test_has_async_complete_punctual_trip(self):
         from custom_components.ev_trip_planner.trip._trip_lifecycle import TripLifecycle
@@ -72,9 +68,7 @@ class TestTripLifecycle(unittest.TestCase):
         from custom_components.ev_trip_planner.trip._trip_lifecycle import TripLifecycle
 
         self.assertTrue(hasattr(TripLifecycle, "async_cancel_punctual_trip"))
-        self.assertTrue(
-            callable(getattr(TripLifecycle, "async_cancel_punctual_trip"))
-        )
+        self.assertTrue(callable(getattr(TripLifecycle, "async_cancel_punctual_trip")))
 
 
 class TestTripPersistence(unittest.TestCase):

@@ -103,7 +103,9 @@ def _create_directory(dir_path: str, mode: int = 0o755) -> None:
         dir_path: Path to the directory to create.
         mode: Directory permissions.
     """
-    os.makedirs(dir_path, mode=mode, exist_ok=True)  # pragma: no cover reason=directory creation for YAML backup only
+    os.makedirs(
+        dir_path, mode=mode, exist_ok=True
+    )  # pragma: no cover reason=directory creation for YAML backup only
 
 
 def validate_config(
@@ -268,7 +270,9 @@ async def load_template(
                     template_content = _read_file_content(template_path)
             else:
                 # Fallback for tests where hass doesn't have async_add_executor_job
-                template_content = _read_file_content(template_path)  # pragma: no cover reason=file I/O branch only taken when async executor unavailable
+                template_content = _read_file_content(
+                    template_path
+                )  # pragma: no cover reason=file I/O branch only taken when async executor unavailable
         except Exception as e:
             _LOGGER.error("Failed to read template file: %s", e)
             return None
@@ -364,7 +368,9 @@ async def save_lovelace_dashboard(
                     storage_method="lovelace_save_service",
                 )
 
-            _LOGGER.warning("Dashboard config has no views to save")  # pragma: no cover reason=error path for empty views — hard to trigger in unit tests
+            _LOGGER.warning(
+                "Dashboard config has no views to save"
+            )  # pragma: no cover reason=error path for empty views — hard to trigger in unit tests
             raise DashboardError(  # pragma: no cover reason=paired with warning above — error path for empty views
                 "Dashboard config has no views to save",
                 {"error_type": "no_views_to_save"},
@@ -628,7 +634,9 @@ async def save_yaml_fallback(
                 storage_method="yaml_fallback",
             )
 
-        if not isinstance(dashboard_config["views"], list):  # pragma: no cover reason=validation branch — config validated earlier, this path only reached if validation bypassed
+        if not isinstance(
+            dashboard_config["views"], list
+        ):  # pragma: no cover reason=validation branch — config validated earlier, this path only reached if validation bypassed
             _LOGGER.error("Dashboard 'views' must be a list")
             return DashboardImportResult(
                 success=False,
@@ -651,7 +659,9 @@ async def save_yaml_fallback(
             )
 
         for i, view in enumerate(dashboard_config["views"]):
-            if not isinstance(view, dict):  # pragma: no cover reason=validation branch — view type validated earlier, this path only reached if validation bypassed
+            if not isinstance(
+                view, dict
+            ):  # pragma: no cover reason=validation branch — view type validated earlier, this path only reached if validation bypassed
                 _LOGGER.error("Dashboard view at index %d must be a dict", i)
                 return DashboardImportResult(
                     success=False,

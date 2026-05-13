@@ -31,7 +31,9 @@ class TripManagerState:
     storage: Optional[YamlTripStorage] = None
     emhass_adapter: Optional[EMHASSAdapter] = None
     vehicle_controller: Any = None
-    sensor_callbacks: SensorCallbackRegistry = field(default_factory=SensorCallbackRegistry)
+    sensor_callbacks: SensorCallbackRegistry = field(
+        default_factory=SensorCallbackRegistry
+    )
 
     # ── Sub-component references ─────────────────────────────────
     # Populated by TripManager.__init__ after all sub-components are created.

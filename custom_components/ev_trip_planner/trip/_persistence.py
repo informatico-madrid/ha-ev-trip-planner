@@ -142,7 +142,9 @@ class TripPersistence:
             state.punctual_trips = {}
             state.last_update = None
 
-    async def _load_trips_yaml(self, storage_key: str) -> None:  # pragma: no cover reason=ha-filesystem-only
+    async def _load_trips_yaml(
+        self, storage_key: str
+    ) -> None:  # pragma: no cover reason=ha-filesystem-only
         """Carga los viajes desde un archivo YAML (fallback)."""
         state = self._state
         try:

@@ -118,6 +118,8 @@ def auto_select_sensor(
         user_input = {**user_input, sensor_key: selected}
         _LOGGER.info("Auto-selected %s=%s", sensor_key, selected)
     else:
-        _LOGGER.error("No entities available for auto-selection from %s", domain_prefixes)
+        _LOGGER.error(
+            "No entities available for auto-selection from %s", domain_prefixes
+        )
 
     return user_input

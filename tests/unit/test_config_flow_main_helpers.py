@@ -67,7 +67,9 @@ class TestReadEmhassConfig:
     def test_directory_path_with_config_json(self, tmp_path):
         """Directory path with config.json → reads it (line 36 path)."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         result = _read_emhass_config(str(tmp_path))
         assert result is not None
         assert result["end_timesteps_of_each_deferrable_load"] == [168]
@@ -364,7 +366,9 @@ class TestValidateEmhassInput:
     def test_validate_emhass_config_logging(self, tmp_path):
         """Lines 90: With EMHASS config → logs info."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         ctx, validate, _, _ = self._make_ctx(
             user_input={"planning_horizon_days": 7, "max_deferrable_loads": 20},
             emhass_config={"end_timesteps_of_each_deferrable_load": [168]},
@@ -376,7 +380,9 @@ class TestValidateEmhassInput:
     def test_validate_planning_horizon_exceeds_emhass(self, tmp_path):
         """Lines 104-110: User horizon > EMHASS horizon -> logs warning."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [48]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [48]})
+        )
         ctx, validate, _, _ = self._make_ctx(
             user_input={"planning_horizon_days": 10, "max_deferrable_loads": 20},
         )
@@ -387,7 +393,9 @@ class TestValidateEmhassInput:
     def test_validate_planning_sensor_horizon_exceeded(self, tmp_path):
         """Lines 125-132: Planning horizon > sensor value -> logs warning."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         ctx, validate, hass, _ = self._make_ctx(
             user_input={
                 "planning_horizon_days": 5,
@@ -405,7 +413,9 @@ class TestValidateEmhassInput:
     def test_validate_planning_sensor_good_value(self, tmp_path):
         """Lines 112-124: Valid planning sensor with parseable state."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         ctx, validate, hass, _ = self._make_ctx(
             user_input={
                 "planning_horizon_days": 5,
@@ -425,7 +435,9 @@ class TestValidateEmhassInput:
         from custom_components.ev_trip_planner.const import CONF_PLANNING_SENSOR
 
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         ctx, validate, hass, _ = self._make_ctx(
             user_input={
                 "planning_horizon_days": 5,
@@ -447,7 +459,9 @@ class TestValidateEmhassInput:
         from custom_components.ev_trip_planner.const import CONF_PLANNING_SENSOR
 
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         ctx, validate, hass, _ = self._make_ctx(
             user_input={
                 "planning_horizon_days": 5,
@@ -464,7 +478,12 @@ class TestValidateEmhassInput:
         """Lines 151-157: User loads > EMHASS config → logs warning."""
         config_file = tmp_path / "config.json"
         config_file.write_text(
-            json.dumps({"number_of_deferrable_loads": 10, "end_timesteps_of_each_deferrable_load": [168]})
+            json.dumps(
+                {
+                    "number_of_deferrable_loads": 10,
+                    "end_timesteps_of_each_deferrable_load": [168],
+                }
+            )
         )
         ctx, validate, _, _ = self._make_ctx(
             user_input={"planning_horizon_days": 5, "max_deferrable_loads": 50},
@@ -476,7 +495,9 @@ class TestValidateEmhassInput:
     def test_validate_logging_at_end(self, tmp_path):
         """Lines 163-180: Logging at end of validation."""
         config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
         ctx, validate, _, _ = self._make_ctx(
             user_input={
                 "planning_horizon_days": 5,

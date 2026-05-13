@@ -116,7 +116,9 @@ class TestSOCHelpers:
     def test_get_trip_time_with_valid_tipo(self):
         """trip with valid tipo -> returns trip time."""
         sm = SOCHelpers(_make_state())
-        result = sm._get_trip_time({"tipo": "recurrente", "dia_semana": "lunes", "hora": "14:00"})
+        result = sm._get_trip_time(
+            {"tipo": "recurrente", "dia_semana": "lunes", "hora": "14:00"}
+        )
         assert result is not None
 
     def test_get_trip_time_with_tipo_but_no_time(self):
@@ -171,6 +173,7 @@ class TestSOCHelpers:
     def test_is_trip_today_true(self):
         """_is_trip_today returns True for today's trip."""
         from datetime import date
+
         sm = SOCHelpers(_make_state())
         result = sm._is_trip_today(
             {"tipo": "recurring", "dia_semana": date.today().strftime("%A").lower()},
@@ -352,7 +355,9 @@ class TestSOCQuery:
         """_get_trip_time with tipo but no valid time -> returns None (line 219)."""
         state = _make_state()
         sq = SOCQuery(state)
-        result = sq._get_trip_time({"tipo": "recurrente"})  # no hora/dia_semana/datetime
+        result = sq._get_trip_time(
+            {"tipo": "recurrente"}
+        )  # no hora/dia_semana/datetime
         assert result is None
 
     @pytest.mark.asyncio
@@ -368,7 +373,12 @@ class TestSOCQuery:
         """_get_kwh_needed_today includes pending punctual trips (lines 119-122)."""
         state = _make_state()
         state.punctual_trips = {
-            "pun_1": {"id": "pun_1", "estado": "pendiente", "tipo": "puntual", "kwh": 5.0}
+            "pun_1": {
+                "id": "pun_1",
+                "estado": "pendiente",
+                "tipo": "puntual",
+                "kwh": 5.0,
+            }
         }
         state._soc = MagicMock()
         state._soc._is_trip_today = MagicMock(return_value=True)

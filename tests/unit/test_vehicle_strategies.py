@@ -701,12 +701,12 @@ class TestVehicleController:
         hass_mock.states.get = MagicMock(return_value=MagicMock(state="on"))
         # Set up with presence config including charging_sensor
         config = {"charging_sensor": "binary_sensor.plugged"}
-        controller = VehicleController(hass_mock, "test_vehicle", presence_config=config)
+        controller = VehicleController(
+            hass_mock, "test_vehicle", presence_config=config
+        )
         # Set a mock presence monitor that reports ready
         monitor = MagicMock()
-        monitor.async_check_charging_readiness = AsyncMock(
-            return_value=(True, None)
-        )
+        monitor.async_check_charging_readiness = AsyncMock(return_value=(True, None))
         controller._presence_monitor = monitor
         result = await controller.async_check_presence_status()
         assert result == (True, None)
@@ -727,9 +727,7 @@ class TestVehicleController:
         controller._retry_state.add_attempt()
         # Presence monitor reports ready
         monitor = MagicMock()
-        monitor.async_check_charging_readiness = AsyncMock(
-            return_value=(True, None)
-        )
+        monitor.async_check_charging_readiness = AsyncMock(return_value=(True, None))
         controller._presence_monitor = monitor
         result = await controller.async_activate_charging()
         assert result is False
@@ -739,7 +737,9 @@ class TestVehicleController:
         """_update_charging_state_after_deactivation with sensor set hits lines 290-291."""
         hass_mock = MagicMock()
         config = {"charging_sensor": "binary_sensor.plugged"}
-        controller = VehicleController(hass_mock, "test_vehicle", presence_config=config)
+        controller = VehicleController(
+            hass_mock, "test_vehicle", presence_config=config
+        )
         controller._charging_sensor = MagicMock(state="off")
         controller._last_charging_state = None
         strategy = MagicMock()

@@ -171,7 +171,9 @@ class TestTripSensor:
 
         coordinator = make_test_coordinator(
             {
-                "recurring_trips": {"trip_123": {"id": "trip_123", "tipo": "recurrente"}},
+                "recurring_trips": {
+                    "trip_123": {"id": "trip_123", "tipo": "recurrente"}
+                },
                 "punctual_trips": {},
                 "kwh_today": 0.0,
                 "hours_today": 0.0,

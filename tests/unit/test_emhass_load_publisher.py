@@ -144,7 +144,12 @@ class TestLoadPublisherPublish:
         """kwh=0 → total_hours=0 → power_watts=0.0 (line 166)."""
         pub, _ = _make_publisher()
         future = datetime.now(timezone.utc) + timedelta(hours=10)
-        trip = {"id": "zero_kwh_trip", "kwh": 0.0, "datetime": future, "status": "active"}
+        trip = {
+            "id": "zero_kwh_trip",
+            "kwh": 0.0,
+            "datetime": future,
+            "status": "active",
+        }
         result = await pub.publish(trip)
         assert result is True
 
@@ -205,13 +210,17 @@ class TestLoadPublisherDeadline:
     def test_deadline_recurring_es(self):
         """Recurring trip with Spanish day name."""
         pub, _ = _make_publisher()
-        result = pub._calculate_deadline({"tipo": "recurrente", "dia_semana": "lunes", "hora": "09:00"})
+        result = pub._calculate_deadline(
+            {"tipo": "recurrente", "dia_semana": "lunes", "hora": "09:00"}
+        )
         assert result is not None
 
     def test_deadline_recurring_en(self):
         """Recurring trip with English day name."""
         pub, _ = _make_publisher()
-        result = pub._calculate_deadline({"tipo": "recurring", "day": "monday", "time": "09:00"})
+        result = pub._calculate_deadline(
+            {"tipo": "recurring", "day": "monday", "time": "09:00"}
+        )
         assert result is not None
 
     def test_deadline_no_data(self):
@@ -223,20 +232,26 @@ class TestLoadPublisherDeadline:
     def test_deadline_numeric_day(self):
         """Recurring trip with numeric day (1=Monday)."""
         pub, _ = _make_publisher()
-        result = pub._calculate_deadline({"tipo": "recurrente", "day": "1", "time": "14:00"})
+        result = pub._calculate_deadline(
+            {"tipo": "recurrente", "day": "1", "time": "14:00"}
+        )
         assert result is not None
 
     def test_deadline_invalid_day(self):
         """Invalid day name → returns None."""
         pub, _ = _make_publisher()
-        result = pub._calculate_deadline({"tipo": "recurrente", "dia_semana": "funday", "hora": "09:00"})
+        result = pub._calculate_deadline(
+            {"tipo": "recurrente", "dia_semana": "funday", "hora": "09:00"}
+        )
         assert result is None
 
     def test_deadline_recurring_same_day_today(self):
         """Recurring trip targeting today's day → delta_days=7 (line 261)."""
         pub, _ = _make_publisher()
         # Use Wednesday (today's weekday) with Spanish day name
-        result = pub._calculate_deadline({"tipo": "recurrente", "dia_semana": "miércoles", "hora": "09:00"})
+        result = pub._calculate_deadline(
+            {"tipo": "recurrente", "dia_semana": "miércoles", "hora": "09:00"}
+        )
         assert result is not None
         # delta_days=7 → deadline is next week (7 days from today's time)
         now = datetime.now(timezone.utc)

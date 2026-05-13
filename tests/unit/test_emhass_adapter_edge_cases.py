@@ -66,7 +66,9 @@ class TestAdapterExceptionHandlers:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_remove_deferrable_load_handles_exception(self, mock_hass, mock_entry):
+    async def test_remove_deferrable_load_handles_exception(
+        self, mock_hass, mock_entry
+    ):
         """Lines 132-134: Exception in load_publisher.remove."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         adapter._load_publisher.remove = AsyncMock(
@@ -76,7 +78,9 @@ class TestAdapterExceptionHandlers:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_update_deferrable_load_handles_exception(self, mock_hass, mock_entry):
+    async def test_update_deferrable_load_handles_exception(
+        self, mock_hass, mock_entry
+    ):
         """Lines 140-142: Exception in load_publisher.update."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         adapter._load_publisher.update = AsyncMock(
@@ -303,7 +307,9 @@ class TestCachePopulationException:
     """Test cache population exception handler."""
 
     @pytest.mark.asyncio
-    async def test_cache_populate_failure_does_not_block_publish(self, mock_hass, mock_entry):
+    async def test_cache_populate_failure_does_not_block_publish(
+        self, mock_hass, mock_entry
+    ):
         """Lines 488-490: Exception during cache population -> caught, publish proceeds."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
 

@@ -337,13 +337,9 @@ class TestAsyncRemoveTripEmhassSensor:
             "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
             MagicMock(return_value=[mock_reg_entry]),
         )
-        result = await async_remove_trip_emhass_sensor(
-            hass, "test_entry", "v1", "t1"
-        )
+        result = await async_remove_trip_emhass_sensor(hass, "test_entry", "v1", "t1")
         assert result is True
-        mock_registry.async_remove.assert_called_once_with(
-            "sensor.emhass_trip_v1_t1"
-        )
+        mock_registry.async_remove.assert_called_once_with("sensor.emhass_trip_v1_t1")
 
     @pytest.mark.asyncio
     async def test_entity_not_found_no_match(self, monkeypatch):
@@ -361,9 +357,7 @@ class TestAsyncRemoveTripEmhassSensor:
             "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
             MagicMock(return_value=[mock_reg_entry]),
         )
-        result = await async_remove_trip_emhass_sensor(
-            hass, "test_entry", "v1", "t1"
-        )
+        result = await async_remove_trip_emhass_sensor(hass, "test_entry", "v1", "t1")
         assert result is False
 
     @pytest.mark.asyncio
@@ -378,7 +372,5 @@ class TestAsyncRemoveTripEmhassSensor:
             "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
             MagicMock(return_value=[]),
         )
-        result = await async_remove_trip_emhass_sensor(
-            hass, "test_entry", "v1", "t1"
-        )
+        result = await async_remove_trip_emhass_sensor(hass, "test_entry", "v1", "t1")
         assert result is False

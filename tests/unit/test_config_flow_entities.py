@@ -96,7 +96,9 @@ class TestAutoSelectSensor:
         """Sensor already in user_input → returns unchanged (line 108)."""
         user_input = {"charging_sensor": "binary_sensor.motion"}
         hass = MagicMock()
-        result = auto_select_sensor(hass, ["binary_sensor."], user_input, "charging_sensor")
+        result = auto_select_sensor(
+            hass, ["binary_sensor."], user_input, "charging_sensor"
+        )
         assert result == user_input
 
     def test_auto_select_first_entity(self):

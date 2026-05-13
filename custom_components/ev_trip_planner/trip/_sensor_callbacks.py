@@ -92,9 +92,7 @@ def _handle_trip_removed(
     if trip_id is None:
         _LOGGER.warning("trip_id required for trip_removed event")
         return
-    asyncio.ensure_future(
-        sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id)
-    )
+    asyncio.ensure_future(sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id))
 
 
 @_register("trip_sensor_removed_emhass")
@@ -177,9 +175,7 @@ def _emit_remove_emhass(
     from .. import sensor as _sensor_mod
 
     asyncio.ensure_future(
-        _sensor_mod.async_remove_trip_emhass_sensor(
-            hass, entry_id, vehicle_id, trip_id
-        )
+        _sensor_mod.async_remove_trip_emhass_sensor(hass, entry_id, vehicle_id, trip_id)
     )
 
 

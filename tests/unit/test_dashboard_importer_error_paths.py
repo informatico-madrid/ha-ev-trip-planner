@@ -101,7 +101,10 @@ class TestImportDashboardStorageApiBooleanTrue:
 
         with patch(
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
-            return_value={"title": "T", "views": [{"path": "v", "title": "V", "cards": []}]},
+            return_value={
+                "title": "T",
+                "views": [{"path": "v", "title": "V", "cards": []}],
+            },
         ):
             with patch(
                 "custom_components.ev_trip_planner.dashboard.importer._save_lovelace",
@@ -132,7 +135,10 @@ class TestImportDashboardStorageError:
 
         with patch(
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
-            return_value={"title": "T", "views": [{"path": "v", "title": "V", "cards": []}]},
+            return_value={
+                "title": "T",
+                "views": [{"path": "v", "title": "V", "cards": []}],
+            },
         ):
             with patch(
                 "custom_components.ev_trip_planner.dashboard.importer._save_lovelace",
@@ -158,7 +164,10 @@ class TestImportDashboardYamlFallbackBoolean:
 
         with patch(
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
-            return_value={"title": "T", "views": [{"path": "v", "title": "V", "cards": []}]},
+            return_value={
+                "title": "T",
+                "views": [{"path": "v", "title": "V", "cards": []}],
+            },
         ):
             # Return False from _save_lovelace to trigger the YAML fallback path
             with patch(
@@ -203,7 +212,10 @@ class TestImportDashboardExceptionPaths:
 
         with patch(
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
-            return_value={"title": "T", "views": [{"path": "v", "title": "V", "cards": []}]},
+            return_value={
+                "title": "T",
+                "views": [{"path": "v", "title": "V", "cards": []}],
+            },
         ):
             # Return False from _save_lovelace to trigger the YAML fallback path
             with patch(
@@ -229,7 +241,10 @@ class TestImportDashboardExceptionPaths:
 
         with patch(
             "custom_components.ev_trip_planner.dashboard.importer._load_template",
-            return_value={"title": "T", "views": [{"path": "v", "title": "V", "cards": []}]},
+            return_value={
+                "title": "T",
+                "views": [{"path": "v", "title": "V", "cards": []}],
+            },
         ):
             with patch(
                 "custom_components.ev_trip_planner.dashboard.importer._save_lovelace",
@@ -259,6 +274,7 @@ class TestAwaitExecutorResult:
     @pytest.mark.asyncio
     async def test_await_coroutine_returns_resolved(self) -> None:
         """When result is a coroutine, should resolve it."""
+
         async def coro() -> str:
             return "coro_result"
 

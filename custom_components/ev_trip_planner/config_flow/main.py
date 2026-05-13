@@ -397,7 +397,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             # Validate before accessing vehicle_data (avoids context init on error paths)
             vehicle_data = self._get_vehicle_data()
             ctx = _emhass_helpers._EmhassCtx(
-                user_input, self.hass, vehicle_data, "Configure EMHASS (optional).",
+                user_input,
+                self.hass,
+                vehicle_data,
+                "Configure EMHASS (optional).",
             )
             error = _emhass_helpers.validate_emhass_input(ctx, emhass_config_path)
             if error:
@@ -405,7 +408,9 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                     step_id="emhass",
                     data_schema=STEP_EMHASS_SCHEMA,
                     errors={"base": error},
-                    description_placeholders={"description": "Configure EMHASS (optional)."},
+                    description_placeholders={
+                        "description": "Configure EMHASS (optional)."
+                    },
                 )  # type: ignore[return-value]
             return await self.async_step_presence(None)
 
@@ -459,7 +464,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 "Config flow step 4 (presence): no charging_sensor selected, auto-selecting first available"
             )
             user_input = _entities.auto_select_sensor(
-                self.hass, ["binary_sensor", "input_boolean"], user_input, CONF_CHARGING_SENSOR
+                self.hass,
+                ["binary_sensor", "input_boolean"],
+                user_input,
+                CONF_CHARGING_SENSOR,
             )
             charging_sensor = user_input.get(CONF_CHARGING_SENSOR)
             if charging_sensor:
@@ -549,7 +557,9 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         if user_input is None:
             # Use entity registry to get all notify entities
             # This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
-            _entities.scan_notify_entities(self.hass)  # Available entities not yet wired to form
+            _entities.scan_notify_entities(
+                self.hass
+            )  # Available entities not yet wired to form
 
             return self.async_show_form(
                 step_id="notifications",

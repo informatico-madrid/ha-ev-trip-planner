@@ -112,5 +112,6 @@ DAYS_OF_WEEK = [
 
 class ConfigEntryProtocol(Protocol):
     """Protocol for Home Assistant config entries."""
+
     entry_id: str
     data: dict[str, Any]

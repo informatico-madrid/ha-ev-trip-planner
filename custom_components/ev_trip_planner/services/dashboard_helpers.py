@@ -324,7 +324,9 @@ async def create_dashboard_input_helpers(
 
 
 def _register_static_paths_legacy(
-    hass: HomeAssistant, static_paths: list[Any], context_label: str,
+    hass: HomeAssistant,
+    static_paths: list[Any],
+    context_label: str,
 ) -> None:
     """Register static paths using the legacy HA register_static_path API.
 
@@ -357,9 +359,7 @@ async def async_register_static_paths(
         from homeassistant.components.http import StaticPathConfig
 
         HAS_STATIC_PATH_CONFIG = True
-    except (
-        ImportError
-    ):  # pragma: no cover reason=HA version dependency — static_path_config only available in newer HA versions, tested via integration
+    except ImportError:  # pragma: no cover reason=HA version dependency — static_path_config only available in newer HA versions, tested via integration
         HAS_STATIC_PATH_CONFIG = False
 
     component_dir = Path(__file__).parent.parent
@@ -412,7 +412,11 @@ async def async_register_static_paths(
             "Registered %d static path(s) for EV Trip Planner panel (early)",
             len(static_paths),
         )
-    except (TypeError, AttributeError, RuntimeError):  # pragma: no cover reason=HA version compatibility fallback — triggered when async registration method fails with type/attribute/runtime error
+    except (
+        TypeError,
+        AttributeError,
+        RuntimeError,
+    ):  # pragma: no cover reason=HA version compatibility fallback — triggered when async registration method fails with type/attribute/runtime error
         _register_static_paths_legacy(hass, static_paths, "early")
 
 

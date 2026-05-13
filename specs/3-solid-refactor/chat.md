@@ -8109,3 +8109,377 @@ El executor sigue modificando archivos de tests (22 archivos modificados). El tr
 | Ciclo actual | **100%** | **1801** | **0** |
 
 **Próximo ciclo en 3 min.**
+
+### [2026-05-13 19:46:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Estado: Executor trabajando menos activamente
+
+El executor ha reducido su actividad:
+- Solo 1 archivo modificado en git status
+- Coverage: 100% estable
+- Tests: 1802 passed, 0 failed
+
+## Estabilidad del quality gate:
+
+| Ciclo | Coverage | Tests | Failed |
+|-------|----------|-------|--------|
+| Actual | **100%** | **1802** | **0** |
+
+El executor parece estar en una fase de estabilización después del trabajo intenso en task 3.03.
+
+## Progreso Global:
+
+| Métrica | Estado |
+|---------|--------|
+| Coverage | ✅ 100% (4827 stmts, 0 miss) |
+| Tests | ✅ 1802 passed, 0 failed |
+| Tasks completadas | 137/165 |
+
+## Siguiente paso:
+
+El executor probablemente continuará con tareas V_final_a/b/c y VE0-VE3 E2E verification.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 19:51:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Estado: Estable
+
+El executor continúa trabajando de forma estable:
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Warnings: 5
+
+## Estabilidad confirmada:
+
+| Métrica | Valor |
+|---------|-------|
+| Coverage | ✅ 100% |
+| Tests | ✅ 1802 passed, 0 failed |
+| Warnings | 5 |
+| Tareas completadas | 137/165 |
+
+## Siguiente paso:
+
+El executor probablemente continuará con las tareas V_final_a/b/c y VE0-VE3.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 19:56:00] external-reviewer (cycle — STABLE: 100% coverage, 138/165 tasks)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Progreso: 138/165 tasks completadas (+1)
+
+El executor marcó 1 tarea adicional como completa:
+- Tareas completadas: 138/165 (+1 desde ciclo anterior)
+
+## Estado:
+
+| Métrica | Valor |
+|---------|-------|
+| Coverage | ✅ 100% (4827 stmts, 0 miss) |
+| Tests | ✅ 1802 passed, 0 failed |
+| Tasks | ✅ 138/165 completadas |
+| Warnings | 5 |
+
+## Executor actividad reducida:
+
+El executor está trabajando lentamente. Solo 1 tarea adicional marcada en los últimos ciclos. El trabajo probablemente se está enfocando en las tareas finales de calidad (V_final_a/b/c, VE0-VE3).
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 20:00:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Estado: Estable, tareas 138/165
+
+El executor está en fase de estabilización:
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Tasks: 138/165 (sin cambios)
+
+## Sin cambios en el último ciclo:
+
+El executor no ha marcado nuevas tareas como completadas. El trabajo probablemente está en tareas de calidad gate (V_final_a/b/c).
+
+## Pragma audit finalizado:
+
+Los 36 pragmas en el proyecto son todos legítimos (HA lifecycle + storage I/O). El executor completó el trabajo de task 3.03 y está trabajando en las tareas finales de verificación.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 20:05:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Estado: Estable, tareas 138/165
+
+El executor está en fase de estabilización:
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Tasks: 138/165 (sin cambios)
+
+## Sin cambios en el último ciclo:
+
+El executor no ha marcado nuevas tareas como completadas. El trabajo probablemente está en tareas de calidad gate (V_final_a/b/c).
+
+## Pragma audit finalizado:
+
+Los 36 pragmas en el proyecto son todos legítimos (HA lifecycle + storage I/O). El executor completó el trabajo de task 3.03 y está trabajando en las tareas finales de verificación.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 20:10:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Estado: Estable, tareas 138/165
+
+El executor está en fase de estabilización:
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Tasks: 138/165 (sin cambios)
+
+## Sin cambios en el último ciclo:
+
+El executor no ha marcado nuevas tareas como completadas. El trabajo probablemente está en tareas de calidad gate (V_final_a/b/c).
+
+## Pragma audit finalizado:
+
+Los 36 pragmas en el proyecto son todos legítimos (HA lifecycle + storage I/O). El executor completó el trabajo de task 3.03 y está trabajando en las tareas finales de verificación.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 20:15:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed**
+
+## Estado: Estable, tareas 138/165
+
+El executor está en fase de estabilización:
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Tasks: 138/165 (sin cambios)
+
+## Sin cambios en el último ciclo:
+
+El executor no ha marcado nuevas tareas como completadas. El trabajo probablemente está en tareas de calidad gate (V_final_a/b/c).
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 20:17:00] external-reviewer (cycle — STABLE: 100%, 1802 passed, 0 failed)
+## Estado: Estable
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed, 5 warnings
+- Tareas: 138/165 completadas
+- Sin cambios desde ciclo anterior
+
+## Estabilidad del quality gate:
+- 100% coverage sostenido por múltiples ciclos
+- 0 test failures
+- Pragma audit: 36 pragmas verificados legítimos
+
+## Sin actividad del executor en este ciclo
+
+## Siguiente paso:
+- Continuar monitoreo hasta completar spec completo
+- Pendiente: V_final_a/b/c, VE0-VE3
+
+### [2026-05-13 20:23:00] external-reviewer (cycle 2 — SIN CAMBIOS)
+## Estado: Estable
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed, 5 warnings
+- Tareas: 138/165 completadas
+
+## Sin actividad del executor:
+- Sin cambios en código fuente
+- Executor en modo reducido
+
+## Estabilidad del quality gate:
+- Coverage 100% sostenido
+- 0 failures en tests
+
+## Pragma audit finalizado:
+- 36 pragmas verificados como legítimos (HA lifecycle + storage I/O)
+
+## Siguiente paso:
+- Continuar monitoreo
+- Tareas pendientes: V_final_a/b/c, VE0-VE3
+
+### [2026-05-13 20:29:00] external-reviewer (cycle 3 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Tareas: 138/165
+
+## Sin cambios en el último ciclo:
+- Executor actividad reducida
+- Pragma audit finalizado
+
+## ✅ Quality gate estable
+
+### [2026-05-13 20:34:00] external-reviewer (cycle 4 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+- Tareas: 138/165
+
+## Continuando monitoreo autonomouso
+
+### [2026-05-13 20:38:00] external-reviewer (cycle 5 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% (4827 stmts, 0 miss)
+- Tests: 1802 passed, 0 failed
+- Tareas: 138/165
+
+## Monitoreo autónomo continuando
+
+### [2026-05-13 20:43:00] external-reviewer (cycle 6 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+- Tareas: 138/165
+
+## Monitoreo autonomouso continuando
+
+### [2026-05-13 20:48:00] external-reviewer (cycle 7 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+
+## Monitoreo autonomouso continuando
+
+### [2026-05-13 20:53:00] external-reviewer (cycle 8 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+
+## Monitoreo autonomouso continuando
+
+### [2026-05-13 20:59:00] external-reviewer (cycle 9 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+
+## Monitoreo autonomouso continuando
+
+### [2026-05-13 21:04:00] external-reviewer (cycle 10 — ESTABLE)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+
+## Monitoreo autonomouso continuando
+### [2026-05-13 04:00:00] Coordinator → External-Reviewer
+**Task**: T138 — V_final_c [VERIFY] V6 — AC checklist programmatic verification
+**Signal**: CONTINUE
+
+Delegating task 138 to qa-engineer:
+- Do: For each AC in requirements.md, run verification command and record PASS/FAIL
+- Files: N/A (verification task)
+- Verify: All AC verifications PASS
+
+### [2026-05-13 21:10:00] external-reviewer (cycle 11 — ESTABLE + tasks.md modificado)
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+## Estado: Estable
+- Coverage: 100% mantenido
+- Tests: 1802 passed, 0 failed
+- tasks.md modificado — executor puede estar trabajando
+
+## Monitoreo autonomouso continuando
+### [2026-05-13 21:30:00] Coordinator → External-Reviewer
+**Task**: T135 — V_final_a [VERIFY] V4 — Full local CI
+**Signal**: CONTINUE
+
+Delegating task 135 to qa-engineer:
+- Do: Run make quality-gate-ci && make test-cover && make e2e && make e2e-soc && make import-check && make typecheck && make lint one by one, fix any issues
+- Files: N/A (verification task)
+- Verify: All exit 0
+
+### [2026-05-13 21:16:00] external-reviewer → Human — RUTAS ANTIGUAS DETECTADAS EN TAREAS
+
+## ⚠️ HALLAZGO CRÍTICO: Rutas referenciadas son de ANTES del refactor
+
+### Problema detectado:
+El usuario pide verificar si las rutas en tareas pendientes referencian código válido post-refactor o son rutas antiguas que confunden al agente.
+
+### Análisis de AC-13.1:
+- **Tarea (línea 1650)**: `grep -A 1 'previous_arrival = _ensure_aware' custom_components/ev_trip_planner/calculations/windows.py`
+- **Verificación real**: La variable en windows.py actual es `previous_departure`, NO `previous_arrival`
+- **Código actual línea 259**: `window_start = previous_departure + timedelta(hours=return_buffer_hours)`
+- **Conclusión**: El grep en AC-13.1 busca una variable que ya NO EXISTE (era de antes del refactor)
+
+### Archivos verificados:
+1. ✅ `test_single_trip_hora_regreso_past.py` — existe (4851 bytes, May 12 20:14)
+2. ✅ `calculations/windows.py` — existe (12481 bytes, May 11 06:22)
+3. ✅ `test_ventana_horas_invariant.py` — existe
+4. ✅ `test_previous_arrival_invariant.py` — existe
+5. ✅ `_ensure_aware` en `_helpers.py` — existe y se importa correctamente
+
+### Problema:
+- AC-13.1 busca `previous_arrival` pero post-refactor la variable se llama `previous_departure`
+- El grep va a fallar y confundir al agente
+- La semántica del bug puede haber cambiado con el rename
+
+### Recomendación:
+Corregir AC-13.1 en tasks.md para usar el nombre correcto de variable post-refactor:
+- Cambiar: `grep -A 1 'previous_arrival = _ensure_aware'`
+- A: `grep -A 1 'previous_departure = _ensure_aware'`
+
+El agente executor podría malinterpretar las tareas si las rutas son incorrectas.
+
+## ⚠️ MÚLTIPLES RUTAS INCORRECTAS DETECTADAS
+
+### Resumen de rutas incorrectas:
+
+| Tarea | Ruta en tasks.md | Estado real |
+|-------|------------------|-------------|
+| AC-13.1 (V_final_c) | `previous_arrival = _ensure_aware` | ❌ INCORRECTO - la variable se llama `previous_departure` post-refactor |
+| AC-4.7 (3.15) | solid_metrics.py en scripts/ | ❌ NO EXISTE en scripts/ — está en `.claude/skills/quality-gate/scripts/` |
+| 3.8 | scripts/check_nesting.py | ❌ NO EXISTE — debe crearse |
+| AC-1.6 (3.15) | emhass/_cache_entry_builder.py | ❌ NO EXISTE — el código puede estar en otro lugar |
+| 3.12 | dashboard/_paths.py | ❌ Verificar si existe |
+
+### El agente executor trabajando con estas tareas va a:
+1. Buscar archivos que no existen
+2. Ejecutar greps que no encuentran nada
+3. Confundirse sobre el estado real del proyecto
+
+### Recomendación urgente:
+Corregir todas las rutas en tasks.md antes de que el executor intente ejecutar las tareas V_final_* y 3.*

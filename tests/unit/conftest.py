@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 
 
-
 from custom_components.ev_trip_planner.trip._types import TripManagerConfig
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -858,8 +857,9 @@ def trip_manager_with_entry_id(mock_hass, mock_store):
     from custom_components.ev_trip_planner.trip_manager import TripManager
 
     return TripManager(
-        mock_hass, "test_vehicle",
-        TripManagerConfig(entry_id="test_entry_123", storage=mock_store)
+        mock_hass,
+        "test_vehicle",
+        TripManagerConfig(entry_id="test_entry_123", storage=mock_store),
     )
 
 

@@ -22,8 +22,9 @@ from custom_components.ev_trip_planner.trip.state import TripManagerState
 _NO_ADAPTER = object()
 
 
-def _make_tm(recurring=None, punctual=None, entry_id="test_entry",
-             emhass_adapter=_NO_ADAPTER):
+def _make_tm(
+    recurring=None, punctual=None, entry_id="test_entry", emhass_adapter=_NO_ADAPTER
+):
     """Build a minimal TripManager with proper state for CRUD tests.
 
     Creates TripManagerState and all sub-components manually (skipping __init__)
@@ -643,7 +644,9 @@ class TestPersistenceHAStoreFallback:
         storage.async_load = AsyncMock(
             return_value={
                 "trips": {},
-                "recurring_trips": {"r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}},
+                "recurring_trips": {
+                    "r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}
+                },
                 "punctual_trips": {},
             }
         )

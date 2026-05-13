@@ -130,7 +130,9 @@ class TripLifecycle:
                 state.vehicle_id,
             )
 
-    async def async_update_trip_sensor(self, trip_id: str) -> None:  # pragma: no cover reason=ha-entity-registry
+    async def async_update_trip_sensor(
+        self, trip_id: str
+    ) -> None:  # pragma: no cover reason=ha-entity-registry
         """Update the Home Assistant sensor entity for an updated trip."""
         state = self._state
         try:

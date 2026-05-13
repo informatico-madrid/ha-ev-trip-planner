@@ -169,7 +169,15 @@ class TestTripManagerMethods:
         tm._state.recurring_trips = {}
         tm._state.punctual_trips = {}
         tm._state._trips = {}
-        stored = {"data": {"trips": {}, "recurring_trips": {"r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}}, "punctual_trips": {}}}
+        stored = {
+            "data": {
+                "trips": {},
+                "recurring_trips": {
+                    "r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}
+                },
+                "punctual_trips": {},
+            }
+        }
         tm._state.storage.async_load = AsyncMock(return_value=stored)
         await tm._persistence._load_trips()
         assert "r1" in tm._state.recurring_trips
@@ -407,9 +415,7 @@ class TestTripNavigatorNextTrip:
     async def test_async_get_next_trip_skips_inactive_recurring(self):
         """Inactive recurring trips are skipped in async_get_next_trip."""
         tm = _make_tm()
-        tm._state.recurring_trips = {
-            "rec_1": {"id": "rec_1", "activo": False}
-        }
+        tm._state.recurring_trips = {"rec_1": {"id": "rec_1", "activo": False}}
         tm._state.punctual_trips = {}
         result = await tm._navigator.async_get_next_trip()
         assert result is None

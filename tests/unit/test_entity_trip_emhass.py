@@ -56,7 +56,10 @@ def _make_coordinator():
     tm._navigator.async_get_next_trip = AsyncMock(return_value=None)
     config = CoordinatorConfig(emhass_adapter=None)
     coord = TripPlannerCoordinator(
-        hass=hass, entry=entry, trip_manager=tm, config=config,
+        hass=hass,
+        entry=entry,
+        trip_manager=tm,
+        config=config,
     )
     return coord
 
@@ -72,6 +75,7 @@ class TestTripEmhassSensorExists:
         from custom_components.ev_trip_planner.sensor.entity_trip_emhass import (
             TripEmhassSensor,
         )
+
         assert TripEmhassSensor is not None
 
     def test_has_native_value_property(self):
@@ -195,6 +199,7 @@ class TestTripEmhassSensorDeviceInfo:
         assert info is not None
         assert isinstance(info, dict)
         from custom_components.ev_trip_planner.const import DOMAIN
+
         assert DOMAIN in str(info.get("identifiers", set()))
         assert "my_vehicle" in str(info.get("identifiers", set()))
 

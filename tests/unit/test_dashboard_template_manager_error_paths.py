@@ -84,9 +84,9 @@ class TestValidateConfigErrorDetails:
             validate_config(config, "v1")
         assert "dict" in str(exc_info.value).lower()
 
-    def test_vehicle_id_in_view_path_no_warning(self, caplog: pytest.LogCaptureFixture) -> (
-        None
-    ):
+    def test_vehicle_id_in_view_path_no_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """When vehicle_id is in view path, no warning."""
         caplog.set_level("WARNING")
         config: DashboardConfig = {
@@ -94,11 +94,13 @@ class TestValidateConfigErrorDetails:
             "views": [{"path": "vehicle/v1/trips", "title": "V", "cards": []}],
         }
         validate_config(config, "v1")
-        assert not any("not found in any view path" in r.message for r in caplog.records)
+        assert not any(
+            "not found in any view path" in r.message for r in caplog.records
+        )
 
-    def test_vehicle_id_not_in_view_path_warns(self, caplog: pytest.LogCaptureFixture) -> (
-        None
-    ):
+    def test_vehicle_id_not_in_view_path_warns(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """When vehicle_id is NOT in view path, a warning is logged."""
         caplog.set_level("WARNING")
         config: DashboardConfig = {
@@ -219,9 +221,9 @@ class TestVerifyStoragePermissions:
     """Test verify_storage_permissions error paths."""
 
     @pytest.mark.asyncio
-    async def test_storage_unavailable_logs_warning(self, caplog: pytest.LogCaptureFixture) -> (
-        None
-    ):
+    async def test_storage_unavailable_logs_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """When store fails to load, a warning is logged."""
         caplog.set_level("WARNING")
         hass = MagicMock()

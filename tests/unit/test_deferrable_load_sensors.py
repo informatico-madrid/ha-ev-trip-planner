@@ -469,7 +469,9 @@ class TestPowerProfileSemantics:
         # No p_deferrable_matrix from this trip
         assert "p_deferrable_matrix" not in attrs
 
-    async def test_extra_state_attributes_no_params_empty_arrays(self, mock_coordinator, sensor):
+    async def test_extra_state_attributes_no_params_empty_arrays(
+        self, mock_coordinator, sensor
+    ):
         """No per_trip_params → aggregation paths not taken but number_of_deferrable_loads=0."""
         mock_coordinator.data = {
             **mock_coordinator.data,

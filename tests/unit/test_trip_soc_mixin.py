@@ -26,17 +26,13 @@ class TestSOCMixin(unittest.TestCase):
         from custom_components.ev_trip_planner.trip._soc_query import SOCQuery
 
         self.assertTrue(hasattr(SOCQuery, "async_get_kwh_needed_today"))
-        self.assertTrue(
-            callable(getattr(SOCQuery, "async_get_kwh_needed_today"))
-        )
+        self.assertTrue(callable(getattr(SOCQuery, "async_get_kwh_needed_today")))
 
     def test_has_async_get_hours_needed_today(self):
         from custom_components.ev_trip_planner.trip._soc_query import SOCQuery
 
         self.assertTrue(hasattr(SOCQuery, "async_get_hours_needed_today"))
-        self.assertTrue(
-            callable(getattr(SOCQuery, "async_get_hours_needed_today"))
-        )
+        self.assertTrue(callable(getattr(SOCQuery, "async_get_hours_needed_today")))
 
     def test_has_calcular_ventana_carga(self):
         from custom_components.ev_trip_planner.trip._soc_window import SOCWindow
@@ -56,17 +52,13 @@ class TestSOCMixin(unittest.TestCase):
         from custom_components.ev_trip_planner.trip._soc_window import SOCWindow
 
         self.assertTrue(hasattr(SOCWindow, "calcular_soc_inicio_trips"))
-        self.assertTrue(
-            callable(getattr(SOCWindow, "calcular_soc_inicio_trips"))
-        )
+        self.assertTrue(callable(getattr(SOCWindow, "calcular_soc_inicio_trips")))
 
     def test_has_calcular_hitos_soc(self):
         from custom_components.ev_trip_planner.trip._soc_window import SOCWindow
 
         self.assertTrue(hasattr(SOCWindow, "calcular_hitos_soc"))
-        self.assertTrue(
-            callable(getattr(SOCWindow, "calcular_hitos_soc"))
-        )
+        self.assertTrue(callable(getattr(SOCWindow, "calcular_hitos_soc")))
 
 
 if __name__ == "__main__":

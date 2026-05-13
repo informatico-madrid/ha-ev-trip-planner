@@ -62,5 +62,3 @@ class TestServicesPresenceShim:
         from custom_components.ev_trip_planner.services import presence
 
         assert presence.__all__ == ["build_presence_config"]
-
-

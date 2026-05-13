@@ -27,9 +27,7 @@ class TestPowerProfile(unittest.TestCase):
         from custom_components.ev_trip_planner.trip._power_profile import PowerProfile
 
         self.assertTrue(hasattr(PowerProfile, "async_generate_power_profile"))
-        self.assertTrue(
-            callable(getattr(PowerProfile, "async_generate_power_profile"))
-        )
+        self.assertTrue(callable(getattr(PowerProfile, "async_generate_power_profile")))
 
 
 def _make_pm():
@@ -103,8 +101,12 @@ class TestPowerProfileExecution:
             "battery_capacity_kwh": 70.0,
             "safety_margin_percent": 15.0,
         }
-        pm._state.hass.config_entries.async_get_entry = MagicMock(return_value=matching_entry)
-        result = await pm.async_generate_power_profile(vehicle_config=None, planning_horizon_days=1)
+        pm._state.hass.config_entries.async_get_entry = MagicMock(
+            return_value=matching_entry
+        )
+        result = await pm.async_generate_power_profile(
+            vehicle_config=None, planning_horizon_days=1
+        )
         assert result is not None
 
     @pytest.mark.asyncio

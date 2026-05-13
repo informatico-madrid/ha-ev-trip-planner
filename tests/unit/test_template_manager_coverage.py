@@ -29,6 +29,7 @@ class TestAwaitExecutorResult:
     @pytest.mark.asyncio
     async def test_await_coroutine(self):
         """Line 55: Coroutine result is awaited."""
+
         async def coro():
             return "coro_result"
 
@@ -67,7 +68,7 @@ class TestLoadTemplateErrorPaths:
         hass.config.config_dir = "/tmp"
 
         # Create a temp YAML file to read
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("---\nkey: value\n")
             tmp_path = f.name
 
@@ -79,8 +80,10 @@ class TestLoadTemplateErrorPaths:
             hass.async_add_executor_job = mock_executor
             hass.states.get = MagicMock(return_value=None)
 
-            with patch("os.path.exists", return_value=True), \
-                 patch("os.path.dirname", return_value="/tmp"):
+            with (
+                patch("os.path.exists", return_value=True),
+                patch("os.path.dirname", return_value="/tmp"),
+            ):
                 result = await load_template(
                     hass,
                     vehicle_id="test_vehicle",
@@ -98,12 +101,14 @@ class TestLoadTemplateErrorPaths:
         hass = MagicMock()
         hass.config.config_dir = "/tmp"
 
-        with patch("os.path.exists", return_value=True), \
-             patch("os.path.dirname", return_value="/tmp"), \
-             patch(
-                 "custom_components.ev_trip_planner.dashboard.template_manager._read_file_content",
-                 return_value=None,
-             ):
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("os.path.dirname", return_value="/tmp"),
+            patch(
+                "custom_components.ev_trip_planner.dashboard.template_manager._read_file_content",
+                return_value=None,
+            ),
+        ):
             result = await load_template(
                 hass,
                 vehicle_id="test_vehicle",
@@ -130,16 +135,17 @@ class TestSaveLovelaceDashboard:
 
         # Patch ha_storage.Store to return a mock store with controlled async_load
         mock_store = MagicMock()
-        mock_store.async_load = AsyncMock(
-            return_value={"data": {"views": []}}
-        )
+        mock_store.async_load = AsyncMock(return_value={"data": {"views": []}})
 
-        with patch(
-            "custom_components.ev_trip_planner.dashboard.template_manager.verify_storage_permissions",
-            return_value=True,
-        ), patch(
-            "homeassistant.helpers.storage.Store",
-            return_value=mock_store,
+        with (
+            patch(
+                "custom_components.ev_trip_planner.dashboard.template_manager.verify_storage_permissions",
+                return_value=True,
+            ),
+            patch(
+                "homeassistant.helpers.storage.Store",
+                return_value=mock_store,
+            ),
         ):
             result = await save_lovelace_dashboard(
                 hass,
@@ -163,9 +169,7 @@ class TestSaveLovelaceDashboard:
         """Lines 431-434: Existing view with matching path is replaced."""
         dashboard_config: DashboardConfig = {
             "title": "Test",
-            "views": [
-                {"path": "ev-trip-planner-test_vehicle", "title": "New Title"}
-            ],
+            "views": [{"path": "ev-trip-planner-test_vehicle", "title": "New Title"}],
         }
 
         hass = MagicMock()
@@ -186,12 +190,15 @@ class TestSaveLovelaceDashboard:
         )
         mock_store.async_save = AsyncMock()
 
-        with patch(
-            "custom_components.ev_trip_planner.dashboard.template_manager.verify_storage_permissions",
-            return_value=True,
-        ), patch(
-            "homeassistant.helpers.storage.Store",
-            return_value=mock_store,
+        with (
+            patch(
+                "custom_components.ev_trip_planner.dashboard.template_manager.verify_storage_permissions",
+                return_value=True,
+            ),
+            patch(
+                "homeassistant.helpers.storage.Store",
+                return_value=mock_store,
+            ),
         ):
             result = await save_lovelace_dashboard(
                 hass,

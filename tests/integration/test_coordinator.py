@@ -77,7 +77,10 @@ async def test_coordinator_initialization(
 ):
     """Test that coordinator initializes correctly."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     assert coordinator.hass == hass
@@ -90,7 +93,10 @@ async def test_coordinator_refresh_triggers_update(
 ):
     """Test that coordinator refresh triggers data update."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # Mock the async_request_refresh method to track calls
@@ -113,7 +119,10 @@ async def test_coordinator_data_returns_trip_info(
 ):
     """Test that coordinator data returns trip information."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # Add a test trip
@@ -138,7 +147,10 @@ async def test_coordinator_handles_empty_trips(
 ):
     """Test coordinator behavior with no trips."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     await coordinator.async_refresh()
@@ -154,7 +166,10 @@ async def test_coordinator_async_refresh_trips_calls_async_refresh(
 ):
     """Test that async_refresh_trips delegates to async_refresh."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     refresh_called = False
@@ -378,7 +393,10 @@ async def test_vehicle_id_property(
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # vehicle_id should return normalized (lowercase, spaces replaced) vehicle_name
@@ -399,7 +417,10 @@ async def test_vehicle_id_fallback(hass: HomeAssistant, mock_trip_manager, mock_
     entry_without_vehicle.data = {}  # Missing CONF_VEHICLE_NAME
 
     coordinator = TripPlannerCoordinator(
-        hass, entry_without_vehicle, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        entry_without_vehicle,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # Should fallback to "unknown" when vehicle_name is missing
@@ -629,10 +650,16 @@ def mock_config_entry_full():
 @pytest.fixture
 def mock_coordinator(hass, mock_config_entry_full, mock_trip_manager, mock_logger):
     """Create a coordinator instance for testing."""
-    from custom_components.ev_trip_planner import CoordinatorConfig, TripPlannerCoordinator
+    from custom_components.ev_trip_planner import (
+        CoordinatorConfig,
+        TripPlannerCoordinator,
+    )
 
     return TripPlannerCoordinator(
-        hass, mock_config_entry_full, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        hass,
+        mock_config_entry_full,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
 
@@ -813,7 +840,10 @@ async def test_generate_mock_emhass_params_naive_datetime(
         "t_base": 24.0,
     }
     coordinator = TripPlannerCoordinator(
-        MagicMock(), mock_config_entry_full, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        MagicMock(),
+        mock_config_entry_full,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
     trips = {
         "trip_001": {
@@ -912,7 +942,10 @@ async def test_generate_mock_emhass_params_minimal_hours_covers_fallback(
         "t_base": 24.0,
     }
     coordinator = TripPlannerCoordinator(
-        MagicMock(), mock_config_entry_full, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        MagicMock(),
+        mock_config_entry_full,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
     trips = {
         "trip_001": {
@@ -1004,7 +1037,10 @@ async def test_generate_mock_emhass_params_fallback_single_row_exact(
         "t_base": 24.0,
     }
     coordinator = TripPlannerCoordinator(
-        MagicMock(), mock_config_entry_full, mock_trip_manager, CoordinatorConfig(logger=mock_logger)
+        MagicMock(),
+        mock_config_entry_full,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
     # kwh=0 → hours_needed = min(0.1) → 0.1 (minimum floor, not 0/0=0)
     # power_watts = 0 * 1000 = 0

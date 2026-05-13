@@ -16,6 +16,7 @@ from custom_components.ev_trip_planner.coordinator import (
     TripPlannerCoordinator,
 )
 
+
 # FIX: Mock frame reporting for HA 2026.3+ compatibility
 # DataUpdateCoordinator requires frame helper to be set up
 # This fixture mocks report_usage to bypass the check
@@ -24,6 +25,7 @@ def mock_frame_reporting():
     """Mock frame reporting to avoid 'Frame helper not set up' error."""
     with patch("homeassistant.helpers.frame.report_usage", return_value=None):
         yield
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,9 +61,19 @@ def _make_trip_manager():
     """Create a TripManager-like mock with sub-component mocks."""
     tm = MagicMock()
     tm._crud = MagicMock()
-    tm._crud.async_get_recurring_trips = AsyncMock(return_value=[
-        {"id": "rec_1", "tipo": "recurrente", "dia_semana": "lunes", "hora": "09:00", "km": 50, "kwh": 7.5, "activo": True}
-    ])
+    tm._crud.async_get_recurring_trips = AsyncMock(
+        return_value=[
+            {
+                "id": "rec_1",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "09:00",
+                "km": 50,
+                "kwh": 7.5,
+                "activo": True,
+            }
+        ]
+    )
     tm._crud.async_get_punctual_trips = AsyncMock(return_value=[])
     tm._soc_query = MagicMock()
     tm._soc_query.async_get_kwh_needed_today = AsyncMock(return_value=12.5)
@@ -71,8 +83,12 @@ def _make_trip_manager():
     return tm
 
 
-def _make_coordinator(vehicle_name="test_vehicle", trip_manager=None,
-                      emhass_adapter=None, extra_entry_data=None):
+def _make_coordinator(
+    vehicle_name="test_vehicle",
+    trip_manager=None,
+    emhass_adapter=None,
+    extra_entry_data=None,
+):
     """Create a fully wired TripPlannerCoordinator."""
     hass = _make_mock_hass()
     entry = _make_mock_entry(vehicle_name=vehicle_name, extra_data=extra_entry_data)
@@ -182,9 +198,16 @@ class TestCoordinatorAsyncUpdateData:
             "emhass_power_profile": [],
         }
         tm = _make_trip_manager()
-        tm._crud.async_get_recurring_trips = AsyncMock(return_value=[
-            {"id": "rec_1", "kwh": 7.5, "km": 50, "datetime": "2026-05-14T09:00:00+00:00"}
-        ])
+        tm._crud.async_get_recurring_trips = AsyncMock(
+            return_value=[
+                {
+                    "id": "rec_1",
+                    "kwh": 7.5,
+                    "km": 50,
+                    "datetime": "2026-05-14T09:00:00+00:00",
+                }
+            ]
+        )
         coord = _make_coordinator(
             trip_manager=tm,
             emhass_adapter=adapter,
@@ -211,9 +234,16 @@ class TestCoordinatorAsyncUpdateData:
     async def test_async_update_data_punctual_trips_included(self):
         """Punctual trips are included alongside recurring trips."""
         tm = _make_trip_manager()
-        tm._crud.async_get_punctual_trips = AsyncMock(return_value=[
-            {"id": "pun_1", "kwh": 3.0, "km": 20, "datetime": "2026-05-14T08:00:00+00:00"}
-        ])
+        tm._crud.async_get_punctual_trips = AsyncMock(
+            return_value=[
+                {
+                    "id": "pun_1",
+                    "kwh": 3.0,
+                    "km": 20,
+                    "datetime": "2026-05-14T08:00:00+00:00",
+                }
+            ]
+        )
         coord = _make_coordinator(trip_manager=tm, emhass_adapter=None)
         result = await coord._async_update_data()
         assert "pun_1" in result["punctual_trips"]

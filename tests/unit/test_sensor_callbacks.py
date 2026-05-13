@@ -158,7 +158,9 @@ class TestEmitDispatch:
     def test_emit_trip_created_recurring_with_data(self):
         hass = MagicMock()
         evt = SensorEvent(
-            "trip_created_recurring", hass, "entry_1",
+            "trip_created_recurring",
+            hass,
+            "entry_1",
             trip_data={"id": "r1", "tipo": "recurrente"},
         )
         collected, mock_mod = self._emit_with_mock(evt)
@@ -168,7 +170,9 @@ class TestEmitDispatch:
     def test_emit_trip_created_punctual_with_data(self):
         hass = MagicMock()
         evt = SensorEvent(
-            "trip_created_punctual", hass, "entry_1",
+            "trip_created_punctual",
+            hass,
+            "entry_1",
             trip_data={"id": "p1", "tipo": "puntual"},
         )
         collected, mock_mod = self._emit_with_mock(evt)
@@ -185,7 +189,9 @@ class TestEmitDispatch:
     def test_emit_trip_sensor_updated_with_data(self):
         hass = MagicMock()
         evt = SensorEvent(
-            "trip_sensor_updated", hass, "entry_1",
+            "trip_sensor_updated",
+            hass,
+            "entry_1",
             trip_data={"id": "r1"},
         )
         collected, mock_mod = self._emit_with_mock(evt)
@@ -199,8 +205,11 @@ class TestEmitDispatch:
         entry.runtime_data.coordinator = MagicMock()
         hass.config_entries.async_get_entry = MagicMock(return_value=entry)
         evt = SensorEvent(
-            "trip_sensor_created_emhass", hass, "entry_1",
-            trip_id="t1", vehicle_id="v1",
+            "trip_sensor_created_emhass",
+            hass,
+            "entry_1",
+            trip_id="t1",
+            vehicle_id="v1",
         )
         collected, mock_mod = self._emit_with_mock(evt)
         asyncio.get_event_loop().run_until_complete(asyncio.gather(*collected))
@@ -209,8 +218,11 @@ class TestEmitDispatch:
     def test_emit_trip_sensor_removed_emhass_with_trip_id(self):
         hass = MagicMock()
         evt = SensorEvent(
-            "trip_sensor_removed_emhass", hass, "entry_1",
-            trip_id="t1", vehicle_id="v1",
+            "trip_sensor_removed_emhass",
+            hass,
+            "entry_1",
+            trip_id="t1",
+            vehicle_id="v1",
         )
         collected, mock_mod = self._emit_with_mock(evt)
         asyncio.get_event_loop().run_until_complete(asyncio.gather(*collected))
@@ -219,11 +231,11 @@ class TestEmitDispatch:
     def test_emit_with_exception_is_caught(self):
         hass = MagicMock()
         mock_mod = _make_sensor_mock()
-        mock_mod.async_create_trip_sensor = AsyncMock(
-            side_effect=RuntimeError("boom")
-        )
+        mock_mod.async_create_trip_sensor = AsyncMock(side_effect=RuntimeError("boom"))
         evt = SensorEvent(
-            "trip_created_recurring", hass, "entry_1",
+            "trip_created_recurring",
+            hass,
+            "entry_1",
             trip_data={"id": "r1"},
         )
         # emit() wraps in try/except, so no exception should propagate
@@ -237,8 +249,11 @@ class TestEmitDispatch:
         entry.runtime_data.coordinator = None  # Explicitly None
         hass.config_entries.async_get_entry = MagicMock(return_value=entry)
         evt = SensorEvent(
-            "trip_sensor_created_emhass", hass, "entry_1",
-            trip_id="t1", vehicle_id="v1",
+            "trip_sensor_created_emhass",
+            hass,
+            "entry_1",
+            trip_id="t1",
+            vehicle_id="v1",
         )
         collected, mock_mod = self._emit_with_mock(evt)
         asyncio.get_event_loop().run_until_complete(asyncio.gather(*collected))
@@ -252,7 +267,9 @@ class TestEmitDispatch:
             side_effect=RuntimeError("sensor creation failed")
         )
         evt = SensorEvent(
-            "trip_created_recurring", hass, "entry_1",
+            "trip_created_recurring",
+            hass,
+            "entry_1",
             trip_data={"id": "r1"},
         )
         # Should not propagate
@@ -282,8 +299,11 @@ class TestEmitDispatch:
                 # This should not raise — exception caught at line 162-163
                 emit(
                     SensorEvent(
-                        "trip_sensor_created_emhass", hass, "entry_1",
-                        trip_id="t1", vehicle_id="v1",
+                        "trip_sensor_created_emhass",
+                        hass,
+                        "entry_1",
+                        trip_id="t1",
+                        vehicle_id="v1",
                     )
                 )
         finally:
@@ -322,7 +342,9 @@ class TestEmitDispatch:
                 # emit() should not raise even though handler raises
                 emit(
                     SensorEvent(
-                        "test_raise_event", hass, "entry_1",
+                        "test_raise_event",
+                        hass,
+                        "entry_1",
                         trip_data={"id": "r1"},
                     )
                 )

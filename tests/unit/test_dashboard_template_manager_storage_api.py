@@ -5,15 +5,12 @@ Targets uncovered lines in the save_lovelace_dashboard function (lines 329-520).
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import yaml
 
 from custom_components.ev_trip_planner.dashboard.template_manager import (
     DashboardConfig,
-    DashboardImportResult,
     save_lovelace_dashboard,
 )
 
@@ -39,7 +36,12 @@ class TestSaveLovelaceDashboardServiceAvailable:
         hass.services.async_call.assert_called_once_with(
             "lovelace",
             "save",
-            {"config": {"title": "EV Trip Planner", "views": dashboard_config["views"]}},
+            {
+                "config": {
+                    "title": "EV Trip Planner",
+                    "views": dashboard_config["views"],
+                }
+            },
         )
 
     @pytest.mark.asyncio
@@ -107,7 +109,9 @@ class TestSaveLovelaceDashboardStorageApiWithStore:
                     "title": "EV Trip Planner",
                     "views": [{"path": "v1", "title": "New View", "cards": []}],
                 }
-                result = await save_lovelace_dashboard(hass, dashboard_config, "v1", "Test")
+                result = await save_lovelace_dashboard(
+                    hass, dashboard_config, "v1", "Test"
+                )
                 assert result.success is True
                 assert result.storage_method == "storage_api"
 
@@ -119,7 +123,9 @@ class TestSaveLovelaceDashboardStorageApiWithStore:
         hass.config.config_dir = "/tmp/test"
 
         mock_store = AsyncMock()
-        mock_store.async_load = AsyncMock(return_value={"data": {"views": [{"path": "other"}]}})
+        mock_store.async_load = AsyncMock(
+            return_value={"data": {"views": [{"path": "other"}]}}
+        )
         mock_store.async_save = AsyncMock()
 
         from homeassistant.helpers import storage as ha_storage
@@ -133,7 +139,9 @@ class TestSaveLovelaceDashboardStorageApiWithStore:
                     "title": "EV Trip Planner",
                     "views": [{"path": "v1", "title": "New View", "cards": []}],
                 }
-                result = await save_lovelace_dashboard(hass, dashboard_config, "v1", "Test")
+                result = await save_lovelace_dashboard(
+                    hass, dashboard_config, "v1", "Test"
+                )
                 assert result.success is True
                 assert result.storage_method == "storage_api"
 
@@ -143,8 +151,6 @@ class TestSaveLovelaceDashboardStorageApiWithStore:
         hass = MagicMock()
         hass.services.has_service.return_value = False
         hass.config.config_dir = "/tmp/test"
-
-        from custom_components.ev_trip_planner.dashboard import DashboardError
 
         # Track calls to store — first call is verify_storage_permissions Store, second is lovelace Store
         store_call_count = 0
@@ -174,7 +180,9 @@ class TestSaveLovelaceDashboardStorageApiWithStore:
                     "title": "EV Trip Planner",
                     "views": [],
                 }
-                result = await save_lovelace_dashboard(hass, dashboard_config, "v1", "Test")
+                result = await save_lovelace_dashboard(
+                    hass, dashboard_config, "v1", "Test"
+                )
                 # DashboardError raised → falls back to YAML
                 assert result.storage_method == "yaml_fallback"
 
@@ -200,5 +208,7 @@ class TestSaveLovelaceDashboardStorageApiWithStore:
                     "title": "EV Trip Planner",
                     "views": [{"path": "v1", "title": "V", "cards": []}],
                 }
-                result = await save_lovelace_dashboard(hass, dashboard_config, "v1", "Test")
+                result = await save_lovelace_dashboard(
+                    hass, dashboard_config, "v1", "Test"
+                )
                 assert result.storage_method == "yaml_fallback"

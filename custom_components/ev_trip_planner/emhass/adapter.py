@@ -29,6 +29,7 @@ from .load_publisher import LoadPublisher, LoadPublisherConfig
 # Note: CachePolicy ABC removed to fix AP12 Speculative Generality.
 # OCP abstractness is maintained by existing ABCs with real implementations.
 
+
 @dataclass(frozen=True)
 class PerTripCacheParams:
     """Parameters for building per-trip EMHASS cache entries.
@@ -44,6 +45,8 @@ class PerTripCacheParams:
     battery_capacity_kwh: float
     safety_margin_percent: float
     soc_current: float
+
+
 class EMHASSAdapter:
     """Facade for EMHASS operations delegating to sub-components.
 

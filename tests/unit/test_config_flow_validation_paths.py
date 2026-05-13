@@ -117,9 +117,11 @@ class TestAsyncStepPresenceSensorNotFound:
 
         charging_mock = MagicMock()
         charging_mock.state = "on"
-        handler.hass.states.get = MagicMock(side_effect=lambda sid: (
-            charging_mock if sid == "binary_sensor.charging" else None
-        ))
+        handler.hass.states.get = MagicMock(
+            side_effect=lambda sid: (
+                charging_mock if sid == "binary_sensor.charging" else None
+            )
+        )
 
         result = await handler.async_step_presence(
             {
@@ -140,9 +142,11 @@ class TestAsyncStepPresenceSensorNotFound:
 
         charging_mock = MagicMock()
         charging_mock.state = "on"
-        handler.hass.states.get = MagicMock(side_effect=lambda sid: (
-            charging_mock if sid == "binary_sensor.charging" else None
-        ))
+        handler.hass.states.get = MagicMock(
+            side_effect=lambda sid: (
+                charging_mock if sid == "binary_sensor.charging" else None
+            )
+        )
 
         result = await handler.async_step_presence(
             {
@@ -222,43 +226,53 @@ class TestAsyncCreateEntryExceptions:
         handler.hass = MagicMock()
         handler.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
-        with patch(
-            "custom_components.ev_trip_planner.config_flow.main.import_dashboard",
-            side_effect=RuntimeError("dashboard error"),
-        ) as _, patch(
-            "custom_components.ev_trip_planner.config_flow.main.is_lovelace_available",
-            return_value=True,
-        ), patch(
-            "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
-            return_value=None,
+        with (
+            patch(
+                "custom_components.ev_trip_planner.config_flow.main.import_dashboard",
+                side_effect=RuntimeError("dashboard error"),
+            ) as _,
+            patch(
+                "custom_components.ev_trip_planner.config_flow.main.is_lovelace_available",
+                return_value=True,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
+                return_value=None,
+            ),
         ):
             result = await handler._async_create_entry()
 
         assert result is not None
         # Dashboard exception is caught and logged as warning
-        assert any("Could not auto-import dashboard" in r.message for r in caplog.records)
+        assert any(
+            "Could not auto-import dashboard" in r.message for r in caplog.records
+        )
 
     @pytest.mark.asyncio
     async def test_panel_registration_exception(self, caplog):
         """Lines 682-684: Panel registration exception → warning, flow continues."""
         handler = EVTripPlannerFlowHandler()
         handler.hass = MagicMock()
-        handler.context = {
-            "vehicle_data": {"vehicle_name": "test_vehicle"}
-        }
+        handler.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
-        with patch(
-            "custom_components.ev_trip_planner.config_flow.main.import_dashboard",
-            return_value=None,
-        ), patch(
-            "custom_components.ev_trip_planner.config_flow.main.is_lovelace_available",
-            return_value=True,
-        ), patch(
-            "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
-            side_effect=RuntimeError("panel error"),
+        with (
+            patch(
+                "custom_components.ev_trip_planner.config_flow.main.import_dashboard",
+                return_value=None,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.config_flow.main.is_lovelace_available",
+                return_value=True,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
+                side_effect=RuntimeError("panel error"),
+            ),
         ):
             result = await handler._async_create_entry()
 
         assert result is not None
         # Panel exception is caught and logged as warning
-        assert any("Could not register native panel" in r.message for r in caplog.records)
+        assert any(
+            "Could not register native panel" in r.message for r in caplog.records
+        )
