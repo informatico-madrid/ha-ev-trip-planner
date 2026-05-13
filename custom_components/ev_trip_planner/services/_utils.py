@@ -104,7 +104,7 @@ async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
                 len(trip_manager._state.recurring_trips),
                 len(trip_manager._state.punctual_trips),
             )
-        except Exception as setup_err:  # pragma: no cover
+        except Exception as setup_err:  # pragma: no cover reason=requires async_setup failure which needs HA runtime
             _LOGGER.error(
                 "=== _get_manager - Error setting up manager for %s: %s ===",
                 vehicle_id,

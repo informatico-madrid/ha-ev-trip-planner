@@ -269,3 +269,55 @@ class TestPublishDeferrableLoads:
         tm._state.emhass_adapter = None
         await tm._schedule.publish_deferrable_loads(trips=[{"id": "rec_1"}])
         # Should not raise
+
+    @pytest.mark.asyncio
+    async def test_schedule_config_entry_exception_via_entry_id(self):
+        """Exception during config entry lookup (entry_id path) → defaults used (lines 49-50)."""
+        now = datetime.now(timezone.utc) + timedelta(hours=5)
+        tm = _make_tm(
+            recurring={"rec_1": {"id": "rec_1", "activo": True}},
+            trip_time=now,
+            entry_id="test_entry_id",
+        )
+        tm._state.hass.config_entries.async_get_entry = MagicMock(
+            side_effect=RuntimeError("config error")
+        )
+        result = await tm._schedule.async_generate_deferrables_schedule(
+            charging_power_kw=3.6, planning_horizon_days=1
+        )
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_schedule_config_entry_exception_no_entry_id(self):
+        """Exception during config entry lookup (no entry_id) → defaults used (lines 106-107)."""
+        now = datetime.now(timezone.utc) + timedelta(hours=5)
+        tm = _make_tm(
+            recurring={"rec_1": {"id": "rec_1", "activo": True}},
+            trip_time=now,
+            entry_id="",  # Empty → triggers vehicle_id fallback
+        )
+        tm._state.hass.config_entries.async_get_entry = MagicMock(
+            side_effect=RuntimeError("config error")
+        )
+        result = await tm._schedule.async_generate_deferrables_schedule(
+            charging_power_kw=3.6, planning_horizon_days=1
+        )
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_schedule_no_trip_time_skipped(self):
+        """Trips without trip_time are skipped at line 130."""
+        tm = _make_tm(
+            recurring={"rec_1": {"id": "rec_1", "activo": True, "km": 50, "kwh": 10}},
+            soc=50.0,
+            trip_time=None,
+        )
+        # Ensure _calcular_tasa_carga_soc returns a value
+        tm._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        tm._state._soc.async_calcular_energia_necesaria = AsyncMock(
+            return_value={"energia_necesaria_kwh": 10.0, "horas_carga_necesarias": 3.0}
+        )
+        result = await tm._schedule.async_generate_deferrables_schedule(
+            charging_power_kw=3.6, planning_horizon_days=1
+        )
+        assert isinstance(result, list)

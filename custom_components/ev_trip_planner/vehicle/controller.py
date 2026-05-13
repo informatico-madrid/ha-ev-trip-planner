@@ -143,8 +143,8 @@ class VehicleController:
         Returns:
             True if charging, False otherwise
         """
-        if not self._charging_sensor:  # pragma: no cover
-            return False  # pragma: no cover
+        if not self._charging_sensor:
+            return False
 
         state = self.hass.states.get(self._charging_sensor)
         if not state:
@@ -272,26 +272,26 @@ class VehicleController:
             _LOGGER.warning("No strategy set for vehicle: %s", self.vehicle_id)
             return False
 
-        result = await self._strategy.async_deactivate()  # pragma: no cover
+        result = await self._strategy.async_deactivate()
 
         # Update charging state after deactivation
-        if result:  # pragma: no cover
+        if result:
             await self._update_charging_state_after_deactivation()
 
-        return result  # pragma: no cover
+        return result
 
     async def _update_charging_state_after_deactivation(
         self,
-    ) -> None:  # pragma: no cover
+    ) -> None:
         """Update charging state after deactivation to track disconnect."""
-        if not self._charging_sensor:  # pragma: no cover
-            return  # pragma: no cover
+        if not self._charging_sensor:
+            return
 
-        current_charging = await self._async_check_charging_sensor()  # pragma: no cover
-        self._last_charging_state = current_charging  # pragma: no cover
+        current_charging = await self._async_check_charging_sensor()
+        self._last_charging_state = current_charging
 
-    async def async_get_charging_status(self) -> bool:  # pragma: no cover
+    async def async_get_charging_status(self) -> bool:
         """Get current charging status."""
         if self._strategy is None:
             return False
-        return await self._strategy.async_get_status()  # pragma: no cover
+        return await self._strategy.async_get_status()

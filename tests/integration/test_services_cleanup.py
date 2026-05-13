@@ -684,3 +684,28 @@ async def test_remove_entry_cleanup_listener_removed_in_finally():
 
     # Listener should be set to None even after exception
     assert mock_emhass._config_entry_listener is None
+
+
+@pytest.mark.asyncio
+async def test_unload_entry_cleanup_entity_registry_exception():
+    """Entity registry cleanup exception is caught and logged (lines 177-178)."""
+    hass = MagicMock()
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+    mock_entry = MagicMock()
+    mock_entry.entry_id = "entry_xyz"
+    mock_entry.runtime_data = None
+
+    with patch.object(
+        cleanup.er, "async_entries_for_config_entry",
+        side_effect=RuntimeError("registry error"),
+    ):
+        with patch(
+            "custom_components.ev_trip_planner.panel.async_unregister_panel",
+            side_effect=ImportError("no panel"),
+        ):
+            result = await cleanup.async_unload_entry_cleanup(
+                hass, mock_entry, "vehicle_2", "Vehicle 2"
+            )
+
+    assert result is True

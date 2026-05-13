@@ -228,3 +228,115 @@ class TestEmitDispatch:
         )
         # emit() wraps in try/except, so no exception should propagate
         self._emit_with_mock(evt)
+
+    def test_emit_trip_sensor_created_emhass_coordinator_none(self):
+        """EMHASS sensor with coordinator=None → warning logged (lines 151-155)."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.runtime_data = MagicMock()
+        entry.runtime_data.coordinator = None  # Explicitly None
+        hass.config_entries.async_get_entry = MagicMock(return_value=entry)
+        evt = SensorEvent(
+            "trip_sensor_created_emhass", hass, "entry_1",
+            trip_id="t1", vehicle_id="v1",
+        )
+        collected, mock_mod = self._emit_with_mock(evt)
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*collected))
+        # Should not raise, coordinator None path handled
+
+    def test_emit_with_actual_exception(self):
+        """Exception in handler is caught by emit (lines 304-305)."""
+        hass = MagicMock()
+        mock_mod = _make_sensor_mock()
+        mock_mod.async_create_trip_sensor = AsyncMock(
+            side_effect=RuntimeError("sensor creation failed")
+        )
+        evt = SensorEvent(
+            "trip_created_recurring", hass, "entry_1",
+            trip_data={"id": "r1"},
+        )
+        # Should not propagate
+        self._emit_with_mock(evt)
+
+    def test_emit_emhass_sensor_entry_lookup_raises(self):
+        """Exception during EMHASS sensor config entry lookup (lines 162-163)."""
+        hass = MagicMock()
+        hass.config_entries.async_get_entry = MagicMock(
+            side_effect=RuntimeError("HA config error")
+        )
+        mock_mod = _make_sensor_mock()
+        _saved_sys = sys.modules.pop(_SENSOR_KEY, None)
+        sys.modules[_SENSOR_KEY] = mock_mod
+        parent_key = "custom_components.ev_trip_planner"
+        parent = sys.modules.get(parent_key)
+        _saved_parent = None
+        if parent is not None:
+            _saved_parent = getattr(parent, "sensor", None)
+            setattr(parent, "sensor", mock_mod)
+        hass = MagicMock()
+        hass.config_entries.async_get_entry = MagicMock(
+            side_effect=RuntimeError("entry lookup failed")
+        )
+        try:
+            with patch.object(asyncio, "ensure_future", return_value=MagicMock()):
+                # This should not raise — exception caught at line 162-163
+                emit(
+                    SensorEvent(
+                        "trip_sensor_created_emhass", hass, "entry_1",
+                        trip_id="t1", vehicle_id="v1",
+                    )
+                )
+        finally:
+            if _saved_sys is not None:
+                sys.modules[_SENSOR_KEY] = _saved_sys
+            else:
+                sys.modules.pop(_SENSOR_KEY, None)
+            if _saved_parent is not None and parent is not None:
+                setattr(parent, "sensor", _saved_parent)
+            elif parent is not None:
+                delattr(parent, "sensor")
+
+    def test_emit_with_handler_exception(self):
+        """Exception from registered handler caught at emit() lines 304-305."""
+        from custom_components.ev_trip_planner.trip._sensor_callbacks import (
+            EVENT_HANDLERS,
+        )
+
+        # Register a handler that always raises
+        original = EVENT_HANDLERS.get("test_raise_event")
+        EVENT_HANDLERS["test_raise_event"] = lambda *a: (_ for _ in ()).throw(
+            RuntimeError("handler boom")
+        )
+        try:
+            hass = MagicMock()
+            mock_mod = _make_sensor_mock()
+            _saved_sys = sys.modules.pop(_SENSOR_KEY, None)
+            sys.modules[_SENSOR_KEY] = mock_mod
+            parent_key = "custom_components.ev_trip_planner"
+            parent = sys.modules.get(parent_key)
+            _saved_parent = None
+            if parent is not None:
+                _saved_parent = getattr(parent, "sensor", None)
+                setattr(parent, "sensor", mock_mod)
+            try:
+                # emit() should not raise even though handler raises
+                emit(
+                    SensorEvent(
+                        "test_raise_event", hass, "entry_1",
+                        trip_data={"id": "r1"},
+                    )
+                )
+            finally:
+                if _saved_sys is not None:
+                    sys.modules[_SENSOR_KEY] = _saved_sys
+                else:
+                    sys.modules.pop(_SENSOR_KEY, None)
+                if _saved_parent is not None and parent is not None:
+                    setattr(parent, "sensor", _saved_parent)
+                elif parent is not None:
+                    delattr(parent, "sensor")
+        finally:
+            if original is not None:
+                EVENT_HANDLERS["test_raise_event"] = original
+            elif "test_raise_event" in EVENT_HANDLERS:
+                del EVENT_HANDLERS["test_raise_event"]

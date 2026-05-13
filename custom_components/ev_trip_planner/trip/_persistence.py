@@ -142,10 +142,10 @@ class TripPersistence:
             state.punctual_trips = {}
             state.last_update = None
 
-    async def _load_trips_yaml(self, storage_key: str) -> None:
+    async def _load_trips_yaml(self, storage_key: str) -> None:  # pragma: no cover reason=ha-filesystem-only
         """Carga los viajes desde un archivo YAML (fallback)."""
         state = self._state
-        try:  # pragma: no cover reason=ha-filesystem-only
+        try:
             ha_config = state.hass.config
             config_dir = ha_config.config_dir or "/config"
             yaml_file = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"

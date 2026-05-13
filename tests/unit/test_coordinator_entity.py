@@ -159,6 +159,33 @@ class TestTripSensor:
         sensor = TripSensor(coordinator, "test_vehicle", "trip_123")
         assert sensor.native_value == "recurrente"
 
+    def test_trip_sensor_native_value_when_coordinator_data_none(self):
+        """Coordinator data=None → _get_trip_data returns empty → native_value=None (lines 75, 88)."""
+        coordinator = MagicMock()
+        coordinator.data = None
+        sensor = TripSensor(coordinator, "test_vehicle", "trip_123")
+        assert sensor.native_value is None
+
+    def test_trip_sensor_device_info(self):
+        """device_info returns DeviceInfo with correct identifiers (line 114)."""
+        from custom_components.ev_trip_planner.const import DOMAIN
+
+        coordinator = make_test_coordinator(
+            {
+                "recurring_trips": {"trip_123": {"id": "trip_123", "tipo": "recurrente"}},
+                "punctual_trips": {},
+                "kwh_today": 0.0,
+                "hours_today": 0.0,
+                "next_trip": None,
+            }
+        )
+        sensor = TripSensor(coordinator, "test_vehicle", "trip_123")
+        device_info = sensor.device_info
+        assert device_info is not None
+        assert isinstance(device_info, dict)
+        assert "trip_123" in str(device_info.get("identifiers", {}))
+        assert "test_vehicle" in device_info.get("name", "")
+
     def test_trip_sensor_native_value_punctual(self):
         """Test TripSensor returns estado for punctual trips."""
         coordinator = make_test_coordinator(

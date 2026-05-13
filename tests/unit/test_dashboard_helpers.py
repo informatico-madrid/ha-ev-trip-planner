@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import pytest_asyncio
 
 
 class TestCreateDashboardInputHelpers:
@@ -427,3 +428,127 @@ class TestAsyncImportDashboardForEntry:
 
             call_args = mock_import.call_args
             assert call_args[1]["use_charts"] is False
+
+
+class TestCreateDashboardInputHelpersException:
+    """Test outer exception handler in create_dashboard_input_helpers (lines 314-323)."""
+
+    @pytest.mark.asyncio
+    async def test_outer_except_via_logger_info(self, caplog):
+        """Exception in final _LOGGER.info triggers outer except."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+
+        from custom_components.ev_trip_planner.services import dashboard_helpers
+
+        # Track calls: first call is before try (line 39), second is on line 305
+        call_count = [0]
+
+        def info_side_effect(msg, *args):
+            call_count[0] += 1
+            if call_count[0] == 2:  # Final _LOGGER.info on line 305
+                raise ValueError("final info boom")
+
+        with caplog.at_level(
+            logging.ERROR,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
+            with patch.object(
+                dashboard_helpers._LOGGER,
+                "info",
+                side_effect=info_side_effect,
+            ):
+                result = await dashboard_helpers.create_dashboard_input_helpers(
+                    hass, "test_vehicle"
+                )
+                assert result.success is False
+                assert result.error == "final info boom"
+        assert any(
+            "Failed to create input helpers" in r.message for r in caplog.records
+        )
+
+
+class TestRegisterStaticPathsLegacy:
+    """Test _register_static_paths_legacy (lines 326-347)."""
+
+    def test_tuple_path_spec(self):
+        """Tuple format path_spec extracts url_path and file_path."""
+        from custom_components.ev_trip_planner.services.dashboard_helpers import (
+            _register_static_paths_legacy,
+        )
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.register_static_path = MagicMock()
+        path_specs = [("/local/ev_trip_planner/", "/tmp/test/", True)]
+        _register_static_paths_legacy(hass, path_specs, "test_tuple")
+        hass.http.register_static_path.assert_called_once_with(
+            "/local/ev_trip_planner/", "/tmp/test/"
+        )
+
+    def test_namedtuple_path_spec(self):
+        """Named tuple (StaticPath) format extracts url_path and path."""
+        from custom_components.ev_trip_planner.services.dashboard_helpers import (
+            _register_static_paths_legacy,
+        )
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.register_static_path = MagicMock()
+        path_spec = MagicMock()
+        path_spec.url_path = "/local/ev/"
+        path_spec.path = "/tmp/ev/"
+        path_specs = [path_spec]
+        _register_static_paths_legacy(hass, path_specs, "test_namedtuple")
+        hass.http.register_static_path.assert_called_once_with(
+            "/local/ev/", "/tmp/ev/"
+        )
+
+    def test_already_registered_runtime_error_suppressed(self):
+        """RuntimeError with 'already registered' is suppressed."""
+        from custom_components.ev_trip_planner.services.dashboard_helpers import (
+            _register_static_paths_legacy,
+        )
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.register_static_path = MagicMock(
+            side_effect=RuntimeError("already registered")
+        )
+        path_specs = [("/local/ev/", "/tmp/ev/", True)]
+        _register_static_paths_legacy(hass, path_specs, "test_already")
+
+    def test_other_runtime_error_raises(self):
+        """Non-'already registered' RuntimeError is re-raised."""
+        from custom_components.ev_trip_planner.services.dashboard_helpers import (
+            _register_static_paths_legacy,
+        )
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.register_static_path = MagicMock(
+            side_effect=RuntimeError("connection refused")
+        )
+        path_specs = [("/local/ev/", "/tmp/ev/", True)]
+        with pytest.raises(RuntimeError, match="connection refused"):
+            _register_static_paths_legacy(hass, path_specs, "test_other")
+
+    def test_info_logged_on_completion(self, caplog):
+        """Success logs info with context_label."""
+        from custom_components.ev_trip_planner.services.dashboard_helpers import (
+            _register_static_paths_legacy,
+        )
+
+        hass = MagicMock()
+        hass.http = MagicMock()
+        hass.http.register_static_path = MagicMock()
+        path_specs = [("/local/ev/", "/tmp/ev/", True)]
+        with caplog.at_level(
+            logging.INFO,
+            logger="custom_components.ev_trip_planner.services.dashboard_helpers",
+        ):
+            _register_static_paths_legacy(hass, path_specs, "my_context")
+            assert any(
+                "Registered static paths using legacy method (my_context)" in record.message
+                for record in caplog.records
+            )

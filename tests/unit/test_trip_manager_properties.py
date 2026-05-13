@@ -23,6 +23,8 @@ def _make_tm():
     storage = MagicMock(spec=YamlTripStorage)
     storage.load_recurring = MagicMock(return_value={})
     storage.load_punctual = MagicMock(return_value={})
+    storage.async_save = AsyncMock()
+    storage.async_load = AsyncMock(return_value={})
 
     tm = TripManager(
         hass=hass,
@@ -161,6 +163,39 @@ class TestTripManagerMethods:
         assert tm._state.punctual_trips == {}
 
     @pytest.mark.asyncio
+    async def test_load_trips_stored_data_with_data_key(self):
+        """_load_trips parses stored_data with 'data' key (line 116)."""
+        tm = _make_tm()
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state._trips = {}
+        stored = {"data": {"trips": {}, "recurring_trips": {"r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}}, "punctual_trips": {}}}
+        tm._state.storage.async_load = AsyncMock(return_value=stored)
+        await tm._persistence._load_trips()
+        assert "r1" in tm._state.recurring_trips
+
+    @pytest.mark.asyncio
+    async def test_load_trips_empty_stored_data(self):
+        """_load_trips with empty stored_data calls _reset_trips (line 129)."""
+        tm = _make_tm()
+        # Clear trips so _load_trips doesn't skip (line 91 early return)
+        tm._state._trips = {}
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state.storage.async_load = AsyncMock(return_value=None)
+        await tm._persistence._load_trips()
+        assert tm._state.recurring_trips == {}
+        assert tm._state.punctual_trips == {}
+
+    @pytest.mark.asyncio
+    async def test_save_trips_exception(self):
+        """Exception during save triggers exception logging (lines 79-80)."""
+        tm = _make_tm()
+        tm._state.storage.async_save = AsyncMock(side_effect=RuntimeError("save error"))
+        await tm._persistence.async_save_trips()
+        # Should not raise; exception path handled
+
+    @pytest.mark.asyncio
     async def test_get_next_trip_via_navigator(self):
         """Next trip via TripNavigator finds pending punctual trip."""
         tm = _make_tm()
@@ -249,4 +284,195 @@ class TestTripManagerMethods:
         tm._state.punctual_trips = {}
 
         result = await tm._navigator.async_get_next_trip_after(past)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_next_trip_after_mixed_punctual_and_recurring(self):
+        """async_get_next_trip_after with both trip types exercises lines 77-78.
+
+        Only recurring trips (both return naive datetimes from combine()) → no TZ mismatch.
+        """
+        tm = _make_tm()
+        past = datetime(2020, 1, 6, 0, 0, 0, tzinfo=timezone.utc)  # Monday, midnight
+
+        tm._state.punctual_trips = {}
+        tm._state.recurring_trips = {
+            "rec_1": {
+                "id": "rec_1",
+                "activo": True,
+                "dia_semana": "lunes",
+                "hora": "14:00",
+            },
+            "rec_2": {
+                "id": "rec_2",
+                "activo": True,
+                "dia_semana": "lunes",
+                "hora": "08:00",  # earlier, should replace rec_1 at line 77-78
+            },
+        }
+        # Both return naive datetimes from datetime.combine (line 68 path)
+        # _get_trip_time is not called for recurring trips with hora format
+        result = await tm._navigator.async_get_next_trip_after(past)
+        # rec_2 (08:00) is earlier than rec_1 (14:00) → should be next
+        assert result is not None
+        assert result["id"] == "rec_2"
+
+    @pytest.mark.asyncio
+    async def test_get_next_trip_skip_non_pending_punctual(self):
+        """Punctual trip with estado != pendiente is skipped (line 46)."""
+        tm = _make_tm()
+        past = datetime(2020, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        tm._state.punctual_trips = {
+            "pun_1": {
+                "id": "pun_1",
+                "estado": "completado",  # not pendiente
+                "tipo": "punctual",
+                "datetime": "2099-01-01T14:00:00",
+            }
+        }
+        tm._state.recurring_trips = {}
+        result = await tm._navigator.async_get_next_trip_after(past)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_next_trip_skip_inactive_recurring(self):
+        """Inactive recurring trips are skipped (line 55)."""
+        tm = _make_tm()
+        past = datetime(2020, 1, 6, 10, 0, 0, tzinfo=timezone.utc)  # Monday
+        tm._state.recurring_trips = {
+            "rec_1": {
+                "id": "rec_1",
+                "activo": False,  # inactive
+                "dia_semana": "lunes",
+                "hora": "14:00",
+            }
+        }
+        tm._state.punctual_trips = {}
+        result = await tm._navigator.async_get_next_trip_after(past)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_next_trip_skip_wrong_day(self):
+        """Recurring trips for wrong day are skipped (line 57)."""
+        tm = _make_tm()
+        past = datetime(2020, 1, 6, 10, 0, 0, tzinfo=timezone.utc)  # Monday
+        tm._state.recurring_trips = {
+            "rec_1": {
+                "id": "rec_1",
+                "activo": True,
+                "dia_semana": "martes",  # Tuesday, not Monday
+                "hora": "14:00",
+            }
+        }
+        tm._state.punctual_trips = {}
+        result = await tm._navigator.async_get_next_trip_after(past)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_next_trip_after_recurring_before_regreso(self):
+        """Recurring trip at same time or earlier as regreso is skipped (lines 63-66)."""
+        tm = _make_tm()
+        past = datetime(2020, 1, 6, 10, 0, 0, tzinfo=timezone.utc)  # Monday
+        tm._state.recurring_trips = {
+            "rec_1": {
+                "id": "rec_1",
+                "activo": True,
+                "dia_semana": "lunes",
+                "hora": "08:00",  # before regreso at 10:00
+            }
+        }
+        tm._state.punctual_trips = {}
+        result = await tm._navigator.async_get_next_trip_after(past)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_load_trips_stored_data_with_data_key(self):
+        """_load_trips parses stored_data with 'data' key (line 116)."""
+        tm = _make_tm()
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state._trips = {}
+        stored = {"data": {"trips": {}, "recurring_trips": {"r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}}, "punctual_trips": {}}}
+        tm._state.storage.async_load = AsyncMock(return_value=stored)
+        await tm._persistence._load_trips()
+        assert "r1" in tm._state.recurring_trips
+
+    @pytest.mark.asyncio
+    async def test_load_trips_empty_stored_data(self):
+        """_load_trips with empty stored_data calls _reset_trips (line 129)."""
+        tm = _make_tm()
+        # Clear trips so _load_trips doesn't skip (line 91 early return)
+        tm._state._trips = {}
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state.storage.async_load = AsyncMock(return_value=None)
+        await tm._persistence._load_trips()
+        assert tm._state.recurring_trips == {}
+        assert tm._state.punctual_trips == {}
+
+    @pytest.mark.asyncio
+    async def test_save_trips_exception(self):
+        """Exception during save triggers exception logging (lines 79-80)."""
+        tm = _make_tm()
+        tm._state.storage.async_save = AsyncMock(side_effect=RuntimeError("save error"))
+        await tm._persistence.async_save_trips()
+        # Should not raise; exception path handled
+
+    @pytest.mark.asyncio
+    async def test_reset_trips_clears_all(self):
+        """_reset_trips clears all trip collections (lines 193-196)."""
+        tm = _make_tm()
+        tm._state._trips = {"r1": {}}
+        tm._state.recurring_trips = {"r1": {}}
+        tm._state.punctual_trips = {"p1": {}}
+        tm._state.last_update = "2026-01-01"
+        tm._persistence._reset_trips()
+        assert tm._state._trips == {}
+        assert tm._state.recurring_trips == {}
+        assert tm._state.punctual_trips == {}
+        assert tm._state.last_update is None
+
+
+class TestTripNavigatorNextTrip:
+    """Test TripNavigator.async_get_next_trip (lines 88-91)."""
+
+    @pytest.mark.asyncio
+    async def test_async_get_next_trip_with_active_recurring(self):
+        """Recurring trip with valid _get_trip_time returns trip (lines 88-91)."""
+        tm = _make_tm()
+        future = datetime(2099, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
+        tm._state.recurring_trips = {
+            "rec_1": {"id": "rec_1", "activo": True, "tipo": "recurrente"}
+        }
+        tm._state.punctual_trips = {}
+        tm._state._soc._get_trip_time = MagicMock(return_value=future)
+        result = await tm._navigator.async_get_next_trip()
+        assert result is not None
+        assert result["id"] == "rec_1"
+
+    @pytest.mark.asyncio
+    async def test_async_get_next_trip_skips_inactive_recurring(self):
+        """Inactive recurring trips are skipped in async_get_next_trip."""
+        tm = _make_tm()
+        tm._state.recurring_trips = {
+            "rec_1": {"id": "rec_1", "activo": False}
+        }
+        tm._state.punctual_trips = {}
+        result = await tm._navigator.async_get_next_trip()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_async_get_next_trip_skips_completed_punctual(self):
+        """Punctual trips with estado != pendiente are skipped."""
+        tm = _make_tm()
+        future = datetime(2099, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {
+            "pun_1": {
+                "id": "pun_1",
+                "estado": "completado",
+                "tipo": "punctual",
+            }
+        }
+        result = await tm._navigator.async_get_next_trip()
         assert result is None

@@ -8,6 +8,23 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
+
+@pytest.fixture
+def restore_async_entries():
+    """Fixture to save/restore async_entries_for_config_entry.
+
+    Use this in tests that monkeypatch the module-level function.
+    Automatically restores the original after the test.
+    """
+    import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
+    from homeassistant.helpers import entity_registry as ha_er
+
+    original = ha_er.async_entries_for_config_entry
+    try:
+        yield
+    finally:
+        setup_mod.async_entries_for_config_entry = original
+
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 

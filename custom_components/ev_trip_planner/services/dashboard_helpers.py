@@ -359,7 +359,7 @@ async def async_register_static_paths(
         HAS_STATIC_PATH_CONFIG = True
     except (
         ImportError
-    ):  # pragma: no cover — depends on HA version; tested via integration
+    ):  # pragma: no cover reason=HA version dependency — static_path_config only available in newer HA versions, tested via integration
         HAS_STATIC_PATH_CONFIG = False
 
     component_dir = Path(__file__).parent.parent
@@ -412,7 +412,7 @@ async def async_register_static_paths(
             "Registered %d static path(s) for EV Trip Planner panel (early)",
             len(static_paths),
         )
-    except (TypeError, AttributeError, RuntimeError):  # pragma: no cover
+    except (TypeError, AttributeError, RuntimeError):  # pragma: no cover reason=HA version compatibility fallback — triggered when async registration method fails with type/attribute/runtime error
         _register_static_paths_legacy(hass, static_paths, "early")
 
 

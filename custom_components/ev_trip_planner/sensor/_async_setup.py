@@ -121,9 +121,9 @@ async def async_setup_entry(
         # Await if it returns an awaitable (async callback)
         try:
             await result
-        except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+        except TypeError:  # pragma: no cover reason=sync callback returns None in HA entity platform, causes TypeError when awaited
             # Sync callback - result is None, nothing to await
-            pass  # pragma: no cover  # HA entity platform - sync callback error handling
+            pass  # pragma: no cover reason=paired with TypeError above — sync callback result is None
 
     # Capture async_add_entities callback for dynamic service use (task 2.3)
     runtime_data.sensor_async_add_entities = async_add_entities
@@ -163,16 +163,16 @@ async def _async_create_trip_sensors(
         )
 
         # Create sensors for recurring trips
-        for trip_data in recurring_trips:  # pragma: no cover  # HA entity platform - loop creates sensors for all valid trips; no error means all succeed
-            try:  # pragma: no cover  # HA entity platform - try block for sensor creation
+        for trip_data in recurring_trips:  # pragma: no cover reason=requires HA entity platform async_add_entities which creates real entity instances
+            try:  # pragma: no cover reason=paired with above — real sensor instantiation requires HA entity platform
                 sensor = TripSensor(coordinator, vehicle_id, trip_data.get("id", ""))
                 entities.append(sensor)
-                _LOGGER.debug(  # pragma: no cover  # HA entity platform - debug logging for successful sensor creation
+                _LOGGER.debug(  # pragma: no cover reason=paired with try above — debug log in success path of HA entity platform sensor creation
                     "Created trip sensor for recurring trip %s",
                     trip_data.get("id"),
                 )
-            except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for malformed trip data
-                _LOGGER.warning(  # pragma: no cover  # HA entity platform - warning logged but sensor creation continues
+            except Exception as err:  # pragma: no cover reason=requires HA entity platform to trigger — error path in real sensor instantiation loop
+                _LOGGER.warning(  # pragma: no cover reason=paired with above — warning in HA entity platform sensor creation error path
                     "Failed to create sensor for recurring trip %s: %s",
                     trip_data.get("id"),
                     err,
@@ -187,8 +187,8 @@ async def _async_create_trip_sensors(
                     "Created trip sensor for punctual trip %s",
                     trip_data.get("id"),
                 )
-            except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for malformed trip data
-                _LOGGER.warning(  # pragma: no cover  # HA entity platform - warning logged but sensor creation continues
+            except Exception as err:  # pragma: no cover reason=requires HA entity platform to trigger — error path in punctual sensor creation
+                _LOGGER.warning(  # pragma: no cover reason=paired with above — warning in HA entity platform punctual sensor error path
                     "Failed to create sensor for punctual trip %s: %s",
                     trip_data.get("id"),
                     err,
@@ -267,14 +267,14 @@ async def async_create_trip_sensor(
         if result is not None:
             try:
                 await result
-            except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+            except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 # Sync callback
-                pass  # pragma: no cover  # HA entity platform - sync callback error handling
+                pass  # pragma: no cover reason=paired with TypeError above — sync callback returns None in HA entity platform
         _LOGGER.debug("Trip sensor created and registered for trip %s", trip_id)
         return True
-    except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
+    except Exception as err:  # pragma: no cover reason=requires HA entity platform — error path in real sensor creation
         _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)
-        return False  # pragma: no cover  # HA entity platform - error return path
+        return False  # pragma: no cover reason=paired with above — error return in HA entity platform sensor creation
 
 
 async def async_update_trip_sensor(
@@ -494,11 +494,11 @@ async def async_create_trip_emhass_sensor(
         if result is not None:
             try:
                 await result
-            except TypeError:  # pragma: no cover  # HA entity platform - sync callbacks return None which causes TypeError when awaited
+            except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 # Sync callback
-                pass  # pragma: no cover  # HA entity platform - sync callback error handling
+                pass  # pragma: no cover reason=paired with TypeError above — sync callback returns None in EMHASS sensor HA entity platform
         _LOGGER.debug("EMHASS sensor created and registered for trip %s", trip_id)
         return True
-    except Exception as err:  # pragma: no cover  # HA entity platform - defensive error handling for sensor creation failure
+    except Exception as err:  # pragma: no cover reason=requires HA entity platform — error path in real EMHASS sensor creation
         _LOGGER.error("Failed to create EMHASS sensor for trip %s: %s", trip_id, err)
-        return False  # pragma: no cover  # HA entity platform - error return path
+        return False  # pragma: no cover reason=paired with above — error return in HA entity platform EMHASS sensor creation

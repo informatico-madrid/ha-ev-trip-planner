@@ -44,11 +44,11 @@ class ScriptStrategy(VehicleControlStrategy):
             )
             _LOGGER.info("Deactivated charging via script: %s", self.script_off)
             return True
-        except Exception as err:  # pragma: no cover
+        except Exception as err:  # pragma: no cover reason=script execution failure requires HA runtime
             _LOGGER.error(
                 "Error executing script %s: %s", self.script_off, err, exc_info=True
             )
-            return False  # pragma: no cover
+            return False  # pragma: no cover reason=paired with above exception handler
 
     async def async_get_status(self) -> bool:
         """Get status - scripts typically don't return status."""

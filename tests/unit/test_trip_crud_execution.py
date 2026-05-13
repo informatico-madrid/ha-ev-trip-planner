@@ -19,7 +19,11 @@ from custom_components.ev_trip_planner.trip._trip_lifecycle import TripLifecycle
 from custom_components.ev_trip_planner.trip.state import TripManagerState
 
 
-def _make_tm(recurring=None, punctual=None, entry_id="test_entry", emhass_adapter=None):
+_NO_ADAPTER = object()
+
+
+def _make_tm(recurring=None, punctual=None, entry_id="test_entry",
+             emhass_adapter=_NO_ADAPTER):
     """Build a minimal TripManager with proper state for CRUD tests.
 
     Creates TripManagerState and all sub-components manually (skipping __init__)
@@ -54,14 +58,19 @@ def _make_tm(recurring=None, punctual=None, entry_id="test_entry", emhass_adapte
     tm._state.sensor_callbacks = cb
 
     # Set up EMHASS adapter
-    adapter = emhass_adapter or MagicMock()
-    adapter.async_publish_all_deferrable_loads = AsyncMock()
-    adapter.async_update_deferrable_load = AsyncMock()
-    adapter._published_trips = []
-    adapter._cached_per_trip_params = {}
-    adapter._cached_power_profile = []
-    adapter._cached_deferrables_schedule = []
-    tm._state.emhass_adapter = adapter
+    if emhass_adapter is None:
+        tm._state.emhass_adapter = None
+    else:
+        adapter = MagicMock()
+        adapter.async_publish_all_deferrable_loads = AsyncMock()
+        adapter.async_publish_deferrable_load = AsyncMock()
+        adapter.async_update_deferrable_load = AsyncMock()
+        adapter.async_remove_deferrable_load = AsyncMock()
+        adapter._published_trips = []
+        adapter._cached_per_trip_params = {}
+        adapter._cached_power_profile = []
+        adapter._cached_deferrables_schedule = []
+        tm._state.emhass_adapter = adapter
 
     # Create sub-components and wire references on state
     tm._persistence = TripPersistence(tm._state)
@@ -346,6 +355,17 @@ class TestCRUDSyncToEMHASS:
         )
 
     @pytest.mark.asyncio
+    async def test_sync_non_recalc_fields(self):
+        """Sync with non-recalc fields triggers adapter update without recalc (lines 82-83)."""
+        tm = _make_tm(recurring={"rec_1": {"id": "rec_1", "activo": True}})
+        # "nombre" NOT in _RECALC_FIELDS → triggers else branch at lines 82-83
+        await tm._state._emhass_sync._async_sync_trip_to_emhass(
+            "rec_1", {"id": "rec_1"}, {"nombre": "updated note"}
+        )
+        # Non-recalc path: async_update_deferrable_load called, no publish
+        tm._state.emhass_adapter.async_update_deferrable_load.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_sync_no_trip_found(self):
         """Syncing a trip that doesn't exist in storage."""
         tm = _make_tm()
@@ -387,6 +407,16 @@ class TestCRUDPublishNewToEMHASS:
         trip = {"id": "rec_1", "km": 50.0, "kwh": 10.0}
         await tm._state._emhass_sync._async_publish_new_trip_to_emhass(trip)
 
+    @pytest.mark.asyncio
+    async def test_publish_new_calls_adapter_and_publish(self):
+        """Publishing new trip calls adapter.publish and schedule.publish (lines 112-113)."""
+        tm = _make_tm()
+        await tm._state._emhass_sync._async_publish_new_trip_to_emhass(
+            {"id": "new_trip", "activo": True}
+        )
+        tm._state.emhass_adapter.async_publish_deferrable_load.assert_called_once()
+        tm._state._schedule.publish_deferrable_loads.assert_called_once()
+
 
 class TestCRUDRemoveFromEMHASS:
     """Test _async_remove_trip_from_emhass (EMHASS sync)."""
@@ -403,6 +433,14 @@ class TestCRUDRemoveFromEMHASS:
         """Removing trip without adapter is no-op."""
         tm = _make_tm(emhass_adapter=None)
         await tm._state._emhass_sync._async_remove_trip_from_emhass("rec_1")
+
+    @pytest.mark.asyncio
+    async def test_remove_calls_adapter_and_publish(self):
+        """Removing trip calls adapter.remove and schedule.publish (lines 99-100)."""
+        tm = _make_tm(recurring={"rec_1": {"id": "rec_1", "activo": True}})
+        await tm._state._emhass_sync._async_remove_trip_from_emhass("rec_1")
+        tm._state.emhass_adapter.async_remove_deferrable_load.assert_called_once()
+        tm._state._schedule.publish_deferrable_loads.assert_called_once()
 
 
 class TestGetAllActiveTrips:
@@ -531,3 +569,126 @@ class TestUpdateNonCriticalFields:
         await tm._crud.async_update_trip("rec_1", {"descripcion": "new desc"})
         # Should call async_update_deferrable_load (non-recalc path)
         tm._state.emhass_adapter.async_update_deferrable_load.assert_called_once()
+
+
+class TestEMHASSSyncExceptions:
+    """Test EMHASS sync exception paths that were lazily pragma'd."""
+
+    @pytest.mark.asyncio
+    async def test_sync_exception_from_adapter(self):
+        """Adapter raises during sync — exception is caught and logged (lines 88-89)."""
+        tm = _make_tm(recurring={"rec_1": {"id": "rec_1", "activo": True, "km": 50}})
+        tm._state.emhass_adapter.async_update_deferrable_load = AsyncMock(
+            side_effect=RuntimeError("EMHASS connection failed")
+        )
+        # Should not propagate
+        await tm._state._emhass_sync._async_sync_trip_to_emhass(
+            "rec_1", {"id": "rec_1", "km": 50}, {"km": 75}
+        )
+        tm._state.emhass_adapter.async_update_deferrable_load.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_sync_exception_remove_from_emhass(self):
+        """Adapter raises during inactive trip remove (lines 100-101)."""
+        tm = _make_tm(recurring={"rec_1": {"id": "rec_1", "activo": False}})
+        tm._state.emhass_adapter.async_remove_deferrable_load = AsyncMock(
+            side_effect=RuntimeError("connection lost")
+        )
+        await tm._state._emhass_sync._async_sync_trip_to_emhass(
+            "rec_1", {"id": "rec_1", "activo": True}, {"activo": False}
+        )
+        tm._state.emhass_adapter.async_remove_deferrable_load.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_publish_new_exception_from_adapter(self):
+        """Adapter raises during publish new trip (lines 113-115)."""
+        tm = _make_tm(recurring={"rec_1": {"id": "rec_1", "activo": True}})
+        tm._state.emhass_adapter.async_publish_deferrable_load = AsyncMock(
+            side_effect=RuntimeError("EMHASS down")
+        )
+        await tm._state._emhass_sync._async_publish_new_trip_to_emhass(
+            {"id": "rec_1", "km": 50}
+        )
+        tm._state.emhass_adapter.async_publish_deferrable_load.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_remove_exception_from_adapter(self):
+        """Adapter raises during remove (lines 101-102)."""
+        tm = _make_tm()
+        tm._state.emhass_adapter.async_remove_deferrable_load = AsyncMock(
+            side_effect=RuntimeError("EMHASS error")
+        )
+        await tm._state._emhass_sync._async_remove_trip_from_emhass("rec_1")
+        tm._state.emhass_adapter.async_remove_deferrable_load.assert_called_once()
+
+
+class TestPersistenceHAStoreFallback:
+    """Test persistence fallback HA Store path (lines 65-73)."""
+
+    @pytest.mark.asyncio
+    async def test_save_without_injected_storage_uses_ha_store(self):
+        """No injected storage → uses HA Store fallback (lines 65-73)."""
+        tm = _make_tm()
+        # Remove injected storage to trigger fallback
+        tm._state.storage = None
+        # This should attempt HA Store path and not raise
+        await tm._state._persistence.async_save_trips()
+
+    @pytest.mark.asyncio
+    async def test_load_trips_no_data_key(self):
+        """stored_data without 'data' key → uses stored_data directly (line 118)."""
+        from unittest.mock import MagicMock
+
+        storage = MagicMock()
+        storage.async_load = AsyncMock(
+            return_value={
+                "trips": {},
+                "recurring_trips": {"r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}},
+                "punctual_trips": {},
+            }
+        )
+        tm = _make_tm()
+        tm._state._trips = {}
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state.storage = storage
+        await tm._state._persistence._load_trips()
+        assert "r1" in tm._state.recurring_trips
+
+
+class TestPersistenceSanitizeWarning:
+    """Test _sanitize_recurring_trips warning log (line 206)."""
+
+    @pytest.mark.asyncio
+    async def test_sanitize_warns_on_removed_trips(self):
+        """Invalid hora trips trigger warning log (line 206)."""
+        tm = _make_tm(
+            recurring={
+                "bad_1": {"id": "bad_1", "hora": "invalid"},
+                "good_1": {"id": "good_1", "hora": "14:00", "dia_semana": "lunes"},
+            }
+        )
+        # The sanitize method is called from _load_trips, but we can test
+        # the warning path via the _sanitize_recurring_trips method directly
+        result = tm._state._persistence._sanitize_recurring_trips(
+            {"bad": {"id": "bad", "hora": "invalid"}}
+        )
+        assert result == {}  # invalid trip removed
+
+
+class TestPersistenceFallbackStore:
+    """Test _persistence fallback HA Store and YAML exception paths."""
+
+    @pytest.mark.asyncio
+    async def test_save_trips_exception_triggers_yaml_fallback(self):
+        """Exception during HA store save triggers YAML fallback (lines 81-84)."""
+        tm = _make_tm()
+        tm._state.storage = None  # no injected storage
+        # Mock the HA Store to raise
+        with patch(
+            "custom_components.ev_trip_planner.trip._persistence.ha_storage.Store"
+        ) as MockStore:
+            mock_store = MagicMock()
+            mock_store.async_save = AsyncMock(side_effect=RuntimeError("disk full"))
+            MockStore.return_value = mock_store
+            await tm._state._persistence.async_save_trips()

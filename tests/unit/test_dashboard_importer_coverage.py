@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -378,14 +379,20 @@ class TestImportDashboard:
     """Test import_dashboard integration coverage."""
 
     @pytest.mark.asyncio
-    async def test_fails_when_no_lovelace(self):
-        """Fails when Lovelace is not available."""
+    async def test_fails_when_no_lovelace(self, caplog):
+        """Fails when Lovelace is not available (lines 175-181)."""
         mock_hass = MagicMock()
         mock_hass.config.components = set()  # No lovelace
+        mock_hass.services.has_service = MagicMock(return_value=False)
 
-        result = await import_dashboard(mock_hass, "v1", "V1", False)
-        assert isinstance(result, DashboardImportResult)
-        assert result.success is False
+        with caplog.at_level(
+            logging.ERROR,
+            logger="custom_components.ev_trip_planner.dashboard.importer",
+        ):
+            result = await import_dashboard(mock_hass, "v1", "V1", False)
+            assert isinstance(result, DashboardImportResult)
+            assert result.success is False
+            assert any("Lovelace" in r.message for r in caplog.records)
 
     @pytest.mark.asyncio
     async def test_fails_when_template_returns_none(self):
@@ -448,6 +455,62 @@ class TestImportDashboard:
                         success=True,
                         vehicle_id="v1",
                         vehicle_name="V1",
+                    ),
+                ):
+                    result = await import_dashboard(mock_hass, "v1", "V1", False)
+                    assert isinstance(result, DashboardImportResult)
+                    assert result.success is True
+
+    @pytest.mark.asyncio
+    async def test_invalid_vehicle_name(self):
+        """Invalid vehicle_name triggers validation error (lines 161-163)."""
+        mock_hass = MagicMock()
+        # Pass empty string as vehicle_name
+        result = await import_dashboard(mock_hass, "v1", "", False)
+        assert isinstance(result, DashboardImportResult)
+        assert result.success is False
+        assert result.error == "Invalid vehicle_name: must be a non-empty string"
+        assert result.error_details == {"validation": "invalid_vehicle_name"}
+
+    @pytest.mark.asyncio
+    async def test_non_string_vehicle_name(self):
+        """Non-string vehicle_name triggers validation error (lines 161-163)."""
+        mock_hass = MagicMock()
+        result = await import_dashboard(mock_hass, "v1", 123, False)
+        assert isinstance(result, DashboardImportResult)
+        assert result.success is False
+        assert result.error_details == {"validation": "invalid_vehicle_name"}
+
+    @pytest.mark.asyncio
+    async def test_generic_exception_in_storage_api(self):
+        """Non-DashboardStorageError exception in storage API triggers YAML fallback (lines 308-309)."""
+        mock_hass = MagicMock()
+        mock_hass.config.components = {"lovelace"}
+
+        good_config = {
+            "title": "Test",
+            "views": [{"path": "v1", "title": "Test", "cards": []}],
+        }
+
+        async def raise_value_error(*args, **kwargs):
+            raise ValueError("unexpected storage error")
+
+        with patch(
+            "custom_components.ev_trip_planner.dashboard.importer._load_template",
+            return_value=good_config,
+        ):
+            with patch(
+                "custom_components.ev_trip_planner.dashboard.importer._save_lovelace",
+                new=raise_value_error,
+            ):
+                with patch(
+                    "custom_components.ev_trip_planner.dashboard.importer._save_yaml",
+                    new=AsyncMock(
+                        return_value=DashboardImportResult(
+                            success=True,
+                            vehicle_id="v1",
+                            vehicle_name="V1",
+                        )
                     ),
                 ):
                     result = await import_dashboard(mock_hass, "v1", "V1", False)

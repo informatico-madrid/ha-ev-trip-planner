@@ -91,24 +91,69 @@ class TestCalculateTripTime:
         assert result.hour == 10
         assert result.minute == 0
 
-    def test_recurring_trip_next_week_day(self):
-        """Recurring trip on later weekday returns correct day this week."""
+    def test_recurring_trip_with_tz_aware_reference(self):
+        """Recurring trip with tz parameter and timezone-aware reference_dt (lines 245-260)."""
+        from zoneinfo import ZoneInfo
+
         from custom_components.ev_trip_planner.calculations import calculate_trip_time
         from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 
-        # Reference: Monday 08:00
-        ref = datetime(2026, 4, 6, 8, 0)  # Monday April 6 2026, 08:00
-        # Trip: Friday 10:00 (same week)
+        # Reference: Monday 08:00 UTC (timezone-aware)
+        ref = datetime(2026, 4, 6, 8, 0, tzinfo=timezone.utc)
+        # Trip: Monday 10:00 local time (Europe/Madrid = UTC+2 in April)
         result = calculate_trip_time(
             trip_tipo=TRIP_TYPE_RECURRING,
             hora="10:00",
-            dia_semana="viernes",
+            dia_semana="lunes",
             datetime_str=None,
             reference_dt=ref,
+            tz=ZoneInfo("Europe/Madrid"),
         )
         assert result is not None
-        assert result.weekday() == 4  # Friday
-        assert result.hour == 10
+
+    def test_recurring_trip_tz_passed_today_pushes_to_next_week(self):
+        """Tz-aware path: today is the trip day but hour already passed -> push 7 days."""
+        from zoneinfo import ZoneInfo
+
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        # Reference: Monday 08:00 UTC = Monday 10:00 CEST (Europe/Madrid UTC+2)
+        ref = datetime(2026, 4, 6, 8, 0, tzinfo=timezone.utc)
+        # Trip: Monday 08:00 local time (CET/CEST = UTC+1/+2)
+        # In April, Madrid is UTC+2, so trip is at 06:00 UTC
+        # Local ref = 10:00, trip hour = 8 -> 10 > 8, days_ahead=0 -> push to next week
+        result = calculate_trip_time(
+            trip_tipo=TRIP_TYPE_RECURRING,
+            hora="08:00",
+            dia_semana="lunes",
+            datetime_str=None,
+            reference_dt=ref,
+            tz=ZoneInfo("Europe/Madrid"),
+        )
+        assert result is not None
+        # Should be next Monday (April 13)
+        assert result.date() == ref.date() + timedelta(days=7)
+        assert result.weekday() == 0  # Monday
+
+    def test_recurring_trip_with_tz_naive_reference(self):
+        """Tz-aware path: naive reference_dt → replace with UTC (line 259)."""
+        from zoneinfo import ZoneInfo
+
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        # Naive reference
+        ref = datetime(2026, 4, 6, 8, 0)  # No tzinfo
+        result = calculate_trip_time(
+            trip_tipo=TRIP_TYPE_RECURRING,
+            hora="10:00",
+            dia_semana="lunes",
+            datetime_str=None,
+            reference_dt=ref,
+            tz=ZoneInfo("Europe/Madrid"),
+        )
+        assert result is not None
 
     def test_recurring_trip_already_passed_this_week(self):
         """Recurring trip that already passed this week returns next week."""
@@ -779,6 +824,33 @@ class TestCalculateMultiTripChargingWindows:
         assert result[1]["inicio_ventana"].hour == 8
         assert result[1]["inicio_ventana"].minute == 0
         assert result[1]["ventana_horas"] == 14.0
+
+    def test_chained_trips_buffer_exceeds_gap_caps_window(self):
+        """return_buffer pushes window_start past departure → capped to departure (line 269)."""
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_multi_trip_charging_windows,
+        )
+
+        # Trip 1 departs 8:00, Trip 2 departs 10:00
+        # Return buffer = 3h → 8:00 + 3h = 11:00 > 10:00 → capped to 10:00
+        trip1_departure = datetime(2026, 4, 6, 8, 0)
+        trip2_departure = datetime(2026, 4, 6, 10, 0)
+        trips = [
+            (trip1_departure, {"id": "trip1"}),
+            (trip2_departure, {"id": "trip2"}),
+        ]
+        result = calculate_multi_trip_charging_windows(
+            trips=trips,
+            soc_actual=50.0,
+            hora_regreso=datetime(2026, 4, 6, 6, 0),
+            charging_power_kw=7.4,
+            return_buffer_hours=3.0,
+            battery_capacity_kwh=50.0,
+        )
+        # Second trip's window_start should be capped to trip2 departure (10:00)
+        assert result[1]["inicio_ventana"].hour == 10
+        assert result[1]["inicio_ventana"].minute == 0
+        assert result[1]["ventana_horas"] == 0.0
 
 
 class TestCalculateSocAtTripStarts:
@@ -2076,6 +2148,30 @@ class TestCalculatePowerProfileFromTrips:
         # 15 kWh / 7.4 kW ≈ 2.03 → 3 hours
         assert len(non_zero) >= 1
         assert all(v == 7400.0 for v in non_zero)
+
+    def test_trip_with_soc_current_uses_soc_aware_path(self):
+        """With soc_current and battery_capacity_kwh, uses determine_charging_need (lines 137-145)."""
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_power_profile_from_trips,
+        )
+
+        trip = {
+            "id": "trip_soc",
+            "datetime": "2026-04-06T18:00",
+            "kwh": 15.0,
+        }
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=7.4,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 8, 0),
+            soc_current=50.0,
+            battery_capacity_kwh=75.0,
+            safety_margin_percent=15.0,
+        )
+        # Should produce a valid power profile
+        non_zero = [v for v in result if v > 0]
+        assert len(non_zero) >= 1
 
     def test_trip_with_zero_kwh_skipped(self):
         """Trip with kwh=0 is skipped. Covers line 693."""

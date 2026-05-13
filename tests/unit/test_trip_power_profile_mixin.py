@@ -93,6 +93,22 @@ class TestPowerProfileExecution:
         assert result is not None
 
     @pytest.mark.asyncio
+    async def test_generate_power_profile_config_fallback_via_vehicle_id(self):
+        """No entry_id -> config_entry lookup via vehicle_id (line 55), config read (lines 60-64)."""
+        pm = _make_pm()
+        # Clear entry_id to trigger vehicle_id fallback at line 51-54
+        pm._state.entry_id = ""
+        matching_entry = MagicMock()
+        matching_entry.data = {
+            "vehicle_name": "test_vehicle",
+            "battery_capacity_kwh": 70.0,
+            "safety_margin_percent": 15.0,
+        }
+        pm._state.hass.config_entries.async_get_entry = MagicMock(return_value=matching_entry)
+        result = await pm.async_generate_power_profile(vehicle_config=None, planning_horizon_days=1)
+        assert result is not None
+
+    @pytest.mark.asyncio
     async def test_generate_power_profile_config_entry_scan(self):
         """Direct lookup fails, scans entries by vehicle_name."""
         pm = _make_pm()
@@ -135,5 +151,27 @@ class TestPowerProfileExecution:
         pm._state.hass.config_entries.async_get_entry = MagicMock(
             side_effect=RuntimeError("config error")
         )
+        result = await pm.async_generate_power_profile(vehicle_config=None)
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_generate_power_profile_soc_fetch_exception(self):
+        """Exception during SOC fetch -> defaults to 50.0 (lines 78-79)."""
+        pm = _make_pm()
+        pm._state._soc.async_get_vehicle_soc = AsyncMock(
+            side_effect=RuntimeError("SOC sensor error")
+        )
+        result = await pm.async_generate_power_profile(vehicle_config=None)
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_generate_power_profile_pending_punctual_included(self):
+        """Pending punctual trips included in profile (line 88)."""
+        pm = _make_pm()
+        pm._state.punctual_trips = {
+            "pun_1": {"id": "pun_1", "estado": "pendiente", "tipo": "punctual"},
+            "pun_2": {"id": "pun_2", "estado": "completado"},
+        }
+        pm._state.recurring_trips = {}
         result = await pm.async_generate_power_profile(vehicle_config=None)
         assert result is not None

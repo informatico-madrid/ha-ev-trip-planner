@@ -641,3 +641,111 @@ class TestVehicleController:
 
         await controller._check_and_reset_retry_on_disconnect()
         assert controller._last_charging_state is True
+
+    @pytest.mark.asyncio
+    async def test_async_check_charging_sensor_none_sensor(self):
+        """Charging sensor is None → returns False immediately."""
+        hass_mock = MagicMock()
+        controller = VehicleController(hass_mock, "test_vehicle")
+        # _charging_sensor is None (no presence config)
+        result = await controller._async_check_charging_sensor()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_async_deactivate_with_strategy(self):
+        """Deactivate with strategy set → calls strategy.async_deactivate."""
+        hass_mock = MagicMock()
+        controller = VehicleController(hass_mock, "test_vehicle")
+        strategy = MagicMock()
+        strategy.async_deactivate = AsyncMock(return_value=True)
+        controller.set_strategy(strategy)
+        result = await controller.async_deactivate_charging()
+        assert result is True
+        strategy.async_deactivate.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_deactivate_strategy_returns_false(self):
+        """Deactivate with strategy returning False."""
+        hass_mock = MagicMock()
+        controller = VehicleController(hass_mock, "test_vehicle")
+        strategy = MagicMock()
+        strategy.async_deactivate = AsyncMock(return_value=False)
+        controller.set_strategy(strategy)
+        result = await controller.async_deactivate_charging()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_async_get_charging_status(self):
+        """Get charging status delegates to strategy."""
+        hass_mock = MagicMock()
+        controller = VehicleController(hass_mock, "test_vehicle")
+        strategy = MagicMock()
+        strategy.async_get_status = AsyncMock(return_value=True)
+        controller.set_strategy(strategy)
+        result = await controller.async_get_charging_status()
+        assert result is True
+        strategy.async_get_status.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_get_charging_status_no_strategy(self):
+        """Get charging status with no strategy → False."""
+        hass_mock = MagicMock()
+        controller = VehicleController(hass_mock, "test_vehicle")
+        result = await controller.async_get_charging_status()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_presence_status_charging_already_on(self):
+        """Presence check with charging sensor on → returns (True, None) with info log."""
+        hass_mock = MagicMock()
+        hass_mock.states.get = MagicMock(return_value=MagicMock(state="on"))
+        # Set up with presence config including charging_sensor
+        config = {"charging_sensor": "binary_sensor.plugged"}
+        controller = VehicleController(hass_mock, "test_vehicle", presence_config=config)
+        # Set a mock presence monitor that reports ready
+        monitor = MagicMock()
+        monitor.async_check_charging_readiness = AsyncMock(
+            return_value=(True, None)
+        )
+        controller._presence_monitor = monitor
+        result = await controller.async_check_presence_status()
+        assert result == (True, None)
+
+    @pytest.mark.asyncio
+    async def test_async_activate_charging_max_retries_exceeded(self):
+        """Activate with max retries exceeded → returns False."""
+        hass_mock = MagicMock()
+        # No charging sensor → _check_and_reset_retry_on_disconnect returns early
+        controller = VehicleController(hass_mock, "test_vehicle")
+        # Set a strategy so code reaches the retry check (line 184-186 is bypassed)
+        strategy = MagicMock()
+        strategy.async_activate = AsyncMock(return_value=True)
+        controller.set_strategy(strategy)
+        # Exhaust retry attempts so should_retry returns False
+        controller._retry_state.add_attempt()
+        controller._retry_state.add_attempt()
+        controller._retry_state.add_attempt()
+        # Presence monitor reports ready
+        monitor = MagicMock()
+        monitor.async_check_charging_readiness = AsyncMock(
+            return_value=(True, None)
+        )
+        controller._presence_monitor = monitor
+        result = await controller.async_activate_charging()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_update_charging_state_after_deactivation_with_sensor(self):
+        """_update_charging_state_after_deactivation with sensor set hits lines 290-291."""
+        hass_mock = MagicMock()
+        config = {"charging_sensor": "binary_sensor.plugged"}
+        controller = VehicleController(hass_mock, "test_vehicle", presence_config=config)
+        controller._charging_sensor = MagicMock(state="off")
+        controller._last_charging_state = None
+        strategy = MagicMock()
+        strategy.async_deactivate = AsyncMock(return_value=True)
+        controller.set_strategy(strategy)
+        await controller.async_deactivate_charging()
+        # _update_charging_state_after_deactivation was called (from async_deactivate_charging)
+        # which calls _async_check_charging_sensor() when _charging_sensor is truthy
+        assert controller._last_charging_state is not None

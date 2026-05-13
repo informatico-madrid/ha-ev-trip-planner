@@ -185,5 +185,5 @@ class TripScheduler:
         if adapter and hasattr(adapter, "async_publish_all_deferrable_loads"):
             try:
                 await adapter.async_publish_all_deferrable_loads(trips)
-            except Exception:  # pragma: no cover
+            except Exception:
                 _LOGGER.exception("Error publishing deferrable loads to EMHASS")

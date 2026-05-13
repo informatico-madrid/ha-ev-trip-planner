@@ -58,6 +58,20 @@ class TestReadEmhassConfig:
         result = _read_emhass_config("/root/protected/config.json")
         assert result is None
 
+    def test_directory_path_missing_config_json(self, tmp_path):
+        """Directory path but no config.json → returns None (line 39)."""
+        # Create a directory (not a file) → line 36 path, then line 39 (config.json missing)
+        result = _read_emhass_config(str(tmp_path))
+        assert result is None
+
+    def test_directory_path_with_config_json(self, tmp_path):
+        """Directory path with config.json → reads it (line 36 path)."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        result = _read_emhass_config(str(tmp_path))
+        assert result is not None
+        assert result["end_timesteps_of_each_deferrable_load"] == [168]
+
 
 class TestGetEmhassPlanningHorizon:
     """Test _get_emhass_planning_horizon (lines 238-268)."""
@@ -317,3 +331,159 @@ class TestEVTripPlannerFlowHandler:
         entry = MagicMock()
         options_flow = EVTripPlannerFlowHandler.async_get_options_flow(entry)
         assert options_flow is not None
+
+
+class TestValidateEmhassInput:
+    """Test validate_emhass_input (lines 90, 104-140, 151-182)."""
+
+    def _make_ctx(self, user_input=None, emhass_config=None, tmp_path=None):
+        """Create an _EmhassCtx for testing."""
+        from custom_components.ev_trip_planner.config_flow._emhass import (
+            _EmhassCtx,
+            validate_emhass_input,
+        )
+
+        hass = MagicMock()
+        hass.states.get = MagicMock(return_value=None)
+        ctx = _EmhassCtx(
+            user_input=user_input or {},
+            hass=hass,
+            vehicle_data={},
+            schema_description="",
+        )
+        return ctx, validate_emhass_input, hass, tmp_path
+
+    def test_validate_valid_inputs_no_emhass_config(self):
+        """Valid inputs without EMHASS config → no error."""
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 7, "max_deferrable_loads": 20},
+        )
+        result = validate(ctx, None)
+        assert result is None
+
+    def test_validate_emhass_config_logging(self, tmp_path):
+        """Lines 90: With EMHASS config → logs info."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 7, "max_deferrable_loads": 20},
+            emhass_config={"end_timesteps_of_each_deferrable_load": [168]},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None
+
+    def test_validate_planning_horizon_exceeds_emhass(self, tmp_path):
+        """Lines 104-110: User horizon > EMHASS horizon -> logs warning."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [48]}))
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 10, "max_deferrable_loads": 20},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # Warning logged, not an error
+
+    def test_validate_planning_sensor_horizon_exceeded(self, tmp_path):
+        """Lines 125-132: Planning horizon > sensor value -> logs warning."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        ctx, validate, hass, _ = self._make_ctx(
+            user_input={
+                "planning_horizon_days": 5,
+                "planning_sensor_entity": "sensor.my_horizon",
+                "max_deferrable_loads": 20,
+            },
+        )
+        sensor_state = MagicMock()
+        sensor_state.state = "3"  # sensor says 3 days, user set 5 -> warning
+        hass.states.get = MagicMock(return_value=sensor_state)
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # Warning logged, not an error
+
+    def test_validate_planning_sensor_good_value(self, tmp_path):
+        """Lines 112-124: Valid planning sensor with parseable state."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        ctx, validate, hass, _ = self._make_ctx(
+            user_input={
+                "planning_horizon_days": 5,
+                "planning_sensor_entity": "sensor.my_horizon",
+                "max_deferrable_loads": 20,
+            },
+        )
+        sensor_state = MagicMock()
+        sensor_state.state = "10"
+        hass.states.get = MagicMock(return_value=sensor_state)
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None
+
+    def test_validate_planning_sensor_non_numeric(self, tmp_path):
+        """Lines 133-138: Non-numeric sensor state → logs warning (ValueError in int/float)."""
+        from custom_components.ev_trip_planner.const import CONF_PLANNING_SENSOR
+
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        ctx, validate, hass, _ = self._make_ctx(
+            user_input={
+                "planning_horizon_days": 5,
+                CONF_PLANNING_SENSOR: "sensor.my_horizon",
+                "max_deferrable_loads": 20,
+            },
+        )
+        sensor_state = MagicMock()
+        # "3.14abc" passes the "unknown/unavailable/empty" check but raises ValueError
+        # in int(float(...)) → covered by except (ValueError, TypeError) at lines 133-138
+        sensor_state.state = "3.14abc"
+        hass.states.get = MagicMock(return_value=sensor_state)
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None
+
+    def test_validate_planning_sensor_not_available(self, tmp_path):
+        """Lines 139-143: Sensor state is None/unknown → logs info."""
+        from custom_components.ev_trip_planner.const import CONF_PLANNING_SENSOR
+
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        ctx, validate, hass, _ = self._make_ctx(
+            user_input={
+                "planning_horizon_days": 5,
+                CONF_PLANNING_SENSOR: "sensor.my_horizon",
+                "max_deferrable_loads": 20,
+            },
+        )
+        hass.states.get = MagicMock(return_value=None)
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None
+
+    def test_validate_max_loads_exceeds_emhass(self, tmp_path):
+        """Lines 151-157: User loads > EMHASS config → logs warning."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(
+            json.dumps({"number_of_deferrable_loads": 10, "end_timesteps_of_each_deferrable_load": [168]})
+        )
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 5, "max_deferrable_loads": 50},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None
+
+    def test_validate_logging_at_end(self, tmp_path):
+        """Lines 163-180: Logging at end of validation."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(json.dumps({"end_timesteps_of_each_deferrable_load": [168]}))
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={
+                "planning_horizon_days": 5,
+                "planning_sensor_entity": "sensor.my_horizon",
+                "max_deferrable_loads": 20,
+            },
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # Should reach line 182 return None

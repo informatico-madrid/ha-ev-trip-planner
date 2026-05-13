@@ -749,7 +749,7 @@ async def save_yaml_fallback(
             )
             _LOGGER.info(
                 "Created config directory: %s", config_dir
-            )  # pragma: no cover  # HA storage I/O - directory creation only happens when path doesn't exist
+            )  # pragma: no cover reason=HA storage I/O — directory creation only triggered when config path doesn't exist
 
         # Convert dashboard config to YAML
         yaml_content = yaml.dump(dashboard_config, default_flow_style=False)

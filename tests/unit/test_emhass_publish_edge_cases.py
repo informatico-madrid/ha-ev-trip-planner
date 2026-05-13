@@ -191,5 +191,29 @@ async def test_emhass_sensors_populated_after_publish(mock_hass):
     print("  EMHASS sensors will be populated with trip data")
 
 
+@pytest.mark.asyncio
+async def test_publish_deferrable_loads_adapter_exception(mock_hass):
+    """EMHASS adapter raises exception during publish — defensive error handling path covered."""
+    emhass_adapter = MagicMock()
+    emhass_adapter.async_publish_all_deferrable_loads = AsyncMock(
+        side_effect=RuntimeError("EMHASS connection failed")
+    )
+
+    mock_storage = MagicMock()
+    mock_storage.async_load = AsyncMock(return_value=EXISTING_TRIPS)
+    trip_manager = TripManager(
+        mock_hass,
+        "test_vehicle",
+        TripManagerConfig(entry_id="test_entry", storage=mock_storage),
+    )
+    trip_manager._state.recurring_trips = EXISTING_TRIPS["data"]["recurring_trips"]
+    trip_manager._state.punctual_trips = EXISTING_TRIPS["data"]["punctual_trips"]
+    trip_manager.emhass_adapter = emhass_adapter
+
+    # Should not raise — error is caught and logged
+    await trip_manager._schedule.publish_deferrable_loads()
+    emhass_adapter.async_publish_all_deferrable_loads.assert_awaited_once()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-xvs"])
