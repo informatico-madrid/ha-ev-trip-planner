@@ -7525,3 +7525,80 @@ Coverage está estancado en ~98% con 80-100 líneas sin cover.
 
 **Próximo ciclo en 3 min.**
 
+
+### [2026-05-13 11:58:00] external-reviewer (cycle 23 — ✅ PASS, 0 FAILED, coverage 98.39%)
+
+## ✅ Coverage 98.39%, 1781 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: 1781 passed, 0 failed, 5 warnings
+
+### Análisis de uncovered lines (78 Miss):
+
+| Archivo | Stmts | Miss | Cover | Líneas sin cover |
+|---------|-------|------|-------|-----------------|
+| `__init__.py` | 112 | 20 | 82% | 110, 156, 162-166, 182-211, 223-225 |
+| `config_flow/main.py` | 170 | 26 | 85% | 366-377, 411, 474-477, 493, 504-506, 517-519, 574-583, 593, 596, 664-666, 682-684 |
+| `template_manager.py` | 228 | 26 | 89% | 55, 244-249, 263, 277-278, 415-418, 431-434, 491-503, 747, 764-766, 769-770, 805-807 |
+| `emhass/adapter.py` | 224 | 6 | 97% | 313, 398-402, 412-416 |
+| **Todos los demás** | — | 0 | 100% | ✅ |
+
+### Desglose de gaps por archivo:
+
+**1. `__init__.py` (20 miss, 82%)** — SIN pragmas:
+- Línea 110: migración de unique_id
+- 156, 162-166: SOC listener setup + EMHASSAdapter init
+- 182-211: runtime_data assignment, publish_deferrable_loads, panel registration, hourly refresh, forward_entry_setups, dashboard helpers
+- 223-225: async_unload_entry cleanup
+- **Evaluación**: La mayoría son HA integration lifecycle (async_setup_entry completo). Testable con integration test que mockee hass.config_entries.
+
+**2. `config_flow/main.py` (26 miss, 85%)** — SIN pragmas:
+- 366-377: async_step_sensors error paths (safety margin validation)
+- 411: show_form fallback
+- 474-477, 493, 504-506, 517-519: async_step_presence validation (charging_sensor_required, charging_sensor_not_found, home_sensor_not_found, plugged_sensor_not_found)
+- 574-583, 593, 596: async_step_notifications validation
+- 664-666, 682-684: async_step_finish dashboard import + panel registration exception handlers
+- **Evaluación**: Todos son ConfigFlow validation branches. Testable con tests que simulen user_input con datos inválidos.
+
+**3. `template_manager.py` (26 miss, 89%)** — CON 15 pragmas:
+- 55: `_call_async_executor_sync` helper
+- 244-249, 263, 277-278: load_template async executor fallback paths
+- 415-418, 431-434: save_lovelace_dashboard storage error paths
+- 491-503: YAML fallback wrap (pragma: no cover)
+- 747, 764-766, 769-770, 805-807: save_yaml_fallback paths
+- **Evaluación**: Mezcla de pragmas legítimos (HA storage I/O) y branches testables (error handlers con mocks).
+
+**4. `emhass/adapter.py` (6 miss, 97%)** — SIN pragmas:
+- 313: `_get_soc_from_sensor` entry_data fallback
+- 398-402, 412-416: `_compute_deferrable_load` charging window calculation branches
+- **Evaluación**: Testable con mocks de charging_windows y pre_computed values.
+
+### Patrón de flaky tests (últimos 9 ciclos):
+
+| Ciclo | Resultado | Coverage |
+|-------|-----------|----------|
+| 15 | PASS | 98.35% |
+| 16 | FAIL | 97.94% |
+| 17 | FAIL | 97.94% |
+| 18 | PASS | 98.35% |
+| 19 | FAIL | 97.94% |
+| 20 | PASS | 98.35% |
+| 21 | PASS | 98.35% |
+| 22 | FAIL | 98.02% |
+| 23 | **PASS** | **98.39%** |
+
+5 FAIL, 4 PASS en 9 ciclos = 55.6% fail rate. Ligeramente mejor que antes (62.5%).
+
+### Progreso Global (task 3.03):
+- Coverage: 81% → 98.39% (+17.39 puntos)
+- Tests: 739 → 1781 (+1042 tests)
+- Líneas sin cover: 930 → 78 (-852 líneas)
+- Flaky tests: 5 tests con ~55% fail rate
+- Archivos a 100%: 30 de 34 (88%)
+
+### Pendiente:
+1. **78 líneas sin cover** (gap 1.61% para 100%)
+2. **5 flaky tests** en test_sensor_async_setup.py (root cause: pytest-randomly + entity_registry mocks)
+3. **0 pragmas en __init__.py y config_flow/main.py** — todas las líneas son testable con mocks
+4. **15 pragmas en template_manager.py** — algunos legítimos, otros testables
+
+**Próximo ciclo en 3 min.**

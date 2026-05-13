@@ -25,11 +25,11 @@ def mock_entry():
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass(tmp_path):
     """Mock Home Assistant instance."""
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.time_zone = "UTC"
     hass.data = {}
     hass.services = MagicMock()

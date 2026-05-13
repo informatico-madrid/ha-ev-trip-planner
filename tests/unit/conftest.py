@@ -9,21 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 
 
-@pytest.fixture
-def restore_async_entries():
-    """Fixture to save/restore async_entries_for_config_entry.
-
-    Use this in tests that monkeypatch the module-level function.
-    Automatically restores the original after the test.
-    """
-    import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-    from homeassistant.helpers import entity_registry as ha_er
-
-    original = ha_er.async_entries_for_config_entry
-    try:
-        yield
-    finally:
-        setup_mod.async_entries_for_config_entry = original
 
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
@@ -49,7 +34,7 @@ def trip_manager_no_entry_id(mock_hass):
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass(tmp_path):
     """Create a mock HomeAssistant instance for dashboard import tests.
 
     This fixture provides a full mock with lovelace support, storage, services,
@@ -58,7 +43,7 @@ def mock_hass():
 
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.components = ["lovelace"]
 
     # Mock storage
@@ -84,7 +69,7 @@ def mock_hass():
 
 
 @pytest.fixture
-def mock_hass_container():
+def mock_hass_container(tmp_path):
     """Create a mock HomeAssistant instance simulating Container environment.
 
     Container environment characteristics:
@@ -93,7 +78,7 @@ def mock_hass_container():
     """
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.components = ["sensor"]  # No lovelace component
 
     # Container: NO storage API available
@@ -113,7 +98,7 @@ def mock_hass_container():
 
 
 @pytest.fixture
-def mock_hass_with_storage():
+def mock_hass_with_storage(tmp_path):
     """Create a mock HomeAssistant with storage support.
 
     Provides storage with async_read_dict and async_write_dict.
@@ -121,7 +106,7 @@ def mock_hass_with_storage():
     """
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     # Mock storage API
     hass.storage = MagicMock()
@@ -169,7 +154,7 @@ def mock_hass_with_vehicle(tmp_path):
 
 
 @pytest.fixture
-def mock_hass_with_notification():
+def mock_hass_with_notification(tmp_path):
     """Create a mock HomeAssistant with notification service.
 
     Provides storage, services with notification support, and states mock
@@ -177,7 +162,7 @@ def mock_hass_with_notification():
     """
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     # Mock storage API
     hass.storage = MagicMock()
@@ -415,7 +400,7 @@ def mock_hass_entity_registry_full(config_entry):
 
 
 @pytest.fixture
-def mock_hass_full_journey():
+def mock_hass_full_journey(tmp_path):
     """Mock hass for full user journey tests.
 
     Provides config_entries, storage, loop, and services registry for service
@@ -456,7 +441,7 @@ def mock_hass_full_journey():
     hass.storage.async_read = AsyncMock(return_value=None)
     hass.storage.async_write_dict = AsyncMock(return_value=True)
 
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     # Services registry for register_services
     services_registry = {}
@@ -530,10 +515,10 @@ def mock_hass_panel_with_mapping(mock_frontend_module):
 
 
 @pytest.fixture
-def mock_hass_propagate():
+def mock_hass_propagate(tmp_path):
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.time_zone = "UTC"
     hass.data = {}
     hass.services = MagicMock()
@@ -548,10 +533,10 @@ def mock_hass_propagate():
 
 
 @pytest.fixture
-def mock_hass_sensor_agg():
+def mock_hass_sensor_agg(tmp_path):
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.time_zone = "UTC"
     hass.data = {}
     hass.services = MagicMock()
@@ -566,10 +551,10 @@ def mock_hass_sensor_agg():
 
 
 @pytest.fixture
-def mock_hass_sensor_exists():
+def mock_hass_sensor_exists(tmp_path):
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.time_zone = "UTC"
     hass.data = {}
     hass.services = MagicMock()
@@ -585,10 +570,10 @@ def mock_hass_sensor_exists():
 
 
 @pytest.fixture
-def mock_hass_soc_cap():
+def mock_hass_soc_cap(tmp_path):
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.time_zone = "UTC"
     hass.data = {}
     hass.services = MagicMock()
@@ -604,12 +589,12 @@ def mock_hass_soc_cap():
 
 
 @pytest.fixture
-def mock_hass_soc_milestone():
+def mock_hass_soc_milestone(tmp_path):
     hass = MagicMock()
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry"
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     return hass
 
 
@@ -619,7 +604,7 @@ def mock_hass_soc_milestone():
 
 
 @pytest.fixture
-def mock_hass_storage():
+def mock_hass_storage(tmp_path):
     """Mock hass with storage (Supervisor environment)."""
     hass = MagicMock()
 
@@ -631,13 +616,13 @@ def mock_hass_storage():
     hass.storage.async_read = MagicMock(return_value=None)
     hass.storage.async_write_dict = MagicMock()
 
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     return hass
 
 
 @pytest.fixture
-def mock_hass_no_storage():
+def mock_hass_no_storage(tmp_path):
     """Mock hass WITHOUT storage (Container environment)."""
     hass = MagicMock()
 
@@ -646,7 +631,7 @@ def mock_hass_no_storage():
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
 
     hass.storage = None
-    hass.config.config_dir = "/tmp/test_config_no_storage"
+    hass.config.config_dir = str(tmp_path)
 
     return hass
 
@@ -680,13 +665,13 @@ def mock_hass_no_storage_tm():
 
 
 @pytest.fixture
-def mock_hass_no_entry_tm():
+def mock_hass_no_entry_tm(tmp_path):
     """Mock hass WITHOUT storage (Container environment)."""
     hass = MagicMock()
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry"
     hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     return hass
 
 
@@ -750,11 +735,11 @@ def mock_hass_with_charging_power(mock_hass_emhass_charging):
 
 
 @pytest.fixture
-def mock_hass_yaml():
+def mock_hass_yaml(tmp_path):
     """Mock hass with config for yaml trip storage tests."""
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = Path("/tmp/test_config")
+    hass.config.config_dir = tmp_path
     return hass
 
 

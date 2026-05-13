@@ -43,10 +43,10 @@ class _MockPath:
 
 
 @pytest.mark.asyncio
-async def test_cleanup_stale_storage_yaml_no_store_data():
+async def test_cleanup_stale_storage_yaml_no_store_data(tmp_path):
     """YAML exists, Store is empty → YAML should be deleted."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_store = MagicMock()
     mock_store.async_load = AsyncMock(return_value=None)
@@ -65,10 +65,10 @@ async def test_cleanup_stale_storage_yaml_no_store_data():
 
 
 @pytest.mark.asyncio
-async def test_cleanup_stale_storage_yaml_with_store_data():
+async def test_cleanup_stale_storage_yaml_with_store_data(tmp_path):
     """YAML exists, Store has data → skip YAML cleanup."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_store = MagicMock()
     mock_store.async_load = AsyncMock(return_value={"key": "value"})
@@ -86,10 +86,10 @@ async def test_cleanup_stale_storage_yaml_with_store_data():
 
 
 @pytest.mark.asyncio
-async def test_cleanup_stale_storage_yaml_not_exists():
+async def test_cleanup_stale_storage_yaml_not_exists(tmp_path):
     """YAML does not exist → nothing to clean."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     yaml_path = MagicMock(spec=Path)
     yaml_path.exists.return_value = False
@@ -102,10 +102,10 @@ async def test_cleanup_stale_storage_yaml_not_exists():
 
 
 @pytest.mark.asyncio
-async def test_cleanup_stale_storage_exception():
+async def test_cleanup_stale_storage_exception(tmp_path):
     """Exception in cleanup → warning logged, no re-raise."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     yaml_path = MagicMock(spec=Path)
     yaml_path.exists.side_effect = OSError("disk error")
@@ -274,7 +274,7 @@ async def test_unload_entry_cleanup_entity_registry():
     entry.entry_id = "entry_1"
 
     with patch(
-        "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+        "custom_components.ev_trip_planner.services.cleanup.er.async_entries_for_config_entry",
         return_value=[mock_entity_entry],
     ):
         with patch(
@@ -309,7 +309,7 @@ async def test_unload_entry_cleanup_entity_registry_fallback():
         "homeassistant.helpers.entity_registry.async_get", return_value=mock_registry
     ):
         with patch(
-            "homeassistant.helpers.entity_registry.async_entries_for_config_entry",
+            "custom_components.ev_trip_planner.services.cleanup.er.async_entries_for_config_entry",
             return_value=[mock_entity_entry],
         ):
             with patch(
@@ -378,10 +378,10 @@ async def test_unload_entry_cleanup_panel_error():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_with_data():
+async def test_remove_entry_cleanup_with_data(tmp_path):
     """Normal path with entry data containing vehicle_name."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_trip_manager = MagicMock()
     mock_trip_manager._lifecycle = MagicMock()
@@ -418,10 +418,10 @@ async def test_remove_entry_cleanup_with_data():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_no_data():
+async def test_remove_entry_cleanup_no_data(tmp_path):
     """Entry with None data → derives vehicle_id from entry_id."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"
@@ -443,11 +443,11 @@ async def test_remove_entry_cleanup_no_data():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_yaml_cleanup():
+async def test_remove_entry_cleanup_yaml_cleanup(tmp_path):
     """YAML fallback file exists → should be deleted."""
     # Use a plain object to avoid MagicMock auto-attributes
     hass = type("Hass", (), {})()
-    hass.config = type("Config", (), {"config_dir": "/tmp/test_config"})()
+    hass.config = type("Config", (), {"config_dir": str(tmp_path)})()
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"
@@ -470,10 +470,10 @@ async def test_remove_entry_cleanup_yaml_cleanup():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_storage_error():
+async def test_remove_entry_cleanup_storage_error(tmp_path):
     """Storage removal fails → warning logged, no re-raise."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"
@@ -494,10 +494,10 @@ async def test_remove_entry_cleanup_storage_error():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_listener_exception():
+async def test_remove_entry_cleanup_listener_exception(tmp_path):
     """Emhass adapter listener raises exception during cleanup."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"
@@ -528,10 +528,10 @@ async def test_remove_entry_cleanup_listener_exception():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_trips_delete_error():
+async def test_remove_entry_cleanup_trips_delete_error(tmp_path):
     """Trip deletion raises → error logged, no re-raise."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_trip_manager = MagicMock()
     mock_trip_manager._lifecycle = MagicMock()
@@ -562,10 +562,10 @@ async def test_remove_entry_cleanup_trips_delete_error():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_emhass_cleanup_error():
+async def test_remove_entry_cleanup_emhass_cleanup_error(tmp_path):
     """EMHASS index cleanup raises → error logged, no re-raise."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_emhass = MagicMock()
     mock_emhass.async_cleanup_vehicle_indices = AsyncMock(
@@ -596,10 +596,10 @@ async def test_remove_entry_cleanup_emhass_cleanup_error():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_yaml_error():
+async def test_remove_entry_cleanup_yaml_error(tmp_path):
     """YAML cleanup raises → warning logged, no re-raise."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"
@@ -621,10 +621,10 @@ async def test_remove_entry_cleanup_yaml_error():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_no_emhass_no_trips():
+async def test_remove_entry_cleanup_no_emhass_no_trips(tmp_path):
     """No emhass adapter, no trip manager → minimal path."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"
@@ -651,10 +651,10 @@ async def test_remove_entry_cleanup_no_emhass_no_trips():
 
 
 @pytest.mark.asyncio
-async def test_remove_entry_cleanup_listener_removed_in_finally():
+async def test_remove_entry_cleanup_listener_removed_in_finally(tmp_path):
     """Listener is set to None even after exception."""
     hass = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_abc"

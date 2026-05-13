@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def hass():
+def hass(tmp_path):
     """Fixture to provide a minimal mock HomeAssistant instance.
 
     This creates a mock hass instance that avoids compatibility issues
@@ -23,7 +23,7 @@ def hass():
     hass_inst = MagicMock()
 
     hass_inst.config = MagicMock()
-    hass_inst.config.config_dir = "/tmp/test_config"
+    hass_inst.config.config_dir = str(tmp_path)
     hass_inst.config.time_zone = "UTC"
     hass_inst.config.latitude = 40.0
     hass_inst.config.longitude = -3.0
@@ -125,7 +125,7 @@ def mock_store():
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass(tmp_path):
     """Fixture to provide a mock Home Assistant instance.
 
     This is needed for EMHASSAdapter initialization and other tests
@@ -133,7 +133,7 @@ def mock_hass():
     """
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.time_zone = "UTC"
     hass.data = {}
     hass.services = MagicMock()

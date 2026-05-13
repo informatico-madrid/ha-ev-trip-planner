@@ -49,11 +49,11 @@ from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass(tmp_path):
     """Minimal mock HomeAssistant with required attributes."""
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config_entries = MagicMock()
     hass.config_entries.async_entries = MagicMock(return_value=[])
     hass.config_entries.async_get_entry = MagicMock(return_value=None)

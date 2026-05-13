@@ -26,7 +26,7 @@ def enable_custom_integrations():
 
 
 @pytest.fixture
-def hass():
+def hass(tmp_path):
     """
     Fixture to provide a working HomeAssistant instance for tests.
 
@@ -36,7 +36,7 @@ def hass():
     hass_inst = MagicMock()
 
     hass_inst.config = MagicMock()
-    hass_inst.config.config_dir = "/tmp/test_config"
+    hass_inst.config.config_dir = str(tmp_path)
     hass_inst.config.time_zone = "UTC"
     hass_inst.config.latitude = 40.0
     hass_inst.config.longitude = -3.0
@@ -804,11 +804,11 @@ def mock_hass_update_with_updates():
 
 
 @pytest.fixture
-def mock_hass_removal():
+def mock_hass_removal(tmp_path):
     """Mock hass for async_remove_entry_cleanup tests (returns tuple)."""
     hass = MagicMock()
     hass.data = {"storage": {}}
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
 
     mock_trip_manager = MagicMock()
     mock_trip_manager.async_delete_all_trips = AsyncMock()
@@ -848,12 +848,12 @@ class _ServicesRegistry:
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass(tmp_path):
     """Create mock HomeAssistant for test_init.py and test_services_core.py tests.
 
     This fixture provides a comprehensive mock hass that covers all test_init.py use cases:
     - hass.data = {} or {"ev_trip_planner": {}}
-    - hass.config.config_dir = "/tmp/test_config"
+    - hass.config.config_dir = str(tmp_path) (unique per test)
     - hass.config_entries with all needed methods
     - hass.services with Services.registry for service registration tests
 
@@ -862,7 +862,7 @@ def mock_hass():
     hass = MagicMock()
     hass.data = {}
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.components = []
     hass.services = _ServicesRegistry()
     hass.services.async_call = AsyncMock()
@@ -1030,7 +1030,7 @@ def mock_hass_trip_manager():
 
 
 @pytest.fixture
-def mock_hass_power_profile():
+def mock_hass_power_profile(tmp_path):
     """Mock hass with config_entries for power profile tests."""
     hass = MagicMock()
     mock_entry = MagicMock()
@@ -1060,7 +1060,7 @@ def mock_hass_user_real_data():
     hass.data = {}
     hass.async_add_executor_job = AsyncMock(return_value=None)
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     hass.config.components = []
     hass.services = MagicMock()
     hass.services.async_call = AsyncMock()

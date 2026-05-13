@@ -162,8 +162,14 @@ class TestAsyncUpdateTripSensor:
         entry.entry_id = "test_entry"
         hass.config_entries.async_get_entry.return_value = entry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(return_value=[])
-        setup_mod.async_create_trip_sensor = AsyncMock(return_value=True)
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[]),
+        )
+        monkeypatch.setattr(
+            setup_mod, "async_create_trip_sensor", AsyncMock(return_value=True)
+        )
 
         result = await async_update_trip_sensor(
             hass, "test_entry", {"id": "new_trip", "tipo": "recurrente"}
@@ -174,8 +180,6 @@ class TestAsyncUpdateTripSensor:
     @pytest.mark.asyncio
     async def test_entity_found_triggers_coordinator_refresh(self, monkeypatch):
         """Entity found -> coordinator.async_request_refresh called."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         entry = MagicMock()
         entry.runtime_data.trip_manager = MagicMock()
@@ -188,8 +192,10 @@ class TestAsyncUpdateTripSensor:
         mock_reg_entry.entity_id = "sensor.trip_new_trip"
         hass.states.get.return_value = MagicMock()
 
-        setup_mod.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_reg_entry]
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[mock_reg_entry]),
         )
         result = await async_update_trip_sensor(
             hass, "test_entry", {"id": "new_trip", "tipo": "recurrente"}
@@ -200,8 +206,6 @@ class TestAsyncUpdateTripSensor:
     @pytest.mark.asyncio
     async def test_no_coordinator_no_refresh(self, monkeypatch):
         """Coordinator not available -> no refresh, still returns True."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         entry = MagicMock()
         entry.runtime_data.trip_manager = MagicMock()
@@ -214,8 +218,10 @@ class TestAsyncUpdateTripSensor:
         mock_reg_entry.entity_id = "sensor.trip_new_trip"
         hass.states.get.return_value = None
 
-        setup_mod.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_reg_entry]
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[mock_reg_entry]),
         )
         result = await async_update_trip_sensor(
             hass, "test_entry", {"id": "new_trip", "tipo": "recurrente"}
@@ -229,8 +235,6 @@ class TestAsyncRemoveTripSensor:
     @pytest.mark.asyncio
     async def test_entity_found_removed(self, monkeypatch):
         """Entity found -> removed from registry, returns True."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         mock_reg_entry = MagicMock()
         mock_reg_entry.unique_id = "trip_target_trip"
@@ -240,8 +244,10 @@ class TestAsyncRemoveTripSensor:
         mock_registry.async_remove = MagicMock()
         hass.entity_registry = mock_registry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_reg_entry]
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[mock_reg_entry]),
         )
         result = await async_remove_trip_sensor(hass, "test_entry", "target_trip")
         assert result is True
@@ -250,21 +256,21 @@ class TestAsyncRemoveTripSensor:
     @pytest.mark.asyncio
     async def test_entity_not_found(self, monkeypatch):
         """Entity not found -> returns False."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         mock_registry = MagicMock()
         hass.entity_registry = mock_registry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(return_value=[])
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[]),
+        )
         result = await async_remove_trip_sensor(hass, "test_entry", "nonexistent")
         assert result is False
 
     @pytest.mark.asyncio
     async def test_unique_id_not_string_skipped(self, monkeypatch):
         """Non-string unique_id -> entry skipped, returns False."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         mock_reg_entry = MagicMock()
         mock_reg_entry.unique_id = 123  # Non-string
@@ -274,7 +280,11 @@ class TestAsyncRemoveTripSensor:
         mock_registry.async_remove = MagicMock()
         hass.entity_registry = mock_registry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(return_value=[mock_reg_entry])
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[mock_reg_entry]),
+        )
         result = await async_remove_trip_sensor(hass, "test_entry", "target_trip")
         assert result is False
 
@@ -313,8 +323,6 @@ class TestAsyncRemoveTripEmhassSensor:
     @pytest.mark.asyncio
     async def test_entity_found_removed(self, monkeypatch):
         """Matching EMHASS entity -> removed, returns True (lines 422-439)."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         mock_reg_entry = MagicMock()
         mock_reg_entry.unique_id = "emhass_trip_v1_t1"
@@ -324,8 +332,10 @@ class TestAsyncRemoveTripEmhassSensor:
         mock_registry.async_remove = MagicMock()
         hass.entity_registry = mock_registry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_reg_entry]
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[mock_reg_entry]),
         )
         result = await async_remove_trip_emhass_sensor(
             hass, "test_entry", "v1", "t1"
@@ -338,8 +348,6 @@ class TestAsyncRemoveTripEmhassSensor:
     @pytest.mark.asyncio
     async def test_entity_not_found_no_match(self, monkeypatch):
         """No matching EMHASS entity -> returns False."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         mock_reg_entry = MagicMock()
         mock_reg_entry.unique_id = "trip_v1_t1"  # Not emhass
@@ -348,8 +356,10 @@ class TestAsyncRemoveTripEmhassSensor:
         mock_registry = MagicMock()
         hass.entity_registry = mock_registry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(
-            return_value=[mock_reg_entry]
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[mock_reg_entry]),
         )
         result = await async_remove_trip_emhass_sensor(
             hass, "test_entry", "v1", "t1"
@@ -359,13 +369,15 @@ class TestAsyncRemoveTripEmhassSensor:
     @pytest.mark.asyncio
     async def test_empty_registry(self, monkeypatch):
         """Empty registry -> returns False."""
-        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
-
         hass = MagicMock()
         mock_registry = MagicMock()
         hass.entity_registry = mock_registry
 
-        setup_mod.async_entries_for_config_entry = MagicMock(return_value=[])
+        # Patch at source module so production function's __globals__ sees it
+        monkeypatch.setattr(
+            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+            MagicMock(return_value=[]),
+        )
         result = await async_remove_trip_emhass_sensor(
             hass, "test_entry", "v1", "t1"
         )

@@ -17,11 +17,11 @@ import pytest
 
 
 @pytest.fixture
-def mock_hass():
+def mock_hass(tmp_path):
     """Minimal MagicMock HomeAssistant."""
     hass = MagicMock()
     hass.config = MagicMock()
-    hass.config.config_dir = "/tmp/test_config"
+    hass.config.config_dir = str(tmp_path)
     return hass
 
 
