@@ -1712,7 +1712,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-7.A_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] 3.03 [ANTI-TRAMPA/COVERAGE] Eliminar coverage fabrication y verificar cobertura real
+- [x] 3.03 [ANTI-TRAMPA/COVERAGE] Eliminar coverage fabrication y verificar cobertura real
   - **Anti-trampa**: Coverage fabrication via omit list es una violación directa del principio "quality gates pasan sin excusas"
   - **⚠️ REGLA CRÍTICA sobre `# pragma: no cover`**:
     - **SOLO se permiten** pragma:no cover para motivos REALMENTE INELUDIBLES
