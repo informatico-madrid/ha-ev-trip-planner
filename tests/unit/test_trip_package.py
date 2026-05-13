@@ -32,7 +32,6 @@ from custom_components.ev_trip_planner.trip import (
     TripManagerConfig,
 )
 from custom_components.ev_trip_planner.trip._sensor_callbacks import (
-    SensorCallbackRegistry,
     SensorEvent,
     emit,
 )

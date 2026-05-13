@@ -239,7 +239,6 @@ class TestLoadPublisherDeadline:
         result = pub._calculate_deadline({"tipo": "recurrente", "dia_semana": "miércoles", "hora": "09:00"})
         assert result is not None
         # delta_days=7 → deadline is next week (7 days from today's time)
-        from datetime import timedelta
         now = datetime.now(timezone.utc)
         delta = result - now
         # At least 6 full days, less than 8 (next week's same day)

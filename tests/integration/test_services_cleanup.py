@@ -324,8 +324,8 @@ async def test_unload_entry_cleanup_entity_registry_fallback():
 
 
 @pytest.mark.asyncio
-async def test_unload_entry_cleanup_entity_registry_exception():
-    """Entity registry cleanup raises → warning logged, no re-raise."""
+async def test_unload_entry_cleanup_entity_registry_normal():
+    """Entity registry cleanup with normal entity listing."""
     hass = MagicMock()
     entry = MagicMock()
     entry.runtime_data = None

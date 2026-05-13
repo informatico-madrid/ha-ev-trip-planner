@@ -6,12 +6,15 @@ and _generate_mock_emhass_params.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+from custom_components.ev_trip_planner.coordinator import (
+    CoordinatorConfig,
+    TripPlannerCoordinator,
+)
 
 # FIX: Mock frame reporting for HA 2026.3+ compatibility
 # DataUpdateCoordinator requires frame helper to be set up
@@ -21,11 +24,6 @@ def mock_frame_reporting():
     """Mock frame reporting to avoid 'Frame helper not set up' error."""
     with patch("homeassistant.helpers.frame.report_usage", return_value=None):
         yield
-
-from custom_components.ev_trip_planner.coordinator import (
-    CoordinatorConfig,
-    TripPlannerCoordinator,
-)
 
 _LOGGER = logging.getLogger(__name__)
 

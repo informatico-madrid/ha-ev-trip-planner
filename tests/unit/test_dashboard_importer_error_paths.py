@@ -6,7 +6,7 @@ Targets lines not covered by existing tests to push coverage >=80%.
 from __future__ import annotations
 
 import inspect
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,7 +14,6 @@ from custom_components.ev_trip_planner.dashboard.importer import (
     _call_async_executor_sync,
     _await_executor_result,
     import_dashboard,
-    is_lovelace_available,
 )
 
 

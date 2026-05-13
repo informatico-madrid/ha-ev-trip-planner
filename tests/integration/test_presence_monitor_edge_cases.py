@@ -5,7 +5,6 @@ Covers lines 150-151, 298, 305, 311, 314, 325, 351, 388, 391-392, 432, 439-440.
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -13,7 +12,6 @@ import pytest
 from custom_components.ev_trip_planner.const import (
     CONF_HOME_COORDINATES,
     CONF_HOME_SENSOR,
-    CONF_NOTIFICATION_SERVICE,
     CONF_PLUGGED_SENSOR,
     CONF_SOC_SENSOR,
     CONF_VEHICLE_COORDINATES_SENSOR,
@@ -24,7 +22,6 @@ from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor
 @pytest.fixture(autouse=True)
 def mock_store_class():
     """Patch Store for all presence_monitor tests."""
-    from unittest.mock import patch
     from homeassistant.helpers import storage as ha_storage
 
     class MockStore:

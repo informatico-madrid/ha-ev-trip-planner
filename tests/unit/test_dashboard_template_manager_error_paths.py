@@ -11,7 +11,6 @@ import pytest
 
 from custom_components.ev_trip_planner.dashboard.template_manager import (
     DashboardConfig,
-    DashboardImportResult,
     save_yaml_fallback,
     validate_config,
     verify_storage_permissions,

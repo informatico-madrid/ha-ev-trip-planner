@@ -190,8 +190,6 @@ class TestScheduleMixinExecution:
     async def test_generate_schedule_multi_trip(self):
         """Multiple active trips -> multiple deferrable indices."""
         sm = _make_sm()
-        future1 = datetime.now(timezone.utc) + timedelta(hours=5)
-
         sm._state.recurring_trips = {
             "rec_1": {
                 "id": "rec_1",

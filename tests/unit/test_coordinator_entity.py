@@ -168,7 +168,6 @@ class TestTripSensor:
 
     def test_trip_sensor_device_info(self):
         """device_info returns DeviceInfo with correct identifiers (line 114)."""
-        from custom_components.ev_trip_planner.const import DOMAIN
 
         coordinator = make_test_coordinator(
             {

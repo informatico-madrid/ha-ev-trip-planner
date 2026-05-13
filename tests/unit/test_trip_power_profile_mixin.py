@@ -6,7 +6,6 @@ Covers vehicle_config path, SOC fetching, and empty trip handling.
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

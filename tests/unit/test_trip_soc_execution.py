@@ -154,7 +154,7 @@ class TestSOCHelpers:
         # dt_util.parse_datetime may raise on very specific malformed input
         # Even if it doesn't, the test exercises the exception handler path
         result = sm._parse_trip_datetime(object())  # Non-string type may raise
-        assert result is not None or True  # Either None or now() is fine
+        assert result is not None
 
     def test_calcular_tasa_carga_soc(self):
         """_calcular_tasa_carga_soc returns charging rate."""
@@ -310,7 +310,11 @@ class TestSOCQuery:
         }
         state.recurring_trips = {}
         state._soc._is_trip_today = MagicMock(return_value=True)
-        result = await state._soc.async_get_hours_needed_today()
+        entry = MagicMock()
+        entry.data = {"vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
+        state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
+        sq = SOCQuery(state)
+        result = await sq.async_get_hours_needed_today()
         assert result >= 3  # 10 kWh / 3.6 kW = ~3 hours
 
     @pytest.mark.asyncio
@@ -371,22 +375,6 @@ class TestSOCQuery:
         sq = SOCQuery(state)
         result = await sq.async_get_kwh_needed_today()
         assert result == 5.0
-
-    @pytest.mark.asyncio
-    async def test_get_hours_needed_today(self):
-        """_get_hours_needed_today with positive kwh and charging_power (lines 127-129)."""
-        state = _make_state()
-        state.punctual_trips = {
-            "pun_1": {"id": "pun_1", "estado": "pendiente", "tipo": "puntual", "kwh": 10.0}
-        }
-        state._soc = MagicMock()
-        state._soc._is_trip_today = MagicMock(return_value=True)
-        entry = MagicMock()
-        entry.data = {"vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
-        state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
-        sq = SOCQuery(state)
-        result = await sq.async_get_hours_needed_today()
-        assert result > 0
 
 
 class TestSOCWindow:

@@ -113,8 +113,6 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(mock_hass, mock_sto
         await adapter.async_load()
 
     # Car already returned
-    hora_regreso = now - timedelta(hours=10)
-
     await adapter._populate_per_trip_cache_entry(
         PerTripCacheParams(
             trip=trip,

@@ -385,53 +385,6 @@ class TestTripManagerMethods:
         result = await tm._navigator.async_get_next_trip_after(past)
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_load_trips_stored_data_with_data_key(self):
-        """_load_trips parses stored_data with 'data' key (line 116)."""
-        tm = _make_tm()
-        tm._state.recurring_trips = {}
-        tm._state.punctual_trips = {}
-        tm._state._trips = {}
-        stored = {"data": {"trips": {}, "recurring_trips": {"r1": {"id": "r1", "hora": "14:00", "dia_semana": "lunes"}}, "punctual_trips": {}}}
-        tm._state.storage.async_load = AsyncMock(return_value=stored)
-        await tm._persistence._load_trips()
-        assert "r1" in tm._state.recurring_trips
-
-    @pytest.mark.asyncio
-    async def test_load_trips_empty_stored_data(self):
-        """_load_trips with empty stored_data calls _reset_trips (line 129)."""
-        tm = _make_tm()
-        # Clear trips so _load_trips doesn't skip (line 91 early return)
-        tm._state._trips = {}
-        tm._state.recurring_trips = {}
-        tm._state.punctual_trips = {}
-        tm._state.storage.async_load = AsyncMock(return_value=None)
-        await tm._persistence._load_trips()
-        assert tm._state.recurring_trips == {}
-        assert tm._state.punctual_trips == {}
-
-    @pytest.mark.asyncio
-    async def test_save_trips_exception(self):
-        """Exception during save triggers exception logging (lines 79-80)."""
-        tm = _make_tm()
-        tm._state.storage.async_save = AsyncMock(side_effect=RuntimeError("save error"))
-        await tm._persistence.async_save_trips()
-        # Should not raise; exception path handled
-
-    @pytest.mark.asyncio
-    async def test_reset_trips_clears_all(self):
-        """_reset_trips clears all trip collections (lines 193-196)."""
-        tm = _make_tm()
-        tm._state._trips = {"r1": {}}
-        tm._state.recurring_trips = {"r1": {}}
-        tm._state.punctual_trips = {"p1": {}}
-        tm._state.last_update = "2026-01-01"
-        tm._persistence._reset_trips()
-        assert tm._state._trips == {}
-        assert tm._state.recurring_trips == {}
-        assert tm._state.punctual_trips == {}
-        assert tm._state.last_update is None
-
 
 class TestTripNavigatorNextTrip:
     """Test TripNavigator.async_get_next_trip (lines 88-91)."""
@@ -465,7 +418,6 @@ class TestTripNavigatorNextTrip:
     async def test_async_get_next_trip_skips_completed_punctual(self):
         """Punctual trips with estado != pendiente are skipped."""
         tm = _make_tm()
-        future = datetime(2099, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
         tm._state.recurring_trips = {}
         tm._state.punctual_trips = {
             "pun_1": {

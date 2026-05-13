@@ -38,10 +38,6 @@ def _make_trip_manager():
 
 
 def _make_coordinator():
-    from custom_components.ev_trip_planner.coordinator import (
-        CoordinatorConfig,
-        TripPlannerCoordinator,
-    )
     hass = MagicMock()
     hass.config_entries = MagicMock()
     hass.config_entries.async_get_entry = MagicMock(return_value=None)

@@ -1045,7 +1045,7 @@ def mock_hass_power_profile(tmp_path):
 
 
 @pytest.fixture
-def mock_hass_user_real_data():
+def mock_hass_user_real_data(tmp_path):
     """Mock hass with config_entries and data.get() for user real data tests."""
     hass = MagicMock()
     mock_entry = MagicMock()

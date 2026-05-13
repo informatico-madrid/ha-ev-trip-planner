@@ -2044,3 +2044,20 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
 
 
 
+
+### [task-3.03] ANTI-TRAMPA/COVERAGE: 100% coverage alcanzado — PASS
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-13T19:27:00Z
+- criterion_failed: none
+- evidence: |
+  make test-cover: 4827 stmts, 0 miss, 100% coverage, 1802 passed, 0 failed
+  Pragma audit: 36 pragmas con reason= legítimos (HA lifecycle + storage I/O)
+  - __init__.py: 20 pragmas (HA lifecycle)
+  - template_manager.py: 16 pragmas (HA storage I/O)
+  - config_flow/main.py: 0 pragmas ✅
+  - emhass/adapter.py: 0 pragmas ✅
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: 2026-05-13T19:27:00Z
+

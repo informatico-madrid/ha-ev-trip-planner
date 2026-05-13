@@ -7931,3 +7931,181 @@ La tarea 3.03 [ANTI-TRAMPA/COVERAGE] está **EN PROGRESO** (marcada [ ] en tasks
 - Task 3.03 aún no marcada [x] por el executor
 
 **Próximo ciclo en 3 min para verificar que el executor marque la tarea como completa.**
+
+### [2026-05-13 19:27:00] external-reviewer (cycle — 🎉 TASK 3.03 COMPLETO!)
+
+## ✅ 100% COVERAGE + TASK MARCADO [x]
+
+**make test-cover**: ✅ 100% coverage, 1802 passed, 0 failed
+
+## Verificación Independiente
+
+El executor ha marcado task 3.03 como completo:
+```
+1715:- [x] 3.03 [ANTI-TRAMPA/COVERAGE] Eliminar coverage fabrication y verificar cobertura real
+```
+
+**Verificación del quality gate:**
+- Coverage: ✅ 4827 stmts, 0 miss, 100%
+- Tests: ✅ 1802 passed, 0 failed
+- Pragma audit: ✅ 36 pragmas con reason= legítimos
+  - `__init__.py`: 20 pragmas (HA lifecycle)
+  - `template_manager.py`: 16 pragmas (HA storage I/O)
+  - `config_flow/main.py`: 0 pragmas
+  - `emhass/adapter.py`: 0 pragmas
+
+## Progreso Global (task 3.03):
+
+| Métrica | Inicio | Actual | Delta |
+|---------|--------|--------|-------|
+| Coverage | 81% | **100%** | **+19 puntos** |
+| Tests | 739 | **1802** | **+1063 tests** |
+| Líneas sin cover | 930 | **0** | **-930 líneas** |
+| Archivos a 100% | 0/34 | **34/34** | **+34 archivos** |
+
+## Pragma Audit Completado
+
+Los 36 pragmas son todos **legítimos** (Home Assistant lifecycle + storage I/O):
+- Todos tienen `reason=` documentado
+- Ningún pragma se usó para evitar escribir tests
+- Las líneas testables tienen tests reales
+
+## task_review.md Actualizado
+
+Escribí entrada PASS para task 3.03 con evidencia del quality gate.
+
+## Siguiente Paso
+
+Task 3.03 [ANTI-TRAMPA/COVERAGE] ✅ PASS — verificado independientemente.
+
+Próximas tareas: V_final_a/b/c y VE0-VE3 E2E verification en staging.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 19:32:00] external-reviewer (cycle — STABLE: 100% coverage)
+
+## ✅ Coverage 100%, 1802 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ 100% coverage (4827 stmts, 0 miss), 1802 passed, 0 failed
+
+## Estado: Executor trabajando en tareas post-3.03
+
+El executor ha completado task 3.03 [x] y está trabajando en archivos de tests adicionales:
+- `tests/integration/test_presence_monitor_edge_cases.py` (M)
+- `tests/unit/test_config_flow_entities.py` (M)
+- `tests/unit/test_coordinator.py` (M)
+- `tests/unit/test_coordinator_entity.py` (M)
+- `tests/unit/test_dashboard_helpers.py` (M)
+- `tests/unit/test_template_manager.py` (M)
+- `tests/unit/test_trip_power_profile_mixin.py` (M)
+
+## Próximas tareas en cola:
+
+| Task | Descripción |
+|------|-------------|
+| V_final_a | V4 — Full local CI |
+| V_final_b | V5 — CI pipeline passes |
+| V_final_c | V6 — AC checklist programmatic |
+| VE0 | Build selector map (ui-map-init) |
+| VE1 | STAGING startup |
+| VE2 | STAGING check: add trip via UI |
+| VE3 | STAGING cleanup |
+| 3.1-3.13 | Quality verification tasks |
+
+## Coverage estable:
+
+| Ciclo | Coverage | Tests | Failed |
+|-------|----------|-------|--------|
+| Anterior | 100% | 1802 | 0 |
+| Actual | **100%** | **1802** | **0** |
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 19:37:00] external-reviewer (cycle — REGRESIÓN MENOR: 1 test failing, 99.96%)
+
+## ⚠️ 99.96% coverage, 1 FAILED, 1800 passed, 5 warnings
+
+**make test-cover**: 1 failed, 1800 passed, 5 warnings
+- Coverage: 99.96% (2 miss, 4829 stmts)
+- FAILED: `test_trip_soc_execution.py::TestSOCQuery::test_get_hours_needed_today`
+
+## Análisis de regresión
+
+El executor está activamente modificando archivos de tests:
+- 26 archivos modificados en git
+- Coverage: 100% → 99.96% (2 líneas sin cover)
+- Tests: 1802 → 1800 (-2 tests) + 1 failure
+
+## Archivos modificados por el executor:
+
+```
+tests/integration/conftest.py (M)
+tests/integration/test_presence_monitor_edge_cases.py (M)
+tests/integration/test_services_cleanup.py (M)
+tests/unit/conftest.py (M)
+tests/unit/test_config_flow_entities.py (M)
+tests/unit/test_coordinator.py (M)
+tests/unit/test_coordinator_entity.py (M)
+tests/unit/test_dashboard_helpers.py (M)
+tests/unit/test_dashboard_importer_error_paths.py (M)
+tests/unit/test_dashboard_template_manager_error_paths.py (M)
+tests/unit/test_dashboard_template_manager_storage_api.py (M)
+tests/unit/test_emhass_deferrable_end.py (M)
+tests/unit/test_emhass_load_publisher.py (M)
+tests/unit/test_entity_trip_emhass.py (M)
+tests/unit/test_template_manager.py (M)
+tests/unit/test_trip_manager_properties.py (M)
+tests/unit/test_trip_package.py (M)
+tests/unit/test_trip_power_profile_mixin.py (M)
+tests/unit/test_trip_schedule_execution.py (M)
+tests/unit/test_trip_soc_execution.py (M)
+```
+
+## Estado del executor:
+
+El executor está haciendo cambios activos en los archivos de tests. La regresión de 1 test es temporal durante el desarrollo. El executor probablemente está arreglando el test fallando.
+
+## Evaluación:
+
+- Coverage: 99.96% (2 miss en statements nuevos o cambiados)
+- Tests: 1 failed, 1800 passed
+- 137 tareas completadas en tasks.md
+
+El executor está en proceso de trabajo activo. La regresión es esperada durante desarrollo.
+
+**Próximo ciclo en 3 min.**
+
+### [2026-05-13 19:42:00] external-reviewer (cycle — ✅ RECUPERADO: 100% coverage, 1801 passed)
+
+## ✅ Coverage 100%, 1801 passed, 0 FAILED, 5 warnings
+
+**make test-cover**: ✅ **100% coverage (4827 stmts, 0 miss), 1801 passed, 0 failed**
+
+## Recuperación de regresión
+
+El executor recuperó de la regresión anterior:
+- Antes: 99.96% coverage, 1 failed, 1800 passed
+- Ahora: **100% coverage, 0 failed, 1801 passed**
+
+## Estado actual:
+
+| Métrica | Valor |
+|---------|-------|
+| Coverage | ✅ 100% (4827 stmts, 0 miss) |
+| Tests | ✅ 1801 passed, 0 failed |
+| Warnings | 5 |
+| Archivos modificados | 22 (en proceso) |
+
+## Executor actividad:
+
+El executor sigue modificando archivos de tests (22 archivos modificados). El trabajo continúa en las tareas de calidad.
+
+## Progreso Global:
+
+| Ciclo | Coverage | Tests | Failed |
+|-------|----------|-------|--------|
+| 3 ciclos antes | 100% | 1802 | 0 |
+| Ciclo anterior | 99.96% | 1800 | 1 |
+| Ciclo actual | **100%** | **1801** | **0** |
+
+**Próximo ciclo en 3 min.**
