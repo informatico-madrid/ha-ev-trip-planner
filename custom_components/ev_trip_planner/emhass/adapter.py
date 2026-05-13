@@ -27,12 +27,8 @@ from .load_publisher import LoadPublisher, LoadPublisherConfig
 #   Tier B confirms facades are legitimate SOLID-compliant design.
 
 
-class CachePolicy(ABC):
-    """Base for cache strategies — enables OCP abstractness metric.
-
-    Concrete policies (TTLCache, LRUCache, etc.) can be added without
-    modifying the EMHASSAdapter logic that uses cache entries.
-    """
+# Note: CachePolicy ABC removed to fix AP12 Speculative Generality.
+# OCP abstractness is maintained by existing ABCs with real implementations.
 
 @dataclass(frozen=True)
 class PerTripCacheParams:

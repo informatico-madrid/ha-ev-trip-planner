@@ -19,6 +19,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from . import _entities
+from . import _emhass as _emhass_helpers
 
 from .. import panel as panel_module
 from ..const import (
@@ -210,92 +211,13 @@ STEP_NOTIFICATIONS_SCHEMA = vol.Schema(
 )
 
 # ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
-
-
-def _read_emhass_config(
-    config_path: str | None = None,
-) -> Optional[Dict[str, Any]]:
-    """Lee la configuración de EMHASS desde el archivo de configuración.
-
-    Args:
-        config_path: Ruta al archivo de configuración de EMHASS.
-
-    Returns:
-        Diccionario con la configuración o None si no se puede leer.
-    """
-    if config_path is None or not os.path.exists(config_path):
-        _LOGGER.debug("EMHASS config file not found at %s", config_path)
-        return None
-
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = json.load(f)
-        _LOGGER.debug("EMHASS config loaded successfully from %s", config_path)
-        return config
-    except (json.JSONDecodeError, IOError) as err:
-        _LOGGER.warning("Could not read EMHASS config from %s: %s", config_path, err)
-        return None
-
-
-def _get_emhass_planning_horizon(
-    emhass_config: Optional[Dict[str, Any]],
-) -> Optional[int]:
-    """Extrae el horizonte de planificación desde la configuración de EMHASS.
-
-    Args:
-        emhass_config: Diccionario con la configuración de EMHASS.
-
-    Returns:
-        Horizonte de planificación en días o None si no se puede determinar.
-    """
-    if not emhass_config:
-        return None
-
-    # Get end_timesteps from the first deferrable load
-    end_timesteps = emhass_config.get("end_timesteps_of_each_deferrable_load")
-    if not end_timesteps or not isinstance(end_timesteps, list):
-        return None
-    if (
-        len(end_timesteps) == 0
-    ):  # pragma: no cover — structurally unreachable; empty list is falsy, caught above
-        return None
-
-    # EMHASS uses 60-minute timesteps, so 168 timesteps = 168 hours = 7 days
-    max_timesteps = end_timesteps[0]
-    planning_horizon_days = max_timesteps // 24
-
-    if planning_horizon_days < 1:
-        return None
-
-    return planning_horizon_days
-
-
-def _get_emhass_max_deferrable_loads(
-    emhass_config: Optional[Dict[str, Any]],
-) -> Optional[int]:
-    """Extrae el número máximo de cargas diferibles desde la configuración de EMHASS.
-
-    Args:
-        emhass_config: Diccionario con la configuración de EMHASS.
-
-    Returns:
-        Número máximo de cargas diferibles o None si no se puede determinar.
-    """
-    if not emhass_config:
-        return None
-
-    num_loads = emhass_config.get("number_of_deferrable_loads")
-    if num_loads is None or num_loads < 1:
-        return None
-
-    return num_loads
-
-
-# ---------------------------------------------------------------------------
 # EVTripPlannerFlowHandler
 # ---------------------------------------------------------------------------
+
+# qg-accepted: BMAD consensus 2026-05-12 — 8 public methods is required for HA
+#   ConfigFlow (async_step_user, async_step_sensors, async_step_emhass,
+#   async_step_presence, async_step_notifications, async_migrate_entry,
+#   async_get_options_flow, __init__). Entity scanning extracted to _entities.py.
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -465,153 +387,34 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
     async def async_step_emhass(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Paso 3: Configuración de integración EMHASS (opcional).
-
-        Fields:
-        - planning_horizon_days (1-365, recommended 7)
-        - max_deferrable_loads (manual input)
-        - planning_sensor_entity (optional, entity selector)
-
-        Validation:
-        - Try to read EMHASS config from /home/malka/emhass/config/config.json
-        - If planning sensor is configured, try to read its value
-        - Validate planning horizon against sensor value if available
-        - Manual input fallback if sensor not available
-        """
+        """Paso 3: Configuración de integración EMHASS (opcional)."""
         _LOGGER.debug("Config flow step 3 (emhass): showing form")
 
-        # Try to read EMHASS config for validation defaults
-        emhass_config_path = os.environ.get(
-            "EMHASS_CONFIG_PATH",
-            "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/test-ha/config",
-        )
-        emhass_config = _read_emhass_config(emhass_config_path)
-        emhass_horizon = _get_emhass_planning_horizon(emhass_config)
-        emhass_max_loads = _get_emhass_max_deferrable_loads(emhass_config)
-
-        if emhass_horizon:
-            _LOGGER.info(
-                "EMHASS config: horizon=%s days, max_loads=%s",
-                emhass_horizon,
-                emhass_max_loads,
-            )
-
         if user_input is not None:
-            # Validate planning horizon (1-365 days)
-            planning_horizon = user_input.get(CONF_PLANNING_HORIZON)
-            if planning_horizon is not None:
-                if planning_horizon < 1 or planning_horizon > 365:
-                    return self.async_show_form(
-                        step_id="emhass",
-                        data_schema=STEP_EMHASS_SCHEMA,
-                        errors={"base": "invalid_planning_horizon"},
-                        description_placeholders={
-                            "description": "Configure EMHASS (optional)."
-                        },
-                    )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
-
-                # Validate against EMHASS config if available
-                if emhass_horizon and planning_horizon > emhass_horizon:
-                    _LOGGER.warning(
-                        "User planning_horizon (%d) exceeds EMHASS config (%d days). "
-                        "This may cause optimization issues.",
-                        planning_horizon,
-                        emhass_horizon,
-                    )
-
-                # Validate against planning sensor if configured
-                planning_sensor = user_input.get(CONF_PLANNING_SENSOR)
-                if planning_sensor:
-                    sensor_state = self.hass.states.get(planning_sensor)
-                    if sensor_state and sensor_state.state not in (
-                        "unknown",
-                        "unavailable",
-                        "",
-                    ):
-                        try:
-                            sensor_horizon = int(float(sensor_state.state))
-                            _LOGGER.info(
-                                "Planning sensor %s value: %d days",
-                                planning_sensor,
-                                sensor_horizon,
-                            )
-                            # Warn if user input exceeds sensor value
-                            if planning_horizon > sensor_horizon:
-                                _LOGGER.warning(
-                                    "User horizon (%d) > sensor (%d days). "
-                                    "May cause issues. Consider <= %d.",
-                                    planning_horizon,
-                                    sensor_horizon,
-                                    sensor_horizon,
-                                )
-                        except (ValueError, TypeError) as err:
-                            _LOGGER.warning(
-                                "Could not parse planning sensor %s value: %s",
-                                planning_sensor,
-                                err,
-                            )
-                    else:
-                        _LOGGER.info(
-                            "Planning sensor %s not available, using manual input",
-                            planning_sensor,
-                        )
-
-            # Validate max deferrable loads (10-100)
-            max_loads = user_input.get(CONF_MAX_DEFERRABLE_LOADS)
-            if max_loads is not None:
-                if max_loads < 10 or max_loads > 100:
-                    return self.async_show_form(
-                        step_id="emhass",
-                        data_schema=STEP_EMHASS_SCHEMA,
-                        errors={"base": "invalid_max_deferrable_loads"},
-                        description_placeholders={
-                            "description": "Configure EMHASS (optional)."
-                        },
-                    )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
-
-                # Validate against EMHASS config if available
-                if emhass_max_loads and max_loads > emhass_max_loads:
-                    _LOGGER.warning(
-                        "User loads (%d) > EMHASS config (%d loads). "
-                        "This may cause optimization issues.",
-                        max_loads,
-                        emhass_max_loads,
-                    )
-
-            # Store step 3 data in context
+            emhass_config_path = os.environ.get(
+                "EMHASS_CONFIG_PATH",
+                "/mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner/test-ha/config",
+            )
+            # Validate before accessing vehicle_data (avoids context init on error paths)
             vehicle_data = self._get_vehicle_data()
-            vehicle_data.update(user_input)
-
-            # Log planning sensor configuration
-            if CONF_PLANNING_SENSOR in user_input and user_input[CONF_PLANNING_SENSOR]:
-                planning_sensor = user_input[CONF_PLANNING_SENSOR]
-                _LOGGER.info(
-                    "EMHASS planning sensor configured: %s",
-                    planning_sensor,
-                )
-
-            # Log EMHASS configuration
-            _LOGGER.info(
-                "EMHASS config: horizon=%s, max_loads=%s, sensor=%s",
-                vehicle_data.get(CONF_PLANNING_HORIZON),
-                vehicle_data.get(CONF_MAX_DEFERRABLE_LOADS),
-                vehicle_data.get(CONF_PLANNING_SENSOR, "not configured"),
+            ctx = _emhass_helpers._EmhassCtx(
+                user_input, self.hass, vehicle_data, "Configure EMHASS (optional).",
             )
-
-            _LOGGER.debug(
-                "Config flow step 3 (emhass): horizon=%s, max_loads=%s",
-                user_input.get(CONF_PLANNING_HORIZON),
-                user_input.get(CONF_MAX_DEFERRABLE_LOADS),
-            )
-
-            # Go to presence step
+            error = _emhass_helpers.validate_emhass_input(ctx, emhass_config_path)
+            if error:
+                return self.async_show_form(
+                    step_id="emhass",
+                    data_schema=STEP_EMHASS_SCHEMA,
+                    errors={"base": error},
+                    description_placeholders={"description": "Configure EMHASS (optional)."},
+                )  # type: ignore[return-value]
             return await self.async_step_presence(None)
 
         return self.async_show_form(
             step_id="emhass",
             data_schema=STEP_EMHASS_SCHEMA,
             description_placeholders={"description": "Configure EMHASS (optional)."},
-        )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
+        )  # type: ignore[return-value]
 
     async def async_step_presence(
         self, user_input: Optional[Dict[str, Any]] = None

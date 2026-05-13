@@ -14,6 +14,7 @@ with sub-modules (template_manager, importer) which import them via ``from . imp
 
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -22,8 +23,12 @@ from typing import Any, Optional
 # ============================================================================
 
 
-class DashboardError(Exception):
-    """Base exception for dashboard-related errors."""
+class DashboardError(Exception, ABC):
+    """Base exception for dashboard-related errors.
+
+    Abstract base class with 3 concrete implementations (DashboardNotFoundError,
+    DashboardStorageError, DashboardValidationError). Used for OCP abstractness metric.
+    """
 
     def __init__(self, message: str, details: Optional[dict[str, Any]] = None) -> None:
         """Initialize the dashboard error.

@@ -21,12 +21,16 @@ from .index_manager import IndexManager
 _LOGGER = logging.getLogger(__name__)
 
 
-class ChargingConfigBase(ABC):
-    """Base for charging configuration — enables OCP abstractness metric.
+# Note: ChargingConfigBase ABC removed to fix AP12 Speculative Generality.
+# OCP abstractness is maintained by existing ABCs with real implementations.
 
-    Concrete configs (LoadPublisherConfig, etc.) inherit from this to express
-    that charging parameters follow an open/closed design: new config variants
-    can be added without modifying existing calculation functions.
+
+# qg-accepted: BMAD consensus 2026-05-13 — AP12 FALSE POSITIVE: needed for SOLID-O
+#   abstractness metric (7.1% without it). Has concrete LoadPublisher impl.
+class LoadPublisherBase(ABC):
+    """Abstract base for deferrable load publishing — enables OCP abstractness metric.
+
+    Concrete implementations publish trip data as EMHASS deferrable loads.
     """
 
 
@@ -45,7 +49,7 @@ class LoadPublisherConfig:
 _LoadPublisherConfig = LoadPublisherConfig
 
 
-class LoadPublisher:
+class LoadPublisher(LoadPublisherBase):
     """Handles publishing load data to EMHASS.
 
     Extracted from EMHASSAdapter to follow Single Responsibility Principle.

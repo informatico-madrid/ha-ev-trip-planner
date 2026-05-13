@@ -14,9 +14,11 @@ from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.ev_trip_planner.config_flow.main import (
     EVTripPlannerFlowHandler,
-    _get_emhass_max_deferrable_loads,
-    _get_emhass_planning_horizon,
-    _read_emhass_config,
+)
+from custom_components.ev_trip_planner.config_flow._emhass import (
+    extract_max_deferrable_loads as _get_emhass_max_deferrable_loads,
+    extract_planning_horizon as _get_emhass_planning_horizon,
+    read_emhass_config as _read_emhass_config,
 )
 
 
@@ -249,6 +251,7 @@ class TestEVTripPlannerFlowHandler:
         """Planning horizon > 365 → shows form with error."""
         handler = EVTripPlannerFlowHandler()
         handler.hass = MagicMock()
+        handler.context = {}  # Mutable context for _get_vehicle_data
 
         result = await handler.async_step_emhass({"planning_horizon_days": 400})
         assert result["type"] is FlowResultType.FORM
@@ -259,6 +262,7 @@ class TestEVTripPlannerFlowHandler:
         """Max deferrable loads > 100 → shows form with error."""
         handler = EVTripPlannerFlowHandler()
         handler.hass = MagicMock()
+        handler.context = {}  # Mutable context for _get_vehicle_data
 
         result = await handler.async_step_emhass({"max_deferrable_loads": 150})
         assert result["type"] is FlowResultType.FORM

@@ -26,6 +26,7 @@ from .core import (
     calculate_dynamic_soc_limit,
     calculate_soc_target,
     calculate_trip_time,
+    compute_safe_delta,
 )
 
 # Deficit functions extracted to their own module.
@@ -72,11 +73,12 @@ __all__ = [
     "calculate_power_profile_from_trips",
     "calculate_soc_at_trip_starts",
     "calculate_soc_target",
+    "calculate_trip_time",
     "ChargingDecision",
+    "compute_safe_delta",
     "DAYS_OF_WEEK",
     "determine_charging_need",
     "generate_deferrable_schedule_from_trips",
-    "calculate_trip_time",
     "calculate_next_recurring_datetime",
     "DEFAULT_T_BASE",
     "SOH_CACHE_TTL_SECONDS",

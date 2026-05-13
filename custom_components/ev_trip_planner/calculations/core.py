@@ -23,6 +23,26 @@ from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
+def compute_safe_delta(
+    trip_time: datetime, now: datetime,
+) -> Optional[timedelta]:
+    """Compute (trip_time - now) with timezone-safety fallback.
+
+    If direct subtraction raises TypeError (naive vs aware), attempts to
+    attach UTC timezone to the trip_time and retries. Returns None if
+    both attempts fail.
+    """
+    try:
+        return trip_time - now
+    except TypeError:
+        try:
+            if getattr(trip_time, "tzinfo", None) is None:
+                trip_time = trip_time.replace(tzinfo=timezone.utc)
+            return trip_time - now
+        except (AttributeError, TypeError):
+            return None
+
+
 @dataclass
 class BatteryCapacity:
     """Abstraction for real battery capacity with SOH-aware fallback.

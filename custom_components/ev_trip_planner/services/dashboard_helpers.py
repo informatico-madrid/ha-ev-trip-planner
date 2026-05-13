@@ -323,6 +323,29 @@ async def create_dashboard_input_helpers(
         )
 
 
+def _register_static_paths_legacy(
+    hass: HomeAssistant, static_paths: list[Any], context_label: str,
+) -> None:
+    """Register static paths using the legacy HA register_static_path API.
+
+    Called as a fallback when the new StaticPathConfig API is unavailable.
+    """
+    for path_spec in static_paths:
+        try:
+            if isinstance(path_spec, tuple):
+                url_path, file_path, _ = path_spec
+                hass.http.register_static_path(url_path, file_path)  # type: ignore[attr-defined]
+            else:
+                hass.http.register_static_path(  # type: ignore[attr-defined]
+                    path_spec.url_path, path_spec.path
+                )
+        except RuntimeError as path_err:
+            if "already registered" in str(path_err).lower():
+                continue
+            raise
+    _LOGGER.info("Registered static paths using legacy method (%s)", context_label)
+
+
 async def async_register_static_paths(
     hass: HomeAssistant,
 ) -> None:
@@ -377,47 +400,20 @@ async def async_register_static_paths(
             else ("/ev-trip-planner/panel.css", str(panel_css_path), False)
         )
 
-    if static_paths and hass.http is not None:
-        try:
-            await hass.http.async_register_static_paths(static_paths)
-            _LOGGER.info(
-                "Registered %d static path(s) for EV Trip Planner panel (early)",
-                len(static_paths),
-            )
-        except (
-            TypeError,
-            AttributeError,
-            RuntimeError,
-        ) as err:  # pragma: no cover — HA infrastructure error path; not reproducible in unit tests
-            _LOGGER.warning(
-                "async_register_static_paths (early) error: %s, trying legacy",
-                err,
-            )
-            try:
-                for path_spec in static_paths:
-                    try:
-                        if isinstance(path_spec, tuple):
-                            url_path, file_path, _ = path_spec
-                            hass.http.register_static_path(url_path, file_path)  # type: ignore[attr-defined] # HA stub: HomeAssistantHTTP has register_static_path
-                        else:
-                            hass.http.register_static_path(  # type: ignore[attr-defined] # HA stub: HomeAssistantHTTP has register_static_path
-                                path_spec.url_path, path_spec.path
-                            )
-                    except (
-                        RuntimeError
-                    ) as path_err:  # pragma: no cover — HA infrastructure error path
-                        if "already registered" in str(path_err).lower():
-                            continue
-                        raise
-                _LOGGER.info(
-                    "Registered static paths using legacy method (early)"
-                )  # pragma: no cover — reached only after HA infrastructure error path
-            except (
-                Exception
-            ) as legacy_err:  # pragma: no cover — HA infrastructure error path
-                _LOGGER.error("Failed to register static paths (early): %s", legacy_err)
-    elif static_paths:
-        _LOGGER.warning("hass.http is None - static paths cannot be registered early")
+    if not static_paths or hass.http is None:
+        label = "early"
+        reason = "hass.http is None" if static_paths else "no static files found"
+        _LOGGER.warning("Cannot register static paths (%s): %s", label, reason)
+        return
+
+    try:
+        await hass.http.async_register_static_paths(static_paths)
+        _LOGGER.info(
+            "Registered %d static path(s) for EV Trip Planner panel (early)",
+            len(static_paths),
+        )
+    except (TypeError, AttributeError, RuntimeError):  # pragma: no cover
+        _register_static_paths_legacy(hass, static_paths, "early")
 
 
 async def async_register_panel_for_entry(

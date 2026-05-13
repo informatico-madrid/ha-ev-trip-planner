@@ -17,12 +17,8 @@ from homeassistant.core import HomeAssistant
 _LOGGER = logging.getLogger(__name__)
 
 
-class RetryPolicy(ABC):
-    """Base for retry strategies — enables OCP abstractness metric.
-
-    Concrete retry policies (ExponentialBackoff, FixedWindow, etc.) can be
-    added without modifying the RetryState logic that consumes them.
-    """
+# Note: RetryPolicy ABC removed to fix AP12 Speculative Generality.
+# OCP abstractness is maintained by existing ABCs with real implementations.
 
 
 MAX_RETRY_ATTEMPTS = 3

@@ -18,6 +18,7 @@ from ..calculations import (
     calculate_day_index,
     calculate_soc_target,
     calculate_trip_time,
+    compute_safe_delta,
 )
 from ..const import CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER, DOMAIN
 from ..utils import calcular_energia_kwh
@@ -82,45 +83,22 @@ class SOCQuery:
         alerta_tiempo_insuficiente = False
         trip_tipo = trip.get("tipo")
         trip_datetime = trip.get("datetime")
+        trip_time: Optional[datetime] = None
 
-        if trip_tipo and trip_datetime:
-            trip_time = self._state._soc._get_trip_time(trip)
-            if trip_time:
-                now = datetime.now(timezone.utc)
-                horas_disponibles = (trip_time - now).total_seconds() / 3600
-                if horas_carga > horas_disponibles:
-                    alerta_tiempo_insuficiente = True
-        elif trip_datetime:
+        if trip_datetime:
             try:
-                trip_time = self._state._soc._parse_trip_datetime(trip_datetime)
-                if trip_time is not None:
-                    now = dt_util.now()
-                    try:
-                        delta = trip_time - now
-                    except TypeError:
-                        _LOGGER.error(
-                            "Datetime subtraction TypeError: trip_datetime=%s (%s), now=%s (%s): %s",
-                            repr(trip_datetime),
-                            type(trip_datetime),
-                            repr(now),
-                            type(now),
-                            trip_time,
-                        )
-                        try:
-                            if getattr(trip_time, "tzinfo", None) is None:
-                                trip_time = trip_time.replace(tzinfo=timezone.utc)
-                        except (AttributeError, TypeError):
-                            trip_time = None
-                        if trip_time is not None:
-                            delta = trip_time - now
-                        else:
-                            delta = None
-                    if delta is not None:
-                        horas_disponibles = delta.total_seconds() / 3600
-                        if horas_carga > horas_disponibles:
-                            alerta_tiempo_insuficiente = True
+                trip_time = (
+                    self._state._soc._get_trip_time(trip)
+                    if trip_tipo
+                    else self._state._soc._parse_trip_datetime(trip_datetime)
+                )
             except (KeyError, ValueError, TypeError):
-                pass
+                trip_time = None
+
+        if trip_time:
+            now = dt_util.now() if trip_tipo else datetime.now(timezone.utc)
+            horas_disponibles = self._compute_charging_hours(trip_time, now)
+            alerta_tiempo_insuficiente = horas_carga > horas_disponibles
 
         return {
             "energia_necesaria_kwh": round(energia_final, 3),
@@ -177,6 +155,17 @@ class SOCQuery:
         except Exception:
             _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
             return None if allow_none else datetime.now(timezone.utc)
+
+    @staticmethod
+    def _compute_charging_hours(trip_time: datetime, now: datetime) -> float:
+        """Compute available charging hours from a trip datetime.
+
+        Uses timezone-safe delta computation. Returns 0.0 if delta cannot be computed.
+        """
+        delta = compute_safe_delta(trip_time, now)
+        if delta is None:
+            return 0.0
+        return max(0.0, delta.total_seconds() / 3600)
 
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""

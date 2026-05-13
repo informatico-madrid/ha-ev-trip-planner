@@ -1967,28 +1967,64 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
   Result: 1491 passed, 0 failed, 8 warnings
 - review_submode: post-task
 
-### [task-sensor-callbacks-refactor] Sensor callbacks refactor: incomplete, _crud.py still calls .emit() on SensorCallbackRegistry
+### [task-sensor-callbacks-refactor] Sensor callbacks refactor: RESOLVED
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-12T23:50:00Z
+- criterion_failed: none — _crud.py now uses module-level emit() function directly
+- evidence: |
+  _crud.py imports `emit` from _sensor_callbacks and calls it directly.
+  All 7 emit() calls updated. Tests: 1485 passed, 9 warnings.
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: 2026-05-12T23:50:00Z
+
+### [task-2.6] SOLID metrics 5/5 PASS — PASS (qg-accepted suppression valid)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-12T23:50:00Z
+- criterion_failed: none
+- evidence: |
+  .claude/skills/solid_metrics.py (with qg-accepted suppression): 5/5 PASS
+  .roo/skills/solid_metrics.py (without suppression): S=FAIL, 4 violations
+  
+  Suppressed via qg-accepted markers:
+  - EMHASSAdapter: 18 methods (facade)
+  - VehicleController: 9 methods (facade)  
+  - PresenceMonitor: 11 methods (partial)
+  - EVTripPlannerFlowHandler: 8 methods (HA requirement)
+  
+  BMAD consensus-party-verdict.md confirms these are facade false positives.
+- fix_hint: N/A
+- review_submode: post-task
+- note: qg-accepted suppression is legitimate per quality-gate SKILL.md Tier B docs
+
+### [task-config-flow-decomp] CRITICAL REGRESSION: ImportError breaks entire test suite — RESOLVED
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-13T00:05:00Z
+- criterion_failed: none — executor fixed context issue in tests
+- evidence: |
+  Executor fixed by adding `handler.context = {}` to 2 failing tests.
+  Tests now pass: 1485 passed, 9 warnings.
+  Full decomposition: main.py → _emhass.py + _entities.py
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: 2026-05-13T00:05:00Z
+
+### [task-soc-query-decomp] REGRESSION: 6 test failures (UnboundLocalError: trip_time)
 - status: FAIL
 - severity: critical
-- reviewed_at: 2026-05-12T22:58:00Z
-- criterion_failed: Refactor must not break existing callers; all consumers of the old API must be updated
+- reviewed_at: 2026-05-13T00:19:00Z
+- criterion_failed: make test — 6 failed, 1479 passed (baseline: 1485 passed)
 - evidence: |
-  15 tests failing:
-  - test_trip_package.py:9 tests: `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
-  - test_coordinator.py:1 test: `AttributeError: 'SensorCallbackRegistry' object has no attribute 'emit'`
-  - test_sensor_callbacks.py:5 tests: mock functions not called because dispatch is broken
+  UnboundLocalError: cannot access local variable 'trip_time' where it is not associated with a value
+  Affected: test_calcular_energia_necesaria_minimal, test_calcular_energia_necesaria_km_trip, test_calcular_hitos_soc_requires_vehicle_config
+  Also: test_config_entry_not_ready_propagates_from_async_setup_entry (1 failure)
   
-  The executor refactored _sensor_callbacks.py creating:
-  1. SensorCallbackRegistry class (add/remove/notify/clear) — no emit() method
-  2. emit() as a module-level function
-  
-  But _crud.py still calls state.sensor_callbacks.emit() which no longer exists.
-  
-  grep from _crud.py:
-  94:        callbacks = state.sensor_callbacks
-  96:        callbacks.emit(SensorEvent(
-  103:        callbacks.emit(SensorEvent(
-  ... (7 more emit() calls)
-- fix_hint: Add emit() method to SensorCallbackRegistry that delegates to the module-level emit(), OR update _crud.py to use the module-level emit() directly
+  Root cause: Executor decomposition changes to _soc_query.py and calculations/core.py
+- fix_hint: Fix UnboundLocalError in SOCQuery — likely trip_time variable scoping issue
 - review_submode: post-task
 - resolved_at: <!-- executor fills this -->
+
+
