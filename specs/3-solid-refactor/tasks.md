@@ -1785,7 +1785,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-4, NFR-7.A_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] 3.2 [VERIFY] Run quality-gate diff vs baseline
+- [x] 3.2 [VERIFY] Run quality-gate diff vs baseline — SOLID 5/5 PASS (was 3/5 FAIL), mutation +13.6pp, E2E 30/30+10/10 zero regressions
   - **Do**:
     1. Run `make quality-gate` again and compare to baseline captured in task 1.1
     2. Document improvements in `.progress.md`
