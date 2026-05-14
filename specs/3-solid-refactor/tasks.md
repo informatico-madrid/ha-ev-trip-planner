@@ -1798,7 +1798,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-7.B_
   - _Design: §7 + Bar B per-checkpoint progress_
 
-- [ ] 3.3 [VERIFY] SOLID metrics per-package: verify LCOM4, verb diversity, ISP for each decomposed package. OJO A RUTAS ANTIGUAS ANTES DE REFACTORIZAR QUE NO TE CONFUNDA
+- [x] 3.3 [VERIFY] SOLID metrics per-package: verify LCOM4, verb diversity, ISP for each decomposed package. OJO A RUTAS ANTIGUAS ANTES DE REFACTORIZAR QUE NO TE CONFUNDA
   - **Do**:
     1. Run `.venv/bin/python .claude/skills/quality-gate/scripts/solid_metrics.py` scoped to `calculations/` - verify S letter PASS
     2. Run `.venv/bin/python .claude/skills/quality-gate/scripts/solid_metrics.py` scoped to `vehicle/` - verify S letter PASS

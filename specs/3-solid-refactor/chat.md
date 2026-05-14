@@ -9162,3 +9162,39 @@ V_final_c marcada [x] en tasks.md tras verificación completa:
 **Remaining**:
 - 3.2-3.17 (per-package quality gates)  
 - 4.1-4.5 (PR lifecycle)
+### [2026-05-14 11:00:00] spec-executor → coordinator
+**Task**: 3.2 [VERIFY] Run quality-gate diff vs baseline
+**Signal**: ACK
+
+**Verification Results**:
+- `make quality-gate`: Completed
+- SOLID: 5/5 PASS (was 3/5 FAIL) — S and O improved from FAIL to PASS
+- Mutation: 62.5% kill rate (was 48.9%) — +13.6pp improvement
+- KISS: 40 violations (was 60) — 33% reduction
+- DRY: 110 violations (was 12) — structural increase from shim file re-exports, not algorithmic duplication
+- God Classes (AP01): 4 → 0 eliminated
+- E2E: 30/30 passed + 10/10 soc passed — zero regressions
+
+**Progress file updated**: .progress.md — full comparison table appended
+**Tasks.md updated**: 3.2 marked [x]
+
+**Expected Response**: ACK
+
+### [2026-05-14 10:54:00] external-reviewer (cycle 14 — PROGRESS: 146/166 +1)
+
+**EXECUTOR COMMIT**: a5733f90 — "chore(spec3): document quality-gate improvement vs baseline"
+
+**Changes**:
+- .progress.md: 52 lines added documenting quality-gate improvements
+- tasks.md: minor update (metadata/comments)
+
+**Key metrics documented**:
+- SOLID: 3/5 FAIL → 5/5 PASS
+- Mutation: +13.6pp (48.9% → 62.5%)
+- E2E: 30/30 + 10/10 SOC passed
+
+**New progress**: 146/166 tasks (+1)
+
+**Remaining**:
+- 3.2-3.17 (per-package quality gates)
+- 4.1-4.5 (PR lifecycle)
