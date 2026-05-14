@@ -256,7 +256,7 @@ def calculate_multi_trip_charging_windows(
         else:
             # Subsequent trips: window starts at previous departure + duration
             assert previous_departure is not None
-            window_start = previous_departure + timedelta(hours=return_buffer_hours)
+            window_start = previous_departure + timedelta(hours=duration_hours)
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
         # This handles the case where return_buffer pushes window_start past the deadline
