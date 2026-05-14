@@ -199,10 +199,10 @@ def calculate_multi_trip_charging_windows(
     Each trip gets its own window. The first trip's charging window starts at
     max(hora_regreso, now) when hora_regreso is provided, or from now when
     hora_regreso is None. Subsequent trips start after the previous trip's
-    departure plus the trip duration constant (duration_hours).
+    departure plus the return buffer (return_buffer_hours).
 
     For trip N (N > 0):
-        window_start = previous_departure + duration_hours
+        window_start = previous_departure + return_buffer_hours
         window_end = this_trip_departure
 
     Args:
@@ -254,9 +254,9 @@ def calculate_multi_trip_charging_windows(
                 # Charging starts from now, not from departure - duration.
                 window_start = now
         else:
-            # Subsequent trips: window starts at previous departure + duration
+            # Subsequent trips: window starts at previous departure + return_buffer_hours
             assert previous_departure is not None
-            window_start = previous_departure + timedelta(hours=duration_hours)
+            window_start = previous_departure + timedelta(hours=return_buffer_hours)
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
         # This handles the case where return_buffer pushes window_start past the deadline
