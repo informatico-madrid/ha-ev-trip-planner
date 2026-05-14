@@ -170,6 +170,9 @@ class TripCRUD:
 
     # ── Update ───────────────────────────────────────────────────
 
+    # CC-N-ACCEPTED: cc=11 — trip type dispatch (recurring vs punctual) with
+    # different field sets, save, emit, EMHASS sync. Branching is domain
+    # logic: each trip type has distinct relevant fields and sync requirements.
     async def async_update_trip(self, trip_id: str, updates: Dict[str, Any]) -> None:
         """Actualiza un viaje existente y sincroniza con EMHASS."""
         state = self._state

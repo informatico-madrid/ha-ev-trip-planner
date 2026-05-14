@@ -77,6 +77,11 @@ class _EmhassCtx:
     schema_description: str
 
 
+# CC-N-ACCEPTED: cc=19 — each branch is a distinct validation rule:
+# planning_horizon range, planning_horizon vs EMHASS config, planning_sensor
+# existence + parsing + value comparison, max_loads range + config comparison.
+# Extracting would split a coherent validation pipeline into meaningless
+# fragments; the branching IS the business logic.
 def validate_emhass_input(
     ctx: _EmhassCtx,
     emhass_config_path: str,

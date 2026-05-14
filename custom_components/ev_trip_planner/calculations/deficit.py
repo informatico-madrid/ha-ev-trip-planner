@@ -108,6 +108,135 @@ __all__ = [
 # =============================================================================
 
 
+def _compute_adjusted_soc(
+    original_idx: int,
+    soc_objetivo_base: float,
+    deficits: List[float],
+    soc_caps: Optional[List[float]],
+) -> float:
+    """Compute the final adjusted SOC target for a single trip.
+
+    Adjusts the base SOC target by accumulated deficits, then applies
+    any SOC cap constraint for this trip.
+    """
+    soc_objetivo_ajustado = soc_objetivo_base + deficits[original_idx]
+
+    if soc_caps is not None and original_idx < len(soc_caps):
+        return min(soc_objetivo_ajustado, soc_caps[original_idx])
+    return soc_objetivo_ajustado
+
+
+def _get_soc_objetivo_base(
+    original_idx: int,
+    trip: Dict[str, Any],
+    soc_targets: Optional[List[float]],
+    battery_capacity_kwh: float,
+) -> float:
+    """Get the base SOC target for a trip (from soc_targets or calculated)."""
+    if soc_targets and original_idx < len(soc_targets):
+        return soc_targets[original_idx]
+    return calculate_soc_target(trip, battery_capacity_kwh)
+
+
+def _propagate_deficits(
+    ordered_to_idx: Dict[int, int],
+    N: int,
+    soc_data: List[Dict[str, Any]],
+    windows: List[Dict[str, Any]],
+    trips: List[Dict[str, Any]],
+    soc_targets: Optional[List[float]],
+    soc_caps: Optional[List[float]],
+    tasa_carga_soc: float,
+    battery_capacity_kwh: float,
+    deficits: List[float],
+) -> None:
+    """Reverse pass: detect deficits and propagate to previous trips.
+
+    Iterates trips in reverse order (last to first). For each trip,
+    if the SOC after charging is below the target, the deficit is
+    propagated to the previous trip.
+    """
+    for ordered_idx in range(N - 1, -1, -1):
+        original_idx = ordered_to_idx.get(ordered_idx)
+        if original_idx is None:
+            continue
+
+        soc_data_item = soc_data[ordered_idx]
+        ventana = windows[ordered_idx]
+        trip = trips[original_idx]
+
+        soc_objetivo_base = _get_soc_objetivo_base(
+            original_idx, trip, soc_targets, battery_capacity_kwh
+        )
+        soc_objetivo_final = _compute_adjusted_soc(
+            original_idx, soc_objetivo_base, deficits, soc_caps
+        )
+        capacidad_carga = tasa_carga_soc * ventana["ventana_horas"]
+
+        if soc_data_item["soc_inicio"] + capacidad_carga < soc_objetivo_final:
+            deficit = soc_objetivo_final - (soc_data_item["soc_inicio"] + capacidad_carga)
+
+            if ordered_idx > 0:
+                prev_idx = ordered_to_idx.get(ordered_idx - 1)
+                if prev_idx is not None:
+                    deficits[prev_idx] += deficit
+
+            deficits[original_idx] += deficit
+
+
+def _build_milestone(
+    original_idx: int,
+    trip: Dict[str, Any],
+    soc_data_item: Dict[str, Any],
+    ventana: Dict[str, Any],
+    soc_objetivo_final: float,
+    deficits: List[float],
+    soc_caps: Optional[List[float]],
+    kwh_necesarios: float,
+) -> Dict[str, Any]:
+    """Build a single SOC milestone result dict."""
+    return {
+        "trip_id": trip.get("id", f"trip_{original_idx}"),
+        "soc_objetivo": round(soc_objetivo_final, 2),
+        "soc_cap_raw": (
+            round(soc_caps[original_idx], 2)
+            if soc_caps is not None and original_idx < len(soc_caps)
+            else 100.0
+        ),
+        "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
+        "deficit_acumulado": round(deficits[original_idx], 2),
+        "ventana_carga": {
+            "ventana_horas": ventana["ventana_horas"],
+            "kwh_necesarios": ventana["kwh_necesarios"],
+            "horas_carga_necesarias": ventana["horas_carga_necesarias"],
+            "inicio_ventana": ventana["inicio_ventana"],
+            "fin_ventana": ventana["fin_ventana"],
+            "es_suficiente": ventana["es_suficiente"],
+        },
+    }
+
+
+def _compute_trip_trip_time(
+    trip: Dict[str, Any],
+    trip_times: Optional[List[Optional[datetime]]],
+    reference_dt: datetime,
+) -> Optional[datetime]:
+    """Resolve a trip's departure time from various datetime formats."""
+    if trip_times is not None:
+        idx = int(trip.get("emhass_index", 0))
+        if idx < len(trip_times) and trip_times[idx] is not None:
+            return trip_times[idx]
+
+    trip_tipo = trip.get("tipo")
+    hora = trip.get("hora")
+    dia_semana = trip.get("dia_semana")
+    datetime_str = trip.get("datetime")
+
+    if trip_tipo is None:
+        return None
+    return calculate_trip_time(trip_tipo, hora, dia_semana, datetime_str, reference_dt)
+
+
 def calculate_deficit_propagation(
     trips: List[Dict[str, Any]],
     soc_data: List[Dict[str, Any]],
@@ -147,17 +276,7 @@ def calculate_deficit_propagation(
     # Sort trips by departure time and create bidirectional index mapping
     sorted_trips_with_times: List[Tuple[datetime, int, Dict[str, Any]]] = []
     for idx, trip in enumerate(trips):
-        if trip_times and idx < len(trip_times) and trip_times[idx] is not None:
-            trip_time = trip_times[idx]
-        else:
-            trip_tipo: Optional[str] = trip.get("tipo")
-            hora: Optional[str] = trip.get("hora")
-            dia_semana: Optional[str] = trip.get("dia_semana")
-            datetime_str: Optional[str] = trip.get("datetime")
-            assert trip_tipo is not None
-            trip_time = calculate_trip_time(
-                trip_tipo, hora, dia_semana, datetime_str, reference_dt
-            )
+        trip_time = _compute_trip_trip_time(trip, trip_times, reference_dt)
         if trip_time:
             sorted_trips_with_times.append((trip_time, idx, trip))
 
@@ -166,96 +285,42 @@ def calculate_deficit_propagation(
 
     sorted_trips_with_times.sort(key=lambda x: x[0])
 
-    idx_to_ordered: Dict[int, int] = {}
     ordered_to_idx: Dict[int, int] = {}
     for ordered_idx, (_, original_idx, _) in enumerate(sorted_trips_with_times):
-        idx_to_ordered[original_idx] = ordered_idx
         ordered_to_idx[ordered_idx] = original_idx
 
+    # Phase 1: Reverse pass — detect and propagate deficits
     deficits = [0.0] * len(trips)
+    _propagate_deficits(
+        ordered_to_idx, len(trips), soc_data, windows, trips,
+        soc_targets, soc_caps, tasa_carga_soc, battery_capacity_kwh, deficits,
+    )
 
-    for ordered_idx in range(len(trips) - 1, -1, -1):
-        _orig_idx = ordered_to_idx.get(ordered_idx)
-        if _orig_idx is None:
-            continue
-        original_idx = _orig_idx
-
-        soc_data_item = soc_data[ordered_idx]
-        ventana = windows[ordered_idx]
-        trip = trips[original_idx]
-
-        soc_inicio = soc_data_item["soc_inicio"]
-        ventana_horas = ventana["ventana_horas"]
-
-        if soc_targets and original_idx < len(soc_targets):
-            soc_objetivo = soc_targets[original_idx]
-        else:
-            soc_objetivo = calculate_soc_target(trip, battery_capacity_kwh)
-
-        soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
-
-        if soc_caps is not None and original_idx < len(soc_caps):
-            soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
-        else:
-            soc_objetivo_final = soc_objetivo_ajustado
-
-        capacidad_carga = tasa_carga_soc * ventana_horas
-
-        if soc_inicio + capacidad_carga < soc_objetivo_final:
-            deficit = soc_objetivo_final - (soc_inicio + capacidad_carga)
-
-            if ordered_idx > 0:
-                prev_original_idx = ordered_to_idx.get(ordered_idx - 1)
-                if prev_original_idx is not None:
-                    deficits[prev_original_idx] += deficit
-
-            deficits[original_idx] += deficit
-
+    # Phase 2: Forward pass — build results with accumulated deficits
     results: List[Dict[str, Any]] = []
     for ordered_idx in range(len(trips)):
-        _orig_idx = ordered_to_idx.get(ordered_idx)
-        if _orig_idx is None:
+        original_idx = ordered_to_idx.get(ordered_idx)
+        if original_idx is None:
             continue
-        original_idx = _orig_idx
 
         trip = trips[original_idx]
         soc_data_item = soc_data[ordered_idx]
         ventana = windows[ordered_idx]
 
-        if soc_targets and original_idx < len(soc_targets):
-            soc_objetivo = soc_targets[original_idx]
-        else:
-            soc_objetivo = calculate_soc_target(trip, battery_capacity_kwh)
-        soc_objetivo_ajustado = soc_objetivo + deficits[original_idx]
-
-        if soc_caps is not None and original_idx < len(soc_caps):
-            soc_objetivo_final = min(soc_objetivo_ajustado, soc_caps[original_idx])
-        else:
-            soc_objetivo_final = soc_objetivo_ajustado
-
-        soc_inicio = soc_data_item["soc_inicio"]
+        soc_objetivo_base = _get_soc_objetivo_base(
+            original_idx, trip, soc_targets, battery_capacity_kwh
+        )
+        soc_objetivo_final = _compute_adjusted_soc(
+            original_idx, soc_objetivo_base, deficits, soc_caps
+        )
+        soc_inicio = soc_data_item.get("soc_inicio", 0.0)
         kwh_necesarios = (soc_objetivo_final - soc_inicio) * battery_capacity_kwh / 100
 
         results.append(
-            {
-                "trip_id": trip.get("id", f"trip_{original_idx}"),
-                "soc_objetivo": round(soc_objetivo_final, 2),
-                "soc_cap_raw": (
-                    round(soc_caps[original_idx], 2)
-                    if soc_caps is not None and original_idx < len(soc_caps)
-                    else 100.0
-                ),
-                "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
-                "deficit_acumulado": round(deficits[original_idx], 2),
-                "ventana_carga": {
-                    "ventana_horas": ventana["ventana_horas"],
-                    "kwh_necesarios": ventana["kwh_necesarios"],
-                    "horas_carga_necesarias": ventana["horas_carga_necesarias"],
-                    "inicio_ventana": ventana["inicio_ventana"],
-                    "fin_ventana": ventana["fin_ventana"],
-                    "es_suficiente": ventana["es_suficiente"],
-                },
-            }
+            _build_milestone(
+                original_idx, trip, soc_data_item, ventana,
+                soc_objetivo_final, deficits, soc_caps, kwh_necesarios,
+            )
         )
 
     return results
@@ -389,6 +454,87 @@ def calculate_soc_at_trip_starts(
 # =============================================================================
 
 
+def _parse_day(day: int | str) -> Optional[int]:
+    """Parse day of week to int, return None if invalid."""
+    if day is None:
+        return None
+    try:
+        return int(day)
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_time(time_str: str) -> Optional[Tuple[int, int]]:
+    """Parse HH:MM time string to (hour, minute) tuple."""
+    if time_str is None:
+        return None
+    try:
+        parts = time_str.split(":")
+        return (int(parts[0]), int(parts[1]))
+    except (ValueError, AttributeError):
+        return None
+
+
+def _resolve_tz(tz: Any) -> Any:
+    """Normalize timezone parameter to a tzinfo instance or None."""
+    if tz is None:
+        return None
+    if isinstance(tz, str):
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(tz)
+        except (ImportError, Exception):
+            return None
+    if not isinstance(tz, timezone):
+        import datetime as _dt
+        if not isinstance(tz, _dt.tzinfo):
+            return None
+    return tz
+
+
+def _compute_next_with_tz(
+    day: int,
+    hour: int,
+    minute: int,
+    reference_dt: datetime,
+    tz: Any,
+) -> datetime:
+    """Compute next occurrence when a timezone is provided."""
+    aware_ref = (
+        reference_dt if reference_dt.tzinfo is not None
+        else reference_dt.replace(tzinfo=timezone.utc)
+    )
+    local_ref = aware_ref.astimezone(tz)
+    local_date = local_ref.date()
+    candidate_local = datetime(
+        local_date.year, local_date.month, local_date.day,
+        hour, minute, 0, 0, tzinfo=tz,
+    )
+    current_day = local_ref.isoweekday() % 7
+    days_ahead = (day - current_day) % 7
+    if days_ahead == 0 and candidate_local < local_ref:
+        days_ahead = 7
+    result_local = candidate_local + timedelta(days=days_ahead)
+    return result_local.astimezone(timezone.utc)
+
+
+def _compute_next_naive(
+    day: int,
+    hour: int,
+    minute: int,
+    reference_dt: datetime,
+) -> datetime:
+    """Compute next occurrence without timezone (backward compat)."""
+    candidate = reference_dt.replace(
+        hour=hour, minute=minute, second=0, microsecond=0
+    )
+    current_day = (reference_dt.weekday() + 1) % 7
+    days_ahead = (day - current_day) % 7
+    if days_ahead == 0 and candidate < reference_dt:
+        days_ahead = 7
+    return candidate + timedelta(days=days_ahead)
+
+
 def calculate_next_recurring_datetime(
     day: int | str,
     time_str: str,
@@ -412,62 +558,14 @@ def calculate_next_recurring_datetime(
     if reference_dt is None:
         reference_dt = datetime.now()
 
-    if day is None or time_str is None:
+    parsed_day = _parse_day(day)
+    parsed_time = _parse_time(time_str)
+    if parsed_day is None or parsed_time is None:
         return None
 
-    try:
-        day = int(day)
-    except (ValueError, TypeError):
-        return None
+    hour, minute = parsed_time
+    resolved_tz = _resolve_tz(tz)
 
-    try:
-        hour, minute = map(int, time_str.split(":"))
-    except (ValueError, AttributeError):
-        return None
-
-    if tz is not None:
-        if isinstance(tz, str):
-            try:
-                from zoneinfo import ZoneInfo
-
-                tz = ZoneInfo(tz)
-            except (ImportError, Exception):
-                tz = None
-        if tz is not None and not isinstance(tz, timezone):
-            import datetime as _dt
-
-            if not isinstance(tz, _dt.tzinfo):
-                tz = None
-    if tz is not None:
-        aware_ref = (
-            reference_dt
-            if reference_dt.tzinfo is not None
-            else reference_dt.replace(tzinfo=timezone.utc)
-        )
-        local_ref = aware_ref.astimezone(tz)
-        local_date = local_ref.date()
-        candidate_local = datetime(
-            local_date.year,
-            local_date.month,
-            local_date.day,
-            hour,
-            minute,
-            0,
-            0,
-            tzinfo=tz,
-        )
-        current_day = local_ref.isoweekday() % 7
-        days_ahead = (day - current_day) % 7
-        if days_ahead == 0 and candidate_local < local_ref:
-            days_ahead = 7
-        result_local = candidate_local + timedelta(days=days_ahead)
-        return result_local.astimezone(timezone.utc)
-    else:
-        candidate = reference_dt.replace(
-            hour=hour, minute=minute, second=0, microsecond=0
-        )
-        current_day = (reference_dt.weekday() + 1) % 7
-        days_ahead = (day - current_day) % 7
-        if days_ahead == 0 and candidate < reference_dt:
-            days_ahead = 7
-        return candidate + timedelta(days=days_ahead)
+    if resolved_tz is not None:
+        return _compute_next_with_tz(parsed_day, hour, minute, reference_dt, resolved_tz)
+    return _compute_next_naive(parsed_day, hour, minute, reference_dt)

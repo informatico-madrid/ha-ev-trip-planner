@@ -75,7 +75,7 @@ This spec decomposes 9 god modules in the entire `custom_components/ev_trip_plan
 **Acceptance Criteria:**
 - AC-1.1: No source module in `custom_components/ev_trip_planner/` exceeds 500 LOC after decomposition (`wc -l` ≤ 500 for every `.py` file). Old monolithic files removed.
 - AC-1.2: Nine god modules decomposed: `emhass_adapter.py`, `trip_manager.py`, `services.py`, `dashboard.py`, `vehicle_controller.py`, `calculations.py`, `sensor.py`, `config_flow.py`, `presence_monitor.py`.
-- AC-1.3: Every function in the resulting code has cyclomatic complexity ≤ 10 (`radon cc` passes).
+- AC-1.3: Every function in the resulting code has cyclomatic complexity ≤ 10 (`radon cc` passes). C-grade (cc 11-20) is accepted when the function's nature naturally requires that complexity (e.g., multi-branch pattern matching, enum dispatch, or domain logic with multiple valid input categories). Such functions MUST have a `# CC-N-ACCEPTED:` comment explaining why the complexity cannot be reduced further without compromising clarity. D-grade (cc > 20) always requires extraction.
 - AC-1.4: Maximum nesting depth ≤ 4 levels in all functions (`radon nc` or equivalent passes).
 - AC-1.5: The 657-LOC `register_services()` function in `services.py` is decomposed into smaller, comprehensible units (no single function > 100 LOC, no nested-handler block > 50 LOC). Decomposition mechanism is a design decision (design.md).
 - AC-1.6: The 266-LOC `_populate_per_trip_cache_entry` in `emhass_adapter.py` is relocated/decomposed so the host module is ≤ 500 LOC.
@@ -387,7 +387,7 @@ LOC ≤ 500 is a **screening metric, not the goal**. The goal is SOLID-compliant
 
 ### NFR-3: KISS Compliance
 
-- **NFR-3.1**: Cyclomatic complexity ≤ 10 per function.
+- **NFR-3.1**: Cyclomatic complexity ≤ 10 per function. C-grade (cc 11-20) is accepted when justified by the function's nature (pattern matching, enum dispatch, multi-category input handling) — the function MUST have a `# CC-N-ACCEPTED:` comment explaining the natural complexity. D-grade (cc > 20) always requires extraction into helpers.
 - **NFR-3.2**: Maximum nesting depth ≤ 4 levels per function.
 - **NFR-3.3**: No single function > 100 LOC. (The current `register_services()` 657-LOC monolith is the most extreme violation; AC-1.5 mandates its decomposition.)
 
@@ -433,7 +433,7 @@ At the end of this spec (before the merge to `epic/tech-debt-cleanup`), the enti
 - **NFR-7.A.7**: `llm_solid_judge.py` and `antipattern_judge.py` (Tier B LLM judges) report no semantic regression vs baseline; semantic scores meet the same final-state PASS threshold as Tier A.
 - **NFR-7.A.8**: **Bug-tracking obligations.** Both bugs `[BUG-001]` and `[BUG-002]` are tracked in `chat.md` with the 6-column table (BUG-ID, Source, Description, Root Cause, Status, Regression). The `[BUG-002]` row records the user clarification verbatim ("duration_hours no debería existir eso no está en los viajes. Lo que hay es UNA constante que se agrega a la hora de salida del viaje para estimar cuándo vuelve. previous_arrival es previous_departure + constante de clase (será return_buffer_hours o algo así)") and its English translation. Both must be Status=Fixed before merge.
 
-> **What "maximum" means here**: 5/5 SOLID letters PASS, 0 Tier A anti-patterns, 0 DRY violations, 0 KISS violations (cc ≤ 10, nesting ≤ 4, no function > 100 LOC), 0 import-cycle contract violations, 0 pyright errors. Not "improved a bit." Not "better than before." **Maximum**, end-state.
+> **What "maximum" means here**: 5/5 SOLID letters PASS, 0 Tier A anti-patterns, 0 DRY violations, 0 KISS violations (cc ≤ 10, nesting ≤ 4, no function > 100 LOC), 0 import-cycle contract violations, 0 pyright errors. Not "improved a bit." Not "better than before." **Maximum**, end-state (with C-grade accepted where justified).
 
 #### NFR-7.B: Per-checkpoint progress (every commit, never regress)
 

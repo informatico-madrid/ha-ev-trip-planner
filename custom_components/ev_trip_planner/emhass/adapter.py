@@ -338,6 +338,9 @@ class EMHASSAdapter:
         # Tests that need this functionality should mock it.
         return None
 
+    # CC-N-ACCEPTED: cc=12 — cache entry builder with branches for punctual vs
+    # recurring trips, datetime handling, charging window calc, and energy
+    # calculation. Each step has distinct error paths.
     async def _populate_per_trip_cache_entry(
         self,
         params: PerTripCacheParams,

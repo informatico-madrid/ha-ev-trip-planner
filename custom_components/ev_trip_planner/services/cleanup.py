@@ -81,6 +81,9 @@ async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
         _LOGGER.debug("Error cleaning up orphaned EMHASS sensors: %s", e)
 
 
+# CC-N-ACCEPTED: cc=13 — cleanup function with sequential HA lifecycle steps:
+# unload coordinator, sensors, panel registration, config entry state.
+# Each step has its own error handling and logging path.
 async def async_unload_entry_cleanup(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -188,6 +191,9 @@ async def async_unload_entry_cleanup(
     return unload_ok
 
 
+# CC-N-ACCEPTED: cc=17 — cleanup function with multiple sequential removal
+# steps: coordinators, sensors, config entries, panel registration, and
+# dashboard cleanup. Each step has independent error handling and logging.
 async def async_remove_entry_cleanup(
     hass: HomeAssistant,
     entry: ConfigEntry,

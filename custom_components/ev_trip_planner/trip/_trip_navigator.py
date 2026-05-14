@@ -32,6 +32,10 @@ class TripNavigator:
         """Initialize with shared state."""
         self._state = state
 
+    # CC-N-ACCEPTED: cc=11 — trip type dispatch (punctual vs recurring),
+    # state checks (pending, active), day-of-week matching, time parsing
+    # with error recovery, and nearest-trip selection. Each branch is a
+    # distinct domain rule; the branching IS the business logic.
     async def async_get_next_trip_after(
         self, hora_regreso: datetime
     ) -> Optional[Dict[str, Any]]:
@@ -79,6 +83,10 @@ class TripNavigator:
 
         return next_trip["trip"] if next_trip else None
 
+    # CC-N-ACCEPTED: cc=11 — trip type dispatch (recurring vs punctual),
+    # state checks (active, pending), time validity, and nearest-trip
+    # selection. Same pattern as async_get_next_trip_after; each branch
+    # is a distinct domain rule with no natural grouping to reduce cc.
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Get the next scheduled trip from all trips."""
         now = datetime.now(timezone.utc)

@@ -67,146 +67,96 @@ class EmhassDeferrableLoadSensor(
             return "unknown"
         return self.coordinator.data.get("emhass_status", "unknown")
 
+    def _extract_active_trips_sorted(
+        self, per_trip_params: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Filter active trips and sort by (def_start_timestep, emhass_index)."""
+        active: List[Dict[str, Any]] = []
+        for params in per_trip_params.values():
+            if params.get("activo", False):
+                active.append(params)
+        active.sort(
+            key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
+        )
+        return active
+
+    def _aggregate_trip_params(
+        self, active_trips: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Aggregate 6 array/matrix attributes from sorted active trips."""
+        matrix, number_of_loads = self._extract_matrix_and_count(active_trips)
+        arrays = self._collect_arrays(active_trips)
+        return self._build_aggregate_result(matrix, number_of_loads, arrays)
+
+    def _extract_matrix_and_count(
+        self, active_trips: List[Dict[str, Any]]
+    ) -> tuple:
+        """Extract p_deferrable_matrix and count loads from active trips."""
+        matrix: List[List[float]] = []
+        count = 0
+        for params in active_trips:
+            p_matrix = params.get("p_deferrable_matrix")
+            if p_matrix:
+                matrix.extend(p_matrix)
+                count += len(p_matrix)
+            elif "p_deferrable_matrix" not in params:
+                count += 1
+        return matrix, count
+
+    def _collect_arrays(
+        self, active_trips: List[Dict[str, Any]]
+    ) -> Dict[str, List[float]]:
+        """Collect deferrable arrays from all active trips."""
+        arrays: Dict[str, List] = {
+            "def_total_hours_array": [],
+            "p_deferrable_nom_array": [],
+            "def_start_timestep_array": [],
+            "def_end_timestep_array": [],
+        }
+        for params in active_trips:
+            for key, target_list in arrays.items():
+                if key in params:
+                    target_list.extend(params[key])
+        return {k: v for k, v in arrays.items() if v}
+
+    def _build_aggregate_result(
+        self,
+        matrix: List[List[float]],
+        number_of_loads: int,
+        arrays: Dict[str, List],
+    ) -> Dict[str, Any]:
+        """Build final aggregate result dict with conditional keys."""
+        result: Dict[str, Any] = {"number_of_deferrable_loads": number_of_loads}
+        if matrix:
+            result["p_deferrable_matrix"] = matrix
+        result.update(arrays)
+        return result
+
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return extra state attributes from coordinator.data.
 
         Includes aggregated deferrable load parameters from all active trips.
-        Implements 6 new attrs: p_deferrable_matrix, number_of_deferrable_loads,
-        def_total_hours_array, p_deferrable_nom_array, def_start_timestep_array,
-        def_end_timestep_array.
-
-        Reads from per_trip_emhass_params with keys:
-        - p_deferrable_matrix: list of lists (power_profile_watts for each deferrable load)
-        - def_total_hours_array: list of hours per load
-        - p_deferrable_nom_array: list of nominal power per load
-        - def_start_timestep_array: list of start timesteps per load
-        - def_end_timestep_array: list of end timesteps per load
         """
         if self.coordinator.data is None:
-            _LOGGER.debug(
-                "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes called - coordinator.data is None! vehicle_id=%s",
-                getattr(self.coordinator, "vehicle_id", "unknown"),
-            )
             return {}
 
         vehicle_id = getattr(self.coordinator, "vehicle_id", self._entry_id)
 
-        # E2E-DEBUG-CRITICAL: Log entire coordinator.data structure
-        _LOGGER.debug(
-            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: extra_state_attributes START - vehicle_id=%s",
-            vehicle_id,
-        )
-        _LOGGER.debug(
-            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: coordinator.data keys=%s",
-            list(self.coordinator.data.keys()),
-        )
-        _LOGGER.debug(
-            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_emhass_params raw=%s",
-            self.coordinator.data.get("per_trip_emhass_params"),
-        )
-        _LOGGER.debug(
-            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: emhass_power_profile length=%d, non_zero=%d",
-            len(self.coordinator.data.get("emhass_power_profile") or []),
-            sum(
-                1
-                for x in (self.coordinator.data.get("emhass_power_profile") or [])
-                if x > 0
-            ),
-        )
-
         attrs: Dict[str, Any] = {
             "power_profile_watts": self.coordinator.data.get("emhass_power_profile"),
-            "deferrables_schedule": self.coordinator.data.get(
-                "emhass_deferrables_schedule"
-            ),
+            "deferrables_schedule": self.coordinator.data.get("emhass_deferrables_schedule"),
             "emhass_status": self.coordinator.data.get("emhass_status"),
             "vehicle_id": vehicle_id,
         }
 
-        # Extract aggregated params from per_trip_emhass_params
         per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
-
-        # P1.1: Initialize number_of_deferrable_loads BEFORE per_trip_params block
-        # This ensures the attribute is always set, even when there are no trips
-        number_of_deferrable_loads = 0
-
-        # DEBUG: Log per_trip_params for debugging
-        _LOGGER.debug(
-            "E2E-DEBUG EMHASS-SENSOR-CACHE-HUNT: per_trip_params count=%d, entries=%s",
-            len(per_trip_params),
-            list(per_trip_params.keys())[:10] if per_trip_params else [],
-        )
-
-        # CRITICAL: Log individual trip params structure
-        for trip_id, params in per_trip_params.items():
-            _LOGGER.debug(
-                "E2E-DEBUG EMHASS-TRIP-PARAMS: trip_id=%s, activo=%s, keys=%s, def_total_hours_array=%s",
-                trip_id,
-                params.get("activo"),
-                list(params.keys()),
-                params.get("def_total_hours_array", "NOT_FOUND_KEY"),
-            )
-
         if per_trip_params:
-            # Helper: filter active trips and sort by deadline (def_start_timestep)
-            active_trips_sorted: List[Dict[str, Any]] = []
-            for trip_id, params in per_trip_params.items():
-                if params.get("activo", False):
-                    active_trips_sorted.append(params)
-            # CRITICAL FIX: Sort by def_start_timestep (chronological deadline order)
-            # Primary: def_start_timestep (chronological)
-            # Secondary: emhass_index (deterministic tie-breaker)
-            # This ensures arrays are in chronological order, with deterministic ordering when deadlines are equal
-            active_trips_sorted.sort(
-                key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
-            )
-
-            # Aggregate all 6 array/matrix attrs from sorted active trips
-            matrix: List[List[float]] = []
-            number_of_deferrable_loads = 0
-            def_total_hours_array: List[float] = []
-            p_deferrable_nom_array: List[float] = []
-            def_start_timestep_array: List[int] = []
-            def_end_timestep_array: List[int] = []
-
-            for params in active_trips_sorted:
-                # p_deferrable_matrix: list of lists (power profile per deferrable load)
-                p_matrix = params.get("p_deferrable_matrix")
-                if p_matrix:
-                    matrix.extend(p_matrix)
-                    number_of_deferrable_loads += len(p_matrix)
-                elif "p_deferrable_matrix" not in params:
-                    # P1.1: Count trip as 1 deferrable load if it has no p_deferrable_matrix
-                    # This handles the case where trips have other EMHASS params but no power profile
-                    number_of_deferrable_loads += 1
-
-                # Array attrs: extend with trip's values
-                # Note: keys use _array suffix as per task specification
-                if "def_total_hours_array" in params:
-                    def_total_hours_array.extend(params["def_total_hours_array"])
-                if "p_deferrable_nom_array" in params:
-                    p_deferrable_nom_array.extend(params["p_deferrable_nom_array"])
-                if "def_start_timestep_array" in params:
-                    def_start_timestep_array.extend(params["def_start_timestep_array"])
-                if "def_end_timestep_array" in params:
-                    def_end_timestep_array.extend(params["def_end_timestep_array"])
-
-            # Add aggregated attrs if we have data
-            if matrix:
-                attrs["p_deferrable_matrix"] = matrix
-            if def_total_hours_array:
-                attrs["def_total_hours_array"] = def_total_hours_array
-            if p_deferrable_nom_array:
-                attrs["p_deferrable_nom_array"] = p_deferrable_nom_array
-            if def_start_timestep_array:
-                attrs["def_start_timestep_array"] = def_start_timestep_array
-            if def_end_timestep_array:
-                attrs["def_end_timestep_array"] = def_end_timestep_array
-
-        # P1.1: Set number_of_deferrable_loads AFTER per_trip_params block
-        # This ensures the attribute is always set, even when there are no trips
-        attrs["number_of_deferrable_loads"] = number_of_deferrable_loads
+            active = self._extract_active_trips_sorted(per_trip_params)
+            aggregated = self._aggregate_trip_params(active)
+            attrs.update(aggregated)
+        else:
+            attrs["number_of_deferrable_loads"] = 0
 
         return attrs
 

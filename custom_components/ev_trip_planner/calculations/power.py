@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
 from ..utils import calcular_energia_kwh
@@ -20,6 +20,102 @@ from .deficit import (
     determine_charging_need,
 )
 from .windows import calculate_charging_window_pure, calculate_energy_needed
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_trip_fields(trip: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Return canonical trip dict with 'day'/'time' keys, or None for invalid trips."""
+    day = trip.get("day") or trip.get("dia_semana")
+    time_str = trip.get("time") or trip.get("hora")
+    return {"day": day, "time": time_str} if day is not None and time_str is not None else None
+
+
+def _resolve_deadline(
+    trip: Dict[str, Any],
+    now: datetime,
+    tz: Any,
+) -> Optional[datetime]:
+    """Resolve a trip to a deadline datetime, or None if invalid/past."""
+    deadline = trip.get("datetime")
+    if deadline is not None:
+        if isinstance(deadline, str):
+            try:
+                return _ensure_aware(datetime.fromisoformat(deadline))
+            except ValueError:
+                _LOGGER.debug(
+                    "DEBUG calculate_power_profile: trip %s has invalid datetime, skipping",
+                    trip.get("id"),
+                )
+                return None
+        return _ensure_aware(deadline)
+
+    canon = _normalize_trip_fields(trip)
+    if canon is None:
+        _LOGGER.debug(
+            "DEBUG calculate_power_profile: trip %s has no datetime or day/time fields, skipping",
+            trip.get("id"),
+        )
+        return None
+
+    deadline_dt = calculate_next_recurring_datetime(canon["day"], canon["time"], now, tz=tz)
+    if deadline_dt is None:
+        _LOGGER.debug(
+            "DEBUG calculate_power_profile: trip %s has invalid day/time, skipping",
+            trip.get("id"),
+        )
+        return None
+    return _ensure_aware(deadline_dt)
+
+
+def _resolve_energy_for_trip(
+    trip: Dict[str, Any],
+    soc_current: Optional[float],
+    battery_capacity_kwh: Optional[float],
+    power_kw: float,
+    safety_margin_percent: float,
+) -> float:
+    """Return kwh needed for a trip, SOC-aware or backward-compatible."""
+    if soc_current is not None and battery_capacity_kwh is not None:
+        return determine_charging_need(
+            trip, soc_current, battery_capacity_kwh, power_kw, safety_margin_percent
+        ).kwh_needed
+
+    if "kwh" in trip:
+        return float(trip.get("kwh", 0))
+
+    distance_km = float(trip.get("km", 0))
+    return calcular_energia_kwh(distance_km, 0.15)
+
+
+def _compute_charging_hours(
+    kwh: float,
+    power_kw: float,
+    horizon: int,
+    horas_hasta_viaje: int,
+) -> Tuple[int, int]:
+    """Compute (hora_inicio_carga, hora_fin) for a single trip."""
+    total_hours = kwh / power_kw if power_kw > 0 else 0
+    horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
+    if horas_necesarias == 0:
+        horas_necesarias = 1
+
+    hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+    hora_fin = min(horas_hasta_viaje, horizon)
+    return hora_inicio_carga, hora_fin
+
+
+def _populate_profile_slice(
+    power_profile: List[float],
+    hora_inicio: int,
+    hora_fin: int,
+    horizon: int,
+    charging_power_watts: float,
+) -> None:
+    """Set power watts for the charging window hours in profile."""
+    for h in range(hora_inicio, hora_fin):
+        if 0 <= h < horizon:
+            power_profile[h] = charging_power_watts
 
 
 def calculate_power_profile_from_trips(
@@ -50,184 +146,39 @@ def calculate_power_profile_from_trips(
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
-    logger = logging.getLogger(__name__)
-
     if reference_dt is None:
         reference_dt = datetime.now(timezone.utc)
 
     power_profile = [0.0] * horizon
     now = _ensure_aware(reference_dt)
     charging_power_watts = power_kw * 1000
-
-    logger.debug(
-        "DEBUG calculate_power_profile: trips=%d, power_kw=%.2f", len(trips), power_kw
-    )
-    logger.debug("DEBUG calculate_power_profile: now=%s", now.isoformat())
+    _LOGGER.debug("Processing %d trips, power_kw=%.2f", len(trips), power_kw)
 
     for trip in trips:
-        logger.debug(
-            "DEBUG calculate_power_profile: Processing trip id=%s, trip=%s",
-            trip.get("id"),
-            trip,
-        )
-
-        # Get deadline
-        deadline = trip.get("datetime")
-
-        # Handle recurring trips (day + time instead of datetime)
-        # Support both English (day/time) and Spanish (dia_semana/hora) field names
-        if not deadline:
-            # Try English field names first, then Spanish
-            day = trip.get("day")
-            if day is None:
-                day = trip.get("dia_semana")
-            time_str = trip.get("time")
-            if time_str is None:
-                time_str = trip.get("hora")
-            if day is not None and time_str is not None:
-                deadline_dt = calculate_next_recurring_datetime(
-                    day, time_str, now, tz=tz
-                )
-                if deadline_dt is None:
-                    logger.debug(
-                        "DEBUG calculate_power_profile: trip %s has invalid day/time, skipping",
-                        trip.get("id"),
-                    )
-                    continue
-                logger.debug(
-                    "DEBUG calculate_power_profile: trip %s is recurring (day=%s, time=%s), calculated deadline=%s",
-                    trip.get("id"),
-                    day,
-                    time_str,
-                    deadline_dt.isoformat(),
-                )
-            else:
-                logger.debug(
-                    "DEBUG calculate_power_profile: trip %s has no datetime or day/time fields, skipping",
-                    trip.get("id"),
-                )
-                continue
-        else:
-            # Parse deadline for punctual trips
-            if isinstance(deadline, str):
-                try:
-                    deadline_dt = datetime.fromisoformat(deadline)
-                except ValueError:
-                    logger.debug(
-                        "DEBUG calculate_power_profile: trip %s has invalid datetime, skipping",
-                        trip.get("id"),
-                    )
-                    continue
-            else:
-                deadline_dt = deadline
-
-            # Ensure deadline_dt is timezone-aware for datetime arithmetic
-            deadline_dt = _ensure_aware(deadline_dt)
-
-        logger.debug(
-            "DEBUG calculate_power_profile: trip %s deadline=%s, now=%s, deadline_dt=%s",
-            trip.get("id"),
-            deadline,
-            now,
-            deadline_dt,
-        )
-
-        # T1.2: Determine charging need considering SOC (backward compat)
-        if soc_current is not None and battery_capacity_kwh is not None:
-            decision = determine_charging_need(
-                trip,
-                soc_current,
-                battery_capacity_kwh,
-                power_kw,
-                safety_margin_percent,
-            )
-            kwh = decision.kwh_needed
-            logger.debug(
-                "DEBUG calculate_power_profile: trip %s kwh=%.2f (SOC-aware)",
-                trip.get("id"),
-                kwh,
-            )
-        else:
-            # Backward compat: use trip kwh directly (no SOC available)
-            if "kwh" in trip:
-                kwh = float(trip.get("kwh", 0))
-            else:
-                distance_km = float(trip.get("km", 0))
-                kwh = calcular_energia_kwh(distance_km, 0.15)
-
-            logger.debug(
-                "DEBUG calculate_power_profile: trip %s kwh=%.2f (no SOC)",
-                trip.get("id"),
-                kwh,
-            )
-
-        if kwh <= 0:
-            logger.debug(
-                "DEBUG calculate_power_profile: trip %s kwh <= 0, skipping",
-                trip.get("id"),
-            )
+        deadline_dt = _resolve_deadline(trip, now, tz)
+        if deadline_dt is None:
             continue
 
-        # Calculate hours needed to charge
-        total_hours = kwh / power_kw if power_kw > 0 else 0
-        horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
-        if horas_necesarias == 0:
-            horas_necesarias = 1
-
-        logger.debug(
-            "DEBUG calculate_power_profile: trip %s total_hours=%.2f, horas_necesarias=%d",
-            trip.get("id"),
-            total_hours,
-            horas_necesarias,
+        kwh = _resolve_energy_for_trip(
+            trip, soc_current, battery_capacity_kwh, power_kw, safety_margin_percent
         )
+        if kwh <= 0:
+            continue
 
-        # Calculate position in profile
         delta = deadline_dt - now
         horas_hasta_viaje = int(delta.total_seconds() / 3600)
-
-        logger.debug(
-            "DEBUG calculate_power_profile: trip %s delta_seconds=%d, horas_hasta_viaje=%d, now=%s, deadline=%s",
-            trip.get("id"),
-            delta.total_seconds(),
-            horas_hasta_viaje,
-            now,
-            deadline_dt,
-        )
-
         if horas_hasta_viaje < 0:
-            logger.debug(
-                "DEBUG calculate_power_profile: trip %s is in the past, skipping",
-                trip.get("id"),
-            )
             continue
 
-        # Set charging hours (last hours before deadline)
-        hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
-        hora_fin = min(horas_hasta_viaje, horizon)
-
-        logger.debug(
-            "DEBUG calculate_power_profile: trip %s charging_window=[%d, %d), horizon=%d",
-            trip.get("id"),
-            hora_inicio_carga,
-            hora_fin,
-            horizon,
+        hora_inicio, hora_fin = _compute_charging_hours(
+            kwh, power_kw, horizon, horas_hasta_viaje,
+        )
+        _populate_profile_slice(
+            power_profile, hora_inicio, hora_fin,
+            horizon, charging_power_watts,
         )
 
-        for h in range(int(hora_inicio_carga), int(hora_fin)):
-            if 0 <= h < horizon:
-                power_profile[h] = charging_power_watts
-                logger.debug(
-                    "DEBUG calculate_power_profile: trip %s setting power_profile[%d]=%d (total non_zero=%d)",
-                    trip.get("id"),
-                    h,
-                    charging_power_watts,
-                    sum(1 for x in power_profile if x > 0),
-                )
-
-    logger.debug(
-        "DEBUG calculate_power_profile: final profile non_zero=%d",
-        sum(1 for x in power_profile if x > 0),
-    )
+    _LOGGER.debug("Final profile non_zero=%d", sum(1 for x in power_profile if x > 0))
     return power_profile
 
 
@@ -265,106 +216,151 @@ def calculate_power_profile(
     profile_length = planning_horizon_days * 24
     power_profile = [0.0] * profile_length
 
-    # Normalize all datetime inputs to UTC-aware
-    if getattr(reference_dt, "tzinfo", None) is None:
-        reference_dt = reference_dt.replace(tzinfo=timezone.utc)
-    if hora_regreso is not None and getattr(hora_regreso, "tzinfo", None) is None:
-        hora_regreso = hora_regreso.replace(tzinfo=timezone.utc)
+    reference_dt, hora_regreso = _normalize_datetimes(reference_dt, hora_regreso)
 
     if not all_trips:
         return power_profile
 
-    # Assign deadlines and sort by urgency
-    trips_with_deadlines: List[tuple] = []
-    for idx, trip in enumerate(all_trips):
-        trip_tipo: Optional[str] = trip.get("tipo")
-        hora: Optional[str] = trip.get("hora")
-        dia_semana: Optional[str] = trip.get("dia_semana")
-        datetime_str: Optional[str] = trip.get("datetime")
-        # trip_tipo must be a valid string for calculate_trip_time
-        assert trip_tipo is not None
-        trip_time = calculate_trip_time(
-            trip_tipo, hora, dia_semana, datetime_str, reference_dt
-        )
-        if trip_time:
-            trips_with_deadlines.append((trip_time, idx, trip))
-
+    trips_with_deadlines = _assign_deadlines(all_trips, reference_dt)
     if not trips_with_deadlines:
         return power_profile
 
-    # Sort by deadline ascending (earliest = highest priority)
-    trips_with_deadlines.sort(key=lambda x: x[0])
+    _assign_priority_indices(trips_with_deadlines)
 
-    # Assign priority index
+    charging_power_watts = charging_power_kw * 1000
+
+    for trip_departure_time, _, trip in trips_with_deadlines:
+        _try_populate_window(
+            trip, trip_departure_time, battery_capacity_kwh, soc_current,
+            charging_power_kw, hora_regreso, reference_dt, power_profile,
+            profile_length, charging_power_watts,
+            safety_margin_percent,
+        )
+
+    return power_profile
+
+
+def _normalize_datetimes(
+    reference_dt: datetime, hora_regreso: Optional[datetime],
+) -> tuple:
+    """Normalize datetime inputs to UTC-aware."""
+    if getattr(reference_dt, "tzinfo", None) is None:
+        reference_dt = reference_dt.replace(tzinfo=timezone.utc)
+    if hora_regreso is not None and getattr(hora_regreso, "tzinfo", None) is None:
+        hora_regreso = hora_regreso.replace(tzinfo=timezone.utc)
+    return reference_dt, hora_regreso
+
+
+def _assign_deadlines(
+    all_trips: List[Dict[str, Any]], reference_dt: datetime,
+) -> List[tuple]:
+    """Assign trip deadlines and return non-empty list of (deadline, idx, trip)."""
+    trips_with_deadlines: List[tuple] = []
+    for trip in all_trips:
+        trip_tipo = trip.get("tipo")
+        if trip_tipo is None:
+            continue
+        trip_time = calculate_trip_time(
+            trip_tipo, trip.get("hora"),
+            trip.get("dia_semana"), trip.get("datetime"),
+            reference_dt,
+        )
+        if trip_time:
+            trips_with_deadlines.append((trip_time, len(trips_with_deadlines), trip))
+    return trips_with_deadlines
+
+
+def _assign_priority_indices(trips_with_deadlines: List[tuple]) -> None:
+    """Assign priority index and sort by deadline ascending."""
+    trips_with_deadlines.sort(key=lambda x: x[0])
     for ordered_idx, (_, original_idx, trip) in enumerate(trips_with_deadlines):
         trip["_trip_index"] = ordered_idx
 
-    # Charging power in watts
-    charging_power_watts = charging_power_kw * 1000
 
-    # Duration for estimating return time
-    DURACION_VIAJE_HORAS = 6.0
+def _compute_window_position(
+    reference_dt: datetime, ventana_info: Dict[str, Any],
+) -> Optional[Tuple[int, int, int]]:
+    """Compute charging window position relative to reference time.
 
-    for trip_departure_time, _, trip in trips_with_deadlines:
-        # Calculate energy needed
-        energia_info = calculate_energy_needed(
-            trip,
-            battery_capacity_kwh,
-            soc_current,
-            charging_power_kw,
-            safety_margin_percent=safety_margin_percent,
-        )
-        energia_kwh = energia_info["energia_necesaria_kwh"]
+    Returns (hora_inicio_carga, horas_necesarias, horas_hasta_fin) or
+    None if window already ended.
+    """
+    inicio_ventana = ventana_info["inicio_ventana"]
+    fin_ventana = ventana_info["fin_ventana"]
 
-        if energia_kwh <= 0:
-            continue
+    delta_inicio = inicio_ventana - reference_dt
+    horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)
+    hora_inicio_carga = max(0, horas_desde_ahora)
 
-        # Calculate charging window
-        ventana_info = calculate_charging_window_pure(
-            trip_departure_time=trip_departure_time,
-            soc_actual=soc_current,
-            hora_regreso=hora_regreso,
-            charging_power_kw=charging_power_kw,
-            energia_kwh=energia_kwh,
-            duration_hours=DURACION_VIAJE_HORAS,
-        )
+    horas_necesarias = ventana_info.get("horas_carga_necesarias", 0)
+    if horas_necesarias == 0:
+        horas_necesarias = 1
 
-        if not ventana_info.get("es_suficiente", False):
-            continue
+    delta_fin = fin_ventana - reference_dt
+    horas_hasta_fin = int(delta_fin.total_seconds() / 3600)
 
-        inicio_ventana = ventana_info["inicio_ventana"]
-        fin_ventana = ventana_info["fin_ventana"]
+    if horas_hasta_fin < 0:
+        return None
 
-        # Calculate position in profile
-        delta_inicio = inicio_ventana - reference_dt
-        horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)
+    return hora_inicio_carga, horas_necesarias, horas_hasta_fin
 
-        if horas_desde_ahora < 0:
-            hora_inicio_carga = 0
-        else:
-            hora_inicio_carga = horas_desde_ahora
 
-        horas_necesarias = ventana_info.get("horas_carga_necesarias", 0)
-        if horas_necesarias == 0:
-            horas_necesarias = 1
+def _populate_profile(
+    power_profile: List[float],
+    hora_inicio: int,
+    horas_necesarias: int,
+    horas_hasta_fin: int,
+    profile_length: int,
+    charging_power_watts: float,
+) -> None:
+    """Populate power profile hours for a charging window."""
+    # horas_necesarias can be float from ventana_info
+    for h in range(hora_inicio, min(int(hora_inicio + horas_necesarias), horas_hasta_fin, profile_length)):
+        if 0 <= h < profile_length:
+            power_profile[h] = charging_power_watts
 
-        # End of window relative to reference
-        delta_fin = fin_ventana - reference_dt
-        horas_hasta_fin = int(delta_fin.total_seconds() / 3600)
 
-        if horas_hasta_fin < 0:
-            continue  # Window already ended
+def _try_populate_window(
+    trip: Dict[str, Any],
+    trip_departure_time: datetime,
+    battery_capacity_kwh: float,
+    soc_current: float,
+    charging_power_kw: float,
+    hora_regreso: Optional[datetime],
+    reference_dt: datetime,
+    power_profile: List[float],
+    profile_length: int,
+    charging_power_watts: float,
+    safety_margin_percent: float,
+) -> None:
+    """Calculate energy and window for a single trip, populate profile if feasible."""
+    energia_info = calculate_energy_needed(
+        trip, battery_capacity_kwh, soc_current, charging_power_kw,
+        safety_margin_percent=safety_margin_percent,
+    )
+    energia_kwh = energia_info["energia_necesaria_kwh"]
 
-        # Distribute charging across available hours
-        for h in range(
-            int(hora_inicio_carga),
-            min(
-                int(hora_inicio_carga + horas_necesarias),
-                horas_hasta_fin,
-                profile_length,
-            ),
-        ):
-            if 0 <= h < profile_length:
-                power_profile[h] = charging_power_watts
+    if energia_kwh <= 0:
+        return
 
-    return power_profile
+    ventana_info = calculate_charging_window_pure(
+        trip_departure_time=trip_departure_time,
+        soc_actual=soc_current,
+        hora_regreso=hora_regreso,
+        charging_power_kw=charging_power_kw,
+        energia_kwh=energia_kwh,
+        duration_hours=6.0,
+    )
+
+    if not ventana_info.get("es_suficiente", False):
+        return
+
+    pos = _compute_window_position(reference_dt, ventana_info)
+    if pos is None:
+        return
+
+    hora_inicio, horas_necesarias, horas_hasta_fin = pos
+    _populate_profile(
+        power_profile, hora_inicio, horas_necesarias,
+        horas_hasta_fin, profile_length, charging_power_watts,
+    )

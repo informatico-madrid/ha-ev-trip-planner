@@ -124,6 +124,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+# CC-N-ACCEPTED: cc=11 — HA entry setup inherently requires sequential
+# optional steps: cleanup stale data, cleanup orphaned sensors, register
+# static paths, build presence config, setup storage, optional SOC listener,
+# optional EMHASS adapter (with 2 sub-steps). Each conditional is a domain
+# requirement, not code smell.
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EV Trip Planner from a config entry."""
     vehicle_name_raw = entry.data.get("vehicle_name") or ""

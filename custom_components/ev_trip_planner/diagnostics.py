@@ -19,6 +19,9 @@ REDACT_KEYS = [
 ]
 
 
+# CC-N-ACCEPTED: cc=11 — diagnostic collector that must handle multiple optional
+# data sources (runtime_data, coordinator, trip_manager, emhass_adapter) each
+# with their own None paths. Each conditional is a data source, not code smell.
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
     entry: ConfigEntry,

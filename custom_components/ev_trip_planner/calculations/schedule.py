@@ -41,82 +41,106 @@ def generate_deferrable_schedule_from_trips(
     if not trips:
         return []
 
-    # Normalize reference_dt to UTC-aware
-    if reference_dt is not None and getattr(reference_dt, "tzinfo", None) is None:
-        reference_dt = reference_dt.replace(tzinfo=timezone.utc)
-    now = reference_dt if reference_dt is not None else datetime.now(timezone.utc)
+    now = _normalize_reference_dt(reference_dt)
     schedule: List[Dict[str, Any]] = []
 
-    # Generate schedule for next 24 hours
     for hour_offset in range(24):
-        # Calculate the scheduled time
-        schedule_time = now.replace(minute=0, second=0, microsecond=0)
-        schedule_time = schedule_time.replace(hour=(now.hour + hour_offset) % 24)
+        schedule_time = _compute_schedule_time(now, hour_offset)
+        entry: Dict[str, Any] = {"date": schedule_time.isoformat()}
 
-        # Add days if needed (when crossing midnight)
-        days_to_add = (now.hour + hour_offset) // 24
-        if days_to_add > 0:
-            schedule_time = schedule_time + timedelta(days=days_to_add)
-
-        schedule_entry: Dict[str, Any] = {
-            "date": schedule_time.isoformat(),
-        }
-
-        # Add power values for each trip
         for idx, trip in enumerate(trips):
             power_key = f"p_deferrable{idx}"
+            entry[power_key] = _compute_trip_power(
+                trip, power_kw, now, hour_offset,
+            )
 
-            # Get energy requirement
-            kwh = float(trip.get("kwh", 0))
-            if kwh <= 0:
-                schedule_entry[power_key] = "0.0"
-                continue
-
-            # Get deadline (datetime)
-            deadline = trip.get("datetime")
-            if not deadline:
-                schedule_entry[power_key] = "0.0"
-                continue
-
-            # Parse deadline
-            if isinstance(deadline, str):
-                try:
-                    deadline_dt = datetime.fromisoformat(deadline)
-                    if getattr(deadline_dt, "tzinfo", None) is None:
-                        deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
-                except ValueError:
-                    schedule_entry[power_key] = "0.0"
-                    continue
-            else:
-                deadline_dt = deadline
-                if getattr(deadline_dt, "tzinfo", None) is None:
-                    deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
-
-            # Calculate hours until trip
-            delta = deadline_dt - now
-            horas_hasta_viaje = int(delta.total_seconds() / 3600)
-
-            if horas_hasta_viaje < 0:
-                schedule_entry[power_key] = "0.0"
-                continue
-
-            # Calculate charging parameters
-            power_watts = power_kw * 1000
-            total_hours = kwh / power_kw if power_kw > 0 else 0
-
-            # Hours needed (ceiling of total_hours)
-            horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
-            hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
-
-            # Check if current hour is within charging window
-            if hora_inicio_carga <= hour_offset < horas_hasta_viaje:
-                schedule_entry[power_key] = str(int(power_watts))
-            else:
-                schedule_entry[power_key] = "0.0"
-
-        schedule.append(schedule_entry)
+        schedule.append(entry)
 
     return schedule
+
+
+def _normalize_reference_dt(
+    reference_dt: datetime | None,
+) -> datetime:
+    """Normalize reference datetime to UTC-aware."""
+    if reference_dt is not None:
+        if getattr(reference_dt, "tzinfo", None) is None:
+            return reference_dt.replace(tzinfo=timezone.utc)
+        return reference_dt
+    return datetime.now(timezone.utc)
+
+
+def _compute_schedule_time(now: datetime, hour_offset: int) -> datetime:
+    """Compute schedule time for a given hour offset."""
+    schedule_time = now.replace(minute=0, second=0, microsecond=0)
+    schedule_time = schedule_time.replace(hour=(now.hour + hour_offset) % 24)
+    days_to_add = (now.hour + hour_offset) // 24
+    if days_to_add > 0:
+        schedule_time = schedule_time + timedelta(days=days_to_add)
+    return schedule_time
+
+
+def _compute_trip_power(
+    trip: Dict[str, Any],
+    power_kw: float,
+    now: datetime,
+    hour_offset: int,
+) -> str:
+    """Compute power string for a single trip at a given hour offset."""
+    kwh = float(trip.get("kwh", 0))
+    if kwh <= 0:
+        return "0.0"
+
+    deadline = trip.get("datetime")
+    if not deadline:
+        return "0.0"
+
+    deadline_dt = _parse_deadline(deadline)
+    if deadline_dt is None:
+        return "0.0"
+
+    delta = deadline_dt - now
+    horas_hasta_viaje = int(delta.total_seconds() / 3600)
+    if horas_hasta_viaje < 0:
+        return "0.0"
+
+    return _check_charging_window(power_kw, kwh, horas_hasta_viaje, hour_offset)
+
+
+def _parse_deadline(deadline: Any) -> Optional[datetime]:
+    """Parse deadline value to UTC-aware datetime, or None if invalid."""
+    if isinstance(deadline, str):
+        try:
+            deadline_dt = datetime.fromisoformat(deadline)
+            if getattr(deadline_dt, "tzinfo", None) is None:
+                deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
+            return deadline_dt
+        except ValueError:
+            return None
+    else:
+        deadline_dt = deadline
+        if getattr(deadline_dt, "tzinfo", None) is None:
+            deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
+        return deadline_dt
+
+
+def _check_charging_window(
+    power_kw: float,
+    kwh: float,
+    horas_hasta_viaje: int,
+    hour_offset: int,
+) -> str:
+    """Check if current hour is within the charging window.
+
+    Returns the power string if charging, "0.0" otherwise.
+    """
+    total_hours = kwh / power_kw if power_kw > 0 else 0
+    horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
+    hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+
+    if hora_inicio_carga <= hour_offset < horas_hasta_viaje:
+        return str(int(power_kw * 1000))
+    return "0.0"
 
 
 def calculate_deferrable_parameters(

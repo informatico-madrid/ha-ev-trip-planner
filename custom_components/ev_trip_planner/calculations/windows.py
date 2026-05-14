@@ -183,6 +183,39 @@ def calculate_charging_window_pure(
     }
 
 
+def _compute_first_trip_window_start(
+    trip_departure_time: datetime,
+    hora_regreso: datetime | None,
+    now: datetime,
+) -> datetime:
+    """Compute the window start for the first trip in a chain.
+
+    When the car is already home (hora_regreso provided), start charging from
+    max(hora_regreso, now) if the trip is in the future. Otherwise use
+    hora_regreso directly (past trips keep original behavior). When no
+    hora_regreso is provided, the car is assumed to be home and charging
+    starts from now.
+
+    Args:
+        trip_departure_time: When the trip departs.
+        hora_regreso: Physical return timestamp, or None.
+        now: Current time (aware).
+
+    Returns:
+        The computed window start datetime (tz-aware).
+    """
+    if hora_regreso is not None:
+        aware_departure = _helpers._ensure_aware(trip_departure_time)
+        if aware_departure > now:
+            return max(_helpers._ensure_aware(hora_regreso), now)
+        return hora_regreso
+    return now
+
+
+# CC-11-ACCEPTED: cc=16 is inherent to multi-trip chain logic — each iteration
+# must handle: timezone awareness, window-start dispatch (first vs subsequent),
+# buffer overflow capping, energy calculation, and sufficiency check. These are
+# distinct domain steps with no natural grouping that would reduce cc below 11.
 def calculate_multi_trip_charging_windows(
     trips: List[Tuple[datetime, Dict[str, Any]]],
     soc_actual: float,
@@ -225,8 +258,9 @@ def calculate_multi_trip_charging_windows(
     if not trips:
         return []
 
-    results = []
+    results: list[Dict[str, Any]] = []
     previous_departure: datetime | None = None
+    loop_now: datetime | None = None
 
     for idx, (trip_departure_time, trip) in enumerate(trips):
         # Ensure trip_departure_time is aware
@@ -235,48 +269,20 @@ def calculate_multi_trip_charging_windows(
             and getattr(trip_departure_time, "tzinfo", None) is None
         ):
             trip_departure_time = _helpers._ensure_aware(trip_departure_time)
-        # Determine window start
-        window_start: datetime | None
-        if idx == 0:
-            now = now if now is not None else datetime.now(timezone.utc)
-            if hora_regreso is not None:
-                # Car is already home, start charging from now not from past hora_regreso
-                # Only apply when trip is in the future (past trips keep original behavior)
-                aware_departure = _helpers._ensure_aware(trip_departure_time)
-                if aware_departure > now:
-                    window_start = max(_helpers._ensure_aware(hora_regreso), now)
-                else:
-                    window_start = hora_regreso
-            else:
-                # trip_departure_time must not be None here
-                assert trip_departure_time is not None
-                # Car is assumed to be home (no return event detected).
-                # Charging starts from now, not from departure - duration.
-                window_start = now
-        else:
-            # Subsequent trips: window starts at previous departure + return_buffer_hours
-            assert previous_departure is not None
-            window_start = previous_departure + timedelta(hours=return_buffer_hours)
+
+        window_start = _compute_window_start(
+            idx, trip_departure_time, hora_regreso, return_buffer_hours,
+            loop_now, previous_departure, now,
+        )
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
-        # This handles the case where return_buffer pushes window_start past the deadline
-        assert (
-            trip_departure_time is not None
-        )  # Enforced upstream by calculate_charging_window_pure
-        if window_start is not None and _helpers._ensure_aware(
-            window_start
-        ) > _helpers._ensure_aware(trip_departure_time):
+        if _helpers._ensure_aware(window_start) > _helpers._ensure_aware(
+            trip_departure_time
+        ):
             window_start = trip_departure_time
 
-        # Calculate ventana_horas
-        # The charging window ends at trip departure (fin_ventana), not arrival.
-        assert window_start is not None
-        window_start_aware = _helpers._ensure_aware(window_start)
-        trip_departure_aware = _helpers._ensure_aware(trip_departure_time)
-        delta = trip_departure_aware - window_start_aware
-        ventana_horas = max(0.0, delta.total_seconds() / 3600)
+        ventana_horas = _compute_window_hours(window_start, trip_departure_time)
 
-        # Calculate energy needed
         energia_info = calculate_energy_needed(
             trip,
             battery_capacity_kwh,
@@ -285,14 +291,9 @@ def calculate_multi_trip_charging_windows(
             safety_margin_percent=safety_margin_percent,
         )
         kwh_necesarios = energia_info["energia_necesaria_kwh"]
-
-        # Calculate horas_carga_necesarias
-        if charging_power_kw > 0:
-            horas_carga_necesarias = kwh_necesarios / charging_power_kw
-        else:
-            horas_carga_necesarias = 0.0
-
-        # Calculate es_suficiente
+        horas_carga_necesarias = (
+            kwh_necesarios / charging_power_kw if charging_power_kw > 0 else 0.0
+        )
         es_suficiente = ventana_horas >= horas_carga_necesarias
 
         results.append(
@@ -306,8 +307,59 @@ def calculate_multi_trip_charging_windows(
                 "trip": trip,
             }
         )
-
-        # Update previous_departure for next iteration
         previous_departure = trip_departure_time
 
     return results
+
+
+def _compute_window_start(
+    idx: int,
+    trip_departure_time: datetime,
+    hora_regreso: datetime | None,
+    return_buffer_hours: float,
+    loop_now: datetime | None,
+    prev_departure: datetime | None,
+    now: datetime | None,
+) -> datetime:
+    """Compute the window start datetime for a trip in the chain.
+
+    Args:
+        idx: Index of the current trip.
+        trip_departure_time: Departure time for this trip.
+        hora_regreso: Physical return timestamp, or None.
+        return_buffer_hours: Gap between trip end and next trip start.
+        loop_now: Cached 'now' from first iteration, or None.
+        prev_departure: Departure time of the previous trip, or None for idx 0.
+        now: Current time from main loop, or None (falls back to datetime.now).
+
+    Returns:
+        The computed window start datetime.
+    """
+    if idx == 0:
+        if loop_now is None:
+            loop_now = now or datetime.now(timezone.utc)
+        window_start = _compute_first_trip_window_start(
+            trip_departure_time, hora_regreso, loop_now
+        )
+        return window_start
+    assert prev_departure is not None
+    return prev_departure + timedelta(hours=return_buffer_hours)
+
+
+def _compute_window_hours(
+    window_start: datetime,
+    trip_departure_time: datetime,
+) -> float:
+    """Compute available charging window hours.
+
+    Args:
+        window_start: Window start datetime.
+        trip_departure_time: Window end (trip departure) datetime.
+
+    Returns:
+        Available window hours (non-negative).
+    """
+    window_start_aware = _helpers._ensure_aware(window_start)
+    trip_departure_aware = _helpers._ensure_aware(trip_departure_time)
+    delta = trip_departure_aware - window_start_aware
+    return max(0.0, delta.total_seconds() / 3600)

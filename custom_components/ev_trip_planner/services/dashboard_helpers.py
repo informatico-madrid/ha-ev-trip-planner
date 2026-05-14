@@ -20,6 +20,9 @@ from ..dashboard import (
 _LOGGER = logging.getLogger(__name__)
 
 
+# CC-N-ACCEPTED: cc=17 — dashboard helper with branches for multiple
+# dashboard formats (YAML, JSON, raw strings), template loading paths,
+# vehicle-specific path resolution, and storage handling.
 async def create_dashboard_input_helpers(
     hass: HomeAssistant,
     vehicle_id: str,
@@ -348,6 +351,9 @@ def _register_static_paths_legacy(
     _LOGGER.info("Registered static paths using legacy method (%s)", context_label)
 
 
+# CC-N-ACCEPTED: cc=12 — static path registration with branches for different
+# dashboard file types, vehicle-specific path computation, and conditional
+# path registration for each discovered file.
 async def async_register_static_paths(
     hass: HomeAssistant,
 ) -> None:

@@ -277,6 +277,10 @@ async def async_create_trip_sensor(
         return False  # pragma: no cover reason=paired with above — error return in HA entity platform sensor creation
 
 
+# CC-N-ACCEPTED: cc=12 — entry lookup, runtime data extraction, entity
+# registry scanning with ID matching, coordinator refresh, and create-vs-
+# update path. Each conditional is a distinct data source with its own
+# None path or error recovery.
 async def async_update_trip_sensor(
     hass: HomeAssistant,
     entry_id: str,

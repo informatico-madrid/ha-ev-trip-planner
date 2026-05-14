@@ -264,6 +264,39 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             self.context["vehicle_data"] = {}  # type: ignore[typeddict-unknown-key] # HA stub: ConfigFlowContext missing vehicle_data in stubs
         return self.context["vehicle_data"]  # type: ignore[typeddict-item] # HA stub: TypedDict item access not in stubs
 
+    def _validate_field(
+        self,
+        user_input: Dict[str, Any],
+        key: str,
+        min_val: float,
+        max_val: float,
+        error_key: str,
+        description: str,
+    ) -> FlowResult | None:
+        """Validate a single numeric sensor field and return error form or None."""
+        value = user_input.get(key)
+        if value is not None and (value < min_val or value > max_val):
+            return self.async_show_form(
+                step_id="sensors",
+                data_schema=STEP_SENSORS_SCHEMA,
+                errors={"base": error_key},
+                description_placeholders={"description": description},
+            )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
+        return None
+
+    def _validate_sensor_exists(
+        self, entity_id: str, error_key: str
+    ) -> FlowResult | None:
+        """Validate that a sensor entity exists in Home Assistant."""
+        if not self.hass.states.get(entity_id):
+            return self.async_show_form(
+                step_id="presence",
+                data_schema=STEP_PRESENCE_SCHEMA,
+                errors={"base": error_key},
+                description_placeholders={"description": "Configure presence detection."},
+            )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
+        return None
+
     async def async_step_user(  # type: ignore[override] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
@@ -320,60 +353,9 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - Consumption: 0.05-0.5 kWh/km
         - Safety margin: 0-50%
         """
-        _LOGGER.debug("Config flow step 2 (sensors): showing form")
         if user_input is not None:
-            # Validate battery capacity (reasonable range: 10-200 kWh)
-            battery_capacity = user_input.get(CONF_BATTERY_CAPACITY)
-            if battery_capacity is not None:
-                if battery_capacity < 10 or battery_capacity > 200:
-                    return self.async_show_form(
-                        step_id="sensors",
-                        data_schema=STEP_SENSORS_SCHEMA,
-                        errors={"base": "invalid_battery_capacity"},
-                        description_placeholders={
-                            "description": "Battery capacity must be between 10 and 200 kWh"
-                        },
-                    )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
-
-            # Validate consumption (reasonable range: 0.05-0.5 kWh/km)
-            consumption = user_input.get(CONF_CONSUMPTION)
-            if consumption is not None:
-                if consumption < 0.05 or consumption > 0.5:
-                    return self.async_show_form(
-                        step_id="sensors",
-                        data_schema=STEP_SENSORS_SCHEMA,
-                        errors={"base": "invalid_consumption"},
-                        description_placeholders={
-                            "description": "Consumption must be between 0.05 and 0.5 kWh/km"
-                        },
-                    )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
-
-            # Validate safety margin (reasonable range: 0-50%)
-            safety_margin = user_input.get(CONF_SAFETY_MARGIN)
-            if safety_margin is not None:
-                if safety_margin < 0 or safety_margin > 50:
-                    return self.async_show_form(
-                        step_id="sensors",
-                        data_schema=STEP_SENSORS_SCHEMA,
-                        errors={"base": "invalid_safety_margin"},
-                        description_placeholders={
-                            "description": "Safety margin must be between 0 and 50%"
-                        },
-                    )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
-
-            # Store step 2 data in context
-            vehicle_data = self._get_vehicle_data()
-            vehicle_data.update(user_input)
-            _LOGGER.debug(
-                "Config flow step 2 (sensors): battery_capacity=%.1f, "
-                "charging_power=%.1f, consumption=%.2f, safety_margin=%d, t_base=%.1f",
-                user_input.get(CONF_BATTERY_CAPACITY, 0),
-                user_input.get(CONF_CHARGING_POWER, 0),
-                user_input.get(CONF_CONSUMPTION, 0),
-                user_input.get(CONF_SAFETY_MARGIN, 0),
-                user_input.get(CONF_T_BASE, 0),
-            )
-            return await self.async_step_emhass()
+            # Validate each sensor field
+            return await self._validate_sensors(user_input)
 
         return self.async_show_form(
             step_id="sensors",
@@ -382,6 +364,49 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 "description": "Select the sensors for battery monitoring"
             },
         )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
+
+    async def _validate_sensors(self, user_input: Dict[str, Any]) -> FlowResult:
+        """Validate sensor fields and return appropriate response."""
+        # Validate battery capacity (reasonable range: 10-200 kWh)
+        result = self._validate_field(
+            user_input, CONF_BATTERY_CAPACITY, 10, 200,
+            "invalid_battery_capacity",
+            "Battery capacity must be between 10 and 200 kWh",
+        )
+        if result:
+            return result
+
+        # Validate consumption (reasonable range: 0.05-0.5 kWh/km)
+        result = self._validate_field(
+            user_input, CONF_CONSUMPTION, 0.05, 0.5,
+            "invalid_consumption",
+            "Consumption must be between 0.05 and 0.5 kWh/km",
+        )
+        if result:
+            return result
+
+        # Validate safety margin (reasonable range: 0-50%)
+        result = self._validate_field(
+            user_input, CONF_SAFETY_MARGIN, 0, 50,
+            "invalid_safety_margin",
+            "Safety margin must be between 0 and 50%",
+        )
+        if result:
+            return result
+
+        # All validations passed — store step 2 data and proceed
+        vehicle_data = self._get_vehicle_data()
+        vehicle_data.update(user_input)
+        _LOGGER.debug(
+            "Config flow step 2 (sensors): battery_capacity=%.1f, "
+            "charging_power=%.1f, consumption=%.2f, safety_margin=%d, t_base=%.1f",
+            user_input.get(CONF_BATTERY_CAPACITY, 0),
+            user_input.get(CONF_CHARGING_POWER, 0),
+            user_input.get(CONF_CONSUMPTION, 0),
+            user_input.get(CONF_SAFETY_MARGIN, 0),
+            user_input.get(CONF_T_BASE, 0),
+        )
+        return await self.async_step_emhass()
 
     async def async_step_emhass(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -496,41 +521,17 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         )
 
         # Validate charging sensor exists
-        if not self.hass.states.get(charging_sensor):
-            return self.async_show_form(
-                step_id="presence",
-                data_schema=STEP_PRESENCE_SCHEMA,
-                errors={"base": "charging_sensor_not_found"},
-                description_placeholders={
-                    "description": "Configure presence detection."
-                },
-            )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
+        result = self._validate_sensor_exists(charging_sensor, "charging_sensor_not_found")
+        if result:
+            return result
 
-        # Validate home sensor exists (if provided)
-        if CONF_HOME_SENSOR in user_input and user_input[CONF_HOME_SENSOR]:
-            home_sensor = user_input[CONF_HOME_SENSOR]
-            if not self.hass.states.get(home_sensor):
-                return self.async_show_form(
-                    step_id="presence",
-                    data_schema=STEP_PRESENCE_SCHEMA,
-                    errors={"base": "home_sensor_not_found"},
-                    description_placeholders={
-                        "description": "Configure presence detection."
-                    },
-                )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
-
-        # Validate plugged sensor exists (if provided)
-        if CONF_PLUGGED_SENSOR in user_input and user_input[CONF_PLUGGED_SENSOR]:
-            plugged_sensor = user_input[CONF_PLUGGED_SENSOR]
-            if not self.hass.states.get(plugged_sensor):
-                return self.async_show_form(
-                    step_id="presence",
-                    data_schema=STEP_PRESENCE_SCHEMA,
-                    errors={"base": "plugged_sensor_not_found"},
-                    description_placeholders={
-                        "description": "Configure presence detection."
-                    },
-                )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
+        # Validate optional sensors exist (if provided)
+        for key, error_key in [(CONF_HOME_SENSOR, "home_sensor_not_found"), (CONF_PLUGGED_SENSOR, "plugged_sensor_not_found")]:
+            entity = user_input.get(key)
+            if entity:
+                result = self._validate_sensor_exists(entity, error_key)
+                if result:
+                    return result
 
         # Store the presence data and go to notifications step
         vehicle_data = self._get_vehicle_data()

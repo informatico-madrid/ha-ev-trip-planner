@@ -87,6 +87,10 @@ class SOCWindow:
 
     # ── Public API ───────────────────────────────────────────────
 
+    # CC-N-ACCEPTED: cc=11 — charging-window calculation with multiple
+    # edge cases: parsed hora_regreso presence, next-trip lookup,
+    # trip_departure extraction from dict/string, window-start fallback,
+    # and energy calculation. Each branch handles a distinct domain scenario.
     async def calcular_ventana_carga(
         self, params: VentanaCargaParams
     ) -> Dict[str, Any]:

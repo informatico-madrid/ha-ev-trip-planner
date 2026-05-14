@@ -85,6 +85,10 @@ class LoadPublisher(LoadPublisherBase):
             cooldown_hours=0,
         )
 
+    # CC-N-ACCEPTED: cc=13 — publish lifecycle has distinct error paths:
+    # missing ID, index exhaustion, invalid deadline, past deadline,
+    # missing SOC, and charging window calculation. Each error requires
+    # cleanup (index release) and a different log level.
     async def publish(self, trip: Dict[str, Any]) -> bool:
         """Publish a trip as a deferrable load.
 
@@ -204,6 +208,10 @@ class LoadPublisher(LoadPublisherBase):
 
         return success
 
+    # CC-N-ACCEPTED: cc=14 — inherently requires parsing datetime strings,
+    # handling punctual vs recurring trips, supporting multiple day-name
+    # formats (Spanish/English/numeric), and time parsing with error branches.
+    # This is a parser function — branching is the logic.
     def _calculate_deadline(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Calculate deadline datetime from trip data.
 

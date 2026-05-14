@@ -9,6 +9,8 @@ More sub-modules will be created as the decomposition progresses.
 
 from __future__ import annotations
 
+import unicodedata
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
@@ -161,6 +163,11 @@ DAYS_OF_WEEK = (
 # =============================================================================
 
 
+def _strip_accents(s: str) -> str:
+    """Remove diacritical marks: 'miércoles' → 'miercoles'."""
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+
+
 def calculate_day_index(day_name: str) -> int:
     """Obtiene el índice del día de la semana (0=lunes, 6=domingo).
 
@@ -174,6 +181,7 @@ def calculate_day_index(day_name: str) -> int:
         Índice del día de la semana (0=lunes).
     """
     day_lower = day_name.lower().strip()
+    day_norm = _strip_accents(day_lower)
 
     # Handle numeric day values (0-6)
     # BUG FIX: Frontend stores dia_semana as JS getDay() format (Sunday=0).
@@ -191,7 +199,7 @@ def calculate_day_index(day_name: str) -> int:
 
     # Try direct match first
     try:
-        return DAYS_OF_WEEK.index(day_lower)
+        return DAYS_OF_WEEK.index(day_norm)
     except ValueError:
         pass
 
@@ -204,6 +212,9 @@ def calculate_day_index(day_name: str) -> int:
 # =============================================================================
 
 
+# CC-N-ACCEPTED: cc=13 — inherently requires branching for 2 trip types ×
+# (with/without timezone) × 2 datetime format variants. Extracting would
+# split a single coherent dispatch logic into 5+ helpers with unclear names.
 def calculate_trip_time(
     trip_tipo: str,
     hora: Optional[str],

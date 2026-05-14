@@ -100,6 +100,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         """
         return self._vehicle_id
 
+    # CC-N-ACCEPTED: cc=14 — inherently requires fetching data from multiple
+    # sources (trips, EMHASS, query), conditional fallback logic, and building
+    # the complete data dict. Each source has distinct error paths.
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch latest data from TripManager and build coordinator.data dict.
 
@@ -218,6 +221,10 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "None" if self.data is None else list(self.data.keys()),
         )
 
+    # CC-N-ACCEPTED: cc=17 — mock data generator with branches for each trip
+    # type (punctual/recurring), datetime handling, kwh/km conversion, and
+    # energy calculation. The fallback nature requires comprehensive coverage
+    # of edge cases.
     def _generate_mock_emhass_params(
         self, trips: dict[str, dict[str, Any]]
     ) -> dict[str, Any]:

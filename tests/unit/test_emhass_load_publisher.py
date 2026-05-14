@@ -245,19 +245,17 @@ class TestLoadPublisherDeadline:
         )
         assert result is None
 
+    @pytest.mark.freeze_time("2026-05-13 06:00:00+00:00")
     def test_deadline_recurring_same_day_today(self):
-        """Recurring trip targeting today's day → delta_days=7 (line 261)."""
+        """Recurring trip targeting today's day → delta_days=7."""
         pub, _ = _make_publisher()
-        # Use Wednesday (today's weekday) with Spanish day name
+        # Wednesday at 06:00 → deadline next Wednesday 09:00 (7 full days)
         result = pub._calculate_deadline(
             {"tipo": "recurrente", "dia_semana": "miércoles", "hora": "09:00"}
         )
         assert result is not None
-        # delta_days=7 → deadline is next week (7 days from today's time)
-        now = datetime.now(timezone.utc)
-        delta = result - now
-        # At least 6 full days, less than 8 (next week's same day)
-        assert 6 <= delta.days < 8
+        delta = result - datetime.now(timezone.utc)
+        assert delta.days == 7
 
 
 class TestLoadPublisherEnsureAware:

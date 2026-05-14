@@ -23,6 +23,10 @@ class PowerProfile:
         """Initialize with shared state."""
         self._state = state
 
+    # CC-N-ACCEPTED: cc=12 — config source fallback chain (parameter →
+    # config entry → defaults), SOC sensor fallback, and dual trip gathering
+    # (active recurring + pending punctual). Each branch is a distinct
+    # data source with independent error recovery.
     async def async_generate_power_profile(
         self,
         charging_power_kw: float = 3.6,

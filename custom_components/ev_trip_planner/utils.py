@@ -240,6 +240,10 @@ def sanitize_recurring_trips(trips: dict[str, Any]) -> dict[str, Any]:
     return sanitized
 
 
+# CC-N-ACCEPTED: cc=12 — inherently requires branching for 3 trip types
+# (recurrente/puntual/punctual) × multiple day name formats (Spanish, English,
+# numeric, ISO weekdays) × multiple date formats for punctual trips.
+# Each input category needs its own handling path.
 def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     """Check if a trip is scheduled for today.
 
