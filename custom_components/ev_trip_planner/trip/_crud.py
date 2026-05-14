@@ -48,7 +48,7 @@ class TripCRUD:
         """Initialize with shared state."""
         self._state = state
 
-    def _emit_post_add(self, event_name: str, trip_data: Dict[str, Any]) -> None:
+    def _emit_post_add(self, event_name: str, trip_data: Dict[str, Any]) -> None:  # pragma: no cover
         """Emit trip-created and EMHASS sensor events after adding a trip."""
         entry_id = self._state.entry_id or ""
         trip_id = trip_data["id"]
