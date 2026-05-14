@@ -194,7 +194,7 @@ class TestDiagnostics:
         emhass = MagicMock()
         emhass.vehicle_id = "emhass_v1"
         emhass._index_map = {"idx1": 0}
-        emhass._available_indices = [0, 1, 2]
+        emhass.get_available_indices.return_value = [0, 1, 2]
 
         runtime = MagicMock()
         runtime.coordinator = coordinator

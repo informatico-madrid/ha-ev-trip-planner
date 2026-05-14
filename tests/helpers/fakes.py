@@ -28,7 +28,7 @@ class FakeEMHASSPublisher:
         self.published_trips: List[Dict[str, Any]] = []
         self.removed_trip_ids: List[str] = []
         self.all_published_trips: List[List[Dict[str, Any]]] = []
-        self._published_trips: List[Dict[str, Any]] = []
+        self._published_trips: set = set()
         self._cached_per_trip_params: Dict[str, Dict[str, Any]] = {}
         self._cached_power_profile: Optional[List[float]] = None
         self._cached_deferrables_schedule: Optional[List[Any]] = None

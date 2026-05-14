@@ -828,7 +828,7 @@ class TestEMHASSAdapterInit:
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        assert adapter._published_trips == []
+        assert adapter._published_trips == set()
         assert adapter._cached_per_trip_params == {}
         assert adapter._cached_power_profile is None
         assert adapter._cached_deferrables_schedule is None
@@ -1050,7 +1050,7 @@ class TestEMHASSAdapterCleanupIndices:
 
         await adapter.async_cleanup_vehicle_indices()
         assert len(adapter._index_map) == 0
-        assert adapter._published_trips == []
+        assert adapter._published_trips == set()
         assert adapter._cached_per_trip_params == {}
 
 
@@ -1093,7 +1093,7 @@ class TestEMHASSAdapterPublishDeferrableLoad:
         trip = {"id": "published_trip", "datetime": future, "kwh": 10.0}
         result = await adapter.async_publish_deferrable_load(trip)
         assert result is True
-        assert any(t.get("id") == "published_trip" for t in adapter._published_trips)
+        assert "published_trip" in adapter._published_trips
 
 
 class TestEMHASSAdapterPublishAll:

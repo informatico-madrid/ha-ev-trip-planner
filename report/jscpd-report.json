@@ -1,0 +1,1097 @@
+{
+  "statistics": {
+    "detectionDate": "2026-05-14T13:52:11.924Z",
+    "formats": {
+      "python": {
+        "sources": {
+          "custom_components/ev_trip_planner/vehicle/strategy.py": {
+            "lines": 170,
+            "tokens": 1349,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/vehicle/external.py": {
+            "lines": 72,
+            "tokens": 497,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/vehicle/controller.py": {
+            "lines": 296,
+            "tokens": 1821,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/state.py": {
+            "lines": 54,
+            "tokens": 415,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/manager.py": {
+            "lines": 118,
+            "tokens": 925,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_types.py": {
+            "lines": 50,
+            "tokens": 255,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_trip_navigator.py": {
+            "lines": 105,
+            "tokens": 936,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_trip_lifecycle.py": {
+            "lines": 190,
+            "tokens": 1415,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_soc_window.py": {
+            "lines": 373,
+            "tokens": 2785,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_soc_query.py": {
+            "lines": 222,
+            "tokens": 2052,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 65,
+            "duplicatedTokens": 634,
+            "percentage": 29.28,
+            "percentageTokens": 30.9,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_soc_helpers.py": {
+            "lines": 115,
+            "tokens": 955,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 65,
+            "duplicatedTokens": 634,
+            "percentage": 56.52,
+            "percentageTokens": 66.39,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_sensor_callbacks.py": {
+            "lines": 305,
+            "tokens": 1650,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_schedule.py": {
+            "lines": 192,
+            "tokens": 1664,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_power_profile.py": {
+            "lines": 102,
+            "tokens": 754,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_persistence.py": {
+            "lines": 211,
+            "tokens": 1786,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_emhass_sync.py": {
+            "lines": 126,
+            "tokens": 924,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/trip/_crud.py": {
+            "lines": 266,
+            "tokens": 1875,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 34,
+            "duplicatedTokens": 178,
+            "percentage": 12.78,
+            "percentageTokens": 9.49,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/services/dashboard_helpers.py": {
+            "lines": 505,
+            "tokens": 2814,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/services/cleanup.py": {
+            "lines": 298,
+            "tokens": 1672,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/services/_utils.py": {
+            "lines": 166,
+            "tokens": 1043,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/services/_handler_factories.py": {
+            "lines": 593,
+            "tokens": 4378,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 26,
+            "duplicatedTokens": 188,
+            "percentage": 4.38,
+            "percentageTokens": 4.29,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/sensor/entity_trip_planner.py": {
+            "lines": 100,
+            "tokens": 684,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/sensor/entity_trip_emhass.py": {
+            "lines": 146,
+            "tokens": 714,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/sensor/entity_trip.py": {
+            "lines": 120,
+            "tokens": 842,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/sensor/entity_emhass_deferrable.py": {
+            "lines": 188,
+            "tokens": 1395,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/sensor/_async_setup.py": {
+            "lines": 507,
+            "tokens": 2737,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/emhass/load_publisher.py": {
+            "lines": 324,
+            "tokens": 2049,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/emhass/index_manager.py": {
+            "lines": 76,
+            "tokens": 502,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/emhass/error_handler.py": {
+            "lines": 108,
+            "tokens": 496,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/emhass/adapter.py": {
+            "lines": 504,
+            "tokens": 3559,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/dashboard/template_manager.py": {
+            "lines": 825,
+            "tokens": 4384,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/dashboard/importer.py": {
+            "lines": 545,
+            "tokens": 2467,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 34,
+            "duplicatedTokens": 172,
+            "percentage": 6.24,
+            "percentageTokens": 6.97,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/dashboard/builder.py": {
+            "lines": 96,
+            "tokens": 350,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/config_flow/options.py": {
+            "lines": 144,
+            "tokens": 988,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/config_flow/main.py": {
+            "lines": 711,
+            "tokens": 4259,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/config_flow/_entities.py": {
+            "lines": 124,
+            "tokens": 612,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/config_flow/_emhass.py": {
+            "lines": 192,
+            "tokens": 1169,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/calculations/windows.py": {
+            "lines": 364,
+            "tokens": 1877,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/calculations/schedule.py": {
+            "lines": 224,
+            "tokens": 1490,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/calculations/power.py": {
+            "lines": 365,
+            "tokens": 2593,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/calculations/deficit.py": {
+            "lines": 570,
+            "tokens": 3849,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/calculations/core.py": {
+            "lines": 357,
+            "tokens": 1879,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/calculations/_helpers.py": {
+            "lines": 16,
+            "tokens": 73,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/yaml_trip_storage.py": {
+            "lines": 64,
+            "tokens": 396,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/utils.py": {
+            "lines": 359,
+            "tokens": 1848,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/panel.py": {
+            "lines": 243,
+            "tokens": 1060,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/diagnostics.py": {
+            "lines": 82,
+            "tokens": 482,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/definitions.py": {
+            "lines": 96,
+            "tokens": 762,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/coordinator.py": {
+            "lines": 353,
+            "tokens": 2371,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/const.py": {
+            "lines": 116,
+            "tokens": 500,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 12448,
+          "tokens": 78352,
+          "sources": 50,
+          "clones": 5,
+          "duplicatedLines": 112,
+          "duplicatedTokens": 903,
+          "percentage": 0.9,
+          "percentageTokens": 1.15,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "json": {
+        "sources": {
+          "custom_components/ev_trip_planner/translations/es.json": {
+            "lines": 128,
+            "tokens": 770,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/translations/en.json": {
+            "lines": 128,
+            "tokens": 770,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 74,
+            "duplicatedTokens": 435,
+            "percentage": 57.81,
+            "percentageTokens": 56.49,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/strings.json": {
+            "lines": 123,
+            "tokens": 745,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 74,
+            "duplicatedTokens": 435,
+            "percentage": 60.16,
+            "percentageTokens": 58.39,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/manifest.json": {
+            "lines": 18,
+            "tokens": 114,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 397,
+          "tokens": 2399,
+          "sources": 4,
+          "clones": 3,
+          "duplicatedLines": 74,
+          "duplicatedTokens": 435,
+          "percentage": 18.64,
+          "percentageTokens": 18.13,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "css": {
+        "sources": {
+          "custom_components/ev_trip_planner/frontend/panel.css": {
+            "lines": 926,
+            "tokens": 5352,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 926,
+          "tokens": 5352,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "javascript": {
+        "sources": {
+          "custom_components/ev_trip_planner/frontend/lit-bundle.js": {
+            "lines": 614,
+            "tokens": 11703,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/dashboard/ev-trip-planner-simple.js": {
+            "lines": 638,
+            "tokens": 3861,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "custom_components/ev_trip_planner/dashboard/dashboard.js": {
+            "lines": 495,
+            "tokens": 2830,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 1747,
+          "tokens": 18394,
+          "sources": 3,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "markdown": {
+        "sources": {
+          "custom_components/ev_trip_planner/README.md": {
+            "lines": 21,
+            "tokens": 960,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 21,
+          "tokens": 960,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 15539,
+      "tokens": 105457,
+      "sources": 59,
+      "clones": 8,
+      "duplicatedLines": 186,
+      "duplicatedTokens": 1338,
+      "percentage": 1.2,
+      "percentageTokens": 1.27,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "python",
+      "lines": 16,
+      "fragment": "try:\n            parsed = dt_util.parse_datetime(trip_datetime)\n            if parsed is not None and parsed.tzinfo is None:\n                parsed = parsed.replace(tzinfo=timezone.utc)\n            if parsed is None:\n                _LOGGER.warning(\n                    \"Failed to parse trip datetime: %s, falling back to now\",\n                    repr(trip_datetime),\n                )\n                return None if allow_none else datetime.now(timezone.utc)\n            return parsed\n        except Exception:\n            _LOGGER.warning(\"Failed to parse trip datetime: %s\", repr(trip_datetime))\n            return None if allow_none else datetime.now(timezone.utc)\n\n    def",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/trip/_soc_helpers.py",
+        "start": 48,
+        "end": 63,
+        "startLoc": {
+          "line": 48,
+          "column": 9,
+          "position": 291
+        },
+        "endLoc": {
+          "line": 63,
+          "column": 8,
+          "position": 441
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/trip/_soc_query.py",
+        "start": 144,
+        "end": 159,
+        "startLoc": {
+          "line": 144,
+          "column": 9,
+          "position": 1313
+        },
+        "endLoc": {
+          "line": 159,
+          "column": 6,
+          "position": 1463
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 51,
+      "fragment": "] = None\n            for config_entry in self._state.hass.config_entries.async_entries(DOMAIN):\n                if config_entry.data.get(\"vehicle_name\") == self._state.vehicle_id:\n                    entry = config_entry\n                    break\n            if entry is not None and entry.data is not None:\n                power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)\n                if isinstance(power, (int, float)) and power > 0:\n                    return float(power)\n        except Exception:\n            pass\n        return DEFAULT_CHARGING_POWER\n\n    def _calcular_tasa_carga_soc(\n        self, charging_power_kw: float, battery_capacity_kwh: float = 50.0\n    ) -> float:\n        \"\"\"Calcula la tasa de carga en % SOC/hora.\"\"\"\n        return calculate_charging_rate(charging_power_kw, battery_capacity_kwh)\n\n    def _calcular_soc_objetivo_base(\n        self,\n        trip: Dict[str, Any],\n        battery_capacity_kwh: float,\n        consumption_kwh_per_km: float = 0.15,\n    ) -> float:\n        \"\"\"Calculates the base SOC target percentage for a trip.\"\"\"\n        return calculate_soc_target(trip, battery_capacity_kwh, consumption_kwh_per_km)\n\n    def _is_trip_today(self, trip: Dict[str, Any], today: date) -> bool:\n        \"\"\"Verifica si un viaje ocurre hoy.\"\"\"\n        return pure_is_trip_today(trip, today)\n\n    def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:\n        \"\"\"Obtiene la fecha y hora del viaje.\"\"\"\n        tipo = trip.get(\"tipo\")\n        if tipo is None:\n            return None\n        result = calculate_trip_time(\n            tipo,\n            trip.get(\"hora\"),\n            trip.get(\"dia_semana\"),\n            trip.get(\"datetime\"),\n            datetime.now(timezone.utc),\n        )\n        if result is not None:\n            return result.replace(tzinfo=timezone.utc)\n        return result\n\n    def _get_day_index(self, day_name: str) -> int:\n        \"\"\"Obtiene el índice del día de la semana.\"\"\"\n        return calculate_day_index(day_name)",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/trip/_soc_helpers.py",
+        "start": 66,
+        "end": 116,
+        "startLoc": {
+          "line": 66,
+          "column": 45,
+          "position": 471
+        },
+        "endLoc": {
+          "line": 116,
+          "column": 45,
+          "position": 955
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/trip/_soc_query.py",
+        "start": 173,
+        "end": 223,
+        "startLoc": {
+          "line": 173,
+          "column": 40,
+          "position": 1568
+        },
+        "endLoc": {
+          "line": 223,
+          "column": 45,
+          "position": 2052
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 18,
+      "fragment": "[trip_id],\n                trip_id=trip_id,\n                vehicle_id=state.vehicle_id,\n            )\n        )\n        emit(\n            SensorEvent(\n                \"trip_sensor_created_emhass\",\n                state.hass,\n                entry_id,\n                trip_id=trip_id,\n                vehicle_id=state.vehicle_id,\n            )\n        )\n\n        if state.emhass_adapter:\n            await state._emhass_sync._async_publish_new_trip_to_emhass(\n                state.punctual_trips",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/trip/_crud.py",
+        "start": 151,
+        "end": 168,
+        "startLoc": {
+          "line": 151,
+          "column": 47,
+          "position": 1047
+        },
+        "endLoc": {
+          "line": 168,
+          "column": 37,
+          "position": 1136
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/trip/_crud.py",
+        "start": 100,
+        "end": 117,
+        "startLoc": {
+          "line": 100,
+          "column": 48,
+          "position": 630
+        },
+        "endLoc": {
+          "line": 117,
+          "column": 38,
+          "position": 719
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 14,
+      "fragment": "],\n            km=float(data[\"km\"]),\n            kwh=float(data[\"kwh\"]),\n            descripcion=str(data.get(\"descripcion\", \"\")),\n        )\n        coordinator = _get_coordinator(hass, vehicle_id)\n        if coordinator:\n            _LOGGER.debug(\"Refrescando trips para vehículo: %s\", vehicle_id)\n            await coordinator.async_refresh_trips()\n\n    return handler\n\n\n# === Factory: trip_update ===",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/services/_handler_factories.py",
+        "start": 103,
+        "end": 116,
+        "startLoc": {
+          "line": 103,
+          "column": 41,
+          "position": 774
+        },
+        "endLoc": {
+          "line": 116,
+          "column": 31,
+          "position": 868
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/services/_handler_factories.py",
+        "start": 79,
+        "end": 92,
+        "startLoc": {
+          "line": 79,
+          "column": 29,
+          "position": 592
+        },
+        "endLoc": {
+          "line": 92,
+          "column": 37,
+          "position": 686
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 18,
+      "fragment": "_LOGGER.error(\n            \"=== DASHBOARD IMPORT FAILED === No import method available for %s\",\n            vehicle_name,\n        )\n        return DashboardImportResult(\n            success=False,\n            vehicle_id=vehicle_id,\n            vehicle_name=vehicle_name,\n            error=\"All import methods failed\",\n            error_details={\n                \"storage_api_failed\": True,\n                \"yaml_fallback_failed\": True,\n            },\n            dashboard_type=dashboard_type,\n            storage_method=\"none\",\n        )\n\n    except",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/dashboard/importer.py",
+        "start": 356,
+        "end": 373,
+        "startLoc": {
+          "line": 356,
+          "column": 9,
+          "position": 1795
+        },
+        "endLoc": {
+          "line": 373,
+          "column": 11,
+          "position": 1881
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/dashboard/importer.py",
+        "start": 325,
+        "end": 342,
+        "startLoc": {
+          "line": 325,
+          "column": 13,
+          "position": 1635
+        },
+        "endLoc": {
+          "line": 342,
+          "column": 11,
+          "position": 1721
+        }
+      }
+    },
+    {
+      "format": "json",
+      "lines": 24,
+      "fragment": "\"config\": {\n    \"step\": {\n      \"user\": {\n        \"title\": \"EV Trip Planner - Vehicle Setup\",\n        \"description\": \"Configure your electric vehicle for trip planning\",\n        \"data\": {\n          \"vehicle_name\": \"Vehicle Name\"\n        },\n        \"data_description\": {\n          \"vehicle_name\": \"A friendly name for your vehicle (e.g., 'Chispitas', 'Morgan')\"\n        }\n      },\n      \"sensors\": {\n        \"title\": \"Vehicle Sensors\",\n        \"description\": \"Select the sensors for battery monitoring\",\n        \"data\": {\n          \"soc_sensor\": \"Battery SOC Sensor\",\n          \"battery_capacity\": \"Battery Capacity (kWh)\",\n          \"charging_power\": \"Charging Power (kW)\",\n          \"range_sensor\": \"Range Sensor (optional)\",\n          \"charging_status\": \"Charging Status (optional)\"\n        },\n        \"data_description\": {\n          \"soc_sensor\": \"Select the battery State of Charge sensor. Look for sensors ending in '_soc', '_battery_level', or from OVMS/renault integrations. Example: sensor.ovms_chispitas_metric_v_b_soc or sensor.renault_battery_level\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/strings.json",
+        "start": 2,
+        "end": 25,
+        "startLoc": {
+          "line": 2,
+          "column": 3,
+          "position": 3
+        },
+        "endLoc": {
+          "line": 25,
+          "column": 235,
+          "position": 143
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/translations/en.json",
+        "start": 7,
+        "end": 30,
+        "startLoc": {
+          "line": 7,
+          "column": 3,
+          "position": 28
+        },
+        "endLoc": {
+          "line": 30,
+          "column": 101,
+          "position": 168
+        }
+      }
+    },
+    {
+      "format": "json",
+      "lines": 18,
+      "fragment": ",\n          \"max_deferrable_loads\": \"Maximum Deferrable Loads\",\n          \"enable_planning_sensor\": \"Enable planning sensor override\",\n          \"enable_max_loads_override\": \"Enable max loads override\"\n        },\n        \"data_description\": {\n          \"planning_horizon\": \"Number of days EMHASS should plan for (1-30 days). Usually matches your daily EMHASS optimization horizon. Example: 7\",\n          \"planning_horizon_days\": \"Number of days EMHASS should plan for (1-30 days). Usually matches your daily EMHASS optimization horizon. Example: 7\",\n          \"planning_sensor\": \"Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.\",\n          \"planning_sensor_entity\": \"Optional: EMHASS sensor with planning horizon (e.g., sensor.emhass_planning_horizon). If your EMHASS optimizer publishes this sensor, select it. Otherwise use manual value.\",\n          \"max_deferrable_loads\": \"Maximum number of simultaneous deferrable loads EMHASS is configured for (10-100). Usually 50. Example: 50\",\n          \"enable_planning_sensor\": \"Check to override planning horizon with sensor value. When checked, the planning horizon will be read from the selected sensor instead of the manual value above. When unchecked, the manual value will be used.\",\n          \"enable_max_loads_override\": \"Check to enable custom maximum deferrable loads. When checked, you can set a custom value below instead of the default (50). When unchecked, the default value (50) will be used.\"\n        }\n      },\n      \"presence\": {\n        \"title\": \"Presence Detection\",\n        \"description\": \"Configure presence detection to prevent charging when vehicle is away. Charging sensor is required.\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/strings.json",
+        "start": 55,
+        "end": 72,
+        "startLoc": {
+          "line": 55,
+          "column": 72,
+          "position": 329
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 125,
+          "position": 433
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/translations/en.json",
+        "start": 60,
+        "end": 77,
+        "startLoc": {
+          "line": 60,
+          "column": 65,
+          "position": 354
+        },
+        "endLoc": {
+          "line": 77,
+          "column": 129,
+          "position": 458
+        }
+      }
+    },
+    {
+      "format": "json",
+      "lines": 35,
+      "fragment": ",\n          \"notification_service\": \"Service to call for notifications (e.g., notify.mobile_app). Used to alert when charging needed but not possible.\"\n        }\n      },\n      \"notifications\": {\n        \"title\": \"Notifications (Optional)\",\n        \"description\": \"Configure notifications to receive alerts when charging is needed but not possible. This step is optional.\",\n        \"data\": {\n          \"notification_service\": \"Notification Service\",\n          \"notification_devices\": \"Notification Devices\"\n        },\n        \"data_description\": {\n          \"notification_service\": \"Select the notification service to use (e.g., notify.mobile_app_your_phone). This is optional - you can skip this step.\",\n          \"notification_devices\": \"Select the devices to receive notifications. Hold Ctrl/Cmd to select multiple. This is optional - you can skip this step.\"\n        }\n      }\n    },\n    \"error\": {\n      \"already_configured\": \"This vehicle is already configured\",\n      \"unknown\": \"Unknown error occurred\",\n      \"invalid_planning_horizon\": \"Planning horizon must be between 1 and 365 days. Recommended: 7 days for weekly recurrence\",\n      \"invalid_max_deferrable_loads\": \"Maximum deferrable loads must be between 10 and 100\",\n      \"home_sensor_not_found\": \"The selected home sensor was not found. Please check the entity ID.\",\n      \"plugged_sensor_not_found\": \"The selected plugged sensor was not found. Please check the entity ID.\",\n      \"charging_sensor_required\": \"Charging sensor is required to configure this vehicle. This sensor indicates if the vehicle is currently charging.\",\n      \"charging_sensor_not_found\": \"The selected charging sensor was not found. Please check the entity ID.\",\n      \"notification_service_not_found\": \"The selected notification service was not found. Please check the entity ID and ensure the notify integration is configured.\",\n      \"invalid_coordinates_format\": \"Invalid coordinates format. Use 'latitude, longitude' (e.g., '40.1234, -3.5678')\"\n    },\n    \"abort\": {\n      \"already_configured\": \"This vehicle is already configured\"\n    }\n  },\n  \"title\": \"EV Trip Planner\"\n}",
+      "tokens": 0,
+      "firstFile": {
+        "name": "custom_components/ev_trip_planner/strings.json",
+        "start": 90,
+        "end": 124,
+        "startLoc": {
+          "line": 90,
+          "column": 177,
+          "position": 554
+        },
+        "endLoc": {
+          "line": 124,
+          "column": 2,
+          "position": 745
+        }
+      },
+      "secondFile": {
+        "name": "custom_components/ev_trip_planner/translations/en.json",
+        "start": 95,
+        "end": 129,
+        "startLoc": {
+          "line": 95,
+          "column": 189,
+          "position": 579
+        },
+        "endLoc": {
+          "line": 129,
+          "column": 2,
+          "position": 770
+        }
+      }
+    }
+  ]
+}

@@ -76,7 +76,7 @@ class EMHASSAdapter:
         self._error_handler = ErrorHandler(hass=hass)
 
         # State attributes (used by callers and tests)
-        self._published_trips: list[Dict[str, Any]] = []
+        self._published_trips: set[str] = set()
         self._cached_per_trip_params: Dict[str, Any] = {}
         self._cached_power_profile: List[Any] | None = None
         self._cached_deferrables_schedule: List[Any] | None = None
@@ -255,7 +255,7 @@ class EMHASSAdapter:
             self._load_publisher.charging_power_kw = cp
 
         success = True
-        self._published_trips = list(trips)
+        self._published_trips = {t.get("id", "") for t in trips}
         self._cached_per_trip_params = {}
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
@@ -272,7 +272,7 @@ class EMHASSAdapter:
         indices_to_release = list(self._index_manager._index_map.keys())
         for trip_id in indices_to_release:
             self._index_manager.release_index(trip_id)
-        self._published_trips = []
+        self._published_trips = set()
         self._cached_per_trip_params = {}
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
@@ -499,7 +499,6 @@ class EMHASSAdapter:
 
         # Track published trips
         if result:
-            if trip_id not in self._published_trips:
-                self._published_trips.append(trip)
+            self._published_trips.add(trip_id)
 
         return result

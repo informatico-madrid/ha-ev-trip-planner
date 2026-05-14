@@ -64,12 +64,15 @@ class IndexManager(IndexManagerBase):
         pass
 
     def assign_index(self, trip_id: str) -> Optional[int]:
-        """Sync version of async_assign_index_to_trip for LoadPublisher."""
-        return (
-            self._index_map.get(trip_id)
-            if trip_id in self._index_map
-            else (max(self._index_map.values()) + 1 if self._index_map else 0)
-        )
+        """Sync version of async_assign_index_to_trip for LoadPublisher.
+
+        Computes and stores the next available index for the given trip_id.
+        """
+        if trip_id in self._index_map:
+            return self._index_map[trip_id]
+        next_idx = max(self._index_map.values()) + 1 if self._index_map else 0
+        self._index_map[trip_id] = next_idx
+        return next_idx
 
     def release_index(self, trip_id: str) -> bool:
         """Sync version of async_release_index for LoadPublisher."""

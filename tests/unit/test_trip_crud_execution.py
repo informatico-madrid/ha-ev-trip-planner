@@ -67,7 +67,7 @@ def _make_tm(
         adapter.async_publish_deferrable_load = AsyncMock()
         adapter.async_update_deferrable_load = AsyncMock()
         adapter.async_remove_deferrable_load = AsyncMock()
-        adapter._published_trips = []
+        adapter._published_trips = set()
         adapter._cached_per_trip_params = {}
         adapter._cached_power_profile = []
         adapter._cached_deferrables_schedule = []
@@ -269,10 +269,10 @@ class TestCRUDDeleteAll:
     async def test_delete_all_clears_emhass_adapter(self):
         """Deleting all trips clears EMHASS adapter cache."""
         tm = _make_tm(recurring={"rec_1": {"id": "rec_1", "activo": True}})
-        tm._state.emhass_adapter._published_trips = ["old_trip"]
+        tm._state.emhass_adapter._published_trips = {"old_trip"}
         tm._state.emhass_adapter._cached_per_trip_params = {"old": "data"}
         await tm._lifecycle.async_delete_all_trips()
-        assert tm._state.emhass_adapter._published_trips == []
+        assert tm._state.emhass_adapter._published_trips == set()
         assert tm._state.emhass_adapter._cached_per_trip_params == {}
 
 
@@ -426,7 +426,7 @@ class TestCRUDRemoveFromEMHASS:
     async def test_remove_with_adapter(self):
         """Removing trip with EMHASS adapter calls adapter method."""
         tm = _make_tm()
-        tm._state.emhass_adapter._published_trips = ["rec_1"]
+        tm._state.emhass_adapter._published_trips = {"rec_1"}
         await tm._state._emhass_sync._async_remove_trip_from_emhass("rec_1")
 
     @pytest.mark.asyncio

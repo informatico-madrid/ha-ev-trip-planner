@@ -33,14 +33,14 @@ class TripLifecycle:
 
         adapter = state.emhass_adapter
         if adapter:
-            adapter._published_trips = []
+            adapter._published_trips = set()
             adapter._cached_per_trip_params.clear()
             adapter._cached_power_profile = []
             adapter._cached_deferrables_schedule = []
 
         if adapter:
             await state._schedule.publish_deferrable_loads([])
-            adapter._published_trips = []
+            adapter._published_trips = set()
             adapter._cached_per_trip_params.clear()
             adapter._cached_power_profile = []
             adapter._cached_deferrables_schedule = []

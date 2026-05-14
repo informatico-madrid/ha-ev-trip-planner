@@ -77,7 +77,7 @@ async def async_get_config_entry_diagnostics(
         diagnostics_data["emhass"] = {
             "vehicle_id": emhass_adapter.vehicle_id,
             "index_map": emhass_adapter._index_map,
-            "available_indices": emhass_adapter._available_indices,
+            "available_indices": emhass_adapter.get_available_indices(),
         }
 
     return diagnostics_data
