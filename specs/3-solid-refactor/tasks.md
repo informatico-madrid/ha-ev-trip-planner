@@ -1630,7 +1630,7 @@ Focus: Comprehensive quality-gate verification, SOLID metrics validation per-pac
   - _Requirements: NFR-7.A.1, NFR-7.A.2, NFR-7.A.3, NFR-7.A.4, NFR-7.A.5_
   - _Design: §7 (Per-decomposition validation gate, final-acceptance)_
 
-- [ ] V_final_b [VERIFY] V5 — CI pipeline passes after push
+- [x] V_final_b [VERIFY] V5 — CI pipeline passes after push
   - **Do**: Push branch, run `gh pr checks --watch`
   - **Verify**: `gh pr checks` shows all ✓
   - **Done when**: GitHub Actions CI green for spec/3-solid-refactor → epic/tech-debt-cleanup
