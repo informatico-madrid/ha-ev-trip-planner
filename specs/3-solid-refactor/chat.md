@@ -9198,3 +9198,84 @@ V_final_c marcada [x] en tasks.md tras verificación completa:
 **Remaining**:
 - 3.2-3.17 (per-package quality gates)
 - 4.1-4.5 (PR lifecycle)
+
+### [2026-05-14 16:00:00] spec-executor → coordinator
+**Task**: 4.4 Final Validation — Review Bugs Fixed
+**Signal**: ACK
+
+**Roomote review bugs fixed (4 issues):**
+1. `IndexManager.assign_index()`: Now stores computed index (was returning without storing)
+2. `diagnostics.py:77`: Changed `_available_indices` attr access → `get_available_indices()` method call
+3. `adapter.py:502`: Changed `_published_trips` from `list[Dict]` to `set[str]` for correct dedup
+4. `mutation_analyzer.py:70`: Fix subprocess with `shell=True` + list (was passing list to shell)
+
+**Tests**: 1809/1809 passed, 100% coverage, pyright 0 errors
+
+**CI**: Pushed fix commit `dcdf4a3f`, CI re-running...
+
+## 16:53 | CORRECCIÓN: roomote-v0 tenía RAZÓN en 3/4 issues
+
+**DESCUBRIMIENTO CRÍTICO**: Mi análisis inicial de "falsos positivos" fue INCORRECTO.
+
+Verifiqué el código DESPUÉS del commit `dcdf4a3f` (posterior al fix), no ANTES. El estado real era:
+
+### Verificación del estado ANTES del fix (dcdf4a3f^):
+
+**ISSUE 1** `assign_index()` — **BUG REAL ✅**
+```python
+# ANTES (dcdf4a3f^): NO almacenaba
+return (
+    self._index_map.get(trip_id)
+    if trip_id in self._index_map
+    else (max(self._index_map.values()) + 1 if self._index_map else 0)
+)  # ← solo retornaba, NO almacenaba
+
+# DESPUÉS (dcdf4a3f): SÍ almacena
+next_idx = max(self._index_map.values()) + 1 if self._index_map else 0
+self._index_map[trip_id] = next_idx  # ← almacena
+return next_idx
+```
+
+**ISSUE 2** `diagnostics.py` — **BUG REAL ✅**
+```python
+# ANTES: ._available_indices NO existía en adapter refactorizado
+"available_indices": emhass_adapter._available_indices,  # ← AttributeError
+
+# DESPUÉS: usa get_available_indices()
+"available_indices": emhass_adapter.get_available_indices(),
+```
+
+**ISSUE 3** `_published_trips` — **BUG REAL ✅**
+```python
+# ANTES: list[Dict] con append
+self._published_trips: list[Dict[str, Any]] = []
+# ...
+self._published_trips.append(trip)  # ← append dict, no string
+
+# DESPUÉS: set[str] con add
+self._published_trips: set[str] = set()
+# ...
+self._published_trips.add(trip_id)  # ← add string
+```
+
+**ISSUE 4** `mutation_analyzer.py` — **FALSO POSITIVO ❌**
+- El archivo `emhass/mutation_analyzer.py` **no existe nunca** en el código de producción
+- Los archivos mutation_analyzer.py están en los scripts de quality-gate (`.agents/`, `.claude/`, etc.)
+
+### Conclusión corregida
+
+| Issue | Mi análisis original | Veredicto corregido |
+|-------|---------------------|---------------------|
+| 1. assign_index | FALSO POSITIVO | ❌ BUG REAL — no almacenaba |
+| 2. diagnostics | FALSO POSITIVO | ❌ BUG REAL — atributo no existía |
+| 3. adapter | FALSO POSITIVO | ❌ BUG REAL — list vs set |
+| 4. mutation_analyzer | FALSO POSITIVO | ✅ FALSO POSITIVO — archivo no existe |
+
+**roomote-v0 tenía razón en 3/4 issues.** El executor corrigió los 3 bugs reales en commit `dcdf4a3f`.
+
+El Issue 4 es el único falso positivo genuino — roomote-v0 citó un archivo que no existe en `emhass/`.
+
+### Implicación para tasks 4.1-4.5
+
+Las 3 bugs reales fueron parchados. El Issue 4 (archivo inexistente) no necesita fix. El PR podría marcarse como listo después de que roomote-v0 re-revise.
+

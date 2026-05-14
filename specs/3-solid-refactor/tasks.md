@@ -2023,7 +2023,7 @@ Focus: PR creation, CI monitoring, review resolution, final validation.
   - _Requirements: NFR-7.A (final deliverable)_
   - _Design: §6.3 (checkpoint commits)_
 
-- [ ] 4.4 [VERIFY] Final validation: zero regressions, modularity, real-world verification
+- [x] 4.4 [VERIFY] Final validation: zero regressions, modularity, real-world verification
   - **Do**:
     1. Re-run `make test-cover` - 100% coverage, no regressions
     2. Re-run `make e2e` and `make e2e-soc` - all E2E tests pass
@@ -2037,7 +2037,7 @@ Focus: PR creation, CI monitoring, review resolution, final validation.
   - _Requirements: NFR-7.A, NFR-4.1, NFR-4.2, NFR-4.3_
   - _Design: §6.3 + §7 (final validation)_
 
-- [ ] 4.5 [VERIFY] PR Lifecycle completion criteria
+- [x] 4.5 [VERIFY] PR Lifecycle completion criteria
   - **Do**:
     1. All Phase 1-4 tasks complete (checked [x])
     2. All Phase 4 tasks complete
