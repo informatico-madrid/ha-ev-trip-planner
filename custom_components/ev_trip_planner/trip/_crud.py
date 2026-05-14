@@ -48,6 +48,30 @@ class TripCRUD:
         """Initialize with shared state."""
         self._state = state
 
+    def _emit_post_add(self, event_name: str, trip_data: Dict[str, Any]) -> None:
+        """Emit trip-created and EMHASS sensor events after adding a trip."""
+        entry_id = self._state.entry_id or ""
+        trip_id = trip_data["id"]
+        emit(
+            SensorEvent(
+                event_name,
+                self._state.hass,
+                entry_id,
+                trip_data=trip_data,
+                trip_id=trip_id,
+                vehicle_id=self._state.vehicle_id,
+            )
+        )
+        emit(
+            SensorEvent(
+                "trip_sensor_created_emhass",
+                self._state.hass,
+                entry_id,
+                trip_id=trip_id,
+                vehicle_id=self._state.vehicle_id,
+            )
+        )
+
     # ── Read accessors ───────────────────────────────────────────
 
     async def async_get_recurring_trips(self) -> List[Dict[str, Any]]:
@@ -59,6 +83,36 @@ class TripCRUD:
         return list(self._state.punctual_trips.values())
 
     # ── Add ──────────────────────────────────────────────────────
+
+    def _emit_post_add(self, event_name: str, trip_data: Dict[str, Any]) -> None:
+        """Emit post-add sensor events for a newly created trip.
+
+        Args:
+            event_name: The SensorEvent name (e.g. "trip_created_recurring").
+            trip_data: The trip data dict to include in the event.
+        """
+        state = self._state
+        entry_id = state.entry_id or ""
+        trip_id = trip_data.get("id", "")
+        emit(
+            SensorEvent(
+                event_name,
+                state.hass,
+                entry_id,
+                trip_data=trip_data,
+                trip_id=trip_id,
+                vehicle_id=state.vehicle_id,
+            )
+        )
+        emit(
+            SensorEvent(
+                "trip_sensor_created_emhass",
+                state.hass,
+                entry_id,
+                trip_id=trip_id,
+                vehicle_id=state.vehicle_id,
+            )
+        )
 
     async def async_add_recurring_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
@@ -91,25 +145,8 @@ class TripCRUD:
             "Added recurring trip %s for vehicle %s", trip_id, state.vehicle_id
         )
 
-        entry_id = state.entry_id or ""
-        emit(
-            SensorEvent(
-                "trip_created_recurring",
-                state.hass,
-                entry_id,
-                trip_data=state.recurring_trips[trip_id],
-                trip_id=trip_id,
-                vehicle_id=state.vehicle_id,
-            )
-        )
-        emit(
-            SensorEvent(
-                "trip_sensor_created_emhass",
-                state.hass,
-                entry_id,
-                trip_id=trip_id,
-                vehicle_id=state.vehicle_id,
-            )
+        self._emit_post_add(
+            "trip_created_recurring", state.recurring_trips[trip_id]
         )
 
         if state.emhass_adapter:
@@ -142,25 +179,8 @@ class TripCRUD:
         await state.async_save_trips()
         _LOGGER.info("Added punctual trip %s for vehicle %s", trip_id, state.vehicle_id)
 
-        entry_id = state.entry_id or ""
-        emit(
-            SensorEvent(
-                "trip_created_punctual",
-                state.hass,
-                entry_id,
-                trip_data=state.punctual_trips[trip_id],
-                trip_id=trip_id,
-                vehicle_id=state.vehicle_id,
-            )
-        )
-        emit(
-            SensorEvent(
-                "trip_sensor_created_emhass",
-                state.hass,
-                entry_id,
-                trip_id=trip_id,
-                vehicle_id=state.vehicle_id,
-            )
+        self._emit_post_add(
+            "trip_created_punctual", state.punctual_trips[trip_id]
         )
 
         if state.emhass_adapter:
