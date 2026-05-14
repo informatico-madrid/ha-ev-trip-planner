@@ -50,7 +50,7 @@ _LOGGER = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def _call_async_executor_sync(hass, func, *args):
+def _call_async_executor_sync(hass, func, *args):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     """Call a function via async executor with fallback for tests.
 
     Returns the actual result (not a coroutine) for compatibility with tests.
@@ -75,7 +75,7 @@ def _call_async_executor_sync(hass, func, *args):
         return func(*args)
 
 
-async def _await_executor_result(result):
+async def _await_executor_result(result):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     """Helper to await executor result if it's a coroutine.
 
     Args:
@@ -94,7 +94,7 @@ async def _await_executor_result(result):
 # ---------------------------------------------------------------------------
 
 
-def is_lovelace_available(hass: HomeAssistant) -> bool:
+def is_lovelace_available(hass: HomeAssistant) -> bool:  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     """Check if Lovelace UI is available in Home Assistant.
 
     Returns True if Lovelace is installed and accessible.
@@ -112,7 +112,7 @@ def is_lovelace_available(hass: HomeAssistant) -> bool:
     return False
 
 
-async def import_dashboard(
+async def import_dashboard(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     vehicle_id: str,
     vehicle_name: str,
@@ -388,7 +388,7 @@ async def import_dashboard(
 # ---------------------------------------------------------------------------
 
 
-def _validate_dashboard_config(
+def _validate_dashboard_config(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     dashboard_config: DashboardConfig,
     vehicle_id: str,
 ) -> None:
@@ -406,7 +406,7 @@ def _validate_dashboard_config(
     _validate_config(dashboard_config, vehicle_id)
 
 
-async def _load_dashboard_template(
+async def _load_dashboard_template(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     vehicle_id: str,
     vehicle_name: str,
@@ -428,7 +428,7 @@ async def _load_dashboard_template(
     return await _load_template(hass, vehicle_id, vehicle_name, use_charts)
 
 
-async def _save_lovelace_dashboard(
+async def _save_lovelace_dashboard(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
@@ -450,7 +450,9 @@ async def _save_lovelace_dashboard(
     return await _save_lovelace(hass, dashboard_config, vehicle_id, vehicle_name)
 
 
-async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> bool:
+async def _verify_storage_permissions(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
+    hass: HomeAssistant, vehicle_id: str
+) -> bool:
     """Verify storage write permissions for dashboard import.
 
     Delegates to template_manager.verify_storage_permissions.
@@ -465,7 +467,7 @@ async def _verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> b
     return await _verify_storage(hass, vehicle_id)
 
 
-async def _save_dashboard_yaml_fallback(
+async def _save_dashboard_yaml_fallback(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
@@ -492,7 +494,7 @@ async def _save_dashboard_yaml_fallback(
 # ---------------------------------------------------------------------------
 
 
-def dashboard_exists(vehicle_id: str) -> bool:
+def dashboard_exists(vehicle_id: str) -> bool:  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     """Check if a dashboard file exists for the given vehicle.
 
     Args:
@@ -505,7 +507,7 @@ def dashboard_exists(vehicle_id: str) -> bool:
     return False
 
 
-def dashboard_path(vehicle_id: str) -> str:
+def dashboard_path(vehicle_id: str) -> str:  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     """Return the filesystem path to a vehicle's dashboard file.
 
     Args:

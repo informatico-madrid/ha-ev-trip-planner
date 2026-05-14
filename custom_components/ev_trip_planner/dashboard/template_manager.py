@@ -26,7 +26,7 @@ from . import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _call_async_executor_sync(_hass, func, *args):
+def _call_async_executor_sync(_hass, func, *args):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard.js — possible future feature
     """Call a function via async executor with fallback for tests.
 
     Returns the direct result (not a coroutine) for compatibility with tests.
@@ -42,7 +42,7 @@ def _call_async_executor_sync(_hass, func, *args):
     return func(*args)
 
 
-async def _await_executor_result(result):
+async def _await_executor_result(result):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard.js — possible future feature
     """Helper to await executor result if it's a coroutine.
 
     Args:
@@ -108,7 +108,7 @@ def _create_directory(dir_path: str, mode: int = 0o755) -> None:
     )  # pragma: no cover reason=directory creation for YAML backup only
 
 
-def validate_config(
+def validate_config(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     dashboard_config: DashboardConfig,
     vehicle_id: str,
 ) -> None:
@@ -183,7 +183,7 @@ def validate_config(
         _LOGGER.warning("Vehicle ID '%s' not found in any view path", vehicle_id)
 
 
-async def load_template(
+async def load_template(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     vehicle_id: str,
     vehicle_name: str,
@@ -309,7 +309,7 @@ async def load_template(
         return None
 
 
-async def save_lovelace_dashboard(
+async def save_lovelace_dashboard(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
@@ -534,7 +534,9 @@ async def save_lovelace_dashboard(
     )
 
 
-async def verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> bool:
+async def verify_storage_permissions(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
+    hass: HomeAssistant, vehicle_id: str
+) -> bool:
     """Verify storage write permissions for dashboard import.
 
     Checks if the storage API is available and writable before attempting
@@ -579,7 +581,7 @@ async def verify_storage_permissions(hass: HomeAssistant, vehicle_id: str) -> bo
         return False
 
 
-async def save_yaml_fallback(
+async def save_yaml_fallback(  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard/dashboard.js
     hass: HomeAssistant,
     dashboard_config: DashboardConfig,
     vehicle_id: str,
