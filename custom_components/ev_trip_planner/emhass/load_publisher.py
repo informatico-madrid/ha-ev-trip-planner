@@ -312,7 +312,6 @@ class LoadPublisher(LoadPublisherBase):
             hora_regreso=None,
             charging_power_kw=self.charging_power_kw,
             battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
-            duration_hours=6.0,
             safety_margin_percent=self.safety_margin_percent,
             now=dt_util.now(),
         )

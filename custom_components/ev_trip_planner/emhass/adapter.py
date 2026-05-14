@@ -207,6 +207,8 @@ class EMHASSAdapter:
 
         self._charging_power_kw = new_power
         self._stored_charging_power_kw = new_power
+        # Propagate to LoadPublisher so publish() uses correct power
+        self._load_publisher.charging_power_kw = new_power
 
     def setup_config_entry_listener(self) -> None:
         """Subscribe to config entry updates to trigger republish when charging power changes."""
@@ -229,6 +231,8 @@ class EMHASSAdapter:
         if new_charging_power is not None:
             self._stored_charging_power_kw = new_charging_power
             self._charging_power_kw = new_charging_power
+            # Propagate to LoadPublisher so publish() uses correct power
+            self._load_publisher.charging_power_kw = new_charging_power
 
     async def async_publish_all_deferrable_loads(
         self,
@@ -246,8 +250,16 @@ class EMHASSAdapter:
         Returns:
             True if all trips were published successfully.
         """
-        if not trips or self._shutting_down:
+        if self._shutting_down:
             return False
+
+        # When no trips remain, clear cache to reflect empty state
+        if not trips:
+            self._cached_power_profile = []
+            self._cached_deferrables_schedule = []
+            self._cached_per_trip_params = {}
+            self._cached_emhass_status = "ready"
+            return True
 
         # Support both param names (backward compat)
         cp = charging_power or charging_power_kw
@@ -265,6 +277,32 @@ class EMHASSAdapter:
             if not trip_success:
                 success = False
 
+        # Build combined power profile from per-trip cache entries
+        # (one entry per hour spanning the planning horizon)
+        horizon = 168  # 7 days * 24 hours
+        power_profile: List[float] = [0.0] * horizon
+        deferrables_schedule: List[Dict[str, Any]] = []
+
+        for trip_id, params in self._cached_per_trip_params.items():
+            watts = params.get("power_watts", 0)
+            start = params.get("def_start_timestep", 0)
+            end = params.get("def_end_timestep", 0)
+            for t in range(start, min(end, horizon)):
+                if 0 <= t < horizon:
+                    power_profile[t] = max(power_profile[t], float(watts))
+            deferrables_schedule.append(
+                {
+                    "index": params.get("emhass_index", 0),
+                    "kwh": params.get("kwh_needed", 0),
+                    "start_timestep": start,
+                    "end_timestep": end,
+                }
+            )
+
+        self._cached_power_profile = power_profile
+        self._cached_deferrables_schedule = deferrables_schedule
+        self._cached_emhass_status = "ready"
+
         return success
 
     async def async_cleanup_vehicle_indices(self) -> None:
@@ -276,6 +314,7 @@ class EMHASSAdapter:
         self._cached_per_trip_params = {}
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
+        self._cached_emhass_status = "unavailable"
 
     async def async_save_trips(self) -> None:
         """Save trips to storage."""
@@ -369,6 +408,16 @@ class EMHASSAdapter:
         safety_margin_percent = params.safety_margin_percent
         soc_current = params.soc_current
 
+        # Read t_base from config entry (T_BASE wiring — BUG-4)
+        t_base = 24.0  # default
+        entry = self._entry
+        if entry:
+            entry_data = dict(getattr(entry, "options", {}) or {})
+            entry_data.update(dict(getattr(entry, "data", {}) or {}))
+            t_base = float(
+                entry_data.get("t_base", entry_data.get("CONF_T_BASE", 24.0))
+            )
+
         # Assign index if not already assigned
         if trip_id not in self._index_map:
             await self.async_assign_index_to_trip(trip_id)
@@ -399,6 +448,7 @@ class EMHASSAdapter:
             def_end_timestep = min(int(max(0, hours_available)), 168)
 
             # Use pre-computed ventana if provided (batch mode)
+            _pre_computed_fin = False
             if pre_computed_inicio_ventana is not None:
                 delta_hours = (
                     self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
@@ -412,29 +462,15 @@ class EMHASSAdapter:
                 ).total_seconds() / 3600
                 def_start_timestep = max(0, min(int(delta_hours), 168))
 
-            # fin_ventana for def_end_timestep
+            # Handle pre-computed fin_ventana (batch/test mode)
             if pre_computed_fin_ventana is not None:
-                delta_hours_end = (
+                delta_fin = (
                     self._load_publisher._ensure_aware(pre_computed_fin_ventana) - now
                 ).total_seconds() / 3600
-                if delta_hours_end > 0:
-                    def_end_timestep = max(
-                        0, min(math.ceil(delta_hours_end - 0.001), 168)
-                    )
-            elif charging_windows and charging_windows[0].get("fin_ventana"):
-                fin = charging_windows[0]["fin_ventana"]
-                if isinstance(fin, datetime):
-                    delta_hours_end = (
-                        self._load_publisher._ensure_aware(fin) - now
-                    ).total_seconds() / 3600
-                    def_end_timestep = max(
-                        0, min(math.ceil(delta_hours_end - 0.001), 168)
-                    )
+                def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), 168))
+                _pre_computed_fin = True
 
-            # Apply off-by-one fix
-            def_start_timestep = max(0, def_start_timestep - 1)
-
-            # Calculate energy parameters
+            # Calculate energy parameters FIRST so def_total_hours is available
             from ..calculations import calculate_energy_needed
 
             energy_info = calculate_energy_needed(
@@ -445,6 +481,60 @@ class EMHASSAdapter:
                 safety_margin_percent=safety_margin_percent,
             )
             total_hours = energy_info["horas_carga_necesarias"]
+
+            # BUG-4 + BUG-5: Apply dynamic SOC capping.
+            # t_base already read above from config entry.
+            # Smaller t_base = tighter SOC caps.
+            if t_base and charging_windows:
+                from ..calculations import calculate_dynamic_soc_limit
+
+                # Hours until trip departure
+                t_hours = 24.0
+                if charging_windows[0].get("fin_ventana"):
+                    t_hours = (
+                        charging_windows[0]["fin_ventana"] - now
+                    ).total_seconds() / 3600
+
+                # Estimated SOC after trip: current energy minus trip-only energy.
+                # The trip energy is the distance/consumption, not the full
+                # energia_necesaria_kwh (which includes safety margin).
+                trip_kwh = trip.get("kwh", 0.0)
+                if not trip_kwh and "km" in trip:
+                    from ..utils import calcular_energia_kwh
+
+                    trip_kwh = calcular_energia_kwh(
+                        trip.get("km", 0.0),
+                        self._entry.data.get("kwh_per_km", 0.15),
+                    )
+                soc_after = max(
+                    0.0, soc_current - (trip_kwh / battery_capacity_kwh) * 100.0
+                )
+
+                # Compute SOC cap using the dynamic algorithm
+                soc_cap = calculate_dynamic_soc_limit(
+                    t_hours, soc_after, battery_capacity_kwh, t_base=t_base
+                )
+
+                # If SOC cap is below 100%, reduce the energy accordingly.
+                # Skip capping when SOC is already at 100% — the battery is full
+                # and any remaining hours are for proactive future-trip charging.
+                if soc_cap < 100.0 and soc_current < 100.0:
+                    current_energy = (soc_current / 100.0) * battery_capacity_kwh
+                    max_energy = (soc_cap / 100.0) * battery_capacity_kwh
+                    capped_energy = max(0.0, max_energy - current_energy)
+                    capped_hours = (
+                        capped_energy / charging_power_kw
+                        if charging_power_kw > 0
+                        else 0.0
+                    )
+                    total_hours = math.ceil(capped_hours) if capped_hours > 0 else 0
+                    energy_info["energia_necesaria_kwh"] = capped_energy
+
+            # def_end_timestep is derived from def_start + def_total_hours to
+            # maintain the invariant def_end == def_start + def_total_hours,
+            # unless overridden by pre_computed_fin_ventana (batch/test mode).
+            if not _pre_computed_fin:
+                def_end_timestep = def_start_timestep + total_hours
 
         # Always store the cache entry (even if deadline was None)
         self._cached_per_trip_params[trip_id] = {

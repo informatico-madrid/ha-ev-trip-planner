@@ -7,6 +7,7 @@ window calculations for single and multi-trip scenarios.
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -91,7 +92,7 @@ def calculate_energy_needed(
 
     return {
         "energia_necesaria_kwh": round(energia_final, 3),
-        "horas_carga_necesarias": round(horas_carga, 2),
+        "horas_carga_necesarias": math.ceil(horas_carga) if horas_carga > 0 else 0,
         "alerta_tiempo_insuficiente": False,
         "horas_disponibles": 0.0,
         "margen_seguridad_aplicado": safety_margin_percent,
@@ -176,7 +177,7 @@ def calculate_charging_window_pure(
     return {
         "ventana_horas": round(ventana_horas, 2),
         "kwh_necesarios": round(kwh_necesarios, 3),
-        "horas_carga_necesarias": round(horas_carga_necesarias, 2),
+        "horas_carga_necesarias": math.ceil(horas_carga_necesarias) if horas_carga_necesarias > 0 else 0,
         "inicio_ventana": inicio_ventana,
         "fin_ventana": fin_ventana,
         "es_suficiente": es_suficiente,
@@ -222,7 +223,6 @@ def calculate_multi_trip_charging_windows(
     hora_regreso: Optional[datetime],
     charging_power_kw: float,
     battery_capacity_kwh: float,
-    duration_hours: float = 6.0,
     return_buffer_hours: float = 4.0,
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
     now: Optional[datetime] = None,
@@ -245,7 +245,6 @@ def calculate_multi_trip_charging_windows(
             is already home). When None, the car is assumed to be home.
         charging_power_kw: Charging power in kW
         battery_capacity_kwh: Battery capacity in kWh
-        duration_hours: Duration of each trip in hours (how long car is away)
         return_buffer_hours: Gap in hours between when a trip ends and the
             next trip begins
         safety_margin_percent: Safety margin percentage for energy calculations
@@ -300,7 +299,7 @@ def calculate_multi_trip_charging_windows(
             {
                 "ventana_horas": round(ventana_horas, 2),
                 "kwh_necesarios": round(kwh_necesarios, 3),
-                "horas_carga_necesarias": round(horas_carga_necesarias, 2),
+                "horas_carga_necesarias": math.ceil(horas_carga_necesarias) if horas_carga_necesarias > 0 else 0,
                 "inicio_ventana": window_start,
                 "fin_ventana": trip_departure_time,
                 "es_suficiente": es_suficiente,

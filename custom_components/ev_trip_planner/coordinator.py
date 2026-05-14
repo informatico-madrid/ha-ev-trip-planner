@@ -272,7 +272,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
             # Parse trip datetime for timestep calculation
             start_timestep = 0
-            end_timestep = math.ceil(hours_needed * 4)  # 15-min timesteps = 4/hour
+            end_timestep = math.ceil(hours_needed)  # 1 timestep = 1 hour
 
             if trip_datetime_str:
                 try:
@@ -280,30 +280,30 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                     if trip_dt.tzinfo is None:
                         trip_dt = trip_dt.replace(tzinfo=timezone.utc)
                     delta = trip_dt - now
-                    total_minutes = delta.total_seconds() / 60
-                    start_timestep = max(0, min(int(total_minutes / 15), 0))
-                    end_timestep = min(start_timestep + math.ceil(hours_needed * 4), 96)
+                    total_hours = delta.total_seconds() / 3600
+                    start_timestep = max(0, int(total_hours))
+                    end_timestep = min(start_timestep + math.ceil(hours_needed), 168)
                 except (ValueError, TypeError):
                     pass
 
             # Build p_deferrable_matrix for this trip
             trip_matrix: list[list[float]] = []
-            row = [0.0] * 96  # 24h * 4 timesteps/hour
+            row = [0.0] * 168  # 24h * 7 days default
             for t in range(start_timestep, end_timestep):
-                if 0 <= t < 96:
+                if 0 <= t < 168:
                     row[t] = power_watts
             if any(v > 0 for v in row):
                 trip_matrix.append(row)
 
             if not trip_matrix:
                 # Fallback: single row
-                trip_matrix = [[0.0] * 96]
+                trip_matrix = [[0.0] * 168]
 
             entry = {
                 "activo": True,
                 "kwh_needed": kwh_needed,
                 "km": float(trip.get("km", 0)),
-                "def_total_hours_array": [round(hours_needed, 2)],
+                "def_total_hours_array": [math.ceil(hours_needed)],
                 "p_deferrable_nom_array": [round(power_watts, 2)],
                 "def_start_timestep_array": [start_timestep],
                 "def_end_timestep_array": [end_timestep],
@@ -325,7 +325,8 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             index_counter += 1
 
         # Build combined power profile (max power across all charging windows)
-        power_profile = [0.0] * 96
+        # Use 168 (7 days * 24 hours) to match the matrix row length
+        power_profile = [0.0] * 168
         for row in matrix:
             for i, v in enumerate(row):
                 power_profile[i] = max(power_profile[i], v)
