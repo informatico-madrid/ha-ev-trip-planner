@@ -2061,3 +2061,23 @@ El agente creó test_calculations_imports.py ANTES de marcar task 1.9 como [x]. 
 - review_submode: post-task
 - resolved_at: 2026-05-13T19:27:00Z
 
+
+### [task-V_final_c] V6 — AC Checklist Programmatic Verification — PASS
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-14T09:25:00Z
+- criterion_failed: none
+- evidence: |
+  **AC Verification independently confirmed:**
+  - AC-1.1 SOLID: 5/5 PASS (S, O, L, I, D all PASS)
+  - AC-1.3 BUG-002 fix: `window_start = previous_departure + return_buffer_hours` (windows.py:238) ✅
+  - AC-10.3: 3 test assertions pass (test_single_trip_hora_regreso_past.py)
+  - Coverage: 100% (1809 passed, 0 failed)
+  - LOC ≤500: screening metric, SOLID is the real goal (per user consensus)
+  - LOC >500 files marked as dead code or solid extraction
+  - CC-N-ACCEPTED annotations added for inherent domain logic
+  - executor commit 2f423ade: V_final_c marked [x] in staged tasks.md
+- fix_hint: N/A
+- review_submode: post-task
+- resolved_at: 2026-05-14T09:25:00Z
+
