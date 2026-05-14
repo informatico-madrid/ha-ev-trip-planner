@@ -84,36 +84,6 @@ class TripCRUD:
 
     # ── Add ──────────────────────────────────────────────────────
 
-    def _emit_post_add(self, event_name: str, trip_data: Dict[str, Any]) -> None:
-        """Emit post-add sensor events for a newly created trip.
-
-        Args:
-            event_name: The SensorEvent name (e.g. "trip_created_recurring").
-            trip_data: The trip data dict to include in the event.
-        """
-        state = self._state
-        entry_id = state.entry_id or ""
-        trip_id = trip_data.get("id", "")
-        emit(
-            SensorEvent(
-                event_name,
-                state.hass,
-                entry_id,
-                trip_data=trip_data,
-                trip_id=trip_id,
-                vehicle_id=state.vehicle_id,
-            )
-        )
-        emit(
-            SensorEvent(
-                "trip_sensor_created_emhass",
-                state.hass,
-                entry_id,
-                trip_id=trip_id,
-                vehicle_id=state.vehicle_id,
-            )
-        )
-
     async def async_add_recurring_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
         state = self._state

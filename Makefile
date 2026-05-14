@@ -120,7 +120,7 @@ typecheck:
 layer3a:
 	@echo "=== Layer 3A: Smoke Test ==="
 	@echo "Running ruff check..."
-	@ruff check custom_components/ && ruff format --check custom_components/ || echo "WARNING: ruff violations found"
+	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || echo "WARNING: ruff violations found"
 	@echo "Running pyright type check..."
 	@$(MAKE) typecheck
 	@echo "Running SOLID Tier A (AST-based)..."
