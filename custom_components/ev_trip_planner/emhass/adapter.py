@@ -275,65 +275,116 @@ class EMHASSAdapter:
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
 
-        # FIX: Pre-compute multi-trip charging windows BEFORE processing individual trips.
-        # When each trip is processed individually via async_publish_deferrable_load(),
-        # calculate_multi_trip_charging_windows() is called with trips=[single_trip],
-        # so idx is always 0 and the multi-trip buffer logic (prev_departure + buffer)
-        # never activates. By computing all windows together first, we ensure proper
-        # separation between consecutive trip charging windows.
-        pre_computed_windows: List[Dict[str, Any]] = []
-        trip_deadlines: List[Tuple[datetime, Dict[str, Any]]] = []
+        # Pre-compute multi-trip charging windows and process trips
+        battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
+        soc_current = await self._precompute_and_process_trips(
+            trips, battery_capacity_kwh
+        )
 
+        # BUG-6: Run deficit propagation to handle cascading charging needs
+        self._apply_deficit_propagation()
+
+        # Build power profile and deferrables schedule
+        horizon = self._get_horizon_hours()
+        power_profile: List[float] = [0.0] * horizon
+        deferrables_schedule: List[Dict[str, Any]] = []
+
+        self._build_power_profile_and_schedule(horizon, power_profile, deferrables_schedule)
+
+        self._cached_power_profile = power_profile
+        self._cached_deferrables_schedule = deferrables_schedule
+        self._cached_emhass_status = "ready"
+
+        return success
+
+    async def _precompute_and_process_trips(
+        self,
+        trips: List[Dict[str, Any]],
+        battery_capacity_kwh: float,
+    ) -> float:
+        """Pre-compute multi-trip charging windows and process each trip.
+
+        Returns the soc_current used for processing.
+        """
         from homeassistant.util import dt as dt_util
+        from ..calculations.windows import calculate_multi_trip_charging_windows
 
         now = dt_util.now()
         soc_current = await self._get_current_soc()
         if soc_current is None:
             soc_current = 50.0
 
-        # Build (deadline, trip) tuples for all trips
+        trip_deadlines = self._build_trip_deadlines(trips)
+        pre_computed_windows = self._compute_charging_windows(
+            trip_deadlines, soc_current, battery_capacity_kwh, now
+        )
+        window_by_trip_id = self._build_window_lookup(pre_computed_windows)
+        await self._process_trips_with_windows(trips, battery_capacity_kwh, soc_current, window_by_trip_id)
+
+        return soc_current
+
+    def _build_trip_deadlines(
+        self, trips: List[Dict[str, Any]]
+    ) -> List[Tuple[datetime, Dict[str, Any]]]:
+        """Build sorted list of (deadline, trip) tuples."""
+        trip_deadlines: List[Tuple[datetime, Dict[str, Any]]] = []
         for trip in trips:
             deadline_dt = self._calculate_deadline_from_trip(trip)
             if deadline_dt is not None:
                 trip_deadlines.append((deadline_dt, trip))
-
-        # Sort by deadline (chronological order) — required by
-        # calculate_multi_trip_charging_windows() which assigns buffers
-        # based on previous trip's departure time.
         trip_deadlines.sort(key=lambda x: x[0])
+        return trip_deadlines
 
-        # Calculate multi-trip windows if we have deadlines
-        if trip_deadlines:
-            from ..calculations.windows import calculate_multi_trip_charging_windows
+    def _compute_charging_windows(
+        self,
+        trip_deadlines: List[Tuple[datetime, Dict[str, Any]]],
+        soc_current: float,
+        battery_capacity_kwh: float,
+        now: datetime,
+    ) -> List[Dict[str, Any]]:
+        """Compute multi-trip charging windows from sorted deadlines."""
+        if not trip_deadlines:
+            return []
+        from ..calculations.windows import calculate_multi_trip_charging_windows
 
-            battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
-            pre_computed_windows = calculate_multi_trip_charging_windows(
-                trips=trip_deadlines,
-                soc_actual=soc_current,
-                hora_regreso=None,  # Car is assumed home
-                charging_power_kw=self._load_publisher.charging_power_kw,
-                battery_capacity_kwh=battery_capacity_kwh,
-                safety_margin_percent=self._load_publisher.safety_margin_percent,
-                now=now,
-            )
+        return calculate_multi_trip_charging_windows(
+            trips=trip_deadlines,
+            soc_actual=soc_current,
+            hora_regreso=None,
+            charging_power_kw=self._load_publisher.charging_power_kw,
+            battery_capacity_kwh=battery_capacity_kwh,
+            safety_margin_percent=self._load_publisher.safety_margin_percent,
+            now=now,
+        )
 
-        # Build a lookup from trip_id to pre-computed window
-        window_by_trip_id: Dict[str, Dict[str, Any]] = {}
-        for window in pre_computed_windows:
+    def _build_window_lookup(
+        self, windows: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Build lookup dict from trip_id to window."""
+        lookup: Dict[str, Dict[str, Any]] = {}
+        for window in windows:
             trip = window.get("trip")
             if trip:
                 trip_id = trip.get("id")
                 if trip_id:
-                    window_by_trip_id[trip_id] = window
+                    lookup[trip_id] = window
+        return lookup
 
-        # Process each trip with pre-computed windows
+    async def _process_trips_with_windows(
+        self,
+        trips: List[Dict[str, Any]],
+        battery_capacity_kwh: float,
+        soc_current: float,
+        window_by_trip_id: Dict[str, Dict[str, Any]],
+    ) -> None:
+        """Process each trip using pre-computed windows."""
         for trip in trips:
             trip_id = trip.get("id", "")
-            pre_computed_inicio = window_by_trip_id.get(trip_id, {}).get("inicio_ventana")
-            pre_computed_fin = window_by_trip_id.get(trip_id, {}).get("fin_ventana")
+            win = window_by_trip_id.get(trip_id, {})
+            pre_computed_inicio = win.get("inicio_ventana")
+            pre_computed_fin = win.get("fin_ventana")
 
             if pre_computed_inicio is not None or pre_computed_fin is not None:
-                # Use pre-computed windows for this trip
                 try:
                     await self._populate_per_trip_cache_entry(
                         PerTripCacheParams(
@@ -348,17 +399,14 @@ class EMHASSAdapter:
                         pre_computed_fin_ventana=pre_computed_fin,
                     )
                 except Exception:
-                    success = False
+                    self._cached_emhass_status = "error"
             else:
-                # Fallback: process without pre-computed windows
                 trip_success = await self.async_publish_deferrable_load(trip)
                 if not trip_success:
-                    success = False
+                    self._cached_emhass_status = "error"
 
-        # BUG-6: Run deficit propagation to handle cascading charging needs
-        self._apply_deficit_propagation()
-
-        # Read horizon from config
+    def _get_horizon_hours(self) -> int:
+        """Read planning horizon from config entry."""
         horizon = 168  # default: 7 days * 24 hours
         try:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
@@ -366,12 +414,15 @@ class EMHASSAdapter:
             horizon = int(entry_data.get("planning_horizon_days", 7)) * 24
         except Exception:
             pass
-        power_profile: List[float] = [0.0] * horizon
-        deferrables_schedule: List[Dict[str, Any]] = []
+        return horizon
 
-        # Build power_profile with charging slots COMPACTED at END of window.
-        # The charging slots should only occupy the last 'def_total' positions.
-        # This follows the rule: "La carga efectiva se compacta al final de la ventana".
+    def _build_power_profile_and_schedule(
+        self,
+        horizon: int,
+        power_profile: List[float],
+        deferrables_schedule: List[Dict[str, Any]],
+    ) -> None:
+        """Build power_profile and deferrables_schedule from cached params."""
         from ..calculations.windows import build_deferrable_matrix_row
 
         for trip_id, params in self._cached_per_trip_params.items():
@@ -379,14 +430,12 @@ class EMHASSAdapter:
             end = params.get("def_end_timestep", 0)
             def_total = params.get("def_total_hours", 0)
 
-            # Build the row using the shared function (same as p_deferrable_matrix)
             row = build_deferrable_matrix_row(
                 horizon_hours=horizon,
                 charging_power_kw=watts / 1000.0 if watts else 0.0,
                 hours_needed=def_total,
                 end_timestep=end,
             )
-            # Add row power to power_profile (max for overlapping trips)
             for t, power in enumerate(row):
                 if power > 0:
                     power_profile[t] = max(power_profile[t], power)
@@ -398,12 +447,6 @@ class EMHASSAdapter:
                     "end_timestep": end,
                 }
             )
-
-        self._cached_power_profile = power_profile
-        self._cached_deferrables_schedule = deferrables_schedule
-        self._cached_emhass_status = "ready"
-
-        return success
 
     async def async_cleanup_vehicle_indices(self) -> None:
         """Clean up all indices for this vehicle."""
@@ -692,23 +735,36 @@ class EMHASSAdapter:
         if not self._cached_per_trip_params:
             return
 
-        # Collect all active trips sorted by (def_start_timestep, emhass_index)
-        active = []
+        active = self._get_active_trips_sorted()
+        if len(active) < 2:
+            return
+
+        windows, total_hours_list = self._build_deficit_windows(active)
+        if not windows:
+            return
+
+        from ..calculations import calculate_hours_deficit_propagation
+
+        results = calculate_hours_deficit_propagation(windows, total_hours_list)
+        self._apply_deficit_results(results, active)
+
+    def _get_active_trips_sorted(self) -> List[Dict[str, Any]]:
+        """Return active trips sorted by (start_timestep, index)."""
+        active: List[Dict[str, Any]] = []
         for params in self._cached_per_trip_params.values():
             if params.get("activo", False):
                 active.append(params)
         active.sort(
             key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
         )
+        return active
 
-        if len(active) < 2:
-            return  # Deficit propagation requires at least 2 trips
-
-        from ..calculations import calculate_hours_deficit_propagation
-
-        # Build windows list — one per active trip, using the first charging window
-        windows = []
-        total_hours_list = []
+    def _build_deficit_windows(
+        self, active: List[Dict[str, Any]]
+    ) -> tuple[List[Dict[str, float]], List[float]]:
+        """Build windows and total_hours lists for deficit propagation."""
+        windows: List[Dict[str, float]] = []
+        total_hours_list: List[float] = []
         for p in active:
             cws = p.get("charging_window", [])
             if cws:
@@ -718,42 +774,45 @@ class EMHASSAdapter:
                     "horas_carga_necesarias": w.get("horas_carga_necesarias", 0),
                 })
             else:
-                # No charging window — use total_hours directly
                 th = p.get("def_total_hours", 0)
                 windows.append({
                     "ventana_horas": th,
                     "horas_carga_necesarias": th,
                 })
             total_hours_list.append(p.get("def_total_hours", 0))
+        return windows, total_hours_list
 
-        if not windows:
-            return
-
-        results = calculate_hours_deficit_propagation(windows, total_hours_list)
-
-        # Update per-trip params with adjusted values from deficit propagation
+    def _apply_deficit_results(
+        self,
+        results: List[Dict[str, Any]],
+        active: List[Dict[str, Any]],
+    ) -> None:
+        """Apply deficit propagation results to cached params."""
         for i, result in enumerate(results):
             if i >= len(active):
                 break
             params = active[i]
-            trip_id = None
-            for tid, p in self._cached_per_trip_params.items():
-                if p is params:
-                    trip_id = tid
-                    break
+            trip_id = self._find_trip_id_for_params(params)
             if trip_id is None:
                 continue
 
             adjusted = result.get("adjusted_def_total_hours")
             if adjusted is not None and adjusted > 0:
-                # Store adjusted value separately — def_total_hours stays as ceil int
                 self._cached_per_trip_params[trip_id]["adjusted_def_total_hours"] = round(adjusted, 2)
-                # Update kwh_needed based on adjusted hours
                 power_watts = params.get("power_watts", 0)
                 if power_watts > 0:
                     self._cached_per_trip_params[trip_id]["kwh_needed"] = (
                         round(adjusted * (power_watts / 1000.0), 2)
                     )
+
+    def _find_trip_id_for_params(
+        self, params: Dict[str, Any]
+    ) -> Optional[str]:
+        """Find trip_id matching a params dict by identity."""
+        for tid, p in self._cached_per_trip_params.items():
+            if p is params:
+                return tid
+        return None
 
     async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         """Publish a single trip as a deferrable load.

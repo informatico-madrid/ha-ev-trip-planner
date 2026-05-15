@@ -124,37 +124,43 @@ def validate_config(  # pragma: no cover reason=YAML dashboard import abandoned 
     Raises:
         DashboardValidationError: If validation fails.
     """
-    if not isinstance(dashboard_config, dict):
+    _validate_config_root(dashboard_config)
+    _validate_config_views(dashboard_config)
+    _validate_vehicle_path(dashboard_config, vehicle_id)
+
+
+def _validate_config_root(config: DashboardConfig) -> None:
+    """Validate root-level config fields."""
+    if not isinstance(config, dict):
         raise DashboardValidationError(
             "invalid_config",
-            f"Dashboard config must be a dict, got {type(dashboard_config).__name__}",
+            f"Dashboard config must be a dict, got {type(config).__name__}",
         )
-
-    if "title" not in dashboard_config:
+    if "title" not in config:
         raise DashboardValidationError(
             "missing_title",
             "Dashboard config missing required 'title' field",
         )
-
-    if "views" not in dashboard_config:
+    if "views" not in config:
         raise DashboardValidationError(
             "missing_views",
             "Dashboard config missing required 'views' field",
         )
-
-    if not isinstance(dashboard_config["views"], list):
+    if not isinstance(config["views"], list):
         raise DashboardValidationError(
             "invalid_views_type",
             "Dashboard 'views' must be a list",
         )
-
-    if len(dashboard_config["views"]) == 0:
+    if len(config["views"]) == 0:
         raise DashboardValidationError(
             "empty_views",
             "Dashboard 'views' list cannot be empty",
         )
 
-    for i, view in enumerate(dashboard_config["views"]):
+
+def _validate_config_views(config: DashboardConfig) -> None:
+    """Validate views array structure."""
+    for i, view in enumerate(config["views"]):
         if not isinstance(view, dict):
             raise DashboardValidationError(
                 f"view_{i}_type",
@@ -176,8 +182,10 @@ def validate_config(  # pragma: no cover reason=YAML dashboard import abandoned 
                 f"Dashboard view at index {i} missing required 'cards' field",
             )
 
-    # Validate vehicle_id is in view paths
-    views = dashboard_config.get("views", [])
+
+def _validate_vehicle_path(config: DashboardConfig, vehicle_id: str) -> None:
+    """Validate vehicle_id is in view paths."""
+    views = config.get("views", [])
     has_vehicle_path = any(vehicle_id in v.get("path", "") for v in views)
     if not has_vehicle_path:
         _LOGGER.warning("Vehicle ID '%s' not found in any view path", vehicle_id)

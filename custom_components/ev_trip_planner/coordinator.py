@@ -221,10 +221,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "None" if self.data is None else list(self.data.keys()),
         )
 
-    # CC-N-ACCEPTED: cc=17 — mock data generator with branches for each trip
-    # type (punctual/recurring), datetime handling, kwh/km conversion, and
-    # energy calculation. The fallback nature requires comprehensive coverage
-    # of edge cases.
+    # CC-N-ACCEPTED: cc=10 — top-level orchestrator that delegates to helper methods
     def _generate_mock_emhass_params(
         self, trips: dict[str, dict[str, Any]]
     ) -> dict[str, Any]:
@@ -241,164 +238,22 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             Dict with emhass_power_profile, emhass_deferrables_schedule,
             emhass_status, and per_trip_emhass_params keys.
         """
-        # Read charging_power_kw from options FIRST, then data as fallback
-        # This matches the adapter.py pattern in update_charging_power()
-        charging_power_kw = self._entry.options.get(
-            "charging_power_kw"
-        ) or self._entry.data.get("charging_power_kw")
-        
-        # If charging_power_kw is None (not configured), return empty params
-        # DO NOT use DEFAULT_CHARGING_POWER as fallback - that would mislead users
-        if charging_power_kw is None:
+        config = self._extract_mock_config()
+        if config is None:
             return {
                 "emhass_power_profile": [],
                 "emhass_deferrables_schedule": [],
                 "emhass_status": "ready",
                 "per_trip_emhass_params": {},
             }
-        
-        battery_capacity_kwh = self._entry.data.get("battery_capacity_kwh", 50.0)
-        consumption_kwh_per_km = self._entry.data.get("kwh_per_km", DEFAULT_CONSUMPTION)
-        # BUG-4: Read planning_horizon_days from config instead of hardcoding 7 days
-        horizon_days = int(
-            self._entry.data.get("planning_horizon_days", 7)
+
+        charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_hours = config
+        per_trip_params, matrix = self._process_mock_trips(
+            trips, charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_hours
         )
-        horizon_hours = horizon_days * 24
-        per_trip_params: dict[str, Any] = {}
-        matrix: list[list[float]] = []
-        index_counter = 0
-
-        now = datetime.now(timezone.utc)
-
-        for trip_id, trip in trips.items():
-            # Skip completed/cancelled trips
-            status = trip.get("status", "")
-            if status in ("completed", "cancelled"):
-                continue
-
-            # BUG-3: Skip trips whose datetime is in the past
-            trip_datetime_str = trip.get("datetime", "")
-            if trip_datetime_str:
-                try:
-                    trip_dt = datetime.fromisoformat(trip_datetime_str)
-                    if trip_dt.tzinfo is None:
-                        trip_dt = trip_dt.replace(tzinfo=timezone.utc)
-                    if trip_dt <= now:
-                        continue
-                except (ValueError, TypeError):
-                    pass
-
-            kwh_needed = float(trip.get("kwh", 0))
-
-            # Calculate charging duration in hours
-            hours_needed = (
-                kwh_needed / charging_power_kw if charging_power_kw > 0 else 0
-            )
-            hours_needed = max(hours_needed, 0.1)  # minimum 0.1 hours
-
-            # Calculate charging power in watts
-            power_watts = charging_power_kw * 1000.0
-
-            # Parse trip datetime for timestep calculation
-            # For recurring trips without datetime, calculate from dia_semana + hora
-            start_timestep = 0  # Default: window starts now (single trip)
-            end_timestep = math.ceil(hours_needed)  # fallback: charging duration
-
-            try:
-                trip_dt = datetime.fromisoformat(trip_datetime_str)
-                if trip_dt.tzinfo is None:
-                    trip_dt = trip_dt.replace(tzinfo=timezone.utc)
-                delta = trip_dt - now
-                total_hours = delta.total_seconds() / 3600
-                # FIX: def_start_timestep must be 0 for single trip without hora_regreso.
-                # The charging window starts NOW (car is home), not at the trip time.
-                # def_end_timestep = when the trip departs (total_hours from now).
-                # We only set start_timestep = int(total_hours) for MULTI-trip scenarios
-                # where the window is between trips. For single trip, window is [0, end).
-                start_timestep = 0  # Single trip: window starts now
-                end_timestep = min(math.ceil(total_hours), horizon_hours)
-            except (ValueError, TypeError):
-                # For recurring trips without datetime, calculate departure from dia_semana + hora
-                trip_tipo = trip.get("tipo", "")
-                is_recurring = trip_tipo in ("recurrente", "recurring")
-                if is_recurring:
-                    day_val = trip.get("dia_semana") or trip.get("day")
-                    time_str = trip.get("hora") or trip.get("time")
-                    if day_val is not None and time_str:
-                        deadline_dt = self._calculate_recurring_departure(
-                            day_val, time_str, now
-                        )
-                        if deadline_dt is not None:
-                            delta = deadline_dt - now
-                            total_hours = delta.total_seconds() / 3600
-                            start_timestep = max(0, int(total_hours))
-                            end_timestep = min(math.ceil(total_hours), horizon_hours)
-
-            # Build p_deferrable_matrix for this trip using shared function
-            # The charging slots are placed at the END of the window (just before trip departure)
-            from .calculations.windows import build_deferrable_matrix_row
-
-            row = build_deferrable_matrix_row(
-                horizon_hours=horizon_hours,
-                charging_power_kw=charging_power_kw,
-                hours_needed=hours_needed,
-                end_timestep=end_timestep,
-            )
-            trip_matrix: list[list[float]] = []
-            if any(v > 0 for v in row):
-                trip_matrix.append(row)
-
-            if not trip_matrix:
-                # Fallback: single row
-                trip_matrix = [[0.0] * horizon_hours]
-
-            entry = {
-                "activo": True,
-                "kwh_needed": kwh_needed,
-                "km": float(trip.get("km", 0)),
-                "def_total_hours_array": [math.ceil(hours_needed)],
-                "p_deferrable_nom_array": [round(power_watts, 2)],
-                "def_start_timestep_array": [start_timestep],
-                "def_end_timestep_array": [end_timestep],
-                "p_deferrable_matrix": trip_matrix,
-                "emhass_index": index_counter,
-                "battery_capacity_kwh": battery_capacity_kwh,
-                "consumption_kwh_per_km": consumption_kwh_per_km,
-                "safety_margin_percent": float(
-                    self._entry.data.get("safety_margin_percent", 10.0)
-                ),
-                "soc_base": float(
-                    self._entry.data.get("soc_base", DEFAULT_SOC_BUFFER_PERCENT)
-                ),
-                "t_base": float(self._entry.data.get("t_base", 24.0)),
-            }
-            per_trip_params[trip_id] = entry
-
-            matrix.extend(trip_matrix)
-            index_counter += 1
-
-        # Build combined power profile (max power across all charging windows)
-        # Use horizon_hours to match the matrix row length
-        power_profile = [0.0] * horizon_hours
-        for row in matrix:
-            for i, v in enumerate(row):
-                power_profile[i] = max(power_profile[i], v)
-
-        # Generate mock deferrables_schedule from per_trip_params
-        deferrables_schedule: list[Any] = []
-        for trip_id, params in per_trip_params.items():
-            deferrables_schedule.append(
-                {
-                    "index": params.get("emhass_index", 0),
-                    "kwh": params.get("kwh_needed", 0),
-                    "start_timestep": params.get("def_start_timestep_array", [0])[0]
-                    if params.get("def_start_timestep_array")
-                    else 0,
-                    "end_timestep": params.get("def_end_timestep_array", [horizon_hours])[0]
-                    if params.get("def_end_timestep_array")
-                    else horizon_hours,
-                }
-            )
+        power_profile, deferrables_schedule = self._build_mock_output(
+            matrix, per_trip_params, horizon_hours
+        )
 
         return {
             "emhass_power_profile": power_profile,
@@ -406,6 +261,169 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "emhass_status": "ready",
             "per_trip_emhass_params": per_trip_params,
         }
+
+    def _extract_mock_config(self) -> tuple[float, float, float, int] | None:
+        """Extract config values for mock generation. Returns None if charging_power unavailable."""
+        charging_power_kw = self._entry.options.get(
+            "charging_power_kw"
+        ) or self._entry.data.get("charging_power_kw")
+        if charging_power_kw is None:
+            return None
+        battery_capacity_kwh = self._entry.data.get("battery_capacity_kwh", 50.0)
+        consumption_kwh_per_km = self._entry.data.get("kwh_per_km", DEFAULT_CONSUMPTION)
+        horizon_days = int(self._entry.data.get("planning_horizon_days", 7))
+        return charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_days * 24
+
+    def _process_mock_trips(
+        self,
+        trips: dict[str, dict[str, Any]],
+        charging_power_kw: float,
+        battery_capacity_kwh: float,
+        consumption_kwh_per_km: float,
+        horizon_hours: int,
+    ) -> tuple[dict[str, Any], list[list[float]]]:
+        """Process all trips and return (per_trip_params, matrix)."""
+        per_trip_params: dict[str, Any] = {}
+        matrix: list[list[float]] = []
+        index_counter = 0
+        now = datetime.now(timezone.utc)
+
+        for trip_id, trip in trips.items():
+            if not self._should_process_trip(trip, now):
+                continue
+            entry, trip_matrix = self._process_single_mock_trip(
+                trip, trip_id, charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_hours, now, index_counter
+            )
+            if entry is not None:
+                per_trip_params[trip_id] = entry
+                matrix.extend(trip_matrix)
+                index_counter += 1
+
+        return per_trip_params, matrix
+
+    def _should_process_trip(self, trip: dict[str, Any], now: datetime) -> bool:
+        """Check if trip should be processed (not completed/cancelled/past)."""
+        if trip.get("status", "") in ("completed", "cancelled"):
+            return False
+        trip_datetime_str = trip.get("datetime", "")
+        if trip_datetime_str:
+            try:
+                trip_dt = datetime.fromisoformat(trip_datetime_str)
+                if trip_dt.tzinfo is None:
+                    trip_dt = trip_dt.replace(tzinfo=timezone.utc)
+                if trip_dt <= now:
+                    return False
+            except (ValueError, TypeError):
+                pass
+        return True
+
+    def _process_single_mock_trip(
+        self,
+        trip: dict[str, Any],
+        trip_id: str,
+        charging_power_kw: float,
+        battery_capacity_kwh: float,
+        consumption_kwh_per_km: float,
+        horizon_hours: int,
+        now: datetime,
+        index_counter: int,
+    ) -> tuple[dict[str, Any] | None, list[list[float]]]:
+        """Process a single trip and return (entry, trip_matrix). Returns (None, []) if skipped."""
+        kwh_needed = float(trip.get("kwh", 0))
+        hours_needed = max(kwh_needed / charging_power_kw if charging_power_kw > 0 else 0, 0.1)
+        power_watts = charging_power_kw * 1000.0
+        start_timestep, end_timestep = self._calculate_mock_timesteps(
+            trip, charging_power_kw, horizon_hours, hours_needed, now
+        )
+        from .calculations.windows import build_deferrable_matrix_row
+
+        row = build_deferrable_matrix_row(
+            horizon_hours=horizon_hours,
+            charging_power_kw=charging_power_kw,
+            hours_needed=hours_needed,
+            end_timestep=end_timestep,
+        )
+        trip_matrix: list[list[float]] = [row] if any(v > 0 for v in row) else [[0.0] * horizon_hours]
+
+        entry = {
+            "activo": True,
+            "kwh_needed": kwh_needed,
+            "km": float(trip.get("km", 0)),
+            "def_total_hours_array": [math.ceil(hours_needed)],
+            "p_deferrable_nom_array": [round(power_watts, 2)],
+            "def_start_timestep_array": [start_timestep],
+            "def_end_timestep_array": [end_timestep],
+            "p_deferrable_matrix": trip_matrix,
+            "emhass_index": index_counter,
+            "battery_capacity_kwh": battery_capacity_kwh,
+            "consumption_kwh_per_km": consumption_kwh_per_km,
+            "safety_margin_percent": float(self._entry.data.get("safety_margin_percent", 10.0)),
+            "soc_base": float(self._entry.data.get("soc_base", DEFAULT_SOC_BUFFER_PERCENT)),
+            "t_base": float(self._entry.data.get("t_base", 24.0)),
+        }
+        return entry, trip_matrix
+
+    def _calculate_mock_timesteps(
+        self,
+        trip: dict[str, Any],
+        charging_power_kw: float,
+        horizon_hours: int,
+        hours_needed: float,
+        now: datetime,
+    ) -> tuple[int, int]:
+        """Calculate start and end timesteps for a mock trip."""
+        trip_datetime_str = trip.get("datetime", "")
+        start_timestep = 0
+        end_timestep = math.ceil(hours_needed)
+
+        if trip_datetime_str:
+            try:
+                trip_dt = datetime.fromisoformat(trip_datetime_str)
+                if trip_dt.tzinfo is None:
+                    trip_dt = trip_dt.replace(tzinfo=timezone.utc)
+                delta = trip_dt - now
+                total_hours = delta.total_seconds() / 3600
+                start_timestep = 0
+                end_timestep = min(math.ceil(total_hours), horizon_hours)
+            except (ValueError, TypeError):
+                trip_tipo = trip.get("tipo", "")
+                if trip_tipo in ("recurrente", "recurring"):
+                    day_val = trip.get("dia_semana") or trip.get("day")
+                    time_str = trip.get("hora") or trip.get("time")
+                    if day_val is not None and time_str:
+                        deadline_dt = self._calculate_recurring_departure(day_val, time_str, now)
+                        if deadline_dt is not None:
+                            delta = deadline_dt - now
+                            total_hours = delta.total_seconds() / 3600
+                            start_timestep = max(0, int(total_hours))
+                            end_timestep = min(math.ceil(total_hours), horizon_hours)
+        return start_timestep, end_timestep
+
+    def _build_mock_output(
+        self,
+        matrix: list[list[float]],
+        per_trip_params: dict[str, Any],
+        horizon_hours: int,
+    ) -> tuple[list[float], list[Any]]:
+        """Build power_profile and deferrables_schedule from processed trips."""
+        power_profile = [0.0] * horizon_hours
+        for row in matrix:
+            for i, v in enumerate(row):
+                power_profile[i] = max(power_profile[i], v)
+
+        deferrables_schedule: list[Any] = []
+        for trip_id, params in per_trip_params.items():
+            deferrables_schedule.append({
+                "index": params.get("emhass_index", 0),
+                "kwh": params.get("kwh_needed", 0),
+                "start_timestep": params.get("def_start_timestep_array", [0])[0]
+                if params.get("def_start_timestep_array")
+                else 0,
+                "end_timestep": params.get("def_end_timestep_array", [horizon_hours])[0]
+                if params.get("def_end_timestep_array")
+                else horizon_hours,
+            })
+        return power_profile, deferrables_schedule
 
     def _calculate_recurring_departure(
         self, day_val: Any, time_str: str, now: datetime

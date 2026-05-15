@@ -144,10 +144,49 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
     )
 
     # Validate inputs
+    validation_result = _validate_inputs(vehicle_id, vehicle_name, dashboard_type)
+    if not validation_result["valid"]:
+        return validation_result["result"]
+
+    # Check if Lovelace is available
+    if not is_lovelace_available(hass):
+        return _make_error(
+            vehicle_id, vehicle_name, dashboard_type,
+            "Lovelace UI not available - dashboard cannot be deployed",
+            {"check_lovelace": True},
+        )
+
+    _LOGGER.info("Lovelace available, proceeding with dashboard import")
+
+    # Load dashboard template
+    dashboard_config, load_error = await _load_dashboard_template_step(
+        hass, vehicle_id, vehicle_name, use_charts, dashboard_type
+    )
+    if load_error is not None:
+        return load_error
+
+    # Validate dashboard config before saving
+    try:
+        _validate_config(dashboard_config, vehicle_id)
+    except DashboardValidationError as e:
+        return _make_error(
+            vehicle_id, vehicle_name, dashboard_type,
+            f"Dashboard validation failed: {str(e)}",
+            e.details,
+        )
+
+    # Try storage API first, then YAML fallback
+    return await _try_save_dashboard(hass, dashboard_config, vehicle_id, vehicle_name, dashboard_type)
+
+
+def _validate_inputs(
+    vehicle_id: str, vehicle_name: str, dashboard_type: str
+) -> dict:
+    """Validate input parameters. Returns {'valid': True} or {'valid': False, 'result': DashboardImportResult}."""
     if not vehicle_id or not isinstance(vehicle_id, str):
         error_msg = "Invalid vehicle_id: must be a non-empty string"
         _LOGGER.error("DASHBOARD IMPORT FAILED: %s", error_msg)
-        return DashboardImportResult(
+        return {"valid": False, "result": DashboardImportResult(
             success=False,
             vehicle_id=vehicle_id or "unknown",
             vehicle_name=vehicle_name,
@@ -155,12 +194,12 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
             error_details={"validation": "invalid_vehicle_id"},
             dashboard_type=dashboard_type,
             storage_method="none",
-        )
+        )}
 
     if not vehicle_name or not isinstance(vehicle_name, str):
         error_msg = "Invalid vehicle_name: must be a non-empty string"
         _LOGGER.error("DASHBOARD IMPORT FAILED: %s", error_msg)
-        return DashboardImportResult(
+        return {"valid": False, "result": DashboardImportResult(
             success=False,
             vehicle_id=vehicle_id,
             vehicle_name=vehicle_name or "unknown",
@@ -168,46 +207,50 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
             error_details={"validation": "invalid_vehicle_name"},
             dashboard_type=dashboard_type,
             storage_method="none",
-        )
+        )}
 
-    # Check if Lovelace is available
-    if not is_lovelace_available(hass):
-        error_msg = "Lovelace UI not available - dashboard cannot be deployed"
-        _LOGGER.error(
-            "DASHBOARD IMPORT FAILED: Lovelace not available for %s (ID: %s)",
-            vehicle_name,
-            vehicle_id,
-        )
-        return DashboardImportResult(
-            success=False,
-            vehicle_id=vehicle_id,
-            vehicle_name=vehicle_name,
-            error=error_msg,
-            error_details={"check_lovelace": True},
-            dashboard_type=dashboard_type,
-            storage_method="none",
-        )
+    return {"valid": True}
 
-    _LOGGER.info("Lovelace available, proceeding with dashboard import")
 
-    # Load dashboard template
+def _make_error(
+    vehicle_id: str, vehicle_name: str, dashboard_type: str,
+    error_msg: str, error_details: dict,
+) -> DashboardImportResult:
+    """Create a standardized error result."""
+    _LOGGER.error("DASHBOARD IMPORT FAILED: %s", error_msg)
+    return DashboardImportResult(
+        success=False,
+        vehicle_id=vehicle_id,
+        vehicle_name=vehicle_name,
+        error=error_msg,
+        error_details=error_details,
+        dashboard_type=dashboard_type,
+        storage_method="none",
+    )
+
+
+async def _load_dashboard_template_step(
+    hass: HomeAssistant,
+    vehicle_id: str,
+    vehicle_name: str,
+    use_charts: bool,
+    dashboard_type: str,
+) -> tuple[Optional[DashboardConfig], Optional[DashboardImportResult]]:
+    """Load dashboard template with comprehensive error handling.
+    
+    Returns (config, None) on success, or (None, error_result) on failure.
+    """
     try:
         dashboard_config = await _load_template(
             hass, vehicle_id, vehicle_name, use_charts
         )
 
         if dashboard_config is None:
-            error_msg = "Failed to load dashboard template"
-            _LOGGER.error(
-                "DASHBOARD IMPORT FAILED: Could not load template for %s (ID: %s)",
-                vehicle_name,
-                vehicle_id,
-            )
-            return DashboardImportResult(
+            return None, DashboardImportResult(
                 success=False,
                 vehicle_id=vehicle_id,
                 vehicle_name=vehicle_name,
-                error=error_msg,
+                error="Failed to load dashboard template",
                 error_details={"stage": "template_load"},
                 dashboard_type=dashboard_type,
                 storage_method="none",
@@ -218,51 +261,39 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
             vehicle_name,
             len(dashboard_config.get("views", [])),
         )
+        return dashboard_config, None
 
     except DashboardNotFoundError as e:
-        error_msg = f"Template not found: {str(e)}"
-        _LOGGER.error("DASHBOARD IMPORT FAILED: %s", error_msg)
-        return DashboardImportResult(
+        return None, DashboardImportResult(
             success=False,
             vehicle_id=vehicle_id,
             vehicle_name=vehicle_name,
-            error=error_msg,
+            error=f"Template not found: {str(e)}",
             error_details=e.details,
             dashboard_type=dashboard_type,
             storage_method="none",
         )
 
     except Exception as e:
-        error_msg = f"Unexpected error loading template: {str(e)}"
-        _LOGGER.error(
-            "DASHBOARD IMPORT FAILED: Exception loading template: %s", e, exc_info=True
-        )
-        return DashboardImportResult(
+        return None, DashboardImportResult(
             success=False,
             vehicle_id=vehicle_id,
             vehicle_name=vehicle_name,
-            error=error_msg,
+            error=f"Unexpected error loading template: {str(e)}",
             error_details={"exception": str(e), "stage": "template_load"},
             dashboard_type=dashboard_type,
             storage_method="none",
         )
 
-    # Validate dashboard config before saving
-    try:
-        _validate_config(dashboard_config, vehicle_id)
-    except DashboardValidationError as e:
-        error_msg = f"Dashboard validation failed: {str(e)}"
-        _LOGGER.error("DASHBOARD IMPORT FAILED: Validation error: %s", e)
-        return DashboardImportResult(
-            success=False,
-            vehicle_id=vehicle_id,
-            vehicle_name=vehicle_name,
-            error=error_msg,
-            error_details=e.details,
-            dashboard_type=dashboard_type,
-            storage_method="none",
-        )
 
+async def _try_save_dashboard(
+    hass: HomeAssistant,
+    dashboard_config: DashboardConfig,
+    vehicle_id: str,
+    vehicle_name: str,
+    dashboard_type: str,
+) -> DashboardImportResult:
+    """Try storage API first, then YAML fallback."""
     storage_method = "none"
 
     # Try to save using the Lovelace storage API first
@@ -309,6 +340,17 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
         _LOGGER.warning("Storage API exception, attempting YAML fallback: %s", e)
 
     # Fallback: Generate YAML file for Container environment
+    return await _yaml_fallback(hass, dashboard_config, vehicle_id, vehicle_name, dashboard_type)
+
+
+async def _yaml_fallback(
+    hass: HomeAssistant,
+    dashboard_config: DashboardConfig,
+    vehicle_id: str,
+    vehicle_name: str,
+    dashboard_type: str,
+) -> DashboardImportResult:
+    """YAML fallback for Container environment."""
     _LOGGER.info("Attempting YAML fallback for Container environment")
     try:
         yaml_result = await _save_yaml(hass, dashboard_config, vehicle_id, vehicle_name)
@@ -340,7 +382,6 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
             )
 
         if yaml_result is True:
-            storage_method = "yaml_fallback"
             _LOGGER.info(
                 "=== DASHBOARD IMPORT SUCCESS === via YAML fallback for %s",
                 vehicle_name,
@@ -350,7 +391,7 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
                 vehicle_id=vehicle_id,
                 vehicle_name=vehicle_name,
                 dashboard_type=dashboard_type,
-                storage_method=storage_method,
+                storage_method="yaml_fallback",
             )
 
         _LOGGER.error(
