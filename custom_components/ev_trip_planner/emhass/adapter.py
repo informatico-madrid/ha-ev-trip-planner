@@ -530,14 +530,25 @@ class EMHASSAdapter:
                     total_hours = math.ceil(capped_hours) if capped_hours > 0 else 0
                     energy_info["energia_necesaria_kwh"] = capped_energy
 
-            # def_end_timestep is derived from def_start + def_total_hours to
-            # maintain the invariant def_end == def_start + def_total_hours,
-            # unless overridden by pre_computed_fin_ventana (batch/test mode).
+            # def_end_timestep is based on fin_ventana (trip departure), not
+            # def_start + total_hours (which would make it equal charging time).
+            # The charging window = opportunity to charge, which is larger than
+            # the actual charging duration needed.
             if not _pre_computed_fin:
-                def_end_timestep = def_start_timestep + total_hours
+                if charging_windows and charging_windows[0].get("fin_ventana"):
+                    fin = charging_windows[0]["fin_ventana"]
+                    delta_fin = (
+                        self._load_publisher._ensure_aware(fin) - now
+                    ).total_seconds() / 3600
+                    # Use ceil with small epsilon to avoid floating point truncation
+                    # issues (e.g., 47.999999 -> int = 47, but ceil = 48)
+                    def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), 168))
+                else:
+                    def_end_timestep = def_start_timestep + total_hours
 
         # Always store the cache entry (even if deadline was None)
         self._cached_per_trip_params[trip_id] = {
+            "activo": True,
             "emhass_index": emhass_index,
             "def_start_timestep": def_start_timestep,
             "def_end_timestep": def_end_timestep,
@@ -546,6 +557,11 @@ class EMHASSAdapter:
             "power_watts": charging_power_kw * 1000 if total_hours > 0 else 0.0,
             "kwh_needed": total_hours * charging_power_kw,
             "charging_window": charging_windows,
+            # Keys expected by sensor entity aggregation
+            "def_total_hours_array": [total_hours] if total_hours > 0 else [0],
+            "p_deferrable_nom_array": [charging_power_kw * 1000] if total_hours > 0 else [0],
+            "def_start_timestep_array": [def_start_timestep],
+            "def_end_timestep_array": [def_end_timestep],
         }
 
     async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:

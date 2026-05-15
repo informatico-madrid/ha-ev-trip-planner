@@ -127,16 +127,25 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(mock_hass, mock_sto
     params = adapter._cached_per_trip_params.get(trip["id"])
     def_start = params.get("def_start_timestep")
     def_end = params.get("def_end_timestep")
+    def_total_hours = params.get("def_total_hours")
 
-    # With the fix: def_end should be based on fin_ventana (deadline)
-    # not just hours_available
-    # When car has returned, charging can start immediately (def_start=0)
-    # and should continue until deadline (def_end=48)
-    assert def_end >= 48, f"def_end ({def_end}) should be >= 48 (hours to deadline)"
+    # After BUG-2 fix: def_end is based on fin_ventana (trip departure), NOT
+    # def_start + def_total_hours. The charging window = opportunity to charge,
+    # which spans from inicio_ventana to fin_ventana (full window, not just charging time).
+    # In this case: def_start=0 (car home), def_end=48 (trip departure in 48h),
+    # def_total_hours=2 (actual charging time needed).
+    window_size = def_end - def_start
+
+    assert window_size >= def_total_hours, (
+        f"Window ({window_size}h) too small for {def_total_hours}h charging"
+    )
 
     assert def_end > def_start, (
         f"def_end ({def_end}) should be > def_start ({def_start})"
     )
+
+    # Verify def_end is based on fin_ventana (trip departure time)
+    assert def_end == 48, f"def_end ({def_end}) should be 48 (trip departure in 48h)"
 
 
 if __name__ == "__main__":

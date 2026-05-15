@@ -644,6 +644,7 @@ def mock_config_entry_full():
         "soc_base": 20.0,
         "t_base": 24.0,
     }
+    entry.options = {}
     return entry
 
 
@@ -690,7 +691,7 @@ async def test_generate_mock_emhass_params_single_trip(mock_coordinator):
     assert trip_params["activo"] is True
     assert trip_params["kwh_needed"] == 30.0
     assert trip_params["km"] == 100.0
-    assert trip_params["def_total_hours_array"] == [round(30.0 / 7.4, 2)]
+    assert trip_params["def_total_hours_array"] == [5]
     assert trip_params["p_deferrable_nom_array"] == [round(7.4 * 1000.0, 2)]
     assert trip_params["safety_margin_percent"] == 10.0
     assert trip_params["soc_base"] == 20.0
@@ -721,7 +722,7 @@ async def test_generate_mock_emhass_params_multiple_trips(mock_coordinator):
 
     # Verify power_profile has max across all trips
     power_profile = result["emhass_power_profile"]
-    assert len(power_profile) == 96
+    assert len(power_profile) == 168
     assert max(power_profile) > 0  # Should have some charging power
 
 
@@ -822,8 +823,8 @@ async def test_generate_mock_emhass_params_charging_power_zero(
     result = coordinator._generate_mock_emhass_params(trips)
 
     trip_params = result["per_trip_emhass_params"]["trip_001"]
-    # Should use minimum 0.1 hours when charging_power_kw is 0
-    assert trip_params["def_total_hours_array"] == [0.1]
+    # With BUG-1 fix: math.ceil(minimum 0.1) = 1 (1-hour timestep resolution)
+    assert trip_params["def_total_hours_array"] == [1]
 
 
 async def test_generate_mock_emhass_params_naive_datetime(
@@ -902,7 +903,7 @@ async def test_generate_mock_emhass_params_calls_fallback_in_async_update(
     # Mock the EMHASS adapter to return empty per_trip_params to trigger fallback
     mock_adapter = MagicMock()
     mock_adapter.get_cached_optimization_results.return_value = {
-        "emhass_power_profile": [0.0] * 96,
+        "emhass_power_profile": [0.0] * 168,
         "emhass_deferrables_schedule": [],
         "emhass_status": "ready",
         "per_trip_emhass_params": {},  # Empty — triggers fallback
@@ -982,7 +983,7 @@ async def test_async_update_data_covers_mock_fallback(
     )
     # Configure mock adapter to return empty per_trip_params (triggers fallback at line 146)
     mock_emhass_adapter.get_cached_optimization_results.return_value = {
-        "emhass_power_profile": [0.0] * 96,
+        "emhass_power_profile": [0.0] * 168,
         "emhass_deferrables_schedule": [],
         "emhass_status": "ready",
         "per_trip_emhass_params": {},  # Empty → triggers line 147 fallback
