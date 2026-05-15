@@ -67,8 +67,11 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
     - overall_total: int
     """
     try:
+        # Use string with shell=True so && chaining works correctly.
+        # When shell=True with a list, only the first element is used as command
+        # and rest become positional args — so we must use a single string.
         result = subprocess.run(
-            [".venv/bin/activate", "&&", "mutmut", "results", "--all", "true"],
+            ". .venv/bin/activate && mutmut results --all true",
             cwd=str(project_root),
             capture_output=True,
             text=True,
