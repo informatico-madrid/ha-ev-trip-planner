@@ -241,9 +241,22 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             Dict with emhass_power_profile, emhass_deferrables_schedule,
             emhass_status, and per_trip_emhass_params keys.
         """
-        charging_power_kw = self._entry.data.get(
-            "charging_power_kw", DEFAULT_CHARGING_POWER
-        )
+        # Read charging_power_kw from options FIRST, then data as fallback
+        # This matches the adapter.py pattern in update_charging_power()
+        charging_power_kw = self._entry.options.get(
+            "charging_power_kw"
+        ) or self._entry.data.get("charging_power_kw")
+        
+        # If charging_power_kw is None (not configured), return empty params
+        # DO NOT use DEFAULT_CHARGING_POWER as fallback - that would mislead users
+        if charging_power_kw is None:
+            return {
+                "emhass_power_profile": [],
+                "emhass_deferrables_schedule": [],
+                "emhass_status": "ready",
+                "per_trip_emhass_params": {},
+            }
+        
         battery_capacity_kwh = self._entry.data.get("battery_capacity_kwh", 50.0)
         consumption_kwh_per_km = self._entry.data.get("kwh_per_km", DEFAULT_CONSUMPTION)
         per_trip_params: dict[str, Any] = {}

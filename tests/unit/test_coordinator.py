@@ -39,7 +39,7 @@ def _make_mock_hass():
     return hass
 
 
-def _make_mock_entry(vehicle_name="test_vehicle", extra_data=None):
+def _make_mock_entry(vehicle_name="test_vehicle", extra_data=None, extra_options=None):
     """Create a minimal mock ConfigEntry."""
     entry = MagicMock()
     entry.entry_id = "test_entry"
@@ -52,6 +52,7 @@ def _make_mock_entry(vehicle_name="test_vehicle", extra_data=None):
         "soc_base": 20.0,
         "t_base": 24.0,
     }
+    entry.options = extra_options or {}
     if extra_data:
         entry.data.update(extra_data)
     return entry
@@ -174,6 +175,7 @@ class TestCoordinatorAsyncUpdateData:
         assert result["hours_today"] == 2.0
         assert result["next_trip"] is None
         assert result["emhass_power_profile"] == [100, 200, 300]
+        assert all(isinstance(v, int) for v in result["emhass_power_profile"])
         tm._crud.async_get_recurring_trips.assert_called_once()
         tm._crud.async_get_punctual_trips.assert_called_once()
         tm._soc_query.async_get_kwh_needed_today.assert_called_once()
@@ -327,7 +329,7 @@ class TestGenerateMockEmhassParams:
         assert "rec_1" not in result["per_trip_emhass_params"]
 
     def test_mock_params_matrix_shape(self):
-        """Generated matrix rows have 96 columns (24h * 4 timesteps)."""
+        """Generated matrix rows have 168 columns (7d * 24h)."""
         coord = self._make_coord_for_mock()
         trips = {
             "rec_1": {
@@ -343,7 +345,7 @@ class TestGenerateMockEmhassParams:
         matrix = params.get("p_deferrable_matrix", [])
         assert len(matrix) > 0
         for row in matrix:
-            assert len(row) == 96
+            assert len(row) == 168
 
     def test_mock_params_deferrables_schedule(self):
         """Deferrables schedule entries have correct structure."""
@@ -377,8 +379,8 @@ class TestGenerateMockEmhassParams:
         }
         result = coord._generate_mock_emhass_params(trips)
         params = result["per_trip_emhass_params"]["rec_1"]
-        # hours_needed should be max(0/0, 0.1) = 0.1
-        assert params["def_total_hours_array"] == [0.1]
+        # BUG-1 fix: math.ceil(max(0/0, 0.1)) = math.ceil(0.1) = 1
+        assert params["def_total_hours_array"] == [1]
 
     def test_mock_params_invalid_datetime(self):
         """Invalid datetime string handled gracefully."""
