@@ -164,6 +164,7 @@ async def import_dashboard(  # pragma: no cover reason=YAML dashboard import aba
     )
     if load_error is not None:
         return load_error
+    assert dashboard_config is not None
 
     # Validate dashboard config before saving
     try:

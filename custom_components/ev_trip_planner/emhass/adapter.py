@@ -277,7 +277,7 @@ class EMHASSAdapter:
 
         # Pre-compute multi-trip charging windows and process trips
         battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
-        soc_current = await self._precompute_and_process_trips(
+        await self._precompute_and_process_trips(
             trips, battery_capacity_kwh
         )
 
@@ -307,7 +307,6 @@ class EMHASSAdapter:
         Returns the soc_current used for processing.
         """
         from homeassistant.util import dt as dt_util
-        from ..calculations.windows import calculate_multi_trip_charging_windows
 
         now = dt_util.now()
         soc_current = await self._get_current_soc()

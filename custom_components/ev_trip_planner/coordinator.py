@@ -22,7 +22,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_VEHICLE_NAME,
-    DEFAULT_CHARGING_POWER,
     DEFAULT_CONSUMPTION,
     DEFAULT_SOC_BUFFER_PERCENT,
     DOMAIN,
