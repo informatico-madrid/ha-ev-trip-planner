@@ -670,7 +670,7 @@ async def test_generate_mock_emhass_params_single_trip(mock_coordinator):
         "trip_001": {
             "kwh": 30.0,
             "km": 100.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
+            "datetime": "2026-05-20T08:00:00+00:00",
             "status": "pendiente",
         }
     }
@@ -704,13 +704,13 @@ async def test_generate_mock_emhass_params_multiple_trips(mock_coordinator):
         "trip_001": {
             "kwh": 10.0,
             "km": 50.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
+            "datetime": "2026-05-20T08:00:00+00:00",
             "status": "pendiente",
         },
         "trip_002": {
             "kwh": 20.0,
             "km": 80.0,
-            "datetime": "2026-05-03T12:00:00+00:00",
+            "datetime": "2026-05-20T12:00:00+00:00",
             "status": "pendiente",
         },
     }
@@ -732,19 +732,19 @@ async def test_generate_mock_emhass_params_skip_completed(mock_coordinator):
         "trip_001": {
             "kwh": 30.0,
             "km": 100.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
+            "datetime": "2026-05-20T08:00:00+00:00",
             "status": "completed",
         },
         "trip_002": {
             "kwh": 20.0,
             "km": 80.0,
-            "datetime": "2026-05-03T12:00:00+00:00",
+            "datetime": "2026-05-20T12:00:00+00:00",
             "status": "cancelled",
         },
         "trip_003": {
             "kwh": 10.0,
             "km": 50.0,
-            "datetime": "2026-05-04T08:00:00+00:00",
+            "datetime": "2026-05-21T08:00:00+00:00",
             "status": "pendiente",
         },
     }
@@ -816,7 +816,7 @@ async def test_generate_mock_emhass_params_charging_power_zero(
         "trip_001": {
             "kwh": 30.0,
             "km": 100.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
+            "datetime": "2026-05-20T08:00:00+00:00",
             "status": "pendiente",
         },
     }
@@ -850,7 +850,7 @@ async def test_generate_mock_emhass_params_naive_datetime(
         "trip_001": {
             "kwh": 30.0,
             "km": 100.0,
-            "datetime": "2026-05-03T08:00:00",  # No timezone info
+            "datetime": "2026-05-20T08:00:00",  # No timezone info — treated as UTC
             "status": "pendiente",
         },
     }
@@ -915,7 +915,7 @@ async def test_generate_mock_emhass_params_calls_fallback_in_async_update(
             "trip_001": {
                 "kwh": 30.0,
                 "km": 100.0,
-                "datetime": "2026-05-03T08:00:00+00:00",
+                "datetime": "2026-05-20T08:00:00+00:00",
                 "status": "pendiente",
             }
         }
@@ -998,7 +998,7 @@ async def test_async_update_data_covers_mock_fallback(
                 "id": "trip_001",
                 "kwh": 30.0,
                 "km": 100.0,
-                "datetime": "2026-05-03T08:00:00+00:00",
+                "datetime": "2026-05-20T08:00:00+00:00",
                 "status": "pendiente",
             }
         ]

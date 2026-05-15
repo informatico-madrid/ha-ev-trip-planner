@@ -1100,15 +1100,15 @@ class TestEMHASSAdapterPublishAll:
     """Test async_publish_all_deferrable_loads."""
 
     @pytest.mark.asyncio
-    async def test_publish_all_empty_returns_false(self, mock_hass, mock_entry):
-        """async_publish_all_deferrable_loads returns False for empty list."""
+    async def test_publish_all_empty_clears_cache(self, mock_hass, mock_entry):
+        """async_publish_all_deferrable_loads clears cache and returns True for empty list."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         result = await adapter.async_publish_all_deferrable_loads([])
-        assert result is False
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_publish_all_sets_shutdown_skips(self, mock_hass, mock_entry):

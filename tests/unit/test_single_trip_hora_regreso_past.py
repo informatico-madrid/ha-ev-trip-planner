@@ -62,8 +62,8 @@ class TestSingleTripHoraRegresoPast:
         This is the REAL bug scenario observed in production:
         - Car was already home when HA started (no off->on transition)
         - hora_regreso was never recorded -> None
-        - Calculations used: departure - 6h -> timestep 67+
-        - Should use: now -> timestep 0
+        - OLD buggy code: departure - 6h -> timestep 67+
+        - FIXED code: now -> timestep 0
         """
         now = datetime.now(timezone.utc)
         trip_deadline = now + timedelta(hours=96)
@@ -85,16 +85,16 @@ class TestSingleTripHoraRegresoPast:
 
         result = results[0]
 
-        # Key assertion: window should start from now, not from departure - 6h
+        # hora_regreso=None means car is assumed home -> window starts from now
         assert result["inicio_ventana"] >= now, (
             f"Charging window should start from now when hora_regreso is None. "
-            f"got inicio_ventana={result['inicio_ventana']} "
-            f"(now={now}, departure={trip_deadline})"
+            f"got inicio_ventana={result['inicio_ventana']}, "
+            f"now={now}, departure={trip_deadline}"
         )
 
         assert result["ventana_horas"] == pytest.approx(96.0, abs=0.02), (
             f"ventana_horas={result['ventana_horas']:.2f}h should be ~96h "
-            f"(96h to departure, start from now)"
+            f"(now to departure)"
         )
 
     def test_single_trip_hora_regreso_future_doesnt_charge_yet(self):

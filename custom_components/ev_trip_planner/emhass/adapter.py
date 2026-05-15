@@ -130,7 +130,10 @@ class EMHASSAdapter:
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         """Remove a deferrable load."""
         try:
-            return await self._load_publisher.remove(trip_id)
+            success = await self._load_publisher.remove(trip_id)
+            # Clean stale cache entry to prevent cross-test pollution
+            self._cached_per_trip_params.pop(trip_id, None)
+            return success
         except Exception as err:
             self._error_handler.handle_error("remove", err, {"trip_id": trip_id})
             return False
@@ -277,24 +280,46 @@ class EMHASSAdapter:
             if not trip_success:
                 success = False
 
-        # Build combined power profile from per-trip cache entries
-        # (one entry per hour spanning the planning horizon)
-        horizon = 168  # 7 days * 24 hours
+        # BUG-6: Run deficit propagation to handle cascading charging needs
+        self._apply_deficit_propagation()
+
+        # Read horizon from config
+        horizon = 168  # default: 7 days * 24 hours
+        try:
+            entry_data = dict(getattr(self._entry, "options", {}) or {})
+            entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
+            horizon = int(entry_data.get("planning_horizon_days", 7)) * 24
+        except Exception:
+            pass
         power_profile: List[float] = [0.0] * horizon
         deferrables_schedule: List[Dict[str, Any]] = []
 
+        # Build power_profile with charging slots COMPACTED at END of window.
+        # The charging slots should only occupy the last 'def_total' positions.
+        # This follows the rule: "La carga efectiva se compacta al final de la ventana".
+        from ..calculations.windows import build_deferrable_matrix_row
+
         for trip_id, params in self._cached_per_trip_params.items():
             watts = params.get("power_watts", 0)
-            start = params.get("def_start_timestep", 0)
             end = params.get("def_end_timestep", 0)
-            for t in range(start, min(end, horizon)):
-                if 0 <= t < horizon:
-                    power_profile[t] = max(power_profile[t], float(watts))
+            def_total = params.get("def_total_hours", 0)
+
+            # Build the row using the shared function (same as p_deferrable_matrix)
+            row = build_deferrable_matrix_row(
+                horizon_hours=horizon,
+                charging_power_kw=watts / 1000.0 if watts else 0.0,
+                hours_needed=def_total,
+                end_timestep=end,
+            )
+            # Add row power to power_profile (max for overlapping trips)
+            for t, power in enumerate(row):
+                if power > 0:
+                    power_profile[t] = max(power_profile[t], power)
             deferrables_schedule.append(
                 {
                     "index": params.get("emhass_index", 0),
                     "kwh": params.get("kwh_needed", 0),
-                    "start_timestep": start,
+                    "start_timestep": params.get("def_start_timestep", 0),
                     "end_timestep": end,
                 }
             )
@@ -408,8 +433,9 @@ class EMHASSAdapter:
         safety_margin_percent = params.safety_margin_percent
         soc_current = params.soc_current
 
-        # Read t_base from config entry (T_BASE wiring — BUG-4)
+        # Read t_base and planning_horizon from config entry (BUG-4)
         t_base = 24.0  # default
+        horizon_hours = 168  # default: 7 days * 24 hours
         entry = self._entry
         if entry:
             entry_data = dict(getattr(entry, "options", {}) or {})
@@ -417,6 +443,8 @@ class EMHASSAdapter:
             t_base = float(
                 entry_data.get("t_base", entry_data.get("CONF_T_BASE", 24.0))
             )
+            horizon_days = int(entry_data.get("planning_horizon_days", 7))
+            horizon_hours = horizon_days * 24
 
         # Assign index if not already assigned
         if trip_id not in self._index_map:
@@ -431,7 +459,7 @@ class EMHASSAdapter:
         deadline_dt = self._calculate_deadline_from_trip(trip)
 
         def_start_timestep = 0
-        def_end_timestep = 168  # default: 1 week horizon
+        def_end_timestep = horizon_hours  # default: configurable horizon
         total_hours = 0.0
         charging_windows: List[Dict[str, Any]] = []
 
@@ -445,7 +473,7 @@ class EMHASSAdapter:
                 soc_current=soc_current,
             )
 
-            def_end_timestep = min(int(max(0, hours_available)), 168)
+            def_end_timestep = min(int(max(0, hours_available)), horizon_hours)
 
             # Use pre-computed ventana if provided (batch mode)
             _pre_computed_fin = False
@@ -454,20 +482,20 @@ class EMHASSAdapter:
                     self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
                     - now
                 ).total_seconds() / 3600
-                def_start_timestep = max(0, min(int(delta_hours), 168))
+                def_start_timestep = max(0, min(int(delta_hours), horizon_hours))
             elif charging_windows and charging_windows[0].get("inicio_ventana"):
                 inicio = charging_windows[0]["inicio_ventana"]
                 delta_hours = (
                     self._load_publisher._ensure_aware(inicio) - now
                 ).total_seconds() / 3600
-                def_start_timestep = max(0, min(int(delta_hours), 168))
+                def_start_timestep = max(0, min(int(delta_hours), horizon_hours))
 
             # Handle pre-computed fin_ventana (batch/test mode)
             if pre_computed_fin_ventana is not None:
                 delta_fin = (
                     self._load_publisher._ensure_aware(pre_computed_fin_ventana) - now
                 ).total_seconds() / 3600
-                def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), 168))
+                def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), horizon_hours))
                 _pre_computed_fin = True
 
             # Calculate energy parameters FIRST so def_total_hours is available
@@ -530,21 +558,34 @@ class EMHASSAdapter:
                     total_hours = math.ceil(capped_hours) if capped_hours > 0 else 0
                     energy_info["energia_necesaria_kwh"] = capped_energy
 
-            # def_end_timestep is based on fin_ventana (trip departure), not
-            # def_start + total_hours (which would make it equal charging time).
-            # The charging window = opportunity to charge, which is larger than
-            # the actual charging duration needed.
-            if not _pre_computed_fin:
-                if charging_windows and charging_windows[0].get("fin_ventana"):
-                    fin = charging_windows[0]["fin_ventana"]
-                    delta_fin = (
-                        self._load_publisher._ensure_aware(fin) - now
-                    ).total_seconds() / 3600
-                    # Use ceil with small epsilon to avoid floating point truncation
-                    # issues (e.g., 47.999999 -> int = 47, but ceil = 48)
-                    def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), 168))
-                else:
-                    def_end_timestep = def_start_timestep + total_hours
+            # FIX: def_end_timestep must be based on fin_ventana (trip departure time),
+            # not def_start + total_hours. The formula def_start + total_hours gives
+            # charging duration (2h), but def_end_timestep should be the charging
+            # window end = when the trip departs (~7h away).
+            if _pre_computed_fin:
+                pass  # pre-computed def_end_timestep stays as-is
+            elif charging_windows and charging_windows[0].get("fin_ventana"):
+                # Use trip departure time (fin_ventana) for charging window end
+                fin = charging_windows[0]["fin_ventana"]
+                delta_fin = (
+                    self._load_publisher._ensure_aware(fin) - now
+                ).total_seconds() / 3600
+                def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), horizon_hours))
+            else:
+                # Fallback: use deadline (trip departure) if no charging window available
+                def_end_timestep = min(int(max(0, hours_available)), horizon_hours)
+
+        # Build p_deferrable_matrix for this trip using shared function
+        # The charging slots are placed at the END of the window (just before trip departure)
+        from ..calculations.windows import build_deferrable_matrix_row
+
+        row = build_deferrable_matrix_row(
+            horizon_hours=horizon_hours,
+            charging_power_kw=charging_power_kw,
+            hours_needed=total_hours,
+            end_timestep=def_end_timestep,
+        )
+        trip_matrix = [row]
 
         # Always store the cache entry (even if deadline was None)
         self._cached_per_trip_params[trip_id] = {
@@ -562,7 +603,81 @@ class EMHASSAdapter:
             "p_deferrable_nom_array": [charging_power_kw * 1000] if total_hours > 0 else [0],
             "def_start_timestep_array": [def_start_timestep],
             "def_end_timestep_array": [def_end_timestep],
+            "p_deferrable_matrix": trip_matrix,
         }
+
+    def _apply_deficit_propagation(self) -> None:
+        """Apply deficit propagation across all cached per-trip params.
+
+        Walks trips backward (last to first) and propagates unmet charging
+        hours to earlier trips with spare capacity. Updates def_total_hours
+        in-place for affected trips.
+        """
+        if not self._cached_per_trip_params:
+            return
+
+        # Collect all active trips sorted by (def_start_timestep, emhass_index)
+        active = []
+        for params in self._cached_per_trip_params.values():
+            if params.get("activo", False):
+                active.append(params)
+        active.sort(
+            key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
+        )
+
+        if len(active) < 2:
+            return  # Deficit propagation requires at least 2 trips
+
+        from ..calculations import calculate_hours_deficit_propagation
+
+        # Build windows list — one per active trip, using the first charging window
+        windows = []
+        total_hours_list = []
+        for p in active:
+            cws = p.get("charging_window", [])
+            if cws:
+                w = cws[0]
+                windows.append({
+                    "ventana_horas": w.get("ventana_horas", 0),
+                    "horas_carga_necesarias": w.get("horas_carga_necesarias", 0),
+                })
+            else:
+                # No charging window — use total_hours directly
+                th = p.get("def_total_hours", 0)
+                windows.append({
+                    "ventana_horas": th,
+                    "horas_carga_necesarias": th,
+                })
+            total_hours_list.append(p.get("def_total_hours", 0))
+
+        if not windows:
+            return
+
+        results = calculate_hours_deficit_propagation(windows, total_hours_list)
+
+        # Update per-trip params with adjusted values from deficit propagation
+        for i, result in enumerate(results):
+            if i >= len(active):
+                break
+            params = active[i]
+            trip_id = None
+            for tid, p in self._cached_per_trip_params.items():
+                if p is params:
+                    trip_id = tid
+                    break
+            if trip_id is None:
+                continue
+
+            adjusted = result.get("adjusted_def_total_hours")
+            if adjusted is not None and adjusted > 0:
+                # Store adjusted value separately — def_total_hours stays as ceil int
+                self._cached_per_trip_params[trip_id]["adjusted_def_total_hours"] = round(adjusted, 2)
+                # Update kwh_needed based on adjusted hours
+                power_watts = params.get("power_watts", 0)
+                if power_watts > 0:
+                    self._cached_per_trip_params[trip_id]["kwh_needed"] = (
+                        round(adjusted * (power_watts / 1000.0), 2)
+                    )
 
     async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         """Publish a single trip as a deferrable load.

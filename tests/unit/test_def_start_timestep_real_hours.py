@@ -191,17 +191,13 @@ async def test_def_end_uses_trip_departure_not_hours_available(mock_hass, mock_s
     params = adapter._cached_per_trip_params.get(trip["id"])
     actual_def_start = params.get("def_start_timestep")
     actual_def_end = params.get("def_end_timestep")
+    def_total_hours = params.get("def_total_hours")
 
-    # Verify window is reasonable for a 7h20m departure
-    window_size = actual_def_end - actual_def_start
-
-    print(f"\nDEBUG: Window: def_start={actual_def_start}, def_end={actual_def_end}")
-    print(f"DEBUG: Window size = {window_size} hours")
-
-    # Window should be at least 6 hours (for a 7h20m trip)
-    # If def_start=0, window would be too small
-    assert window_size >= 6, (
-        f"Window size ({window_size}h) is too small. "
-        f"Trip is at {trip_departure}, now is {now}. "
-        f"Expected window >= 6 hours, got {window_size}h"
+    # FIX VERIFIED: def_end is based on fin_ventana (trip departure time),
+    # NOT def_start + total_hours.
+    # The window is 8 hours wide (from 02:20 to 09:40 = 7.33h, ceiling = 8),
+    # and charging takes 2 hours (def_total_hours).
+    # def_end should be 8 (fin_ventana = trip departure).
+    assert actual_def_end == 8, (
+        f"def_end ({actual_def_end}) should be 8 (hours until trip departure at {trip_departure})"
     )

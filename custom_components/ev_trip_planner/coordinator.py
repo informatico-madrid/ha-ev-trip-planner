@@ -14,7 +14,7 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -259,6 +259,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         
         battery_capacity_kwh = self._entry.data.get("battery_capacity_kwh", 50.0)
         consumption_kwh_per_km = self._entry.data.get("kwh_per_km", DEFAULT_CONSUMPTION)
+        # BUG-4: Read planning_horizon_days from config instead of hardcoding 7 days
+        horizon_days = int(
+            self._entry.data.get("planning_horizon_days", 7)
+        )
+        horizon_hours = horizon_days * 24
         per_trip_params: dict[str, Any] = {}
         matrix: list[list[float]] = []
         index_counter = 0
@@ -271,8 +276,19 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             if status in ("completed", "cancelled"):
                 continue
 
-            kwh_needed = float(trip.get("kwh", 0))
+            # BUG-3: Skip trips whose datetime is in the past
             trip_datetime_str = trip.get("datetime", "")
+            if trip_datetime_str:
+                try:
+                    trip_dt = datetime.fromisoformat(trip_datetime_str)
+                    if trip_dt.tzinfo is None:
+                        trip_dt = trip_dt.replace(tzinfo=timezone.utc)
+                    if trip_dt <= now:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            kwh_needed = float(trip.get("kwh", 0))
 
             # Calculate charging duration in hours
             hours_needed = (
@@ -284,33 +300,57 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             power_watts = charging_power_kw * 1000.0
 
             # Parse trip datetime for timestep calculation
-            start_timestep = 0
-            end_timestep = math.ceil(hours_needed)  # 1 timestep = 1 hour
+            # For recurring trips without datetime, calculate from dia_semana + hora
+            start_timestep = 0  # Default: window starts now (single trip)
+            end_timestep = math.ceil(hours_needed)  # fallback: charging duration
 
-            if trip_datetime_str:
-                try:
-                    trip_dt = datetime.fromisoformat(trip_datetime_str)
-                    if trip_dt.tzinfo is None:
-                        trip_dt = trip_dt.replace(tzinfo=timezone.utc)
-                    delta = trip_dt - now
-                    total_hours = delta.total_seconds() / 3600
-                    start_timestep = max(0, int(total_hours))
-                    end_timestep = min(start_timestep + math.ceil(hours_needed), 168)
-                except (ValueError, TypeError):
-                    pass
+            try:
+                trip_dt = datetime.fromisoformat(trip_datetime_str)
+                if trip_dt.tzinfo is None:
+                    trip_dt = trip_dt.replace(tzinfo=timezone.utc)
+                delta = trip_dt - now
+                total_hours = delta.total_seconds() / 3600
+                # FIX: def_start_timestep must be 0 for single trip without hora_regreso.
+                # The charging window starts NOW (car is home), not at the trip time.
+                # def_end_timestep = when the trip departs (total_hours from now).
+                # We only set start_timestep = int(total_hours) for MULTI-trip scenarios
+                # where the window is between trips. For single trip, window is [0, end).
+                start_timestep = 0  # Single trip: window starts now
+                end_timestep = min(math.ceil(total_hours), horizon_hours)
+            except (ValueError, TypeError):
+                # For recurring trips without datetime, calculate departure from dia_semana + hora
+                trip_tipo = trip.get("tipo", "")
+                is_recurring = trip_tipo in ("recurrente", "recurring")
+                if is_recurring:
+                    day_val = trip.get("dia_semana") or trip.get("day")
+                    time_str = trip.get("hora") or trip.get("time")
+                    if day_val is not None and time_str:
+                        deadline_dt = self._calculate_recurring_departure(
+                            day_val, time_str, now
+                        )
+                        if deadline_dt is not None:
+                            delta = deadline_dt - now
+                            total_hours = delta.total_seconds() / 3600
+                            start_timestep = max(0, int(total_hours))
+                            end_timestep = min(math.ceil(total_hours), horizon_hours)
 
-            # Build p_deferrable_matrix for this trip
+            # Build p_deferrable_matrix for this trip using shared function
+            # The charging slots are placed at the END of the window (just before trip departure)
+            from .calculations.windows import build_deferrable_matrix_row
+
+            row = build_deferrable_matrix_row(
+                horizon_hours=horizon_hours,
+                charging_power_kw=charging_power_kw,
+                hours_needed=hours_needed,
+                end_timestep=end_timestep,
+            )
             trip_matrix: list[list[float]] = []
-            row = [0.0] * 168  # 24h * 7 days default
-            for t in range(start_timestep, end_timestep):
-                if 0 <= t < 168:
-                    row[t] = power_watts
             if any(v > 0 for v in row):
                 trip_matrix.append(row)
 
             if not trip_matrix:
                 # Fallback: single row
-                trip_matrix = [[0.0] * 168]
+                trip_matrix = [[0.0] * horizon_hours]
 
             entry = {
                 "activo": True,
@@ -338,8 +378,8 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             index_counter += 1
 
         # Build combined power profile (max power across all charging windows)
-        # Use 168 (7 days * 24 hours) to match the matrix row length
-        power_profile = [0.0] * 168
+        # Use horizon_hours to match the matrix row length
+        power_profile = [0.0] * horizon_hours
         for row in matrix:
             for i, v in enumerate(row):
                 power_profile[i] = max(power_profile[i], v)
@@ -354,9 +394,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                     "start_timestep": params.get("def_start_timestep_array", [0])[0]
                     if params.get("def_start_timestep_array")
                     else 0,
-                    "end_timestep": params.get("def_end_timestep_array", [96])[0]
+                    "end_timestep": params.get("def_end_timestep_array", [horizon_hours])[0]
                     if params.get("def_end_timestep_array")
-                    else 96,
+                    else horizon_hours,
                 }
             )
 
@@ -366,3 +406,58 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "emhass_status": "ready",
             "per_trip_emhass_params": per_trip_params,
         }
+
+    def _calculate_recurring_departure(
+        self, day_val: Any, time_str: str, now: datetime
+    ) -> Optional[datetime]:
+        """Calculate departure datetime for recurring trips.
+
+        Mirrors the logic in LoadPublisher._calculate_deadline for recurring trips.
+
+        Args:
+            day_val: Day value (numeric string '0'-'6' or day name).
+            time_str: Time in HH:MM format.
+            now: Reference datetime.
+
+        Returns:
+            Datetime of next occurrence, or None if invalid.
+        """
+        if day_val is None or time_str is None:
+            return None
+
+        # Parse day value (numeric string)
+        day_str = str(day_val).lower()
+        if day_str.isdigit():
+            n = int(day_str)
+            if n == 0 or n == 7:
+                target_day = 6  # Sunday
+            elif 1 <= n <= 6:
+                target_day = n - 1
+            else:
+                return None
+        else:
+            days_map = {
+                "domingo": 6, "sunday": 6,
+                "lunes": 0, "monday": 0,
+                "martes": 1, "tuesday": 1,
+                "miércoles": 2, "miercoles": 2, "wednesday": 2,
+                "jueves": 3, "thursday": 3,
+                "viernes": 4, "friday": 4,
+                "sábado": 5, "sabado": 5, "saturday": 5,
+            }
+            target_day = days_map.get(day_str)
+            if target_day is None:
+                return None
+
+        now_day = now.weekday()
+        delta_days = (target_day - now_day) % 7
+        if delta_days == 0:
+            delta_days = 7  # Next occurrence, not today
+
+        parts = time_str.split(":")
+        hour = int(parts[0]) if len(parts) > 0 else 0
+        minute = int(parts[1]) if len(parts) > 1 else 0
+
+        deadline = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        deadline += timedelta(days=delta_days)
+        return deadline

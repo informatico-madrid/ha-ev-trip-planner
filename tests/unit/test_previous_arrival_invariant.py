@@ -65,7 +65,6 @@ class TestPreviousArrivalInvariant:
             charging_power_kw=7.4,
             battery_capacity_kwh=75.0,
             return_buffer_hours=return_buffer_hours,
-            duration_hours=6.0,
             now=now,
         )
 
@@ -111,7 +110,6 @@ class TestPreviousArrivalInvariant:
             hora_regreso=None,
             charging_power_kw=7.4,
             battery_capacity_kwh=75.0,
-            duration_hours=6.0,
             return_buffer_hours=4.0,
             now=now,
         )
@@ -144,7 +142,6 @@ class TestPreviousArrivalInvariant:
             hora_regreso=None,
             charging_power_kw=7.4,
             battery_capacity_kwh=75.0,
-            duration_hours=6.0,
             return_buffer_hours=4.0,
             now=now,
         )

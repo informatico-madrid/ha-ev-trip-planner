@@ -1,4 +1,4 @@
-# SOLID Refactoring Case Study
+v# SOLID Refactoring Case Study
 
 > **Transformación de 12,400+ LOC de código legacy en 9 paquetes SOLID-compliant usando dual-agent quality system**
 
@@ -247,10 +247,3 @@ Esto mantiene la integridad del spec durante toda la ejecución.
 - [`docs/source-tree-analysis.md`](docs/source-tree-analysis.md) — Análisis del árbol de fuentes
 
 ---
-
-## Para Qué Mirar Primero
-
-1. **[`.progress.md`](specs/3-solid-refactor/.progress.md)** — Timeline de ejecución con timestamps
-2. **[`task_review.md`](specs/3-solid-refactor/task_review.md)** — Decisiones de review por tarea
-3. **[`docs/architecture.md`](docs/architecture.md)** — Diagramas de arquitectura final
-4. **[`_ai/PORTFOLIO.md`](_ai/PORTFOLIO.md)** — Arc 5: la narrativa completa

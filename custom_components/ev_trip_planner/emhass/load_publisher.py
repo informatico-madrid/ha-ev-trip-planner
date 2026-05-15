@@ -233,8 +233,8 @@ class LoadPublisher(LoadPublisherBase):
         is_recurring = trip_type in ("recurrente", "recurring")
 
         if is_recurring:
-            day = trip.get("day") or trip.get("dia_semana")
-            time_str = trip.get("time") or trip.get("hora")
+            day = trip.get("day") if "day" in trip else trip.get("dia_semana")
+            time_str = trip.get("time") if "time" in trip else trip.get("hora")
 
             if day is not None and time_str is not None:
                 now = datetime.now(timezone.utc)
@@ -256,10 +256,16 @@ class LoadPublisher(LoadPublisherBase):
                     "saturday": 5,
                 }
                 day_str = str(day).lower()
-                # Support numeric day: '1'→Monday(0), '2'→Tuesday(1), ..., '7'→Sunday(6)
+                # Support numeric day: '0'→Sunday(6) or '7'→Sunday(6),
+                # '1'→Monday(0), '2'→Tuesday(1), ..., '6'→Saturday(5)
                 if day_str.isdigit():
                     n = int(day_str)
-                    target_day = n - 1 if 1 <= n <= 7 else None
+                    if n == 0 or n == 7:
+                        target_day = 6  # Sunday
+                    elif 1 <= n <= 6:
+                        target_day = n - 1
+                    else:
+                        target_day = None
                 else:
                     target_day = days_map.get(day_str)
                 if target_day is not None:

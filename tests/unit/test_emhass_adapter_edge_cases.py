@@ -270,8 +270,12 @@ class TestPopulateCacheWithPreComputedWindows:
         )
         # def_start_timestep should be set based on the pre-computed value
         cached = adapter._cached_per_trip_params["trip_001"]
-        assert cached["def_start_timestep"] >= 0
-        assert cached["def_start_timestep"] <= 168
+        # pre_computed is 4h → int(4h - epsilon) = 3 → -1 off-by-one = 2
+        # Use >= because timing may cause int() to truncate to 3 (not 4)
+        assert cached["def_start_timestep"] >= 2, (
+            f"Expected def_start_timestep >= 2 (pre_computed ~4h, "
+            f"int() truncates, -1 off-by-one), got {cached['def_start_timestep']}"
+        )
 
     @pytest.mark.asyncio
     async def test_populate_cache_with_pre_computed_fin(self, mock_hass, mock_entry):
@@ -294,8 +298,11 @@ class TestPopulateCacheWithPreComputedWindows:
             pre_computed_fin_ventana=future,
         )
         cached = adapter._cached_per_trip_params["trip_002"]
-        assert cached["def_end_timestep"] >= 0
-        assert cached["def_end_timestep"] <= 168
+        # def_end_timestep should be 6 (ceil(6.0 - 0.001) = 6)
+        assert cached["def_end_timestep"] == 6, (
+            f"Expected def_end_timestep=6 (pre_computed 6h, ceil(6.0 - 0.001)), "
+            f"got {cached['def_end_timestep']}"
+        )
 
 
 # ---------------------------------------------------------------------------

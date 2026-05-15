@@ -206,7 +206,7 @@ class TestCoordinatorAsyncUpdateData:
                     "id": "rec_1",
                     "kwh": 7.5,
                     "km": 50,
-                    "datetime": "2026-05-14T09:00:00+00:00",
+                    "datetime": "2026-05-20T09:00:00+00:00",
                 }
             ]
         )
@@ -242,7 +242,7 @@ class TestCoordinatorAsyncUpdateData:
                     "id": "pun_1",
                     "kwh": 3.0,
                     "km": 20,
-                    "datetime": "2026-05-14T08:00:00+00:00",
+                    "datetime": "2026-05-20T08:00:00+00:00",
                 }
             ]
         )
@@ -286,7 +286,7 @@ class TestGenerateMockEmhassParams:
                 "status": "active",
                 "kwh": 7.5,
                 "km": 50,
-                "datetime": "2026-05-14T09:00:00+00:00",
+                "datetime": "2026-05-20T09:00:00+00:00",
             }
         }
         result = coord._generate_mock_emhass_params(trips)
@@ -336,7 +336,7 @@ class TestGenerateMockEmhassParams:
                 "status": "active",
                 "kwh": 7.5,
                 "km": 50,
-                "datetime": "2026-05-14T09:00:00+00:00",
+                "datetime": "2026-05-20T09:00:00+00:00",
             }
         }
         result = coord._generate_mock_emhass_params(trips)
@@ -355,7 +355,7 @@ class TestGenerateMockEmhassParams:
                 "status": "active",
                 "kwh": 5.0,
                 "km": 30,
-                "datetime": "2026-05-14T10:00:00+00:00",
+                "datetime": "2026-05-20T10:00:00+00:00",
             }
         }
         result = coord._generate_mock_emhass_params(trips)
@@ -418,7 +418,7 @@ class TestGenerateMockEmhassParams:
                 "status": "active",
                 "kwh": 7.5,
                 "km": 50,
-                "datetime": "2026-05-14T09:00:00",  # No timezone info
+                "datetime": "2026-05-20T09:00:00",  # No timezone info
             }
         }
         result = coord._generate_mock_emhass_params(trips)

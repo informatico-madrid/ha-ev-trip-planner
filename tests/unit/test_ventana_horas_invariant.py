@@ -43,7 +43,6 @@ class TestVentanaHorasInvariant:
             hora_regreso=None,
             charging_power_kw=7.4,
             battery_capacity_kwh=75.0,
-            duration_hours=4.0,
             return_buffer_hours=1.0,
             now=now,
         )
@@ -78,7 +77,6 @@ class TestVentanaHorasInvariant:
             hora_regreso=None,
             charging_power_kw=7.4,
             battery_capacity_kwh=75.0,
-            duration_hours=4.0,
             return_buffer_hours=1.0,
             now=now,
         )
@@ -114,7 +112,6 @@ class TestVentanaHorasInvariant:
             hora_regreso=hora_regreso,
             charging_power_kw=7.4,
             battery_capacity_kwh=75.0,
-            duration_hours=4.0,
             return_buffer_hours=1.0,
             now=now,
         )

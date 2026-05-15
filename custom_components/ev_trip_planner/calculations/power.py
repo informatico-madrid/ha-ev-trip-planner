@@ -26,8 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 
 def _normalize_trip_fields(trip: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Return canonical trip dict with 'day'/'time' keys, or None for invalid trips."""
-    day = trip.get("day") or trip.get("dia_semana")
-    time_str = trip.get("time") or trip.get("hora")
+    day = trip.get("day") if "day" in trip else trip.get("dia_semana")
+    time_str = trip.get("time") if "time" in trip else trip.get("hora")
     return {"day": day, "time": time_str} if day is not None and time_str is not None else None
 
 

@@ -78,6 +78,10 @@ class TestAsyncGenerateDeferrablesSchedule:
         )
 
         assert isinstance(result, list)
+        # Empty trips → schedule still has all time slots
+        assert len(result) == 24  # 1 day * 24 hours
+        assert isinstance(result[0], dict)
+        assert "date" in result[0]
 
     @pytest.mark.asyncio
     async def test_handles_trip_without_datetime(self, mock_trip_manager):
@@ -106,6 +110,9 @@ class TestAsyncGenerateDeferrablesSchedule:
         )
 
         assert isinstance(result, list)
+        # Trip without datetime → schedule still has all time slots
+        assert len(result) == 24
+        assert isinstance(result[0], dict)
 
     @pytest.mark.asyncio
     async def test_respects_planning_horizon_days(self, mock_trip_manager):
@@ -126,4 +133,4 @@ class TestAsyncGenerateDeferrablesSchedule:
 
         assert isinstance(result, list)
         expected_length = horizon * 24
-        assert len(result) == expected_length or len(result) >= 0
+        assert len(result) == expected_length

@@ -412,7 +412,7 @@ class TestPowerProfileSemantics:
             "kwh_today": 12.5,
             "hours_today": 2.0,
             "next_trip": None,
-            "emhass_power_profile": [100.0] * 96,
+            "emhass_power_profile": [100.0] * 168,
             "emhass_deferrables_schedule": [
                 {"index": 0, "kwh": 5.0, "start_timestep": 10, "end_timestep": 20}
             ],
@@ -421,8 +421,8 @@ class TestPowerProfileSemantics:
                 "rec_1": {
                     "activo": True,
                     "kwh_needed": 5.0,
-                    "p_deferrable_matrix": [[0.0] * 96],
-                    "def_total_hours_array": [2.0],
+                    "p_deferrable_matrix": [[0.0] * 168],
+                    "def_total_hours_array": [2],
                     "p_deferrable_nom_array": [3000.0],
                     "def_start_timestep_array": [10],
                     "def_end_timestep_array": [20],
@@ -441,8 +441,8 @@ class TestPowerProfileSemantics:
         assert "p_deferrable_matrix" in attrs
         # p_deferrable_matrix is a list of rows (one per deferrable load)
         assert len(attrs["p_deferrable_matrix"]) == 1
-        assert len(attrs["p_deferrable_matrix"][0]) == 96  # Each row has 96 timesteps
-        assert attrs["def_total_hours_array"] == [2.0]
+        assert len(attrs["p_deferrable_matrix"][0]) == 168  # Each row has 168 timesteps (7 days * 24h)
+        assert attrs["def_total_hours_array"] == [2]
         assert attrs["p_deferrable_nom_array"] == [3000.0]
         assert attrs["def_start_timestep_array"] == [10]
         assert attrs["def_end_timestep_array"] == [20]
@@ -455,7 +455,7 @@ class TestPowerProfileSemantics:
         """Trip with params but no p_deferrable_matrix counts as 1 load (lines 179-182)."""
         mock_coordinator.data = {
             **mock_coordinator.data,
-            "emhass_power_profile": [0.0] * 96,
+            "emhass_power_profile": [0.0] * 168,
             "per_trip_emhass_params": {
                 "rec_1": {
                     "activo": True,

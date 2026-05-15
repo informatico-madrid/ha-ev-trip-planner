@@ -117,7 +117,6 @@ def test_multi_trip_windows_null_window_start():
         hora_regreso=None,
         charging_power_kw=3.6,
         battery_capacity_kwh=75.0,
-        duration_hours=6.0,
         return_buffer_hours=2.0,
         safety_margin_percent=10.0,
     )

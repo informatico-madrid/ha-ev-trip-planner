@@ -362,3 +362,43 @@ def _compute_window_hours(
     trip_departure_aware = _helpers._ensure_aware(trip_departure_time)
     delta = trip_departure_aware - window_start_aware
     return max(0.0, delta.total_seconds() / 3600)
+
+
+def build_deferrable_matrix_row(
+    horizon_hours: int,
+    charging_power_kw: float,
+    hours_needed: float,
+    end_timestep: int,
+) -> list[float]:
+    """Build a single-row p_deferrable_matrix with charging slots at END of window.
+
+    The charging slots are placed at the END of the window (just before trip
+    departure), not spread across the entire window. This follows the rule:
+    "La carga efectiva se compacta al final de la ventana".
+
+    Args:
+        horizon_hours: Total number of slots (e.g., 168 for 7 days).
+        charging_power_kw: Charging power in kW.
+        hours_needed: Number of charging hours needed.
+        end_timestep: Window end (trip departure) as timestep index.
+
+    Returns:
+        List of floats with power_watts in the last 'hours_needed' slots,
+        zeros elsewhere.
+    """
+    row = [0.0] * horizon_hours
+    if hours_needed <= 0:
+        return row
+
+    # Calculate the actual charging window: last 'hours_needed' slots before departure
+    # Use ceil to ensure we fill the correct number of slots (handles float precision)
+    hours_ceil = math.ceil(hours_needed)
+    charging_start = max(0, end_timestep - hours_ceil)
+    charging_end = min(end_timestep, horizon_hours)
+    power_watts = charging_power_kw * 1000.0
+
+    for t in range(charging_start, charging_end):
+        if 0 <= t < horizon_hours:
+            row[t] = power_watts
+
+    return row
