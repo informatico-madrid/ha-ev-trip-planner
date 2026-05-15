@@ -140,26 +140,32 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
         # PHASE 3 (3.4): Get EMHASS data from emhass_adapter if available
         all_trips = {**recurring_trips, **punctual_trips}
+        _LOGGER.warning(
+            "BUG-DEBUG: _async_update_data START all_trips_count=%d emhass_adapter=%s",
+            len(all_trips),
+            "present" if self._emhass_adapter is not None else "None",
+        )
         if self._emhass_adapter is not None:
             emhass_data = self._emhass_adapter.get_cached_optimization_results()
             per_trip_params = emhass_data.get("per_trip_emhass_params", {})
+            profile = emhass_data.get("emhass_power_profile") or []
+            has_profile = any(v > 0 for v in profile)
             # DEBUG: Log cache state when reading
-            _LOGGER.debug(
-                "DEBUG coordinator _async_update_data: per_trip_emhass_params has %d entries, "
-                "emhass_power_profile non_zero=%d for vehicle %s",
+            _LOGGER.warning(
+                "BUG-DEBUG: adapter cache read per_trip_params=%d power_profile_nonzero=%d has_profile=%s",
                 len(per_trip_params),
-                sum(1 for x in emhass_data.get("emhass_power_profile", []) if x > 0)
-                if emhass_data.get("emhass_power_profile")
-                else 0,
-                self._vehicle_id,
+                sum(1 for x in profile if x > 0) if profile else 0,
+                has_profile,
             )
             # FALLBACK: When EMHASS is not installed/running, the adapter may return
             # empty per_trip_params OR empty power_profile even when per_trip_params
             # is populated. Generate mock params from trip data so sensors remain
             # populated and E2E tests can verify dynamic SOC capping.
-            profile = emhass_data.get("emhass_power_profile") or []
-            has_profile = any(v > 0 for v in profile)
             if (not per_trip_params or not has_profile) and all_trips:
+                _LOGGER.warning(
+                    "BUG-DEBUG: FALLBACK TRIGGERED per_trip_params_empty=%s has_profile=%s all_trips=%d",
+                    not per_trip_params, has_profile, len(all_trips),
+                )
                 emhass_data = self._generate_mock_emhass_params(all_trips)
                 generated_params = emhass_data.get("per_trip_emhass_params", {})
                 _LOGGER.info(
@@ -224,6 +230,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
     def _generate_mock_emhass_params(
         self, trips: dict[str, dict[str, Any]]
     ) -> dict[str, Any]:
+        _LOGGER.warning(
+            "BUG-DEBUG: _generate_mock_emhass_params ENTERED with %d trips, vehicle=%s",
+            len(trips),
+            self._vehicle_id,
+        )
         """Generate mock EMHASS params from trip data when real EMHASS is unavailable.
 
         This provides fallback data so the EMHASS sensor remains populated for
@@ -330,6 +341,10 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         """Process a single trip and return (entry, trip_matrix). Returns (None, []) if skipped."""
         kwh_needed = float(trip.get("kwh", 0))
         hours_needed = max(kwh_needed / charging_power_kw if charging_power_kw > 0 else 0, 0.1)
+        _LOGGER.warning(
+            "BUG-DEBUG: _process_single_mock_trip trip_id=%s kwh_needed=%.2f charging_power_kw=%.2f hours_needed=%.4f",
+            trip_id, kwh_needed, charging_power_kw, hours_needed,
+        )
         power_watts = charging_power_kw * 1000.0
         start_timestep, end_timestep = self._calculate_mock_timesteps(
             trip, charging_power_kw, horizon_hours, hours_needed, now
@@ -405,6 +420,19 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         horizon_hours: int,
     ) -> tuple[list[float], list[Any]]:
         """Build power_profile and deferrables_schedule from processed trips."""
+        _LOGGER.warning(
+            "BUG-DEBUG: _build_mock_output ENTERED matrix_rows=%d per_trip_params_count=%d horizon_hours=%d",
+            len(matrix), len(per_trip_params), horizon_hours,
+        )
+        for tid, p in per_trip_params.items():
+            _LOGGER.warning(
+                "BUG-DEBUG: per_trip_params[%s] = def_total_hours_array=%s def_start_timestep_array=%s def_end_timestep_array=%s p_deferrable_nom_array=%s",
+                tid,
+                p.get("def_total_hours_array"),
+                p.get("def_start_timestep_array"),
+                p.get("def_end_timestep_array"),
+                p.get("p_deferrable_nom_array"),
+            )
         power_profile = [0.0] * horizon_hours
         for row in matrix:
             for i, v in enumerate(row):

@@ -285,9 +285,9 @@ Ubicación: [`calculations/windows.py:102-179`](custom_components/ev_trip_planne
 ```
 Posición:  0 .............. 44 | 45  46  47  48  49  50 | 51 .............. 167
 Valor:     0.0             0.0 | 7400                7400 | 0.0              0.0
-                               ^^^^^^^^^^^^^^^^^^^^^^^^
-                               Solo 6 slots con carga
-                               (últimas 6 horas antes de salir)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+                                Solo 6 slots con carga
+                                (últimas 6 horas antes de salir)
 ```
 
 ### Assertions Verificadas
@@ -348,3 +348,194 @@ El sensor `ev_trip_planner_mi_ev_emhass_perfil_diferible_mi_ev` debe tener en su
 > Resultado: `[0, 0, 0, 0, 0, 7.4, 7.4, 7.4, 7.4]` — las 3 posiciones finales activas (slots 5, 6, 7 con 7.4 cada una, 0 en el resto).
 
 ---
+
+## CASO DE USO: Vehículo en Staging — Datos Reales Actuales
+
+> **Fuente:** Entorno de Staging (Docker, puerto :8124)
+> **Fecha de recuperación:** 2026-05-15
+> **Contenedor:** `ha-staging` (Up 44+ minutos)
+> **URL:** http://localhost:8124/
+> **Credenciales:** admin / admin123
+
+### Configuración del Vehículo en Staging
+
+**Nombre del vehículo:** Mi EV
+**Entry ID:** `516A4963B0704404BD270C9849FF28EF`
+
+#### Parámetros de Configuración (ConfigEntry Options)
+
+| Parámetro | Valor | Unidad |
+|-----------|-------|--------|
+| `battery_capacity_kwh` | 28.0 | kWh |
+| `charging_power_kw` | 3.4 | kW |
+| `kwh_per_km` | 0.18 | kWh/km |
+| `safety_margin_percent` | 10 | % |
+| `t_base` | 24.0 | horas |
+
+#### Sensores de Estado Actual (Valores en Base de Datos)
+
+| Entidad | Valor Actual | Descripción |
+|---------|--------------|-------------|
+| `input_number.ev_soc` | 65.0 | SOC configurado (input) |
+| `input_number.ev_soh` | 94.0 | SOH configurado (input) |
+| `sensor.ev_battery_soc` | 65 | SOC real (template sensor) ← usado por el componente |
+| `sensor.ev_health_soh` | 94 | SOH real (template sensor) |
+| `input_boolean.ev_charging_sim` | off | Conectado al cargador |
+| `sensor.ev_charging_status` | off | Estado de carga |
+
+#### Estado Original del Vehículo (Configuración Inicial Documentada)
+
+| Parámetro | Valor Original | Unidad |
+|-----------|----------------|--------|
+| `battery_capacity_kwh` | 28 | kWh |
+| `state_of_health_percent` | 87 | % |
+| `state_of_charge_percent` | 31 | % |
+| `safety_margin_percent` | 10 | % |
+| `charging_power_kw` | 3.4 | kW |
+| `consumption_kwh_per_km` | 0.18 | kWh/km |
+| `planning_horizon_days` | 7 | días |
+
+### Viajes Recurrentes Definidos
+
+El sistema tiene **2 viajes recurrentes** activos y **0 viajes puntuales**.
+
+#### Viaje Recurrente 1: `rec_5_xeqnmt` — Domingo, 09:40, 31 km
+
+| Parámetro | Valor | Descripción |
+|-----------|-------|-------------|
+| `id` | rec_5_xeqnmt | ID interno |
+| `tipo` | recurrente | Se repite semanalmente |
+| `dia_semana` | "0" | Domingo (formato JS getDay: 0=Domingo) → índice interno 6 |
+| `hora` | 09:40 | Hora de salida |
+| `km` | 31.0 | Distancia del viaje |
+| `kwh` | 5.4 | Energía necesaria (31 × 0.18 ≈ 5.58, redondeado a 5.4) |
+| `activo` | true | Viaje activo |
+| `descripcion` | — | Sin descripción |
+
+**Estado actual en sensor:** `recurrente`
+**EMHASS Index sensor:** `sensor.ev_trip_planner_mi_ev_emhass_index_for_rec_5_xeqnmt`
+
+#### Viaje Recurrente 2: `rec_1_fy4pfk` — Lunes, 21:40, 30 km
+
+| Parámetro | Valor | Descripción |
+|-----------|-------|-------------|
+| `id` | rec_1_fy4pfk | ID interno |
+| `tipo` | recurrente | Se repite semanalmente |
+| `dia_semana` | "1" | Lunes (formato JS getDay: 1=Lunes) → índice interno 0 |
+| `hora` | 21:40 | Hora de salida |
+| `km` | 30.0 | Distancia del viaje |
+| `kwh` | 5.4 | Energía necesaria (30 × 0.18 = 5.4) |
+| `activo` | true | Viaje activo |
+| `descripcion` | — | Sin descripción |
+
+**Estado actual en sensor:** `recurrente`
+**EMHASS Index sensor:** `sensor.ev_trip_planner_mi_ev_emhass_index_for_rec_1_fy4pfk`
+
+### Resumen del Planificador (Sensores Actuales)
+
+| Entidad | Valor | Descripción |
+|---------|-------|-------------|
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_recurring_trips_count` | 2 | Viajes recurrentes activos |
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_punctual_trips_count` | 0 | Viajes puntuales |
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_trips_list` | `['rec_5_xeqnmt', 'rec_1_fy4pfk']` | Lista de viajes |
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_next_trip` | rec_5_xeqnmt | Próximo viaje (Domingo 09:40) |
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_next_deadline` | unknown | Próximo deadline (no calculado) |
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_hours_needed_today` | 0.0 | Horas de carga necesarias hoy |
+| `sensor.ev_trip_planner_mi_ev_ev_trip_planner_kwh_needed_today` | 0.0 | kWh necesarios hoy |
+| `sensor.ev_trip_planner_mi_ev_emhass_perfil_diferible_mi_ev` | ready | Estado del perfil EMHASS |
+
+### Diagrama Semanal de Viajes
+
+```
+Semaña Tipo: Viajes Recurrentes en Staging
+
+Domingo dia 0 (JS getDay=0):
+  09:40 → Viaje rec_5_xeqnmt (31 km, 5.4 kWh)
+
+Lunes dia 1 (JS getDay=1):
+  21:40 → Viaje rec_1_fy4pfk (30 km, 5.4 kWh)
+
+Martes a Sábado:
+  Sin viajes definidos
+```
+
+**Patrón semanal:**
+- **Domingo 09:40:** Viaje de 31 km (trabajo/mañana) — `dia_semana: "0"` (JS getDay)
+- **Lunes 21:40:** Viaje de 30 km (noche/regreso) — `dia_semana: "1"` (JS getDay)
+- **Martes a Sábado:** Sin viajes definidos
+
+### Cálculos Derivados con Datos Actuales de Staging
+
+#### Con SOC real del sensor (65%) y SOH (94%):
+
+```
+Capacidad real (SOH 94%) = 28 × 0.94 = 26.32 kWh
+Energía actual (SOC 65%) = 26.32 × 0.65 = 17.11 kWh
+Energía segura (margin 10%) = 17.11 × 0.90 = 15.40 kWh
+Mínimo absoluto (10%) = 28 × 0.10 = 2.8 kWh
+```
+
+#### Rango estimado calculado:
+
+> El rango estimado correcto se calcula así:
+>
+> ```
+> Rango = Energía actual / consumo_kwh_per_km
+>       = (capacidad_real × SOC) / consumo
+>       = (26.32 × 0.65) / 0.18
+>       = 17.11 / 0.18
+>       = 95.06 km
+> ```
+>
+> El valor de **95 km** es el rango estimado REAL con SOC=65% y SOH=94%.
+
+```
+Rango estimado real = 95 km
+```
+
+#### Energía necesaria para cada viaje:
+
+| Viaje | Distancia | Energía | Energía post-viaje | SOC post-viaje (aprox) | ¿Seguro? |
+|-------|-----------|---------|-------------------|------------------------|----------|
+| rec_5_xeqnmt | 31 km | 5.4 kWh | 17.11 - 5.4 = 11.71 kWh | ~44.5% | ✅ SÍ |
+| rec_1_fy4pfk | 30 km | 5.4 kWh | Depende de carga previa | Depende de carga | Depende |
+
+**Análisis:** Con SOC actual del 65%, el vehículo tiene suficiente energía para ambos viajes sin quedar por debajo del safety margin.
+
+#### Tiempo de carga necesario:
+
+```
+Para 5.4 kWh a 3.4 kW = 5.4 / 3.4 = 1.59 horas ≈ 1 hora 35 minutos
+```
+
+#### Ventana de carga para rec_5_xeqnmt (Domingo 09:40):
+
+> **Momento actual:** Viernes 15 de mayo de 2026, 19:43
+
+```
+Viernes 19:43 → Domingo 09:40 = 37h 57m = 37.95 horas
+  - Horas necesarias: ceil(5.4 / 3.4) = 2 horas
+  - es_suficiente: 37.95 >= 2 = True ✅
+
+Hay suficiente tiempo de carga disponible (37.95 horas vs 2 horas necesarias).
+```
+
+#### Ventana de carga para rec_1_fy4pfk (Lunes 21:40):
+
+```
+Viernes 19:43 → Lunes 21:40 = 73h 57m = 73.95 horas
+  - Horas necesarias: ceil(5.4 / 3.4) = 2 horas
+  - es_suficiente: 73.95 >= 2 = True ✅
+
+Hay suficiente tiempo de carga disponible (73.95 horas vs 2 horas necesarias).
+```
+
+### Fuentes de Datos
+
+| Fuente | Archivo/Entidad | Uso |
+|--------|-----------------|-----|
+| Config Entry | `.storage/core.config_entries` | Configuración del vehículo (`soc_sensor: sensor.ev_battery_soc`) |
+| Viajes | `.storage/ev_trip_planner_mi_ev` | Viajes recurrentes y puntuales |
+| Sensores | `.storage/core.restore_state` | Valores actuales de sensores |
+| Entidades | `.storage/core.entity_registry` | Registro de entidades del componente |
+| Configuration | `configuration.yaml` (contenedor) | input_number + template sensors |
