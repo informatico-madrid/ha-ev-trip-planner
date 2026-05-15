@@ -100,10 +100,28 @@ class TestEMHASSIndexChronological:
 
         assert result is True
 
-        # After the hora_regreso=None fix: window starts at now for all trips,
-        # so def_start_timestep = 0 for all. The invariant def_end == def_start
-        # + def_total_hours must hold, and def_end must be proportional to
-        # the deadline (later deadline = later end).
+        # After the hora_regreso=None fix: window starts at now for ALL trips,
+        # but multi-trip pre-computation assigns buffers between consecutive trips.
+        # Trips are sorted chronologically by deadline:
+        #   trip_1: 8h, trip_2: 29h, trip_0: 43h, trip_4: 63h, trip_3: 163h
+        #
+        # With multi-trip logic:
+        #   trip_1 (8h): inicio_ventana = now → def_start = 0
+        #   trip_2 (29h): inicio_ventana = trip1_departure + 4h = 8 + 4 = 12 → def_start = 12
+        #   trip_0 (43h): inicio_ventana = trip2_departure + 4h = 29 + 4 = 33 → def_start = 33
+        #   trip_4 (63h): inicio_ventana = trip0_departure + 4h = 43 + 4 = 47 → def_start = 47
+        #   trip_3 (163h): inicio_ventana = trip4_departure + 4h = 63 + 4 = 67 → def_start = 67
+        #
+        # def_end is always the deadline_hours (fin_ventana = trip departure).
+        RETURN_BUFFER = 4.0
+        expected_def_starts = {
+            "trip_1": 0,    # first trip: now
+            "trip_2": 12,   # 8 + 4
+            "trip_0": 33,   # 29 + 4
+            "trip_4": 47,   # 43 + 4
+            "trip_3": 67,   # 63 + 4
+        }
+
         for trip in trips:
             tid = trip["id"]
             params = adapter._cached_per_trip_params.get(tid, {})
@@ -111,18 +129,15 @@ class TestEMHASSIndexChronological:
             def_end = params.get("def_end_timestep")
             def_total_hours = params.get("def_total_hours", 0)
 
-            # hora_regreso=None → window starts now → def_start = 0
-            assert def_start is not None and def_start == 0, (
-                f"Trip {tid}: def_start_timestep should be 0 "
-                f"(window starts at now when hora_regreso=None). "
+            # Multi-trip windows: each trip starts after previous departure + buffer
+            expected_start = expected_def_starts.get(tid)
+            assert def_start is not None and def_start == expected_start, (
+                f"Trip {tid}: def_start_timestep should be {expected_start} "
+                f"(multi-trip window with {RETURN_BUFFER}h buffer). "
                 f"Got: {def_start}"
             )
-            # FIX: def_end is based on fin_ventana (trip departure time),
-            # NOT def_start + def_total_hours.
-            # The window starts at now (hora_regreso=None) → def_start = 0.
-            # def_end should be proportional to the deadline.
-            # trip_0: deadline in 43h → def_end should be 43
-            # trip_1: deadline in 8h → def_end should be 8
+
+            # def_end is based on fin_ventana (trip departure time)
             deadline_hours = {
                 "trip_0": 43,
                 "trip_1": 8,
@@ -203,9 +218,12 @@ class TestEMHASSIndexChronological:
 
         now = datetime.now(timezone.utc)
 
+        # Use deadlines within the 168-hour horizon to avoid boundary truncation.
+        # Deadlines: 152, 157, 162, 167 hours — all within horizon.
+        # Multi-trip buffer (4h) ensures proper separation between windows.
         trips = [
             {"id": f"trip_{i}", "kwh": 14.8,
-             "datetime": (now + timedelta(hours=152 + i * 15)).isoformat()}
+             "datetime": (now + timedelta(hours=152 + i * 5)).isoformat()}
             for i in range(4)
         ]
 

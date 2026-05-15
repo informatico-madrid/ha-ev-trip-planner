@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import (
     datetime,  # noqa: F401 — re-export for test mock path (conftest.py:822)
 )
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -275,10 +275,85 @@ class EMHASSAdapter:
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
 
+        # FIX: Pre-compute multi-trip charging windows BEFORE processing individual trips.
+        # When each trip is processed individually via async_publish_deferrable_load(),
+        # calculate_multi_trip_charging_windows() is called with trips=[single_trip],
+        # so idx is always 0 and the multi-trip buffer logic (prev_departure + buffer)
+        # never activates. By computing all windows together first, we ensure proper
+        # separation between consecutive trip charging windows.
+        pre_computed_windows: List[Dict[str, Any]] = []
+        trip_deadlines: List[Tuple[datetime, Dict[str, Any]]] = []
+
+        from homeassistant.util import dt as dt_util
+
+        now = dt_util.now()
+        soc_current = await self._get_current_soc()
+        if soc_current is None:
+            soc_current = 50.0
+
+        # Build (deadline, trip) tuples for all trips
         for trip in trips:
-            trip_success = await self.async_publish_deferrable_load(trip)
-            if not trip_success:
-                success = False
+            deadline_dt = self._calculate_deadline_from_trip(trip)
+            if deadline_dt is not None:
+                trip_deadlines.append((deadline_dt, trip))
+
+        # Sort by deadline (chronological order) — required by
+        # calculate_multi_trip_charging_windows() which assigns buffers
+        # based on previous trip's departure time.
+        trip_deadlines.sort(key=lambda x: x[0])
+
+        # Calculate multi-trip windows if we have deadlines
+        if trip_deadlines:
+            from ..calculations.windows import calculate_multi_trip_charging_windows
+
+            battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
+            pre_computed_windows = calculate_multi_trip_charging_windows(
+                trips=trip_deadlines,
+                soc_actual=soc_current,
+                hora_regreso=None,  # Car is assumed home
+                charging_power_kw=self._load_publisher.charging_power_kw,
+                battery_capacity_kwh=battery_capacity_kwh,
+                safety_margin_percent=self._load_publisher.safety_margin_percent,
+                now=now,
+            )
+
+        # Build a lookup from trip_id to pre-computed window
+        window_by_trip_id: Dict[str, Dict[str, Any]] = {}
+        for window in pre_computed_windows:
+            trip = window.get("trip")
+            if trip:
+                trip_id = trip.get("id")
+                if trip_id:
+                    window_by_trip_id[trip_id] = window
+
+        # Process each trip with pre-computed windows
+        for trip in trips:
+            trip_id = trip.get("id", "")
+            pre_computed_inicio = window_by_trip_id.get(trip_id, {}).get("inicio_ventana")
+            pre_computed_fin = window_by_trip_id.get(trip_id, {}).get("fin_ventana")
+
+            if pre_computed_inicio is not None or pre_computed_fin is not None:
+                # Use pre-computed windows for this trip
+                try:
+                    await self._populate_per_trip_cache_entry(
+                        PerTripCacheParams(
+                            trip=trip,
+                            trip_id=trip_id,
+                            charging_power_kw=self._charging_power_kw or 3.6,
+                            battery_capacity_kwh=battery_capacity_kwh,
+                            safety_margin_percent=self._load_publisher.safety_margin_percent,
+                            soc_current=soc_current,
+                        ),
+                        pre_computed_inicio_ventana=pre_computed_inicio,
+                        pre_computed_fin_ventana=pre_computed_fin,
+                    )
+                except Exception:
+                    success = False
+            else:
+                # Fallback: process without pre-computed windows
+                trip_success = await self.async_publish_deferrable_load(trip)
+                if not trip_success:
+                    success = False
 
         # BUG-6: Run deficit propagation to handle cascading charging needs
         self._apply_deficit_propagation()
@@ -482,7 +557,8 @@ class EMHASSAdapter:
                     self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
                     - now
                 ).total_seconds() / 3600
-                def_start_timestep = max(0, min(int(delta_hours), horizon_hours))
+                # RULE: Each fraction of hour = 1 full hour slot. math.ceil() because 1 minute = 1 slot.
+                def_start_timestep = max(0, min(math.ceil(delta_hours), horizon_hours))
             elif charging_windows and charging_windows[0].get("inicio_ventana"):
                 inicio = charging_windows[0]["inicio_ventana"]
                 delta_hours = (

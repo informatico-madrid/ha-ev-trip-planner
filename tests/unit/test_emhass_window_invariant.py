@@ -73,8 +73,9 @@ class TestEMHASSWindowInvariant:
 
         now = datetime.now(timezone.utc)
 
-        # Create 5 trips with varying deadlines to exercise different window sizes.
-        # The key is load 3: deadline only ~0.7h from now (very narrow window).
+        # Create 5 trips with varying deadlines within the 168h horizon.
+        # Deadlines: 36, 61, 86, 111, 136 hours — all within horizon.
+        # The key is trip_3: deadline only ~0.7h from now (very narrow window).
         trips = [
             {
                 "id": f"trip_{i}",
@@ -83,8 +84,8 @@ class TestEMHASSWindowInvariant:
             }
             for i in range(5)
         ]
-        # Override trip_3 to have a very tight deadline
-        trips[3]["datetime"] = (now + timedelta(hours=142, minutes=20)).isoformat()
+        # Override trip_3 to have a very tight deadline (within horizon)
+        trips[3]["datetime"] = (now + timedelta(hours=112, minutes=20)).isoformat()
 
         with (
             patch.object(
@@ -130,12 +131,13 @@ class TestEMHASSWindowInvariant:
 
         now = datetime.now(timezone.utc)
 
-        # Wide windows: 11+ hours between consecutive trips
+        # Wide windows: deadlines within the 168h horizon to avoid boundary truncation.
+        # Deadlines: 100, 125, 150 hours — all within horizon.
         trips = [
             {
                 "id": f"trip_{i}",
                 "kwh": 14.8,
-                "datetime": (now + timedelta(hours=152 + i * 15)).isoformat(),
+                "datetime": (now + timedelta(hours=100 + i * 25)).isoformat(),
             }
             for i in range(3)
         ]

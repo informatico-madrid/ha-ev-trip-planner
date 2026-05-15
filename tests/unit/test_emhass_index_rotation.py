@@ -13,7 +13,7 @@ El problema: emhass_index se asigna por orden de CREACIÓN de viajes,
 no por orden CRONOLÓGICO.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -58,12 +58,15 @@ class TestEMHASSIndexRotation:
         - def_end >= def_start + def_total_hours (window accommodates charging)
         - All trips have reasonable charging windows (> 0 hours)
         """
+        # Use punctual trips with deadlines well within the 168h horizon and
+        # spaced enough that the 4h multi-trip buffer does NOT cause def_start >= def_end.
+        # Deadlines: 24, 48, 72, 96, 120 hours — all within horizon, well spaced.
         trips_chronological = [
-            {"id": "trip_wednesday", "tipo": "recurring", "dia_semana": "miércoles", "hora": "16:40", "kwh": 7.0},
-            {"id": "trip_thursday_1", "tipo": "recurring", "dia_semana": "jueves", "hora": "09:40", "kwh": 7.0},
-            {"id": "trip_thursday_2", "tipo": "recurring", "dia_semana": "jueves", "hora": "13:40", "kwh": 7.0},
-            {"id": "trip_friday", "tipo": "recurring", "dia_semana": "viernes", "hora": "09:40", "kwh": 7.0},
-            {"id": "trip_sunday", "tipo": "recurring", "dia_semana": "domingo", "hora": "09:40", "kwh": 7.0},
+            {"id": "trip_wednesday", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(), "kwh": 7.0},
+            {"id": "trip_thursday_1", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(), "kwh": 7.0},
+            {"id": "trip_thursday_2", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=72)).isoformat(), "kwh": 7.0},
+            {"id": "trip_friday", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=96)).isoformat(), "kwh": 7.0},
+            {"id": "trip_sunday", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=120)).isoformat(), "kwh": 7.0},
         ]
 
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
