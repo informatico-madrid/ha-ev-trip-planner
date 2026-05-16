@@ -57,7 +57,27 @@ class IndexManager(IndexManagerBase):
         self._released_indices = kept
 
     async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:
-        """Assign an available index to a trip.
+        """Assign an available index to a trip (delegates to sync impl)."""
+        return self.assign_index(trip_id)
+
+    async def async_release_index(self, trip_id: str) -> Optional[int]:
+        """Release an index for a trip (delegates to sync impl)."""
+        if trip_id not in self._index_map:
+            return None
+        idx = self._index_map[trip_id]
+        self.release_index(trip_id)
+        return idx
+
+    async def async_load_index(self) -> None:
+        """Load index map from storage. Called during EMHASSAdapter initialization."""
+        pass
+
+    async def async_save_index(self) -> None:
+        """Save index map to storage. Called after index changes."""
+        pass
+
+    def assign_index(self, trip_id: str) -> Optional[int]:
+        """Assign the next available index to a trip.
 
         If trip_id already has an index, returns it.
         Otherwise assigns the next available index (max + 1, or 0 if empty).
@@ -83,57 +103,12 @@ class IndexManager(IndexManagerBase):
         self._index_map[trip_id] = next_idx
         return next_idx
 
-    async def async_release_index(self, trip_id: str) -> Optional[int]:
+    def release_index(self, trip_id: str) -> bool:
         """Release an index for a trip.
 
         Stores the released index in cooldown so it's not immediately reused.
-        Returns the released index, or None if trip not found.
+        Returns True if index was released, False if trip not found.
         """
-        if trip_id not in self._index_map:
-            return None
-
-        released_index = self._index_map.pop(trip_id)
-        self._released_indices.append({
-            "index": released_index,
-            "timestamp": datetime.now(timezone.utc),
-        })
-        return released_index
-
-    async def async_load_index(self) -> None:
-        """Load index map from storage. Called during EMHASSAdapter initialization."""
-        pass
-
-    async def async_save_index(self) -> None:
-        """Save index map to storage. Called after index changes."""
-        pass
-
-    def assign_index(self, trip_id: str) -> Optional[int]:
-        """Sync version of async_assign_index_to_trip for LoadPublisher.
-
-        Computes and stores the next available index for the given trip_id.
-        Skips indices in soft-delete cooldown.
-        """
-        if trip_id in self._index_map:
-            return self._index_map[trip_id]
-
-        self._prune_expired_cooldown()
-
-        if self._index_map:
-            next_idx = max(self._index_map.values()) + 1
-        else:
-            next_idx = 0
-
-        # If next_idx is in cooldown, advance
-        attempt = next_idx
-        while self._is_index_in_cooldown(attempt):
-            attempt += 1
-        next_idx = attempt
-
-        self._index_map[trip_id] = next_idx
-        return next_idx
-
-    def release_index(self, trip_id: str) -> bool:
-        """Sync version of async_release_index for LoadPublisher."""
         released = self._index_map.pop(trip_id, None)
         if released is not None:
             self._released_indices.append({

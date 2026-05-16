@@ -22,15 +22,24 @@ def mock_hass(tmp_path):
     hass = MagicMock()
     hass.config = MagicMock()
     hass.config.config_dir = str(tmp_path)
+
+    mock_state = MagicMock()
+    mock_state.state = "50"
+    hass.states.get = MagicMock(return_value=mock_state)
     return hass
 
 
 @pytest.fixture
 def mock_entry():
-    """Minimal MagicMock ConfigEntry."""
+    """Minimal MagicMock ConfigEntry with required fields."""
     entry = MagicMock()
     entry.entry_id = "test_vehicle"
-    entry.data = {"charging_power_kw": 3.6}
+    entry.data = {
+        "charging_power_kw": 3.6,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+        "soc_sensor": "sensor.ev_soc",
+    }
     entry.options = {}
     return entry
 
@@ -569,10 +578,12 @@ class TestLoadPublisherPublish:
 
         from custom_components.ev_trip_planner.emhass.load_publisher import (
             LoadPublisher,
+            LoadPublisherConfig,
         )
 
         caplog.set_level(logging.INFO)
-        publisher = LoadPublisher(hass=mock_hass, vehicle_id="v")
+        config = LoadPublisherConfig(soc_sensor="sensor.ev_soc")
+        publisher = LoadPublisher(hass=mock_hass, vehicle_id="v", config=config)
         future = datetime(2027, 1, 1, tzinfo=timezone.utc).isoformat()
         result = await publisher.publish(
             {
@@ -590,9 +601,11 @@ class TestLoadPublisherPublish:
         """Publish a recurring trip gets assigned an index."""
         from custom_components.ev_trip_planner.emhass.load_publisher import (
             LoadPublisher,
+            LoadPublisherConfig,
         )
 
-        publisher = LoadPublisher(hass=mock_hass, vehicle_id="v")
+        config = LoadPublisherConfig(soc_sensor="sensor.ev_soc")
+        publisher = LoadPublisher(hass=mock_hass, vehicle_id="v", config=config)
         result = await publisher.publish(
             {
                 "id": "weekly",
@@ -1004,7 +1017,10 @@ class TestEMHASSAdapterUpdateChargingPower:
     async def test_update_charging_power_sets_value(self, mock_hass, mock_entry):
         """update_charging_power reads from entry options and stores it."""
         mock_entry.options = {"charging_power_kw": 7.4}
-        mock_entry.data = {}
+        mock_entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+        }
 
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
@@ -1020,7 +1036,10 @@ class TestEMHASSAdapterUpdateChargingPower:
     async def test_update_charging_power_skips_unchanged(self, mock_hass, mock_entry):
         """update_charging_power skips early when power is unchanged."""
         mock_entry.options = {"charging_power_kw": 3.6}
-        mock_entry.data = {}
+        mock_entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+        }
 
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
@@ -1141,12 +1160,13 @@ class TestEMHASSAdapterBackwardCompat:
 
     @pytest.mark.asyncio
     async def test_get_current_soc_no_entry_dict(self, mock_hass, mock_entry):
-        """_get_current_soc returns None when no _entry_dict."""
+        """_get_current_soc returns None when _entry is None."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
+        adapter._entry = None
         result = await adapter._get_current_soc()
         assert result is None
 
@@ -1159,7 +1179,12 @@ class TestEMHASSAdapterBackwardCompat:
             EMHASSAdapter,
         )
 
-        mock_entry.data = {"soc_sensor": "sensor.battery_soc"}
+        mock_entry.data = {
+            "soc_sensor": "sensor.battery_soc",
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+        }
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         mock_hass.states.get = Mock(return_value=MagicMock(state="75"))
         result = await adapter._get_current_soc()
@@ -1172,7 +1197,12 @@ class TestEMHASSAdapterBackwardCompat:
             EMHASSAdapter,
         )
 
-        mock_entry.data = {"soc_sensor": "sensor.missing"}
+        mock_entry.data = {
+            "soc_sensor": "sensor.missing",
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+        }
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         mock_hass.states.get = Mock(return_value=None)
         result = await adapter._get_current_soc()

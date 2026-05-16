@@ -14,15 +14,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 
 from ..calculations import (
-    calculate_charging_rate,
-    calculate_day_index,
-    calculate_soc_target,
-    calculate_trip_time,
+    calculate_energy_needed,
     compute_safe_delta,
 )
-from ..const import CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER, DOMAIN
-from ..utils import calcular_energia_kwh
-from ..utils import is_trip_today as pure_is_trip_today
+from ..const import DOMAIN
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,26 +54,42 @@ class SOCQuery:
     async def async_calcular_energia_necesaria(
         self, trip: Dict[str, Any], vehicle_config: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Calcula la energía necesaria considerando el SOC actual."""
-        battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
-        charging_power_kw = vehicle_config.get("charging_power_kw", 3.6)
-        soc_current = vehicle_config.get("soc_current", 100.0)
-        consumption_kwh_per_km = vehicle_config.get("consumption_kwh_per_km", 0.15)
-        safety_margin_percent = vehicle_config.get("safety_margin_percent", 10.0)
+        """Calcula la energía necesaria considerando el SOC actual.
 
-        if "kwh" in trip:
-            energia_viaje = trip.get("kwh", 0.0)
-        else:
-            distance_km = trip.get("km", 0.0)
-            energia_viaje = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
+        Delegates to calculate_energy_needed (windows.py) for the pure energy
+        calculation with proper safety margin — no silent defaults here.
+        Only adds the time-check logic (horas_disponibles, alerta).
+        """
+        # Validate required fields — no silent defaults
+        for field in ("battery_capacity_kwh", "charging_power_kw"):
+            if field not in vehicle_config:
+                _LOGGER.error(
+                    "async_calcular_energia_necesaria: missing required field '%s' "
+                    "in vehicle_config for trip %s",
+                    field,
+                    trip.get("id"),
+                )
+                return {
+                    "energia_necesaria_kwh": 0.0,
+                    "horas_carga_necesarias": 0,
+                    "alerta_tiempo_insuficiente": True,
+                    "horas_disponibles": 0.0,
+                    "margen_seguridad_aplicado": 0.0,
+                }
 
-        energia_actual = (soc_current / 100.0) * battery_capacity
-        energia_necesaria = max(0.0, energia_viaje - energia_actual)
-        energia_final = energia_necesaria * (1 + safety_margin_percent / 100)
-        horas_carga = (
-            energia_final / charging_power_kw if charging_power_kw > 0 else 0.0
+        # Pure energy calculation — no time check, delegates to canonical impl
+        # vehicle_config always has battery_capacity_kwh, charging_power_kw, safety_margin_percent
+        # consumption_kwh_per_km comes from config flow (default 0.15)
+        energia_info = calculate_energy_needed(
+            trip=trip,
+            battery_capacity_kwh=vehicle_config["battery_capacity_kwh"],
+            soc_current=vehicle_config["soc_current"],
+            charging_power_kw=vehicle_config["charging_power_kw"],
+            consumption_kwh_per_km=vehicle_config.get("consumption_kwh_per_km", 0.15),
+            safety_margin_percent=vehicle_config["safety_margin_percent"],
         )
 
+        # Time-check logic (only applies when trip has a datetime)
         horas_disponibles = 0.0
         alerta_tiempo_insuficiente = False
         trip_tipo = trip.get("tipo")
@@ -98,14 +109,16 @@ class SOCQuery:
         if trip_time:
             now = dt_util.now() if trip_tipo else datetime.now(timezone.utc)
             horas_disponibles = self._compute_charging_hours(trip_time, now)
+            # Use horas from energy calc (rounded up) for consistency
+            horas_carga = energia_info["horas_carga_necesarias"]
             alerta_tiempo_insuficiente = horas_carga > horas_disponibles
 
         return {
-            "energia_necesaria_kwh": round(energia_final, 3),
-            "horas_carga_necesarias": round(horas_carga, 2),
+            "energia_necesaria_kwh": energia_info["energia_necesaria_kwh"],
+            "horas_carga_necesarias": energia_info["horas_carga_necesarias"],
             "alerta_tiempo_insuficiente": alerta_tiempo_insuficiente,
             "horas_disponibles": round(horas_disponibles, 2),
-            "margen_seguridad_aplicado": safety_margin_percent,
+            "margen_seguridad_aplicado": energia_info["margen_seguridad_aplicado"],
         }
 
     async def async_get_kwh_needed_today(self) -> float:
@@ -128,33 +141,7 @@ class SOCQuery:
         charging_power = self._get_charging_power()
         return math.ceil(kwh_needed / charging_power) if charging_power > 0 else 0
 
-    # ── Private helpers (previously on SOCHelpers) ────────────────
-
-    def _parse_trip_datetime(
-        self, trip_datetime: datetime | str, allow_none: bool = False
-    ) -> datetime | None:
-        """Parse trip datetime, ensuring timezone awareness."""
-        if isinstance(trip_datetime, datetime):
-            dt = trip_datetime
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
-        from homeassistant.util import dt as dt_util
-
-        try:
-            parsed = dt_util.parse_datetime(trip_datetime)
-            if parsed is not None and parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=timezone.utc)
-            if parsed is None:
-                _LOGGER.warning(
-                    "Failed to parse trip datetime: %s, falling back to now",
-                    repr(trip_datetime),
-                )
-                return None if allow_none else datetime.now(timezone.utc)
-            return parsed
-        except Exception:
-            _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
-            return None if allow_none else datetime.now(timezone.utc)
+    # ── Private helpers (delegated to SOCHelpers via state) ─────────
 
     @staticmethod
     def _compute_charging_hours(trip_time: datetime, now: datetime) -> float:
@@ -167,27 +154,24 @@ class SOCQuery:
             return 0.0
         return max(0.0, delta.total_seconds() / 3600)
 
+    # Delegate to SOCHelpers — shared logic lives in one place
+    def _parse_trip_datetime(
+        self, trip_datetime: datetime | str, allow_none: bool = False
+    ) -> datetime | None:
+        """Parse trip datetime, ensuring timezone awareness."""
+        return self._state._soc_helpers._parse_trip_datetime(trip_datetime, allow_none)
+
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
-        try:
-            entry: Optional[ConfigEntry] = None
-            for config_entry in self._state.hass.config_entries.async_entries(DOMAIN):
-                if config_entry.data.get("vehicle_name") == self._state.vehicle_id:
-                    entry = config_entry
-                    break
-            if entry is not None and entry.data is not None:
-                power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
-                if isinstance(power, (int, float)) and power > 0:
-                    return float(power)
-        except Exception:
-            pass
-        return DEFAULT_CHARGING_POWER
+        return self._state._soc_helpers._get_charging_power()
 
     def _calcular_tasa_carga_soc(
         self, charging_power_kw: float, battery_capacity_kwh: float = 50.0
     ) -> float:
         """Calcula la tasa de carga en % SOC/hora."""
-        return calculate_charging_rate(charging_power_kw, battery_capacity_kwh)
+        return self._state._soc_helpers._calcular_tasa_carga_soc(
+            charging_power_kw, battery_capacity_kwh
+        )
 
     def _calcular_soc_objetivo_base(
         self,
@@ -196,28 +180,18 @@ class SOCQuery:
         consumption_kwh_per_km: float = 0.15,
     ) -> float:
         """Calculates the base SOC target percentage for a trip."""
-        return calculate_soc_target(trip, battery_capacity_kwh, consumption_kwh_per_km)
+        return self._state._soc_helpers._calcular_soc_objetivo_base(
+            trip, battery_capacity_kwh, consumption_kwh_per_km
+        )
 
     def _is_trip_today(self, trip: Dict[str, Any], today: date) -> bool:
         """Verifica si un viaje ocurre hoy."""
-        return pure_is_trip_today(trip, today)
+        return self._state._soc_helpers._is_trip_today(trip, today)
 
     def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Obtiene la fecha y hora del viaje."""
-        tipo = trip.get("tipo")
-        if tipo is None:
-            return None
-        result = calculate_trip_time(
-            tipo,
-            trip.get("hora"),
-            trip.get("dia_semana"),
-            trip.get("datetime"),
-            datetime.now(timezone.utc),
-        )
-        if result is not None:
-            return result.replace(tzinfo=timezone.utc)
-        return result
+        return self._state._soc_helpers._get_trip_time(trip)
 
     def _get_day_index(self, day_name: str) -> int:
         """Obtiene el índice del día de la semana."""
-        return calculate_day_index(day_name)
+        return self._state._soc_helpers._get_day_index(day_name)

@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..const import DEFAULT_SAFETY_MARGIN
 from ..utils import calcular_energia_kwh
 from . import _helpers
+from ._helpers import kw_to_watts
 
 
 def calculate_energy_needed(
@@ -160,7 +161,7 @@ def calculate_charging_window_pure(
 
     # Calculate ventana_horas
     delta = fin_ventana - inicio_ventana
-    ventana_horas = max(0.0, delta.total_seconds() / 3600)
+    ventana_horas = max(0.0, _helpers.compute_hours_until(fin_ventana, inicio_ventana))
 
     # kwh_necesarios
     kwh_necesarios = energia_kwh
@@ -360,8 +361,7 @@ def _compute_window_hours(
     """
     window_start_aware = _helpers._ensure_aware(window_start)
     trip_departure_aware = _helpers._ensure_aware(trip_departure_time)
-    delta = trip_departure_aware - window_start_aware
-    return max(0.0, delta.total_seconds() / 3600)
+    return max(0.0, _helpers.compute_hours_until(trip_departure_aware, window_start_aware))
 
 
 def build_deferrable_matrix_row(
@@ -395,7 +395,7 @@ def build_deferrable_matrix_row(
     hours_ceil = math.ceil(hours_needed)
     charging_start = max(0, end_timestep - hours_ceil)
     charging_end = min(end_timestep, horizon_hours)
-    power_watts = charging_power_kw * 1000.0
+    power_watts = _helpers.kw_to_watts(charging_power_kw)
 
     for t in range(charging_start, charging_end):
         if 0 <= t < horizon_hours:

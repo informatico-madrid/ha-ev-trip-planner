@@ -11,6 +11,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+from . import _helpers
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -100,7 +102,7 @@ def _compute_trip_power(
         return "0.0"
 
     delta = deadline_dt - now
-    horas_hasta_viaje = int(delta.total_seconds() / 3600)
+    horas_hasta_viaje = int(_helpers.compute_hours_until(deadline_dt, now))
     if horas_hasta_viaje < 0:
         return "0.0"
 
@@ -135,11 +137,11 @@ def _check_charging_window(
     Returns the power string if charging, "0.0" otherwise.
     """
     total_hours = kwh / power_kw if power_kw > 0 else 0
-    horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
-    hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+    horas_necesarias = _helpers.ceil_hours(total_hours)
+    hora_inicio_carga = _helpers.compute_charging_window(horas_hasta_viaje, horas_necesarias)
 
     if hora_inicio_carga <= hour_offset < horas_hasta_viaje:
-        return str(int(power_kw * 1000))
+        return str(_helpers.kw_to_watts(power_kw))
     return "0.0"
 
 
@@ -185,7 +187,7 @@ def calculate_deferrable_parameters(
         total_hours = kwh / power_kw if power_kw > 0 else 0.0
 
         # Power in watts (positive value = charging)
-        power_watts = power_kw * 1000
+        power_watts = _helpers.kw_to_watts(power_kw)
 
         # Calculate available time until deadline
         if deadline:
@@ -201,7 +203,7 @@ def calculate_deferrable_parameters(
             if deadline_dt.tzinfo is None and now.tzinfo is not None:
                 deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
 
-            hours_available = (deadline_dt - now).total_seconds() / 3600
+            hours_available = _helpers.compute_hours_until(deadline_dt, now)
             end_timestep = max(1, min(int(hours_available), 168))  # Max 7 days
         else:
             # Default to 24 hours if no deadline

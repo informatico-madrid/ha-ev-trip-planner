@@ -577,7 +577,10 @@ class TestSOCMixin:
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         entry = MagicMock()
-        entry.data = {"soc_sensor": "sensor.battery", "vehicle_name": "test_vehicle"}
+        entry.data = {"soc_sensor": "sensor.battery", "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test_vehicle"}
         mock_hass.config_entries.async_entries = MagicMock(return_value=[entry])
 
         tm = _make_tm(mock_hass)
@@ -1088,6 +1091,7 @@ class TestCrudSocInteraction:
             "charging_power_kw": 7.4,
             "soc_current": 80.0,
             "consumption_kwh_per_km": 0.15,
+            "safety_margin_percent": 10.0,
         }
         result = await tm._soc_query.async_calcular_energia_necesaria(
             trip, vehicle_config

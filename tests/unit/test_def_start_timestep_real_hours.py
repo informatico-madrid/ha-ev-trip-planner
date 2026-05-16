@@ -55,6 +55,8 @@ async def test_def_start_matches_actual_hours_until_departure(mock_hass, mock_st
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.4,
+        "battery_capacity_kwh": 28.0,
+        "safety_margin_percent": 10.0,
     }
 
     # Now = 02:20 UTC
@@ -150,6 +152,8 @@ async def test_def_end_uses_trip_departure_not_hours_available(mock_hass, mock_s
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.4,
+        "battery_capacity_kwh": 28.0,
+        "safety_margin_percent": 10.0,
     }
 
     # Now = 02:20 UTC

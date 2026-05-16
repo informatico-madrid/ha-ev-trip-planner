@@ -14,18 +14,27 @@ from custom_components.ev_trip_planner.emhass.adapter import (
 )
 
 
-@pytest.fixture
-def mock_entry():
-    """Minimal MagicMock ConfigEntry."""
+def _make_valid_entry(**overrides):
+    """Create a MagicMock ConfigEntry with all required fields."""
     entry = MagicMock()
-    entry.options = {}
-    entry.data = {
+    entry.entry_id = "test_vehicle"
+    data = {
         "vehicle_name": "test_vehicle",
         "battery_capacity_kwh": 60.0,
         "kwh_per_km": 0.15,
         "charging_power_kw": 7.0,
+        "safety_margin_percent": 10.0,
     }
+    data.update(overrides)
+    entry.data = data
+    entry.options = {}
     return entry
+
+
+@pytest.fixture
+def mock_entry():
+    """Minimal MagicMock ConfigEntry with required fields."""
+    return _make_valid_entry()
 
 
 @pytest.fixture
@@ -71,14 +80,26 @@ class TestGetHorizonHoursException:
 
     def test_exception_returns_default(self, mock_hass, mock_entry):
         """Lines 415-416: Exception in _get_horizon_hours returns default 168."""
-        mock_entry.data = {"planning_horizon_days": "not_a_number"}
+        mock_entry.data = {
+            "vehicle_name": "test_vehicle",
+            "battery_capacity_kwh": 60.0,
+            "charging_power_kw": 7.0,
+            "safety_margin_percent": 10.0,
+            "planning_horizon_days": "not_a_number",
+        }
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         result = adapter._get_horizon_hours()
         assert result == 168
 
     def test_exception_in_int_conversion_returns_default(self, mock_hass, mock_entry):
         """Lines 415-416: Exception in int() conversion returns default 168."""
-        mock_entry.data = {"planning_horizon_days": "abc"}
+        mock_entry.data = {
+            "vehicle_name": "test_vehicle",
+            "battery_capacity_kwh": 60.0,
+            "charging_power_kw": 7.0,
+            "safety_margin_percent": 10.0,
+            "planning_horizon_days": "abc",
+        }
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         result = adapter._get_horizon_hours()
         assert result == 168
@@ -91,7 +112,7 @@ class TestPopulatePerTripCacheEntryMissingPaths:
     async def test_empty_cached_params_returns_early(self):
         """Line 735: Empty _cached_per_trip_params returns early."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {}
         adapter._apply_deficit_propagation()  # Should not raise
@@ -99,7 +120,7 @@ class TestPopulatePerTripCacheEntryMissingPaths:
     def test_single_active_trip_returns_early(self):
         """Line 739: Less than 2 active trips returns early."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {
             "trip_001": {"activo": True, "def_start_timestep": 0, "emhass_index": 0},
@@ -113,7 +134,7 @@ class TestBuildDeficitWindowsEmptyChargingWindow:
     def test_empty_charging_window_produces_zero_hours(self):
         """Lines 777-778: Empty charging_window should produce zero horas_carga."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
 
         active = [
@@ -147,7 +168,7 @@ class TestApplyDeficitPropagationEarlyReturns:
     def test_windows_empty_returns_early(self):
         """Line 744: Empty windows list returns early."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         # Two active trips but empty charging windows -> _build_deficit_windows returns empty
         adapter._cached_per_trip_params = {
@@ -174,7 +195,7 @@ class TestApplyDeficitResults:
     def test_apply_deficit_results_empty(self):
         """Lines 793, 797: Empty results list should not raise."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {}
         adapter._apply_deficit_results([], [])
@@ -182,7 +203,7 @@ class TestApplyDeficitResults:
     def test_apply_deficit_results_with_data(self):
         """Lines 793, 797: Results with data should update cached params."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         # _find_trip_id_for_params uses identity (p is params), so active[0] must BE trip_001
         trip_001 = {"def_start_timestep": 0, "emhass_index": 0, "power_watts": 3600}
@@ -204,7 +225,7 @@ class TestFindTripIdForParams:
     def test_find_trip_id_returns_none_for_unknown(self):
         """Line 815: No matching trip returns None."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         trip_001 = {"id": "trip_001"}
         adapter._cached_per_trip_params = {
@@ -218,7 +239,7 @@ class TestFindTripIdForParams:
     def test_find_trip_id_returns_matching(self):
         """Line 812-814: Matching params dict should return trip_id."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         trip_001 = {"id": "trip_001"}
         adapter._cached_per_trip_params = {
@@ -235,7 +256,7 @@ class TestLine744EmptyWindows:
     def test_line_744_empty_windows_returns_early(self):
         """Line 744: When _build_deficit_windows returns empty list, return early."""
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {
             "trip_001": {"activo": True, "def_start_timestep": 0, "emhass_index": 0},
@@ -260,16 +281,9 @@ class TestLines650652KmFallbackAndLine695:
         from homeassistant.util import dt as dt_util
 
         hass = MagicMock()
-        entry = MagicMock()
+        entry = _make_valid_entry()
         # Entry must have t_base so the SOC capping block is entered (line 635)
         entry.options = {"t_base": 24.0}
-        entry.data = {
-            "vehicle_name": "test_vehicle",
-            "battery_capacity_kwh": 60.0,
-            "kwh_per_km": 0.15,
-            "charging_power_kw": 7.0,
-            "planning_horizon_days": 7,
-        }
 
         # Trip with 'km' but WITHOUT 'kwh' — triggers lines 650-652
         trip = {

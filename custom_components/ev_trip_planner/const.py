@@ -58,9 +58,11 @@ CONTROL_TYPE_SCRIPT = "script"
 CONTROL_TYPE_EXTERNAL = "external"
 
 # Defaults
+# These are form display defaults ONLY. Never use as runtime fallbacks.
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
+DEFAULT_BATTERY_CAPACITY_KWH = 50.0  # kWh (typical EV battery capacity)
 DEFAULT_SOC_BUFFER_PERCENT = (
     10  # percent (minimum SOC buffer for backward deficit propagation)
 )

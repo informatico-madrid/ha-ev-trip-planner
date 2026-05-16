@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from homeassistant.util import dt as dt_util
 
+from ..calculations import _helpers
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class TripScheduler:
         """Build per-trip power profile matrix. Returns (profiles, num_trips)."""
         num_trips = len(trips)
         profile_length = planning_horizon_days * 24
-        charging_power_watts = charging_power_kw * 1000
+        charging_power_watts = _helpers.kw_to_watts(charging_power_kw)
 
         power_profiles: List[List[float]] = [
             [0.0] * profile_length for _ in range(num_trips)
@@ -105,7 +106,7 @@ class TripScheduler:
             if energia_kwh <= 0:
                 continue
 
-            horas_necesarias = int(horas_carga) + (1 if horas_carga % 1 > 0 else 0)
+            horas_necesarias = _helpers.ceil_hours(horas_carga)
             trip_time = self._state._soc._get_trip_time(trip)
             if not trip_time:
                 continue
@@ -116,7 +117,7 @@ class TripScheduler:
             if horas_hasta_viaje < 0:
                 continue
 
-            hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+            hora_inicio_carga = _helpers.compute_charging_window(horas_hasta_viaje, horas_necesarias)
 
             for h in range(
                 int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)

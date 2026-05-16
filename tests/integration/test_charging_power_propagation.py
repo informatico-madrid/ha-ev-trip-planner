@@ -25,18 +25,25 @@ from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 class MockConfigEntry:
     """Mock ConfigEntry for testing."""
-    
+
     def __init__(self, entry_id="test_vehicle"):
         self.entry_id = entry_id
-        self.data = {"vehicle_name": "test_vehicle"}
+        self.data = {
+            "vehicle_name": "test_vehicle",
+            "charging_power_kw": 3.6,
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+            "soc_sensor": "sensor.ev_soc",
+        }
         self.options = {}
 
 
 class MockHass:
     """Mock HomeAssistant for testing."""
-    
+
     def __init__(self):
         self.states = MagicMock()
+        self.states.get = MagicMock(return_value=MagicMock(state="50"))
         self.config_entries = MagicMock()
         self.services = MagicMock()
         self.logger = logging.getLogger("test")

@@ -40,6 +40,8 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
     now = datetime.now(timezone.utc)

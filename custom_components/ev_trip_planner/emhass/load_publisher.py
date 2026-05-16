@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from ..calculations import (
+    _helpers,
     BatteryCapacity,
     calculate_energy_needed,
     calculate_multi_trip_charging_windows,
@@ -43,6 +44,7 @@ class LoadPublisherConfig:
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
     max_deferrable_loads: int = 50
     index_manager: Optional[IndexManager] = None
+    soc_sensor: Optional[str] = None
 
 
 # Backward compat re-export
@@ -76,6 +78,7 @@ class LoadPublisher(LoadPublisherBase):
         self.charging_power_kw = cfg.charging_power_kw
         self.battery_capacity_kwh = cfg.battery_capacity_kwh
         self.safety_margin_percent = cfg.safety_margin_percent
+        self._soc_sensor = cfg.soc_sensor
         self._battery_cap = BatteryCapacity(
             nominal_capacity_kwh=cfg.battery_capacity_kwh,
             soh_sensor_entity_id=None,
@@ -131,7 +134,11 @@ class LoadPublisher(LoadPublisherBase):
         # Calculate charging window
         soc_current = await self._get_current_soc()
         if soc_current is None:
-            soc_current = 50.0
+            _LOGGER.error(
+                "SOC sensor unavailable — cannot publish deferrable load for trip '%s'",
+                trip_id,
+            )
+            return False
 
         charging_windows = self._calculate_charging_windows(
             deadline_dt, trip, soc_current
@@ -165,7 +172,7 @@ class LoadPublisher(LoadPublisherBase):
         _ = energia_info["energia_necesaria_kwh"]
 
         if total_hours > 0:
-            power_watts = self.charging_power_kw * 1000
+            power_watts = _helpers.kw_to_watts(self.charging_power_kw)
         else:
             power_watts = 0.0
 
@@ -299,12 +306,20 @@ class LoadPublisher(LoadPublisherBase):
         return None
 
     async def _get_current_soc(self) -> Optional[float]:
-        """Get current battery SOC.
+        """Get current battery SOC from configured sensor.
 
         Returns:
             SOC percentage or None if unavailable.
         """
-        return None
+        if not self._soc_sensor:
+            return None
+        state = self.hass.states.get(self._soc_sensor)
+        if state is None:
+            return None
+        try:
+            return float(state.state)
+        except (ValueError, TypeError):
+            return None
 
     def _calculate_charging_windows(
         self,

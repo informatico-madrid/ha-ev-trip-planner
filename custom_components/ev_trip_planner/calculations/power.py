@@ -13,59 +13,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
 from ..utils import calcular_energia_kwh
-from ._helpers import _ensure_aware
-from .core import calculate_trip_time
-from .deficit import (
-    calculate_next_recurring_datetime,
-    determine_charging_need,
+from . import _helpers
+from ._helpers import (
+    _ensure_aware,
+    ceil_hours,
+    compute_charging_window,
+    kw_to_watts,
+    resolve_trip_deadline,
 )
+from .core import calculate_trip_time
+from .deficit import determine_charging_need
 from .windows import calculate_charging_window_pure, calculate_energy_needed
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _normalize_trip_fields(trip: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Return canonical trip dict with 'day'/'time' keys, or None for invalid trips."""
-    day = trip.get("day") if "day" in trip else trip.get("dia_semana")
-    time_str = trip.get("time") if "time" in trip else trip.get("hora")
-    return {"day": day, "time": time_str} if day is not None and time_str is not None else None
-
-
-def _resolve_deadline(
-    trip: Dict[str, Any],
-    now: datetime,
-    tz: Any,
-) -> Optional[datetime]:
-    """Resolve a trip to a deadline datetime, or None if invalid/past."""
-    deadline = trip.get("datetime")
-    if deadline is not None:
-        if isinstance(deadline, str):
-            try:
-                return _ensure_aware(datetime.fromisoformat(deadline))
-            except ValueError:
-                _LOGGER.debug(
-                    "DEBUG calculate_power_profile: trip %s has invalid datetime, skipping",
-                    trip.get("id"),
-                )
-                return None
-        return _ensure_aware(deadline)
-
-    canon = _normalize_trip_fields(trip)
-    if canon is None:
-        _LOGGER.debug(
-            "DEBUG calculate_power_profile: trip %s has no datetime or day/time fields, skipping",
-            trip.get("id"),
-        )
-        return None
-
-    deadline_dt = calculate_next_recurring_datetime(canon["day"], canon["time"], now, tz=tz)
-    if deadline_dt is None:
-        _LOGGER.debug(
-            "DEBUG calculate_power_profile: trip %s has invalid day/time, skipping",
-            trip.get("id"),
-        )
-        return None
-    return _ensure_aware(deadline_dt)
 
 
 def _resolve_energy_for_trip(
@@ -96,11 +56,11 @@ def _compute_charging_hours(
 ) -> Tuple[int, int]:
     """Compute (hora_inicio_carga, hora_fin) for a single trip."""
     total_hours = kwh / power_kw if power_kw > 0 else 0
-    horas_necesarias = int(total_hours) + (1 if total_hours % 1 > 0 else 0)
+    horas_necesarias = _helpers.ceil_hours(total_hours)
     if horas_necesarias == 0:
         horas_necesarias = 1
 
-    hora_inicio_carga = max(0, horas_hasta_viaje - horas_necesarias)
+    hora_inicio_carga = _helpers.compute_charging_window(horas_hasta_viaje, horas_necesarias)
     hora_fin = min(horas_hasta_viaje, horizon)
     return hora_inicio_carga, hora_fin
 
@@ -151,11 +111,11 @@ def calculate_power_profile_from_trips(
 
     power_profile = [0.0] * horizon
     now = _ensure_aware(reference_dt)
-    charging_power_watts = power_kw * 1000
+    charging_power_watts = _helpers.kw_to_watts(power_kw)
     _LOGGER.debug("Processing %d trips, power_kw=%.2f", len(trips), power_kw)
 
     for trip in trips:
-        deadline_dt = _resolve_deadline(trip, now, tz)
+        deadline_dt = resolve_trip_deadline(trip, now, tz)
         if deadline_dt is None:
             continue
 
@@ -166,7 +126,7 @@ def calculate_power_profile_from_trips(
             continue
 
         delta = deadline_dt - now
-        horas_hasta_viaje = int(delta.total_seconds() / 3600)
+        horas_hasta_viaje = int(_helpers.compute_hours_until(deadline_dt, now))
         if horas_hasta_viaje < 0:
             continue
 
@@ -227,7 +187,7 @@ def calculate_power_profile(
 
     _assign_priority_indices(trips_with_deadlines)
 
-    charging_power_watts = charging_power_kw * 1000
+    charging_power_watts = _helpers.kw_to_watts(charging_power_kw)
 
     for trip_departure_time, _, trip in trips_with_deadlines:
         _try_populate_window(
@@ -289,7 +249,7 @@ def _compute_window_position(
     fin_ventana = ventana_info["fin_ventana"]
 
     delta_inicio = inicio_ventana - reference_dt
-    horas_desde_ahora = int(delta_inicio.total_seconds() / 3600)
+    horas_desde_ahora = int(_helpers.compute_hours_until(inicio_ventana, reference_dt))
     hora_inicio_carga = max(0, horas_desde_ahora)
 
     horas_necesarias = ventana_info.get("horas_carga_necesarias", 0)
@@ -297,7 +257,7 @@ def _compute_window_position(
         horas_necesarias = 1
 
     delta_fin = fin_ventana - reference_dt
-    horas_hasta_fin = int(delta_fin.total_seconds() / 3600)
+    horas_hasta_fin = int(_helpers.compute_hours_until(fin_ventana, reference_dt))
 
     if horas_hasta_fin < 0:
         return None

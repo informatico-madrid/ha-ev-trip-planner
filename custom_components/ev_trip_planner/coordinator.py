@@ -21,6 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
+from .calculations import _helpers
 from .const import (
     CONF_VEHICLE_NAME,
     DEFAULT_CONSUMPTION,
@@ -346,7 +347,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "BUG-DEBUG: _process_single_mock_trip trip_id=%s kwh_needed=%.2f charging_power_kw=%.2f hours_needed=%.4f",
             trip_id, kwh_needed, charging_power_kw, hours_needed,
         )
-        power_watts = charging_power_kw * 1000.0
+        power_watts = _helpers.kw_to_watts(charging_power_kw)
         start_timestep, end_timestep = self._calculate_mock_timesteps(
             trip, charging_power_kw, horizon_hours, hours_needed, now
         )

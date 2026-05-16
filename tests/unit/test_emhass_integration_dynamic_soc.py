@@ -80,8 +80,8 @@ async def test_t_base_affects_charging_hours():
     entry_6.data = {
         "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
-        "charging_power": 7.4,
-        "battery_capacity": 60.0,
+        "charging_power_kw": 7.4,
+        "battery_capacity_kwh": 60.0,
         "safety_margin_percent": 0.0,
         "t_base": 6.0,
     }
@@ -92,8 +92,8 @@ async def test_t_base_affects_charging_hours():
     entry_48.data = {
         "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
-        "charging_power": 7.4,
-        "battery_capacity": 60.0,
+        "charging_power_kw": 7.4,
+        "battery_capacity_kwh": 60.0,
         "safety_margin_percent": 0.0,
         "t_base": 48.0,
     }
@@ -176,7 +176,10 @@ async def test_soc_caps_applied_to_kwh_calculation():
     entry = MagicMock()
     entry.entry_id = "test_entry_soc"
     entry.data = {
-        "vehicle_name": "test_vehicle",
+        "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 60.0,
@@ -247,7 +250,10 @@ async def test_real_capacity_scales_power_profile():
     entry = MagicMock()
     entry.entry_id = "test_entry_soh"
     entry.data = {
-        "vehicle_name": "test_vehicle",
+        "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 60.0,

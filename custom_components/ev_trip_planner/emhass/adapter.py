@@ -16,6 +16,7 @@ from homeassistant.helpers.storage import (
     Store,  # noqa: F401 — re-export for test compatibility
 )
 
+from ..calculations import _helpers
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
 from .load_publisher import LoadPublisher, LoadPublisherConfig
@@ -69,21 +70,50 @@ class EMHASSAdapter:
         self.vehicle_id = entry.entry_id if hasattr(entry, "entry_id") else "unknown"
         self.entry_id = getattr(entry, "entry_id", "unknown")
 
-        # Read battery_capacity_kwh and charging_power_kw from ConfigEntry
-        # FIX: Bug - EMHASSAdapter was not reading these values from ConfigEntry,
-        # causing def_total_hours to use default 50.0 kWh instead of vehicle's 28.0 kWh
-        battery_capacity_kwh = 50.0  # default
-        charging_power_kw = 3.6     # default
-        safety_margin_percent = 10.0  # default
+        # Read vehicle config from entry data.
+        # NO silent defaults — these are required vehicle values.
+        # Validation happens at init; missing values raise ValueError.
+        battery_capacity_kwh = None
+        charging_power_kw = None
+        safety_margin_percent = None
         if entry:
             entry_data = dict(getattr(entry, "options", {}) or {})
-            entry_data.update(dict(getattr(entry, "data", {}) or {}))
-            battery_capacity_kwh = float(entry_data.get("battery_capacity_kwh", 50.0))
-            charging_power_kw = float(entry_data.get("charging_power_kw", 3.6))
-            safety_margin_percent = float(entry_data.get("safety_margin_percent", 10.0))
+            raw_data = getattr(entry, "data", None) or {}
+            entry_data.update(dict(raw_data))
+            # Handle legacy tests that pass a dict directly as entry
+            if isinstance(entry, dict):
+                entry_data.update(entry)
+            battery_capacity_kwh = entry_data.get("battery_capacity_kwh")
+            charging_power_kw = entry_data.get("charging_power_kw")
+            safety_margin_percent = entry_data.get("safety_margin_percent")
+
+        if battery_capacity_kwh is None:
+            raise ValueError(
+                f"Config entry missing required 'battery_capacity_kwh' "
+                f"for vehicle {self.vehicle_id}. Provide a valid battery capacity."
+            )
+        if charging_power_kw is None:
+            raise ValueError(
+                f"Config entry missing required 'charging_power_kw' "
+                f"for vehicle {self.vehicle_id}. Provide a valid charging power."
+            )
+        if safety_margin_percent is None:
+            raise ValueError(
+                f"Config entry missing required 'safety_margin_percent' "
+                f"for vehicle {self.vehicle_id}. Provide a valid safety margin."
+            )
+
+        battery_capacity_kwh = float(battery_capacity_kwh)
+        charging_power_kw = float(charging_power_kw)
+        safety_margin_percent = float(safety_margin_percent)
 
         # Sub-component initialization
         self._index_manager = IndexManager()
+        soc_sensor = None
+        if self._entry:
+            entry_data = dict(getattr(self._entry, "options", {}) or {})
+            entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
+            soc_sensor = entry_data.get("soc_sensor")
         self._load_publisher = LoadPublisher(
             hass=hass,
             vehicle_id=self.vehicle_id,
@@ -92,6 +122,7 @@ class EMHASSAdapter:
                 battery_capacity_kwh=battery_capacity_kwh,
                 charging_power_kw=charging_power_kw,
                 safety_margin_percent=safety_margin_percent,
+                soc_sensor=soc_sensor,
             ),
         )
         self._error_handler = ErrorHandler(hass=hass)
@@ -99,6 +130,7 @@ class EMHASSAdapter:
         # Store the read values for later use
         self._stored_charging_power_kw = charging_power_kw
         self._stored_battery_capacity_kwh = battery_capacity_kwh
+        self._default_consumption = 0.15  # kWh/km, fallback when kwh_per_km missing
 
         # State attributes (used by callers and tests)
         self._published_trips: set[str] = set()
@@ -135,7 +167,7 @@ class EMHASSAdapter:
     async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:
         """Assign an index to a trip."""
         try:
-            return await self._index_manager.async_assign_index_to_trip(trip_id)
+            return self._index_manager.assign_index(trip_id)
         except Exception as err:
             self._error_handler.handle_error("assign_index", err, {"trip_id": trip_id})
             return None
@@ -143,8 +175,8 @@ class EMHASSAdapter:
     async def async_release_trip_index(self, trip_id: str) -> bool:
         """Release an index for a trip."""
         try:
-            result = await self._index_manager.async_release_index(trip_id)
-            if result is None:
+            result = self._index_manager.release_index(trip_id)
+            if not result:
                 self._error_handler.handle_index_error(trip_id, "release")
                 return False
             return True
@@ -369,8 +401,13 @@ class EMHASSAdapter:
         now = dt_util.now()
         soc_current = await self._get_current_soc()
         if soc_current is None:
-            soc_current = 50.0
-        
+            _LOGGER.error(
+                "SOC sensor unavailable — cannot proceed without current SOC. "
+                "Ensure '%s' is configured and returning a numeric value.",
+                self._entry.data.get("soc_sensor", "unknown") if self._entry else "unknown",
+            )
+            raise RuntimeError("SOC sensor unavailable — cannot proceed without current SOC")
+
         _LOGGER.warning(
             "BUG-DEBUG: _precompute_and_process_trips ENTERED trips=%d battery_capacity_kwh=%.2f soc_current=%.2f charging_power_kw=%s",
             len(trips), battery_capacity_kwh, soc_current, self._charging_power_kw,
@@ -635,16 +672,14 @@ class EMHASSAdapter:
         safety_margin_percent = params.safety_margin_percent
         soc_current = params.soc_current
 
-        # Read t_base and planning_horizon from config entry (BUG-4)
+        # Read t_base and planning_horizon from config entry
         t_base = 24.0  # default
         horizon_hours = 168  # default: 7 days * 24 hours
         entry = self._entry
         if entry:
             entry_data = dict(getattr(entry, "options", {}) or {})
             entry_data.update(dict(getattr(entry, "data", {}) or {}))
-            t_base = float(
-                entry_data.get("t_base", entry_data.get("CONF_T_BASE", 24.0))
-            )
+            t_base = float(entry_data.get("t_base", 24.0))
             horizon_days = int(entry_data.get("planning_horizon_days", 7))
             horizon_hours = horizon_days * 24
 
@@ -738,7 +773,7 @@ class EMHASSAdapter:
 
                     trip_kwh = calcular_energia_kwh(
                         trip.get("km", 0.0),
-                        self._entry.data.get("kwh_per_km", 0.15),
+                        self._entry.data.get("kwh_per_km", self._default_consumption),
                     )
                 soc_after = max(
                     0.0, soc_current - (trip_kwh / battery_capacity_kwh) * 100.0
@@ -809,12 +844,12 @@ class EMHASSAdapter:
             "def_end_timestep": def_end_timestep,
             "def_total_hours": total_hours,
             "total_hours": total_hours,
-            "power_watts": charging_power_kw * 1000 if total_hours > 0 else 0.0,
+            "power_watts": _helpers.kw_to_watts(charging_power_kw) if total_hours > 0 else 0.0,
             "kwh_needed": total_hours * charging_power_kw,
             "charging_window": charging_windows,
             # Keys expected by sensor entity aggregation
             "def_total_hours_array": [total_hours] if total_hours > 0 else [0],
-            "p_deferrable_nom_array": [charging_power_kw * 1000] if total_hours > 0 else [0],
+            "p_deferrable_nom_array": [_helpers.kw_to_watts(charging_power_kw)] if total_hours > 0 else [0],
             "def_start_timestep_array": [def_start_timestep],
             "def_end_timestep_array": [def_end_timestep],
             "p_deferrable_matrix": trip_matrix,
@@ -822,7 +857,7 @@ class EMHASSAdapter:
         
         _LOGGER.warning(
             "BUG-DEBUG: _populate_per_trip_cache_entry DONE trip_id=%s def_total_hours=%.2f def_start_timestep=%d def_end_timestep=%d power_watts=%.0f",
-            trip_id, total_hours, def_start_timestep, def_end_timestep, charging_power_kw * 1000,
+            trip_id, total_hours, def_start_timestep, def_end_timestep, _helpers.kw_to_watts(charging_power_kw),
         )
 
     def _apply_deficit_propagation(self) -> None:
@@ -935,7 +970,11 @@ class EMHASSAdapter:
         try:
             soc_current = await self._get_current_soc()
             if soc_current is None:
-                soc_current = 50.0
+                _LOGGER.error(
+                    "SOC sensor unavailable — cannot publish deferrable load for trip '%s'",
+                    trip_id,
+                )
+                return False
             await self._populate_per_trip_cache_entry(
                 PerTripCacheParams(
                     trip=trip,

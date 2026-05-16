@@ -13,6 +13,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
+from . import _helpers
+from . import _helpers
 from .core import calculate_soc_target, calculate_trip_time
 from .windows import calculate_energy_needed
 
@@ -76,7 +78,7 @@ def determine_charging_need(
             if charging_power_kw > 0
             else 0
         )
-        power_watts = charging_power_kw * 1000
+        power_watts = _helpers.kw_to_watts(charging_power_kw)
     else:
         total_hours = 0
         power_watts = 0.0

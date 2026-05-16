@@ -21,7 +21,10 @@ async def test_trip_create_with_invalid_trip_type_logs_error():
     mock_hass = MagicMock()
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_chispitas"
-    mock_entry.data = {"vehicle_name": "Chispitas"}
+    mock_entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "Chispitas"}
     mock_entry.unique_id = "chispitas_unique"
 
     mock_coordinator = MagicMock()
@@ -92,7 +95,10 @@ async def test_trip_create_with_recurring_type_succeeds():
     mock_hass = MagicMock()
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_chispitas"
-    mock_entry.data = {"vehicle_name": "Chispitas"}
+    mock_entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "Chispitas"}
     mock_entry.unique_id = "chispitas_unique"
 
     mock_coordinator = MagicMock()
@@ -170,7 +176,10 @@ async def test_trip_create_with_punctual_type_succeeds():
     mock_hass = MagicMock()
     mock_entry = MagicMock()
     mock_entry.entry_id = "entry_chispitas"
-    mock_entry.data = {"vehicle_name": "Chispitas"}
+    mock_entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "Chispitas"}
     mock_entry.unique_id = "chispitas_unique"
 
     mock_coordinator = MagicMock()

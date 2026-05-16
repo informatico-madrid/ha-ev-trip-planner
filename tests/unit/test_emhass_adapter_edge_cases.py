@@ -15,10 +15,15 @@ from custom_components.ev_trip_planner.emhass.adapter import (
 
 @pytest.fixture
 def mock_entry():
-    """Minimal MagicMock ConfigEntry."""
+    """Minimal MagicMock ConfigEntry with required fields."""
     entry = MagicMock()
     entry.entry_id = "test_vehicle"
-    entry.data = {"charging_power_kw": 3.6}
+    entry.data = {
+        "charging_power_kw": 3.6,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+        "soc_sensor": "sensor.ev_soc",
+    }
     entry.options = {}
     return entry
 
@@ -34,6 +39,9 @@ def mock_hass(tmp_path):
     hass.services = MagicMock()
     hass.services.async_call = AsyncMock()
     hass.services.has_service = MagicMock(return_value=True)
+    mock_state = MagicMock()
+    mock_state.state = "50"
+    hass.states.get = MagicMock(return_value=mock_state)
     yield hass
 
 
@@ -47,9 +55,9 @@ class TestAdapterExceptionHandlers:
 
     @pytest.mark.asyncio
     async def test_assign_index_handles_exception(self, mock_hass, mock_entry):
-        """Lines 112-114: Exception in index_manager.async_assign_index_to_trip."""
+        """Lines 112-114: Exception in index_manager.assign_index."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._index_manager.async_assign_index_to_trip = MagicMock(
+        adapter._index_manager.assign_index = MagicMock(
             side_effect=RuntimeError("index error")
         )
         result = await adapter.async_assign_index_to_trip("trip_001")
@@ -57,9 +65,9 @@ class TestAdapterExceptionHandlers:
 
     @pytest.mark.asyncio
     async def test_release_index_handles_exception(self, mock_hass, mock_entry):
-        """Lines 124-126: Exception in index_manager.async_release_index."""
+        """Lines 124-126: Exception in index_manager.release_index."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._index_manager.async_release_index = MagicMock(
+        adapter._index_manager.release_index = MagicMock(
             side_effect=RuntimeError("release error")
         )
         result = await adapter.async_release_trip_index("trip_001")
@@ -120,7 +128,10 @@ class TestUpdateChargingPower:
         """Line 199/201: no charging_power_kw in options or data -> return early."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         mock_entry.options = {}
-        mock_entry.data = {}
+        mock_entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+        }
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
         await adapter.update_charging_power()
@@ -130,7 +141,11 @@ class TestUpdateChargingPower:
     async def test_update_charging_power_success(self, mock_hass, mock_entry):
         """Normal path: power value found and different -> updates stored power."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        mock_entry.data = {"charging_power_kw": 7.0}
+        mock_entry.data = {
+            "charging_power_kw": 7.0,
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+        }
         mock_entry.options = {}
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
@@ -142,7 +157,11 @@ class TestUpdateChargingPower:
     async def test_update_charging_power_from_options(self, mock_hass, mock_entry):
         """Options takes priority over data for charging_power_kw."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        mock_entry.data = {"charging_power_kw": 3.6}
+        mock_entry.data = {
+            "charging_power_kw": 3.6,
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+        }
         mock_entry.options = {"charging_power_kw": 11.0}
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
@@ -154,7 +173,11 @@ class TestUpdateChargingPower:
         """New power same as stored -> no update."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         adapter._charging_power_kw = 7.0
-        mock_entry.data = {"charging_power_kw": 7.0}
+        mock_entry.data = {
+            "charging_power_kw": 7.0,
+            "battery_capacity_kwh": 50.0,
+            "safety_margin_percent": 10.0,
+        }
         mock_entry.options = {}
         mock_hass.config_entries = MagicMock()
         mock_hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
@@ -175,7 +198,11 @@ class TestSetupConfigEntryListener:
         hass = MagicMock()
         entry = MagicMock()
         entry.entry_id = "test_vehicle"
-        entry.data = {}
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+        }
         entry.options = {}
         hass.config_entries = MagicMock()
         hass.config_entries.async_get_entry = MagicMock(return_value=None)
@@ -203,9 +230,9 @@ class TestGetCurrentSoc:
 
     @pytest.mark.asyncio
     async def test_no_entry_dict(self, mock_hass, mock_entry):
-        """Line 307: no _entry_dict -> returns None."""
+        """_get_current_soc returns None when _entry is None."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        # _entry_dict not set
+        adapter._entry = None
         result = await adapter._get_current_soc()
         assert result is None
 
@@ -213,14 +240,24 @@ class TestGetCurrentSoc:
     async def test_no_soc_sensor(self, mock_hass, mock_entry):
         """Line 313: soc_sensor not in entry_data -> returns None."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        mock_entry.data = {"other_key": "value"}
+        mock_entry.data = {
+            "other_key": "value",
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+        }
         result = await adapter._get_current_soc()
         assert result is None
 
     @pytest.mark.asyncio
     async def test_soc_state_non_numeric(self, mock_hass, mock_entry):
         """Lines 319-320: float(state.state) raises ValueError -> returns None."""
-        mock_entry.data = {"soc_sensor": "sensor.battery"}
+        mock_entry.data = {
+            "soc_sensor": "sensor.battery",
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+        }
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         state_obj = MagicMock()
         state_obj.state = "unavailable"  # not a valid float
@@ -231,7 +268,12 @@ class TestGetCurrentSoc:
     @pytest.mark.asyncio
     async def test_soc_state_none_state(self, mock_hass, mock_entry):
         """Lines 319-320: state.state is None -> TypeError -> returns None."""
-        mock_entry.data = {"soc_sensor": "sensor.battery"}
+        mock_entry.data = {
+            "soc_sensor": "sensor.battery",
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+        }
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         state_obj = MagicMock()
         state_obj.state = None

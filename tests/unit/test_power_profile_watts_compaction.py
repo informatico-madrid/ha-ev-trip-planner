@@ -44,10 +44,14 @@ def mock_hass(tmp_path, mock_store):
 
 @pytest.fixture
 def mock_entry():
-    """Minimal MagicMock ConfigEntry."""
+    """Minimal MagicMock ConfigEntry with required fields."""
     entry = MagicMock()
     entry.entry_id = "test_vehicle"
-    entry.data = {"charging_power_kw": 3.6}
+    entry.data = {
+        "charging_power_kw": 3.6,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+    }
     entry.options = {}
     return entry
 

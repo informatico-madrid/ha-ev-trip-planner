@@ -205,7 +205,10 @@ def mock_hass_charging_window():
     mock_entry = MagicMock()
     mock_entry.entry_id = "test_entry_001"
     mock_entry.data = {
-        "vehicle_name": "tesla_model_3",
+        "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "tesla_model_3",
         "battery_capacity": 75.0,
         "consumption": 0.15,
         "charging_power": 11.0,
@@ -773,12 +776,20 @@ def mock_frontend_module():
 # ============================================================================
 
 
+# Required vehicle config values for EMHASSAdapter
+_FAKE_CONFIG_DEFAULTS = {
+    "battery_capacity_kwh": 50.0,
+    "charging_power_kw": 3.6,
+    "safety_margin_percent": 10.0,
+}
+
+
 class FakeConfigEntry:
     """Minimal ConfigEntry substitute for testing."""
 
     def __init__(self, entry_id="test_entry_001", data=None):
         self.entry_id = entry_id
-        self.data = data or {}
+        self.data = {**_FAKE_CONFIG_DEFAULTS, **(data or {})}
         self.version = 1
         self.minor_version = 1
 

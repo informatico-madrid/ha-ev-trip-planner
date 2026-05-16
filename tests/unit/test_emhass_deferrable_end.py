@@ -34,6 +34,8 @@ async def test_populate_cache_entry_def_end_gt_def_start(mock_hass, mock_store):
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
     now = datetime.now(timezone.utc)
@@ -94,6 +96,8 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(mock_hass, mock_sto
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
     now = datetime.now(timezone.utc)

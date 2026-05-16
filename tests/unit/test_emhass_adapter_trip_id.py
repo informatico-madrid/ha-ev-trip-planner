@@ -83,6 +83,9 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 7.4,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+        "soc_sensor": "sensor.ev_soc",
     }
 
     entry = MockConfigEntry("test_vehicle", config)
@@ -150,6 +153,9 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_no_id_field(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 7.4,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+        "soc_sensor": "sensor.ev_soc",
     }
 
     entry = MockConfigEntry("test_vehicle", config)

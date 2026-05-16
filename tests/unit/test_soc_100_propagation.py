@@ -50,6 +50,9 @@ class TestSOC100Propagation:
         entry = MagicMock()
         entry.entry_id = "test_entry"
         entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
             "vehicle_name": "test_vehicle",
             "max_deferrable_loads": 50,
             "charging_power": 3.4,

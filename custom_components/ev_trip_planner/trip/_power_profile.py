@@ -39,14 +39,25 @@ class PowerProfile:
 
         await self._state._persistence._load_trips()
 
-        battery_capacity: float = 50.0
-        soc_current: Optional[float] = None
-        safety_margin_percent: float = 10.0
+        # Extract required vehicle config — no silent defaults for car values
+        battery_capacity: float
+        soc_current: float
+        safety_margin_percent: float
 
         if vehicle_config:
-            battery_capacity = vehicle_config.get("battery_capacity_kwh", 50.0)
+            if "battery_capacity_kwh" not in vehicle_config:
+                _LOGGER.error(
+                    "Missing 'battery_capacity_kwh' in vehicle_config"
+                )
+                return []
+            if "safety_margin_percent" not in vehicle_config:
+                _LOGGER.error(
+                    "Missing 'safety_margin_percent' in vehicle_config"
+                )
+                return []
+            battery_capacity = vehicle_config["battery_capacity_kwh"]
+            safety_margin_percent = vehicle_config["safety_margin_percent"]
             soc_current = vehicle_config.get("soc_current")
-            safety_margin_percent = vehicle_config.get("safety_margin_percent", 10.0)
         else:
             try:
                 config_entry: Optional[ConfigEntry[Any]] = None
@@ -61,19 +72,30 @@ class PowerProfile:
                     )
 
                 if config_entry is not None and config_entry.data is not None:
-                    battery_capacity = config_entry.data.get(
-                        "battery_capacity_kwh", 50.0
-                    )
-                    soc_current = config_entry.data.get("soc_current")
-                    safety_margin_percent = config_entry.data.get(
-                        "safety_margin_percent", 10.0
-                    )
+                    data = config_entry.data
+                    if "battery_capacity_kwh" not in data:
+                        _LOGGER.error(
+                            "Missing 'battery_capacity_kwh' in config entry"
+                        )
+                        return []
+                    if "safety_margin_percent" not in data:
+                        _LOGGER.error(
+                            "Missing 'safety_margin_percent' in config entry"
+                        )
+                        return []
+                    battery_capacity = data["battery_capacity_kwh"]
+                    safety_margin_percent = data["safety_margin_percent"]
+                    soc_current = data.get("soc_current")
+                else:
+                    battery_capacity = 50.0
+                    safety_margin_percent = 10.0
+                    soc_current = None
             except Exception:
                 battery_capacity = 50.0
-                soc_current = 50.0
                 safety_margin_percent = 10.0
+                soc_current = None
 
-        # Obtain current SOC from sensor if not provided in vehicle_config
+        # Obtain current SOC from sensor if not provided in vehicle_config/config_entry
         if soc_current is None:
             try:
                 soc_current = await self._state._soc.async_get_vehicle_soc(
@@ -94,7 +116,7 @@ class PowerProfile:
         return calculate_power_profile(
             all_trips=all_trips,
             battery_capacity_kwh=battery_capacity,
-            soc_current=soc_current or 50.0,
+            soc_current=soc_current,
             charging_power_kw=charging_power_kw,
             hora_regreso=hora_regreso,
             planning_horizon_days=planning_horizon_days,

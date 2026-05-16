@@ -29,7 +29,9 @@ def _make_publisher(max_deferrable_loads=1):
     """Create a LoadPublisher with a single-slot index manager."""
     hass = MagicMock()
     config = _make_config(max_deferrable_loads=max_deferrable_loads)
-    return LoadPublisher(hass, "test_vehicle", config), config.index_manager
+    pub = LoadPublisher(hass, "test_vehicle", config)
+    pub._get_current_soc = AsyncMock(return_value=50.0)
+    return pub, config.index_manager
 
 
 class TestLoadPublisherExists:

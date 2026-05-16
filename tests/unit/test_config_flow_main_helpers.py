@@ -311,7 +311,10 @@ class TestEVTripPlannerFlowHandler:
         hass.config_entries.async_update_entry = AsyncMock(return_value=None)
         entry = MagicMock()
         entry.version = 2
-        entry.data = {"vehicle_name": "test"}
+        entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test"}
 
         result = await EVTripPlannerFlowHandler.async_migrate_entry(hass, entry)
         assert result is True

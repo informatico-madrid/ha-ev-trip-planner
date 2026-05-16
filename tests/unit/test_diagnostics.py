@@ -19,7 +19,10 @@ class TestDiagnostics:
         hass = MagicMock()
         entry = MagicMock()
         entry.entry_id = "test_entry_123"
-        entry.data = {"vehicle_name": "test_vehicle"}
+        entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test_vehicle"}
 
         # Mock runtime data
         coordinator = MagicMock()
@@ -47,7 +50,10 @@ class TestDiagnostics:
         hass = MagicMock()
         entry = MagicMock()
         entry.entry_id = "test_entry_456"
-        entry.data = {"vehicle_name": "another_vehicle"}
+        entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "another_vehicle"}
 
         # Mock runtime data with no coordinator
         entry.runtime_data = MagicMock()
@@ -70,7 +76,10 @@ class TestDiagnostics:
         entry.entry_id = "entry_abc"
         entry.version = 2
         entry.minor_version = 1
-        entry.data = {"vehicle_name": "MyCar", "soc_sensor": "sensor.test"}
+        entry.data = {"battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "MyCar", "soc_sensor": "sensor.test"}
 
         entry.runtime_data = None
 
@@ -247,6 +256,9 @@ class TestDiagnostics:
         entry.version = 1
         entry.minor_version = 0
         entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
             "vehicle_name": "secret_car",
             "soc_sensor": "secret_sensor",
             "range_sensor": "secret_range",

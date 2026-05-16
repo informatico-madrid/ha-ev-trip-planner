@@ -41,7 +41,10 @@ def mock_entry():
     entry = MagicMock()
     entry.entry_id = "test_entry"
     entry.data = {
-        "vehicle_name": "test_vehicle",
+        "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 50.0,

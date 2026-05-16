@@ -30,24 +30,29 @@ from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
-    """Mock ConfigEntry for testing."""
+    """Mock ConfigEntry for testing with required fields."""
 
     def __init__(self, vehicle_id="test_vehicle", data=None):
         self.entry_id = "test_entry_id"
-        self.data = data or {
+        base = {
             CONF_VEHICLE_NAME: vehicle_id,
             CONF_MAX_DEFERRABLE_LOADS: 50,
-            CONF_CHARGING_POWER: 7.4,
+            "charging_power_kw": 7.4,
+            "battery_capacity_kwh": 60.0,
+            "safety_margin_percent": 10.0,
         }
+        if data:
+            base.update(data)
+        self.data = base
 
 
 @pytest.fixture
 def config():
-    """Return test config."""
+    """Return test config with correct key names for EMHASSAdapter."""
     return {
-        CONF_VEHICLE_NAME: "test_vehicle",
-        CONF_MAX_DEFERRABLE_LOADS: 50,
-        CONF_CHARGING_POWER: 3.6,
+        "charging_power_kw": 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
 

@@ -374,6 +374,12 @@ class TestApplyDeficitResultsEdgeCases:
 
         hass = MagicMock()
         entry = MagicMock()
+        entry.data = {
+            "charging_power_kw": 7.0,
+            "battery_capacity_kwh": 60.0,
+            "safety_margin_percent": 10.0,
+        }
+        entry.options = {}
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {}
         # More results than active trips - should break at line 793
@@ -395,6 +401,12 @@ class TestApplyDeficitResultsEdgeCases:
 
         hass = MagicMock()
         entry = MagicMock()
+        entry.data = {
+            "charging_power_kw": 7.0,
+            "battery_capacity_kwh": 60.0,
+            "safety_margin_percent": 10.0,
+        }
+        entry.options = {}
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         trip_001 = {"id": "trip_001"}
         adapter._cached_per_trip_params = {

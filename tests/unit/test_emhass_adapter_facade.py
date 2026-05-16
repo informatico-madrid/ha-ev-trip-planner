@@ -1,23 +1,47 @@
 """Tests for EMHASSAdapter facade in emhass.adapter."""
 
-import pytest  # noqa: F401
+from unittest.mock import MagicMock
+
+import pytest
+
+from custom_components.ev_trip_planner.emhass.adapter import (
+    EMHASSAdapter,
+)
+from custom_components.ev_trip_planner.emhass.error_handler import (
+    ErrorHandler,
+)
+from custom_components.ev_trip_planner.emhass.index_manager import (
+    IndexManager,
+)
+
+
+@pytest.fixture
+def mock_hass():
+    """Minimal MagicMock HomeAssistant."""
+    hass = MagicMock()
+    return hass
+
+
+@pytest.fixture
+def mock_entry():
+    """Minimal MagicMock ConfigEntry with required fields."""
+    entry = MagicMock()
+    entry.entry_id = "test_vehicle"
+    entry.data = {
+        "charging_power_kw": 3.6,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+    }
+    entry.options = {}
+    return entry
 
 
 class TestEMHASSAdapterFacade:
     """Test that EMHASSAdapter in emhass.adapter delegates to sub-components."""
 
-    def test_emhass_adapter_is_facade_with_subcomponents(self):
+    def test_emhass_adapter_is_facade_with_subcomponents(self, mock_hass, mock_entry):
         """EMHASSAdapter in emhass.adapter is a facade with composed sub-components."""
-        from unittest.mock import MagicMock
-
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        hass = MagicMock()
-        entry = MagicMock()
-        entry.entry_id = "test_vehicle"
-        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
 
         # Facade exposes composed sub-components
         assert hasattr(adapter, "_error_handler")
@@ -35,36 +59,18 @@ class TestEMHASSAdapterFacade:
         assert hasattr(adapter, "_cached_deferrables_schedule")
         assert hasattr(adapter, "_config_entry_listener")
 
-    def test_emhass_adapter_has_error_handler_attribute(self):
+    def test_emhass_adapter_has_error_handler_attribute(
+        self, mock_hass, mock_entry
+    ):
         """EMHASSAdapter instances have an ErrorHandler."""
-        from unittest.mock import MagicMock
-
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-        from custom_components.ev_trip_planner.emhass.error_handler import (
-            ErrorHandler,
-        )
-
-        hass = MagicMock()
-        entry = MagicMock()
-        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         assert hasattr(adapter, "_error_handler")
         assert isinstance(adapter._error_handler, ErrorHandler)
 
-    def test_emhass_adapter_has_index_manager_attribute(self):
+    def test_emhass_adapter_has_index_manager_attribute(
+        self, mock_hass, mock_entry
+    ):
         """EMHASSAdapter instances have an IndexManager."""
-        from unittest.mock import MagicMock
-
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-        from custom_components.ev_trip_planner.emhass.index_manager import (
-            IndexManager,
-        )
-
-        hass = MagicMock()
-        entry = MagicMock()
-        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         assert hasattr(adapter, "_index_manager")
         assert isinstance(adapter._index_manager, IndexManager)
