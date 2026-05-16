@@ -271,18 +271,28 @@ class LoadPublisher(LoadPublisherBase):
                 if target_day is not None:
                     now_day = now.weekday()
                     delta_days = (target_day - now_day) % 7
-                    if delta_days == 0:
-                        delta_days = 7
 
                     parts = time_str.split(":")
                     hour = int(parts[0]) if len(parts) > 0 else 0
                     minute = int(parts[1]) if len(parts) > 1 else 0
 
-                    deadline = now.replace(
+                    # Calculate deadline for TODAY at the trip time
+                    deadline_today = now.replace(
                         hour=hour, minute=minute, second=0, microsecond=0
                     )
                     from datetime import timedelta
 
+                    # FIX: When target day is same as today, check if trip time already passed
+                    # If trip time hasn't passed yet, deadline is TODAY (delta_days = 0)
+                    # If trip time already passed, deadline is NEXT week (delta_days = 7)
+                    if delta_days == 0:
+                        if deadline_today < now:
+                            delta_days = 7  # Trip time already passed, go to next week
+                        # else: delta_days stays 0, deadline is today
+
+                    deadline = now.replace(
+                        hour=hour, minute=minute, second=0, microsecond=0
+                    )
                     deadline += timedelta(days=delta_days)
                     return self._ensure_aware(deadline)
 

@@ -539,3 +539,42 @@ Hay suficiente tiempo de carga disponible (73.95 horas vs 2 horas necesarias).
 | Sensores | `.storage/core.restore_state` | Valores actuales de sensores |
 | Entidades | `.storage/core.entity_registry` | Registro de entidades del componente |
 | Configuration | `configuration.yaml` (contenedor) | input_number + template sensors |
+
+## Regla de Negocio: Cálculo de Deadline para Viajes Recurrentes en el Día Actual
+
+### Problema Detectado (Bug m404-saturday-deadline)
+
+Cuando el día actual coincide con el día del viaje recurrente (ej: hoy es sábado y el viaje es sábado), el sistema debe verificar si la hora del viaje ya ha pasado o no:
+
+- **Si la hora del viaje NO ha pasado aún**: el deadline es HOY (el viaje es el "próximo" en la cola)
+- **Si la hora del viaje YA ha pasado**: el deadline es la próxima semana (el viaje se mueve al final de la serie)
+
+### Implementación
+
+Función: [`_calculate_deadline()`](custom_components/ev_trip_planner/emhass/load_publisher.py:271) en `load_publisher.py`
+
+```python
+# Cuando target_day == now_day (mismo día de la semana)
+if delta_days == 0:
+    if deadline_today < now:
+        delta_days = 7  # Hora ya pasó → siguiente semana
+    # else: hora no ha pasado → delta_days = 0, deadline es HOY
+```
+
+### Impacto en el Sensor EMHASS
+
+El sensor EMHASS (`ev_trip_planner_mi_ev_emhass_perfil_diferible_mi_ev`) ordena los viajes por `def_start_timestep`. Si el viaje de HOY tiene un deadline de la próxima semana (`def_start_timestep ≈ 168`), aparecerá **ÚLTIMO** en lugar de **PRIMERO**.
+
+Con el fix correcto:
+- Trip de sábado a las 11:50 con ahora = 09:26 → `def_start_timestep ≈ 2.4` (primer viaje)
+- El EMHASS optimiza la carga para el viaje más próximo primero
+
+### Test de Verificación
+
+Archivo: [`tests/integration/test_saturday_deadline_bug.py`](tests/integration/test_saturday_deadline_bug.py)
+
+```python
+# Cuando hoy es sábado 09:26 y el trip es sábado 11:50
+# El deadline debe ser HOY (no next Saturday)
+assert hours_until_deadline < 24  # ~2.4 horas, no ~170 horas
+```

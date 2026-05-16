@@ -246,16 +246,52 @@ class TestLoadPublisherDeadline:
         assert result is None
 
     @pytest.mark.freeze_time("2026-05-13 06:00:00+00:00")
-    def test_deadline_recurring_same_day_today(self):
-        """Recurring trip targeting today's day → delta_days=7."""
+    def test_deadline_recurring_same_day_before_trip_time(self):
+        """Recurring trip same day but BEFORE trip time → deadline is TODAY.
+        
+        With the fix (m404-saturday-deadline), when target day == today AND
+        the trip time hasn't passed yet, deadline = TODAY (not next week).
+        """
         pub, _ = _make_publisher()
-        # Wednesday at 06:00 → deadline next Wednesday 09:00 (7 full days)
+        # Wednesday at 06:00, trip at 09:00 → deadline TODAY (Wednesday) at 09:00
+        # Because 06:00 < 09:00 (trip time hasn't passed)
         result = pub._calculate_deadline(
             {"tipo": "recurrente", "dia_semana": "miércoles", "hora": "09:00"}
         )
         assert result is not None
         delta = result - datetime.now(timezone.utc)
-        assert delta.days == 7
+        assert delta.days == 0, (
+            f"With fix, same-day trip with time NOT passed should be TODAY (0 days), "
+            f"but got {delta.days} days. Result: {result}"
+        )
+        # Verify it's today's 09:00 (not next week's)
+        assert result.hour == 9 and result.minute == 0
+
+    @pytest.mark.freeze_time("2026-05-13 10:00:00+00:00")
+    def test_deadline_recurring_same_day_after_trip_time(self):
+        """Recurring trip same day but AFTER trip time → deadline is NEXT WEEK.
+        
+        When the trip time has already passed today, the deadline should be
+        the same day next week (delta_days = 7 from current time, but actual
+        delta days is 6 because the hour is earlier in the day).
+        """
+        pub, _ = _make_publisher()
+        # Wednesday at 10:00, trip at 09:00 → deadline NEXT Wednesday (7 days delta_days)
+        # Because 10:00 > 09:00 (trip time already passed)
+        result = pub._calculate_deadline(
+            {"tipo": "recurrente", "dia_semana": "miércoles", "hora": "09:00"}
+        )
+        assert result is not None
+        # Result is next Wednesday 09:00
+        assert result.weekday() == 2  # Wednesday
+        assert result.hour == 9 and result.minute == 0
+        # From Wed 13 10:00 to Wed 20 09:00 = 6 days 23 hours (delta_days=7 means next week,
+        # but actual .days is 6 because the trip hour is earlier than current time)
+        delta = result - datetime.now(timezone.utc)
+        assert delta.days == 6, (
+            f"After trip time passed, deadline should be next week with delta_days=7, "
+            f"but actual days={delta.days} (because result hour 09:00 < current hour 10:00)"
+        )
 
 
 class TestLoadPublisherEnsureAware:
