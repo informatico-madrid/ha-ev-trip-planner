@@ -1717,11 +1717,11 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
     let dayValue = '1';
 
     if (trip.day_of_week !== undefined) {
-      dayValue = trip.day_of_week;
+      dayValue = String(trip.day_of_week);
     } else if (trip.dia_semana) {
       const lowerDay = trip.dia_semana.toLowerCase();
-      dayValue = dayNames.indexOf(lowerDay);
-      if (dayValue === -1) dayValue = '1';
+      const idx = dayNames.indexOf(lowerDay);
+      dayValue = idx >= 0 ? String(idx) : (isNaN(lowerDay) ? '1' : lowerDay);
     }
 
     const isPunctual = this._formType === 'puntual';
@@ -1744,14 +1744,14 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
             </div>
             <div class="form-group" style="display: ${isPunctual ? 'none' : 'block'}">
               <label for="edit-trip-day">Día de la Semana</label>
-              <select id="edit-trip-day" name="day">
-                <option value="0">Domingo</option>
-                <option value="1">Lunes</option>
-                <option value="2">Martes</option>
-                <option value="3">Miércoles</option>
-                <option value="4">Jueves</option>
-                <option value="5">Viernes</option>
-                <option value="6">Sábado</option>
+              <select id="edit-trip-day" name="day" .value=${dayValue}>
+                <option value="0" ${dayValue === '0' ? 'selected' : ''}>Domingo</option>
+                <option value="1" ${dayValue === '1' ? 'selected' : ''}>Lunes</option>
+                <option value="2" ${dayValue === '2' ? 'selected' : ''}>Martes</option>
+                <option value="3" ${dayValue === '3' ? 'selected' : ''}>Miércoles</option>
+                <option value="4" ${dayValue === '4' ? 'selected' : ''}>Jueves</option>
+                <option value="5" ${dayValue === '5' ? 'selected' : ''}>Viernes</option>
+                <option value="6" ${dayValue === '6' ? 'selected' : ''}>Sábado</option>
               </select>
             </div>
             <div class="form-group" style="display: ${isPunctual ? 'block' : 'none'}">
