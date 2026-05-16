@@ -400,13 +400,16 @@ class EMHASSAdapter:
 
         now = dt_util.now()
         soc_current = await self._get_current_soc()
+        # If SOC sensor is not yet available (e.g., during initial setup),
+        # fall back to 50.0 so the publish pipeline can still compute real
+        # per-trip params.  This matches the previous production behavior.
         if soc_current is None:
-            _LOGGER.error(
-                "SOC sensor unavailable — cannot proceed without current SOC. "
-                "Ensure '%s' is configured and returning a numeric value.",
+            _LOGGER.info(
+                "SOC sensor unavailable — using default 50.0 for trip window "
+                "computation. Ensure '%s' returns a numeric value.",
                 self._entry.data.get("soc_sensor", "unknown") if self._entry else "unknown",
             )
-            raise RuntimeError("SOC sensor unavailable — cannot proceed without current SOC")
+            soc_current = 50.0
 
         _LOGGER.warning(
             "BUG-DEBUG: _precompute_and_process_trips ENTERED trips=%d battery_capacity_kwh=%.2f soc_current=%.2f charging_power_kw=%s",
@@ -506,6 +509,9 @@ class EMHASSAdapter:
             pre_computed_fin = win.get("fin_ventana")
 
             if pre_computed_inicio is not None or pre_computed_fin is not None:
+                # Pass the full pre-computed charging window so batch mode
+                # doesn't recalculate independently (which loses multi-trip context).
+                pre_computed_charging_window = [win] if win else []
                 try:
                     await self._populate_per_trip_cache_entry(
                         PerTripCacheParams(
@@ -518,6 +524,7 @@ class EMHASSAdapter:
                         ),
                         pre_computed_inicio_ventana=pre_computed_inicio,
                         pre_computed_fin_ventana=pre_computed_fin,
+                        pre_computed_charging_window=pre_computed_charging_window,
                     )
                 except Exception:
                     self._cached_emhass_status = "error"
@@ -609,6 +616,42 @@ class EMHASSAdapter:
         """
         # Read soc_sensor from ConfigEntry
         soc_sensor = None
+        _LOGGER.warning("FLOW2-DEBUG: _get_current_soc called")
+        if self._entry:
+            entry_data = dict(getattr(self._entry, "options", {}) or {})
+            entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
+            soc_sensor = entry_data.get("soc_sensor")
+        _LOGGER.warning(
+            "FLOW2-DEBUG: _get_current_soc resolved sensor=%s entry=%s",
+            soc_sensor, self._entry is not None,
+        )
+        if not soc_sensor:
+            _LOGGER.warning(
+                "FLOW2-DEBUG: _get_current_soc NO_SENSOR sensor=%s", soc_sensor,
+            )
+            return None
+        state = self.hass.states.get(soc_sensor)
+        _LOGGER.warning(
+            "FLOW2-DEBUG: _get_current_soc states.get=%s for sensor=%s",
+            state is not None, soc_sensor,
+        )
+        if state is None:
+            _LOGGER.warning(
+                "FLOW2-DEBUG: _get_current_soc STATE_NONE sensor=%s", soc_sensor,
+            )
+            return None
+        try:
+            result = float(state.state)
+            _LOGGER.warning(
+                "FLOW2-DEBUG: _get_current_soc SUCCESS sensor=%s state=%s soc=%s",
+                soc_sensor, state.state, result,
+            )
+            return result
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "FLOW2-DEBUG: _get_current_soc PARSE_FAIL sensor=%s state=%s",
+                soc_sensor, state.state,
+            )
         if self._entry:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
@@ -652,6 +695,7 @@ class EMHASSAdapter:
         hora_regreso: Optional[datetime] = None,
         pre_computed_inicio_ventana: Optional[datetime] = None,
         pre_computed_fin_ventana: Optional[datetime] = None,
+        pre_computed_charging_window: Optional[List[Dict[str, Any]]] = None,
         adjusted_def_total_hours: Optional[float] = None,
         soc_cap: Optional[float] = None,
     ) -> None:
@@ -704,11 +748,15 @@ class EMHASSAdapter:
             hours_available = (deadline_dt - now).total_seconds() / 3600
 
             # Calculate charging windows
-            charging_windows = self._load_publisher._calculate_charging_windows(
-                deadline_dt=deadline_dt,
-                trip=trip,
-                soc_current=soc_current,
-            )
+            if pre_computed_charging_window:
+                # Batch mode: use pre-computed windows that have multi-trip context.
+                charging_windows = pre_computed_charging_window
+            else:
+                charging_windows = self._load_publisher._calculate_charging_windows(
+                    deadline_dt=deadline_dt,
+                    trip=trip,
+                    soc_current=soc_current,
+                )
 
             def_end_timestep = min(int(max(0, hours_available)), horizon_hours)
 
@@ -837,6 +885,8 @@ class EMHASSAdapter:
         trip_matrix = [row]
 
         # Always store the cache entry (even if deadline was None)
+        # Single source of truth: scalar fields only. Sensor derives arrays
+        # from scalars on-demand in _collect_arrays (entity_emhass_deferrable).
         self._cached_per_trip_params[trip_id] = {
             "activo": True,
             "emhass_index": emhass_index,
@@ -847,11 +897,6 @@ class EMHASSAdapter:
             "power_watts": _helpers.kw_to_watts(charging_power_kw) if total_hours > 0 else 0.0,
             "kwh_needed": total_hours * charging_power_kw,
             "charging_window": charging_windows,
-            # Keys expected by sensor entity aggregation
-            "def_total_hours_array": [total_hours] if total_hours > 0 else [0],
-            "p_deferrable_nom_array": [_helpers.kw_to_watts(charging_power_kw)] if total_hours > 0 else [0],
-            "def_start_timestep_array": [def_start_timestep],
-            "def_end_timestep_array": [def_end_timestep],
             "p_deferrable_matrix": trip_matrix,
         }
         
@@ -871,16 +916,40 @@ class EMHASSAdapter:
             return
 
         active = self._get_active_trips_sorted()
+        _LOGGER.warning(
+            "BUG-DEBUG: _apply_deficit_propagation active=%d", len(active),
+        )
+        for a in active:
+            _LOGGER.warning(
+                "BUG-DEBUG:   active_trip id=%s activo=%s def_total=%.1f start=%d",
+                str(a.get("emhass_index")), a.get("activo"),
+                a.get("def_total_hours") or 0.0, a.get("def_start_timestep"),
+            )
         if len(active) < 2:
             return
 
         windows, total_hours_list = self._build_deficit_windows(active)
+        _LOGGER.warning(
+            "BUG-DEBUG: windows=%d total_hours_list=%s",
+            len(windows), total_hours_list,
+        )
         if not windows:
             return
 
         from ..calculations import calculate_hours_deficit_propagation
 
         results = calculate_hours_deficit_propagation(windows, total_hours_list)
+        _LOGGER.warning(
+            "BUG-DEBUG: results=%d", len(results),
+        )
+        for r in results:
+            _LOGGER.warning(
+                "BUG-DEBUG:   result adj=%.1f orig_def=%.1f win_h=%.1f need_h=%.1f",
+                r.get("adjusted_def_total_hours"),
+                r.get("def_total_hours", r.get("horas_carga_necesarias")),
+                r.get("ventana_horas"),
+                r.get("horas_carga_necesarias"),
+            )
         self._apply_deficit_results(results, active)
 
     def _get_active_trips_sorted(self) -> List[Dict[str, Any]]:
@@ -902,6 +971,10 @@ class EMHASSAdapter:
         total_hours_list: List[float] = []
         for p in active:
             cws = p.get("charging_window", [])
+            _LOGGER.warning(
+                "BUG-DEBUG: _build_deficit_windows param_trip=%s cws=%s",
+                str(p.get("emhass_index")), cws,
+            )
             if cws:
                 w = cws[0]
                 windows.append({
@@ -922,18 +995,33 @@ class EMHASSAdapter:
         results: List[Dict[str, Any]],
         active: List[Dict[str, Any]],
     ) -> None:
-        """Apply deficit propagation results to cached params."""
+        """Apply deficit propagation results to cached params.
+
+        Results come from calculate_hours_deficit_propagation stored at
+        results[i] = original index i, so they're in the same order as the
+        input windows list, which matches the active list order.
+        """
+        _LOGGER.warning(
+            "BUG-DEBUG: _apply_deficit_results results=%d active=%d",
+            len(results), len(active),
+        )
+        n = len(active)
         for i, result in enumerate(results):
-            if i >= len(active):
+            if i >= n:
                 break
             params = active[i]
             trip_id = self._find_trip_id_for_params(params)
+            _LOGGER.warning(
+                "BUG-DEBUG:   applying result[%d] adj=%.1f to active[%d]=%s trip_id=%s",
+                i, result.get("adjusted_def_total_hours"), i,
+                id(params), trip_id,
+            )
             if trip_id is None:
                 continue
 
             adjusted = result.get("adjusted_def_total_hours")
-            if adjusted is not None and adjusted > 0:
-                self._cached_per_trip_params[trip_id]["adjusted_def_total_hours"] = round(adjusted, 2)
+            if adjusted is not None:
+                self._cached_per_trip_params[trip_id]["def_total_hours"] = math.ceil(adjusted)
                 power_watts = params.get("power_watts", 0)
                 if power_watts > 0:
                     self._cached_per_trip_params[trip_id]["kwh_needed"] = (

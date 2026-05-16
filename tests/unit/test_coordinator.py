@@ -380,7 +380,7 @@ class TestGenerateMockEmhassParams:
         result = coord._generate_mock_emhass_params(trips)
         params = result["per_trip_emhass_params"]["rec_1"]
         # BUG-1 fix: math.ceil(max(0/0, 0.1)) = math.ceil(0.1) = 1
-        assert params["def_total_hours_array"] == [1]
+        assert params["def_total_hours"] == 1
 
     def test_mock_params_invalid_datetime(self):
         """Invalid datetime string handled gracefully."""
@@ -408,7 +408,7 @@ class TestGenerateMockEmhassParams:
         }
         result = coord._generate_mock_emhass_params(trips)
         entry = result["per_trip_emhass_params"]["rec_1"]
-        assert entry["def_start_timestep_array"] == [0]
+        assert entry["def_start_timestep"] == 0
 
     def test_mock_params_datetime_no_tzinfo(self):
         """Datetime without timezone → replace with UTC (line 274)."""

@@ -72,13 +72,69 @@ async def _hourly_refresh_callback(
     """Hourly callback to refresh deferrable loads profile.
 
     This callback is called every hour to trigger rotation of recurring trips.
+    After publishing to EMHASS (which updates the adapter cache), we trigger
+    a coordinator refresh so sensors see the new data immediately.
     The timer is registered in async_setup_entry and cleaned up in async_unload_entry.
     """
+    _LOGGER.warning(
+        "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s",
+        "present" if runtime_data else "None",
+    )
+    if runtime_data is None:
+        _LOGGER.warning("FLOW2-DEBUG: runtime_data is None, aborting")
+        return
+    if runtime_data.trip_manager is None:
+        _LOGGER.warning("FLOW2-DEBUG: trip_manager is None, aborting")
+        return
+    if runtime_data.emhass_adapter is None:
+        _LOGGER.warning("FLOW2-DEBUG: emhass_adapter is None, aborting")
+        return
+    if runtime_data.coordinator is None:
+        _LOGGER.warning("FLOW2-DEBUG: coordinator is None, aborting")
+        return
+
+    _LOGGER.warning("FLOW2-DEBUG: all runtime_data fields present, calling publish")
+
+    # Log cache state BEFORE publish
+    adapter = runtime_data.emhass_adapter
+    pre_cache = adapter.get_cached_optimization_results()
+    _LOGGER.warning(
+        "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d",
+        len(pre_cache.get("per_trip_emhass_params", {})),
+        sum(1 for x in (pre_cache.get("emhass_power_profile") or []) if x > 0),
+    )
+
     try:
-        if runtime_data.trip_manager:
-            await runtime_data.trip_manager._schedule.publish_deferrable_loads()
+        await runtime_data.trip_manager._schedule.publish_deferrable_loads()
     except Exception as err:
-        _LOGGER.warning("Hourly profile refresh failed: %s", err)
+        _LOGGER.warning("FLOW2-DEBUG: publish_deferrable_loads FAILED: %s", err, exc_info=True)
+        return
+    except BaseException as err:
+        _LOGGER.warning("FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s", err)
+        return
+
+    # Log cache state AFTER publish
+    post_cache = adapter.get_cached_optimization_results()
+    _LOGGER.warning(
+        "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d",
+        len(post_cache.get("per_trip_emhass_params", {})),
+        sum(1 for x in (post_cache.get("emhass_power_profile") or []) if x > 0),
+    )
+    for tid, tp in post_cache.get("per_trip_emhass_params", {}).items():
+        _LOGGER.warning(
+            "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s",
+            tid,
+            tp.get("def_start_timestep_array"),
+            tp.get("def_end_timestep_array"),
+            tp.get("def_total_hours_array"),
+        )
+
+    if runtime_data.coordinator:
+        _LOGGER.warning("FLOW2-DEBUG: calling async_refresh_trips")
+        await runtime_data.coordinator.async_refresh_trips()
+        _LOGGER.warning("FLOW2-DEBUG: async_refresh_trips DONE")
+    else:
+        _LOGGER.warning("FLOW2-DEBUG: coordinator is None after publish, skipping refresh")
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -197,12 +253,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # Now that coordinator and runtime_data are ready, publish loaded trips to EMHASS.
-    # This populates the EMHASS cache and triggers a coordinator refresh
+    # This populates the EMHASS cache. After populate, trigger a coordinator refresh
     # so sensors see the correct data immediately (not waiting for periodic refresh).
+    # If the SOC sensor is not yet available, skip the initial publish — the hourly
+    # refresh timer will populate the cache once the sensor becomes available.
     if (
         emhass_adapter is not None
+        and entry.runtime_data
+        and entry.runtime_data.coordinator
     ):  # pragma: no cover reason=HA lifecycle — branch coverage requires emhass_adapter to be set during entry setup
-        await trip_manager._schedule.publish_deferrable_loads()  # pragma: no cover reason=HA lifecycle — publish loaded trips during entry setup
+        try:
+            await trip_manager._schedule.publish_deferrable_loads()  # pragma: no cover reason=HA lifecycle — publish loaded trips during entry setup
+            await entry.runtime_data.coordinator.async_refresh_trips()
+        except RuntimeError:
+            _LOGGER.info(
+                "EMHASS initial publish skipped — SOC sensor not yet available. "
+                "The hourly refresh will populate the cache when the sensor is ready."
+            )
     await async_register_panel_for_entry(
         hass, entry, vehicle_id, vehicle_name
     )  # pragma: no cover reason=HA lifecycle — panel registration during entry setup

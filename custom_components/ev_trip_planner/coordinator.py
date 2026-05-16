@@ -365,10 +365,10 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "activo": True,
             "kwh_needed": kwh_needed,
             "km": float(trip.get("km", 0)),
-            "def_total_hours_array": [math.ceil(hours_needed)],
-            "p_deferrable_nom_array": [round(power_watts, 2)],
-            "def_start_timestep_array": [start_timestep],
-            "def_end_timestep_array": [end_timestep],
+            "def_total_hours": math.ceil(hours_needed),
+            "power_watts": round(power_watts, 2),
+            "def_start_timestep": start_timestep,
+            "def_end_timestep": end_timestep,
             "p_deferrable_matrix": trip_matrix,
             "emhass_index": index_counter,
             "battery_capacity_kwh": battery_capacity_kwh,
@@ -445,12 +445,8 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             deferrables_schedule.append({
                 "index": params.get("emhass_index", 0),
                 "kwh": params.get("kwh_needed", 0),
-                "start_timestep": params.get("def_start_timestep_array", [0])[0]
-                if params.get("def_start_timestep_array")
-                else 0,
-                "end_timestep": params.get("def_end_timestep_array", [horizon_hours])[0]
-                if params.get("def_end_timestep_array")
-                else horizon_hours,
+                "start_timestep": params.get("def_start_timestep", 0),
+                "end_timestep": params.get("def_end_timestep", horizon_hours),
             })
         return power_profile, deferrables_schedule
 

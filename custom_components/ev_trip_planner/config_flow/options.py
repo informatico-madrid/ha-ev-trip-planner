@@ -117,9 +117,9 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                             "suggested_value": current_t_base,
                             "placeholder": f"{current_t_base}",
                             "description": (
-                                "Ventana de tiempo base (horas). Cuanto mayor sea, "
-                                "más conservadora será la limitación dinámica de SOC. "
-                                "Rango: 6-48h."
+                                "Tiempo que puedes mantener la batería a alto SOC sin dañarla. "
+                                "Valores más bajos = protección más agresiva de la batería. "
+                                "Rango: 6-48h. Ejemplo: 24 (balance entre protección y flexibilidad)"
                             ),
                         },
                     ): vol.All(

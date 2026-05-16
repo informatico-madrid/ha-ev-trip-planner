@@ -105,13 +105,13 @@ class TestCoordinatorChargingPowerFromOptions:
         per_trip = result.get("per_trip_emhass_params", {})
         trip1_data = per_trip.get("trip1", {})
         
-        # Get p_deferrable_nom_array - this is power in WATTS
-        p_deferrable_nom = trip1_data.get("p_deferrable_nom_array", [0])
-        
-        # BUG: p_deferrable_nom shows 11000W (11kW DEFAULT) instead of 3400W (3.4kW user configured)
+        # Get power_watts - this is power in WATTS (scalar, not array)
+        p_deferrable_nom = trip1_data.get("power_watts", 0)
+
+        # BUG: power_watts shows 11000W (11kW DEFAULT) instead of 3400W (3.4kW user configured)
         # This assertion should FAIL when bug exists
-        assert p_deferrable_nom[0] == 3400.0, \
-            f"Expected 3400W (3.4kW from options), got {p_deferrable_nom[0]}W. " \
+        assert p_deferrable_nom == 3400.0, \
+            f"Expected 3400W (3.4kW from options), got {p_deferrable_nom}W. " \
             f"Coordinator is using DEFAULT_CHARGING_POWER=11.0 instead of options value!"
 
     def test_data_charging_power_used_as_fallback(self, mock_hass, mock_config_entry, mock_trip_manager):
@@ -138,11 +138,11 @@ class TestCoordinatorChargingPowerFromOptions:
         result = coordinator._generate_mock_emhass_params(mock_trips)
         per_trip = result.get("per_trip_emhass_params", {})
         trip1_data = per_trip.get("trip1", {})
-        p_deferrable_nom = trip1_data.get("p_deferrable_nom_array", [0])
+        p_deferrable_nom = trip1_data.get("power_watts", 0)
         
         # Should use 6.6kW from data = 6600W
-        assert p_deferrable_nom[0] == 6600.0, \
-            f"Expected 6600W (6.6kW from data), got {p_deferrable_nom[0]}W"
+        assert p_deferrable_nom == 6600.0, \
+            f"Expected 6600W (6.6kW from data), got {p_deferrable_nom}W"
 
     def test_options_takes_precedence_over_data(self, mock_hass, mock_config_entry, mock_trip_manager):
         """When charging_power_kw is in BOTH options and data, options should win."""
@@ -168,11 +168,11 @@ class TestCoordinatorChargingPowerFromOptions:
         result = coordinator._generate_mock_emhass_params(mock_trips)
         per_trip = result.get("per_trip_emhass_params", {})
         trip1_data = per_trip.get("trip1", {})
-        p_deferrable_nom = trip1_data.get("p_deferrable_nom_array", [0])
+        p_deferrable_nom = trip1_data.get("power_watts", 0)
         
         # Should use 3.4kW from options (not 6.6kW from data)
-        assert p_deferrable_nom[0] == 3400.0, \
-            f"Expected 3400W (options), got {p_deferrable_nom[0]}W"
+        assert p_deferrable_nom == 3400.0, \
+            f"Expected 3400W (options), got {p_deferrable_nom}W"
 
 
 class TestCoordinatorNoDefaultPower:
@@ -213,7 +213,7 @@ class TestCoordinatorNoDefaultPower:
         # BUG: Returns data with DEFAULT power instead of empty
         # FIXED: Should return empty per_trip_emhass_params when no charging_power_kw configured
         # This assertion should FAIL when bug exists
-        assert per_trip == {} or per_trip.get("trip1", {}).get("p_deferrable_nom_array", [None])[0] is None or per_trip.get("trip1", {}).get("p_deferrable_nom_array", [0])[0] == 0, \
+        assert per_trip == {} or per_trip.get("trip1", {}).get("power_watts") is None or per_trip.get("trip1", {}).get("power_watts", 0) == 0, \
             f"Expected empty or 0 when no charging_power_kw configured, got per_trip={per_trip}"
 
 

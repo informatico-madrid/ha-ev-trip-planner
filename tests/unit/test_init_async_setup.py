@@ -24,9 +24,17 @@ class TestHourlyRefreshCallback:
         mgr = MagicMock()
         mgr._schedule = MagicMock()
         mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(return_value={
+            "per_trip_emhass_params": {},
+            "emhass_power_profile": [],
+        })
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
         rt = EVTripRuntimeData(
-            coordinator=MagicMock(),
+            coordinator=coord,
             trip_manager=mgr,
+            emhass_adapter=adapter,
         )
         await _hourly_refresh_callback(None, rt)
         mgr._schedule.publish_deferrable_loads.assert_awaited_once()

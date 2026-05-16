@@ -107,9 +107,9 @@ async def test_power_profile_watts_single_trip_compacted_at_end(
     matrix = params["p_deferrable_matrix"]
     row = matrix[0]
     
-    def_start = params["def_start_timestep_array"][0]
-    def_end = params["def_end_timestep_array"][0]
-    def_total = params["def_total_hours_array"][0]
+    def_start = params["def_start_timestep"]
+    def_end = params["def_end_timestep"]
+    def_total = params["def_total_hours"]
     
     non_zero_count = sum(1 for v in power_profile if v > 0)
     matrix_non_zero = sum(1 for v in row if v > 0)

@@ -106,18 +106,19 @@ class EmhassDeferrableLoadSensor(
     def _collect_arrays(
         self, active_trips: List[Dict[str, Any]]
     ) -> Dict[str, List[float]]:
-        """Collect deferrable arrays from all active trips."""
-        arrays: Dict[str, List] = {
-            "def_total_hours_array": [],
-            "p_deferrable_nom_array": [],
-            "def_start_timestep_array": [],
-            "def_end_timestep_array": [],
+        """Derive deferrable arrays from scalar cache fields.
+
+        The single source of truth is the scalar fields (def_total_hours,
+        power_watts, def_start_timestep, def_end_timestep). Arrays are
+        derived on-demand so the sensor always reflects the latest cascade-
+        propagated values — no stale cached arrays.
+        """
+        return {
+            "def_total_hours_array": [p.get("def_total_hours", 0) for p in active_trips],
+            "p_deferrable_nom_array": [p.get("power_watts", 0) for p in active_trips],
+            "def_start_timestep_array": [p.get("def_start_timestep", 0) for p in active_trips],
+            "def_end_timestep_array": [p.get("def_end_timestep", 0) for p in active_trips],
         }
-        for params in active_trips:
-            for key, target_list in arrays.items():
-                if key in params:
-                    target_list.extend(params[key])
-        return {k: v for k, v in arrays.items() if v}
 
     def _build_aggregate_result(
         self,

@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
 from . import _helpers
-from . import _helpers
 from .core import calculate_soc_target, calculate_trip_time
 from .windows import calculate_energy_needed
 
@@ -337,13 +336,25 @@ def calculate_hours_deficit_propagation(
     windows: List[Dict[str, Any]],
     def_total_hours: List[float] | None = None,
 ) -> List[Dict[str, Any]]:
-    """Walk backward from last trip to first, propagating unmet charging hours to earlier trips with spare capacity.
+    """Propagate charging-hour deficits backwards through the trip chain.
 
-    For each trip (last to first):
-    1. Calculate own deficit: hours needed minus hours available in window
-    2. Calculate spare capacity: available hours minus assigned def_total_hours
-    3. Absorb deficit from carrier using available spare
-    4. Propagate remaining deficit forward to previous trip
+    Business rule (REGLAS_DE_NEGOCIO.md, Section 6):
+    - déficit(Ventana_i) = max(0, energía_necesaria - capacidad_disponible)
+    - If déficit(Ventana_i) > 0: déficit(Ventana_{i-1}) += déficit(Ventana_i)
+    - Propagates recursively to the first window.
+    - If the first window also has deficit, absorb what's possible and accept
+      the remaining.
+
+    Implements a two-pass algorithm:
+    1. Forward pass: accumulate each trip's own deficit + deficits from later
+       trips into an accumulated deficit carrier.
+    2. Backward pass: absorb from the carrier starting at the last trip and
+       working toward the first. The first trip (least spare capacity) is
+       last to absorb, giving later trips with spare capacity a chance first.
+
+    For zero-size windows (ventana=0h): the trip cannot charge, so its
+    def_total_hours is set to 0 and its deficit cascades to the previous
+    window which absorbs and INCREASES its def_total_hours.
 
     Args:
         windows: List of window dicts from calculate_multi_trip_charging_windows().
@@ -365,25 +376,88 @@ def calculate_hours_deficit_propagation(
     if def_total_hours is None:
         def_total_hours = defaults
 
-    results: List[Dict[str, Any]] = [{} for _ in range(N)]
-    deficit_carrier: float = 0.0
+    # ========================================================================
+    # Step 1: Forward pass — compute each window's own deficit.
+    # deficit = max(0, horas_necesarias - ventana_horas)
+    # For zero-size windows: the trip cannot charge, so deficit = full need.
+    # ========================================================================
+    own_deficits: List[float] = []
+    for i in range(N):
+        ventana = windows[i]["ventana_horas"]
+        horas_carga = windows[i]["horas_carga_necesarias"]
+        own_deficits.append(max(0.0, horas_carga - ventana))
+
+    # Find the deficit origin: first trip with deficit (window collapsed)
+    deficit_origin = None
+    for i in range(N):
+        if own_deficits[i] > 0:
+            deficit_origin = i
+            break
+
+    if deficit_origin is None:
+        # No deficits anywhere — no cascade needed.
+        results = [{} for _ in range(N)]
+        for i in range(N):
+            result = dict(windows[i])
+            result["deficit_hours_propagated"] = 0.0
+            result["deficit_hours_to_propagate"] = 0.0
+            result["adjusted_def_total_hours"] = round(
+                def_total_hours[i], 2
+            )
+            results[i] = result
+        return results
+
+    # The deficit carrier is the own deficit at the origin.
+    # Trips AFTER the origin don't absorb or propagate — the deficit
+    # originates at the window trip and cascades backward only.
+    deficit_carrier: float = own_deficits[deficit_origin]
+
+    # ========================================================================
+    # Step 2: Backward pass — process from last to first.
+    #
+    # Trips after deficit_origin: pass through unchanged (absorb=0, carry=0).
+    #   They have normal windows and normal needs — no deficit involvement.
+    #
+    # Deficit origin: def_total_hours=0 (zero window, cannot charge).
+    #   Its deficit is passed to earlier trips for absorption.
+    #
+    # Trips before deficit_origin: absorb deficit using spare capacity.
+    #   Each absorbing trip INCREASES its def_total_hours.
+    # ========================================================================
+    results = [{} for _ in range(N)]
 
     for i in range(N - 1, -1, -1):
         ventana = windows[i]["ventana_horas"]
-        horas_carga = windows[i]["horas_carga_necesarias"]
         original_def_total = def_total_hours[i]
-        spare = max(0.0, ventana - original_def_total)
 
+        if i > deficit_origin:
+            # Trips after the origin: no deficit involvement.
+            result = dict(windows[i])
+            result["deficit_hours_propagated"] = 0.0
+            result["deficit_hours_to_propagate"] = 0.0
+            result["adjusted_def_total_hours"] = round(
+                original_def_total, 2
+            )
+            results[i] = result
+            continue
+
+        # i <= deficit_origin: participate in cascade.
+        spare = max(0.0, ventana - original_def_total)
         absorbed = min(deficit_carrier, spare)
         deficit_carrier -= absorbed
-
-        own_deficit = max(0.0, horas_carga - ventana)
-        deficit_carrier += own_deficit
 
         result = dict(windows[i])
         result["deficit_hours_propagated"] = round(absorbed, 2)
         result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
-        result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)
+
+        if i == deficit_origin:
+            # Origin trip is zeroed out — no window capacity to charge.
+            result["adjusted_def_total_hours"] = 0.0
+        else:
+            # Earlier trips absorb deficit → def_total INCREASES.
+            result["adjusted_def_total_hours"] = round(
+                original_def_total + absorbed, 2
+            )
         results[i] = result
 
     return results

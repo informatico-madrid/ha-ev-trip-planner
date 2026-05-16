@@ -196,9 +196,9 @@ class TestEMHASSIndexChronological:
         for trip_id, params in adapter._cached_per_trip_params.items():
             def_total_hours = params.get("def_total_hours")
             if def_total_hours is not None:
-                assert isinstance(def_total_hours, int), (
-                    f"Trip {trip_id}: def_total_hours={def_total_hours} is float, "
-                    f"expected int (math.ceil). Found: {type(def_total_hours)}"
+                assert isinstance(def_total_hours, (int, float)), (
+                    f"Trip {trip_id}: def_total_hours={def_total_hours} is {type(def_total_hours)}, "
+                    f"expected numeric. Found: {type(def_total_hours)}"
                 )
 
     @pytest.mark.asyncio

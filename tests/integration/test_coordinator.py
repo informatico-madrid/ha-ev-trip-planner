@@ -691,8 +691,8 @@ async def test_generate_mock_emhass_params_single_trip(mock_coordinator):
     assert trip_params["activo"] is True
     assert trip_params["kwh_needed"] == 30.0
     assert trip_params["km"] == 100.0
-    assert trip_params["def_total_hours_array"] == [5]
-    assert trip_params["p_deferrable_nom_array"] == [round(7.4 * 1000.0, 2)]
+    assert trip_params["def_total_hours"] == 5
+    assert trip_params["power_watts"] == round(7.4 * 1000.0, 2)
     assert trip_params["safety_margin_percent"] == 10.0
     assert trip_params["soc_base"] == 20.0
     assert trip_params["t_base"] == 24.0
@@ -770,7 +770,7 @@ async def test_generate_mock_emhass_params_empty_datetime(mock_coordinator):
     result = mock_coordinator._generate_mock_emhass_params(trips)
 
     trip_params = result["per_trip_emhass_params"]["trip_001"]
-    assert trip_params["def_start_timestep_array"] == [0]
+    assert trip_params["def_start_timestep"] == 0
 
 
 async def test_generate_mock_emhass_params_invalid_datetime(mock_coordinator):
@@ -786,7 +786,7 @@ async def test_generate_mock_emhass_params_invalid_datetime(mock_coordinator):
     result = mock_coordinator._generate_mock_emhass_params(trips)
 
     trip_params = result["per_trip_emhass_params"]["trip_001"]
-    assert trip_params["def_start_timestep_array"] == [0]
+    assert trip_params["def_start_timestep"] == 0
 
 
 async def test_generate_mock_emhass_params_charging_power_zero(
@@ -824,7 +824,7 @@ async def test_generate_mock_emhass_params_charging_power_zero(
 
     trip_params = result["per_trip_emhass_params"]["trip_001"]
     # With BUG-1 fix: math.ceil(minimum 0.1) = 1 (1-hour timestep resolution)
-    assert trip_params["def_total_hours_array"] == [1]
+    assert trip_params["def_total_hours"] == 1
 
 
 async def test_generate_mock_emhass_params_naive_datetime(
@@ -857,7 +857,7 @@ async def test_generate_mock_emhass_params_naive_datetime(
     result = coordinator._generate_mock_emhass_params(trips)
     trip_params = result["per_trip_emhass_params"]["trip_001"]
     # Should process without error, treating as UTC
-    assert trip_params["def_start_timestep_array"][0] >= 0
+    assert trip_params["def_start_timestep"] >= 0
 
 
 async def test_generate_mock_emhass_params_fallback_single_row(mock_coordinator):

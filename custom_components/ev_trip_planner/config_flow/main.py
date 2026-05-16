@@ -99,8 +99,9 @@ STEP_SENSORS_SCHEMA = vol.Schema(
                 "suggested_value": DEFAULT_T_BASE,
                 "placeholder": f"{DEFAULT_T_BASE}",
                 "description": (
-                    "Ventana de tiempo base (horas). Cuanto mayor sea, más conservadora "
-                    "será la limitación dinámica de SOC. Rango: 6-48h."
+                    "Tiempo que puedes mantener la batería a alto SOC sin dañarla. "
+                    "Valores más bajos = protección más agresiva de la batería. "
+                    "Rango: 6-48h. Ejemplo: 24 (balance entre protección y flexibilidad)"
                 ),
             },
         ): vol.All(vol.Coerce(float), vol.Range(min=MIN_T_BASE, max=MAX_T_BASE)),

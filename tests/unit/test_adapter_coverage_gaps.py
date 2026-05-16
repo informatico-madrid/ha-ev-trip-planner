@@ -216,7 +216,7 @@ class TestApplyDeficitResults:
         # active[0] must be the SAME OBJECT as trip_001 for identity check to pass
         active = [trip_001]
         adapter._apply_deficit_results(results, active)
-        assert trip_001.get("adjusted_def_total_hours") == 5.0
+        assert trip_001.get("def_total_hours") == 5.0
 
 
 class TestFindTripIdForParams:

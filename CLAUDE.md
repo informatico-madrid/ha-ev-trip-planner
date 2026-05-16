@@ -27,6 +27,34 @@ See [`docs/staging-vs-e2e-separation.md`](docs/staging-vs-e2e-separation.md) for
 
 Use `/bmalph` to navigate phases. Use `/bmad-help` to discover all commands. Use `/bmalph-status` for a quick overview. See `_bmad/COMMANDS.md` for a full command reference.
 
+## 📚 DOMINIO Y REGLAS DE NEGOCIO — COLD MEMORY
+
+> **IMPORTANTE:** Este proyecto tiene un documento de dominio específico para agentes IA.
+
+Cuando necesites entender las reglas de negocio, cálculos, o comportamiento del sistema:
+- **Consulta [`docs/REGLAS_DE_NEGOCIO.md`](docs/REGLAS_DE_NEGOCIO.md)**
+- Es **cold memory** — cargar bajo demanda cuando se necesitan detalles de dominio
+- Contiene: glossary, SOC cap dinámico, propagación de déficit, ventanas de carga, parámetros EMHASS, casos de uso reales
+
+Este documento es la **fuente de verdad** para el dominio del EV Trip Planner. Todos los agentes deben referenciarlo antes de tomar decisiones sobre reglas de negocio.
+
+## 🔄 HARNESS SELF-IMPROVEMENT — Hook System
+
+### Hook: PRE-TASK
+**ANTES de cualquier tarea**, leer `.harness/agent-feedback/` si existe feedback previo.
+
+### Hook: POST-TASK
+**DESPUÉS de tarea >30 min o con errores significativos**, crear archivo en `sessions/` y actualizar `patterns.md` si hay patrón nuevo.
+
+### Indicadores de tarea compleja
+- Duró >30 min, errores inesperados, múltiples intentos, frustración del usuario
+
+### Archivos
+| Archivo | Propósito |
+|---------|-----------|
+| [`.harness/agent-feedback/README.md`](.harness/agent-feedback/README.md) | Plantilla feedback |
+| [`.harness/agent-feedback/patterns.md`](.harness/agent-feedback/patterns.md) | Plantilla patrones |
+
 ## ⚡ AUTO-ROUTING — Skills, Commands & Agents
 
 > **IMPORTANT:** This project uses an **Auto-Router System**. Before responding to ANY user prompt, you MUST:

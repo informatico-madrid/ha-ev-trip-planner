@@ -422,10 +422,10 @@ class TestPowerProfileSemantics:
                     "activo": True,
                     "kwh_needed": 5.0,
                     "p_deferrable_matrix": [[0.0] * 168],
-                    "def_total_hours_array": [2],
-                    "p_deferrable_nom_array": [3000.0],
-                    "def_start_timestep_array": [10],
-                    "def_end_timestep_array": [20],
+                    "def_total_hours": 2,
+                    "power_watts": 3000.0,
+                    "def_start_timestep": 10,
+                    "def_end_timestep": 20,
                 },
                 "rec_2": {
                     "activo": False,  # Inactive — should be skipped
