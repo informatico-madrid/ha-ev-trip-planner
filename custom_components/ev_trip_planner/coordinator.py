@@ -19,6 +19,7 @@ from typing import Any, Optional
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_VEHICLE_NAME,
@@ -296,7 +297,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         per_trip_params: dict[str, Any] = {}
         matrix: list[list[float]] = []
         index_counter = 0
-        now = datetime.now(timezone.utc)
+        now = dt_util.now()
 
         for trip_id, trip in trips.items():
             if not self._should_process_trip(trip, now):

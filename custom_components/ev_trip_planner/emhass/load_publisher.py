@@ -116,7 +116,7 @@ class LoadPublisher(LoadPublisherBase):
             return False
 
         # Calculate hours available
-        now = datetime.now(timezone.utc)
+        now = dt_util.now()
         hours_available = (deadline_dt - now).total_seconds() / 3600
 
         if hours_available <= 0:
@@ -237,7 +237,7 @@ class LoadPublisher(LoadPublisherBase):
             time_str = trip.get("time") if "time" in trip else trip.get("hora")
 
             if day is not None and time_str is not None:
-                now = datetime.now(timezone.utc)
+                now = dt_util.now()
                 days_map = {
                     "domingo": 6,
                     "sunday": 6,
