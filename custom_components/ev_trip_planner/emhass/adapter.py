@@ -576,7 +576,7 @@ class EMHASSAdapter:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
             soc_sensor = entry_data.get("soc_sensor")
-        
+
         if not soc_sensor:
             return None
         state = self.hass.states.get(soc_sensor)

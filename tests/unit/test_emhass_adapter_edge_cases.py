@@ -213,15 +213,15 @@ class TestGetCurrentSoc:
     async def test_no_soc_sensor(self, mock_hass, mock_entry):
         """Line 313: soc_sensor not in entry_data -> returns None."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._entry_dict = {"other_key": "value"}  # dict exists but no soc_sensor
+        mock_entry.data = {"other_key": "value"}
         result = await adapter._get_current_soc()
         assert result is None
 
     @pytest.mark.asyncio
     async def test_soc_state_non_numeric(self, mock_hass, mock_entry):
         """Lines 319-320: float(state.state) raises ValueError -> returns None."""
+        mock_entry.data = {"soc_sensor": "sensor.battery"}
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._entry_dict = {"soc_sensor": "sensor.battery"}
         state_obj = MagicMock()
         state_obj.state = "unavailable"  # not a valid float
         mock_hass.states.get = MagicMock(return_value=state_obj)
@@ -231,8 +231,8 @@ class TestGetCurrentSoc:
     @pytest.mark.asyncio
     async def test_soc_state_none_state(self, mock_hass, mock_entry):
         """Lines 319-320: state.state is None -> TypeError -> returns None."""
+        mock_entry.data = {"soc_sensor": "sensor.battery"}
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._entry_dict = {"soc_sensor": "sensor.battery"}
         state_obj = MagicMock()
         state_obj.state = None
         mock_hass.states.get = MagicMock(return_value=state_obj)

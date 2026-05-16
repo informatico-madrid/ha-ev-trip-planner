@@ -1154,13 +1154,13 @@ class TestEMHASSAdapterBackwardCompat:
     async def test_get_current_soc_with_entry_dict_and_sensor(
         self, mock_hass, mock_entry
     ):
-        """_get_current_soc reads from entry dict soc_sensor."""
+        """_get_current_soc reads from entry.data soc_sensor."""
         from custom_components.ev_trip_planner.emhass.adapter import (
             EMHASSAdapter,
         )
 
+        mock_entry.data = {"soc_sensor": "sensor.battery_soc"}
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._entry_dict = {"soc_sensor": "sensor.battery_soc"}
         mock_hass.states.get = Mock(return_value=MagicMock(state="75"))
         result = await adapter._get_current_soc()
         assert result == 75.0
@@ -1172,8 +1172,8 @@ class TestEMHASSAdapterBackwardCompat:
             EMHASSAdapter,
         )
 
+        mock_entry.data = {"soc_sensor": "sensor.missing"}
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._entry_dict = {"soc_sensor": "sensor.missing"}
         mock_hass.states.get = Mock(return_value=None)
         result = await adapter._get_current_soc()
         assert result is None
