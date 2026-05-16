@@ -2034,5 +2034,9 @@ P_deferrable: {{ state_attr('${emhassSensorEntityId}', 'p_deferrable_matrix') | 
   }
 }
 
-// Register the custom element
-customElements.define('ev-trip-planner-panel', EVTripPlannerPanel);
+// Register the custom element (guard against double registration)
+if (!customElements.get('ev-trip-planner-panel')) {
+  customElements.define('ev-trip-planner-panel', EVTripPlannerPanel);
+} else {
+  console.log('EV Trip Planner Panel: Custom element already registered, skipping');
+}

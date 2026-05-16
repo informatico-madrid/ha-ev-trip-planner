@@ -635,5 +635,9 @@ class EVTripPlannerPanel extends HTMLElement {
   }
 }
 
-// Register the custom element
-customElements.define('ev-trip-planner-panel', EVTripPlannerPanel);
+// Register the custom element (guard against double registration)
+if (!customElements.get('ev-trip-planner-panel')) {
+  customElements.define('ev-trip-planner-panel', EVTripPlannerPanel);
+} else {
+  console.log('EV Trip Planner Dashboard: Custom element already registered, skipping');
+}
