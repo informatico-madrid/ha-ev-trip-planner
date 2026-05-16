@@ -173,7 +173,6 @@ class TestDeferrableHoursCalculation:
             if trip_id in per_trip_params:
                 params = per_trip_params[trip_id]
                 def_hours = params.get("def_total_hours", 0)
-                power_nom = params.get("P_deferrable_nom", 0.0)
                 power_watts = params.get("power_watts", 0.0)
 
                 print(f"{trip_id} ({trip['kwh']} kWh):")

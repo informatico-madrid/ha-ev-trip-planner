@@ -133,9 +133,6 @@ class TestSOC100Propagation:
         soc_current = 100.0
         charging_power_kw = 3.4
 
-        # With SOC 100%, available energy is maximum
-        energia_disponible = battery_capacity * (soc_current / 100.0)
-
         # Physics principle: cannot charge beyond 100% SOC
         assert soc_current <= 100.0, "SOC cannot exceed 100%"
 

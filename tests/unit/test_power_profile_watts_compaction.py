@@ -118,7 +118,7 @@ class TestPowerProfileWattsCompaction:
         def_end = cache.get("def_end_timestep", 0)
         def_total = cache.get("def_total_hours", 0)
 
-        print(f"\n=== DEBUG ===")
+        print("\n=== DEBUG ===")
         print(f"def_start_timestep: {def_start}")
         print(f"def_end_timestep: {def_end}")
         print(f"def_total_hours: {def_total}")
@@ -223,7 +223,7 @@ class TestPowerProfileWattsCompaction:
         def_total_2 = cache2.get("def_total_hours", 0)
         expected_total = def_total_1 + def_total_2
 
-        print(f"\n=== DEBUG ===")
+        print("\n=== DEBUG ===")
         print(f"Trip 1: def_start={cache1.get('def_start_timestep')}, def_end={cache1.get('def_end_timestep')}, def_total={def_total_1}")
         print(f"Trip 2: def_start={cache2.get('def_start_timestep')}, def_end={cache2.get('def_end_timestep')}, def_total={def_total_2}")
         print(f"Expected non-zero: {expected_total}")
@@ -242,7 +242,6 @@ class TestPowerProfileWattsCompaction:
         )
 
         # NEW: Verify windows are correctly separated by return_buffer_hours
-        def_start_trip1 = cache1.get("def_start_timestep", 0)
         def_end_trip1 = cache1.get("def_end_timestep", 0)
         def_start_trip2 = cache2.get("def_start_timestep", 0)
 

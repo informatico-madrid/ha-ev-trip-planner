@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -24,9 +25,6 @@ def _make_publisher(max_deferrable_loads=10):
         index_manager=idx_mgr,
     )
     return LoadPublisher(hass, "test_vehicle", config), idx_mgr
-
-
-from unittest.mock import MagicMock
 
 
 class TestCalculateDeadlineNumericDay:

@@ -148,7 +148,7 @@ def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config
     attrs = sensor.extra_state_attributes
     
     # Debug: Print what attributes we have
-    print(f"\n=== DEBUG: Sensor attributes ===")
+    print("\n=== DEBUG: Sensor attributes ===")
     print(f"Available attributes: {list(attrs.keys())}")
     print(f"number_of_deferrable_loads: {attrs.get('number_of_deferrable_loads')}")
     print(f"def_total_hours_array: {attrs.get('def_total_hours_array')}")
@@ -156,7 +156,7 @@ def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config
     print(f"def_start_timestep_array: {attrs.get('def_start_timestep_array')}")
     print(f"def_end_timestep_array: {attrs.get('def_end_timestep_array')}")
     print(f"power_profile_watts: {attrs.get('power_profile_watts')}")
-    print(f"=== END DEBUG ===\n")
+    print("=== END DEBUG ===\n")
     
     # Assert: All required EMHASS attributes must be present
     missing_attrs = []

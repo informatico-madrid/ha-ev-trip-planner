@@ -22,10 +22,9 @@ charging_power_kw = self._entry.options.get("charging_power_kw",
 """
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 

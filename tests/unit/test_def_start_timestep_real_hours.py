@@ -189,9 +189,7 @@ async def test_def_end_uses_trip_departure_not_hours_available(mock_hass, mock_s
         )
 
     params = adapter._cached_per_trip_params.get(trip["id"])
-    actual_def_start = params.get("def_start_timestep")
     actual_def_end = params.get("def_end_timestep")
-    def_total_hours = params.get("def_total_hours")
 
     # FIX VERIFIED: def_end is based on fin_ventana (trip departure time),
     # NOT def_start + total_hours.

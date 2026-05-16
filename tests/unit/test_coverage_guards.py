@@ -12,9 +12,8 @@ refactoring but lacked dedicated coverage:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-import pytest
 
 # === _compute_charging_hours: horas_necesarias == 0 fallback (power.py:101) ===
 

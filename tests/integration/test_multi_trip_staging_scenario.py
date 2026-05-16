@@ -24,7 +24,6 @@ Expected correct values (per spec):
 
 from __future__ import annotations
 
-import math
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -230,17 +229,17 @@ class TestStagingBugReproduction:
         print("\n" + "="*60)
         print("STAGING BUG REPRODUCTION - DUMP")
         print("="*60)
-        print(f"\nConfig (from staging):")
-        print(f"  charging_power_kw = 3.4")
-        print(f"  battery_capacity_kwh = 28.0")
-        print(f"  SOC = 65%")
-        print(f"  t_base = 24.0")
+        print("\nConfig (from staging):")
+        print("  charging_power_kw = 3.4")
+        print("  battery_capacity_kwh = 28.0")
+        print("  SOC = 65%")
+        print("  t_base = 24.0")
         
         print(f"\nnow = {now}")
         print(f"Trip 1 datetime = {trips[0]['datetime']}")
         print(f"Trip 2 datetime = {trips[1]['datetime']}")
         
-        print(f"\n--- Trip 1 (rec_5_xeqnmt) ---")
+        print("\n--- Trip 1 (rec_5_xeqnmt) ---")
         print(f"  def_start_timestep: {cache1.get('def_start_timestep', 0)}")
         print(f"  def_end_timestep: {cache1.get('def_end_timestep', 0)}")
         print(f"  def_total_hours: {cache1.get('def_total_hours', 0)}")
@@ -248,7 +247,7 @@ class TestStagingBugReproduction:
         print(f"  kwh_needed: {cache1.get('kwh_needed', 0)}")
         print(f"  charging_window: {cache1.get('charging_window', [])}")
         
-        print(f"\n--- Trip 2 (rec_1_fy4pfk) ---")
+        print("\n--- Trip 2 (rec_1_fy4pfk) ---")
         print(f"  def_start_timestep: {cache2.get('def_start_timestep', 0)}")
         print(f"  def_end_timestep: {cache2.get('def_end_timestep', 0)}")
         print(f"  def_total_hours: {cache2.get('def_total_hours', 0)}")
@@ -256,31 +255,27 @@ class TestStagingBugReproduction:
         print(f"  kwh_needed: {cache2.get('kwh_needed', 0)}")
         print(f"  charging_window: {cache2.get('charging_window', [])}")
         
-        print(f"\n--- Aggregated Arrays (what HA sensor shows) ---")
+        print("\n--- Aggregated Arrays (what HA sensor shows) ---")
         start_array = [cache1.get('def_start_timestep', 0), cache2.get('def_start_timestep', 0)]
         end_array = [cache1.get('def_end_timestep', 0), cache2.get('def_end_timestep', 0)]
         total_hours_array = [cache1.get('def_total_hours', 0), cache2.get('def_total_hours', 0)]
-        p_deferrable_nom_array = [
-            cache1.get('power_watts', 0) / 1000.0 * 1000,  # keep as watts
-            cache2.get('power_watts', 0) / 1000.0 * 1000,
-        ]
         
         print(f"  def_start_timestep: {start_array}")
         print(f"  def_end_timestep: {end_array}")
         print(f"  def_total_hours: {total_hours_array}")
         print(f"  p_deferrable_nom (watts): {[cache1.get('power_watts', 0), cache2.get('power_watts', 0)]}")
         
-        print(f"\n--- power_profile (first 80 slots) ---")
+        print("\n--- power_profile (first 80 slots) ---")
         pp = adapter._cached_power_profile[:80]
         # Show slot number and value for non-zero entries
         non_zero = [(i, pp[i]) for i in range(len(pp)) if pp[i] > 0]
         print(f"  Non-zero slots: {non_zero}")
         
-        print(f"\n--- STAGING EXPECTED (for comparison) ---")
-        print(f"  def_start_timestep: [0, 44]")
-        print(f"  def_end_timestep: [40, 76]")
-        print(f"  def_total_hours: [7, 6] (BUG - should be [2, 2])")
-        print(f"  p_deferrable_nom: [3600.0, 3600.0]")
+        print("\n--- STAGING EXPECTED (for comparison) ---")
+        print("  def_start_timestep: [0, 44]")
+        print("  def_end_timestep: [40, 76]")
+        print("  def_total_hours: [7, 6] (BUG - should be [2, 2])")
+        print("  p_deferrable_nom: [3600.0, 3600.0]")
         print("="*60)
 
         # PRIMARY ASSERTIONS: These match staging
@@ -365,8 +360,8 @@ class TestStagingBugReproduction:
         # Per staging (bug): 7 + 6 = 13 total slots
         
         print(f"\nTotal non-zero charging slots: {non_zero_count}")
-        print(f"Expected per spec: 4 (2 slots per trip * 2 trips)")
-        print(f"Staging (bug): 13 (7 + 6 slots)")
+        print("Expected per spec: 4 (2 slots per trip * 2 trips)")
+        print("Staging (bug): 13 (7 + 6 slots)")
         
         # BUG ASSERTION: This will FAIL until bug is fixed
         # Staging shows 13 slots (7 + 6)

@@ -13,13 +13,11 @@ CORRECT: Only 6 slots should be filled, at positions [45, 46, 47, 48, 49, 50]
 BUGGY: All 51 slots are filled at positions [0..50]
 """
 
-import math
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 import pytest
 
 # Import from integration conftest for mock_hass
-from tests.integration.conftest import mock_hass
 
 
 @pytest.mark.asyncio
@@ -103,7 +101,7 @@ async def test_p_deferrable_matrix_single_trip_def_start_0(
     
     non_zero_count = sum(1 for v in row if v > 0)
     
-    print(f"\n=== Test: Single trip with def_start=0 ===")
+    print("\n=== Test: Single trip with def_start=0 ===")
     print(f"def_start_timestep = {def_start}")
     print(f"def_end_timestep = {def_end}")
     print(f"def_total_hours = {def_total}")
@@ -132,9 +130,6 @@ async def test_p_deferrable_matrix_single_trip_def_start_0(
     
     # Fourth assertion: only def_total slots should be filled, at END of window
     # The correct positions should be [45, 46, 47, 48, 49, 50]
-    correct_start = def_end - def_total  # 51 - 6 = 45
-    correct_end = def_end  # 51
-    correct_count = def_total  # 6
     
     # Verify positions BEFORE charging_start are 0
     charging_start = def_end - def_total  # 51 - 6 = 45

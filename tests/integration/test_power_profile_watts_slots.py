@@ -17,13 +17,11 @@ This test verifies the BUG in power_profile_watts that exists in
 adapter.py:async_publish_all_deferrable_loads() lines 297-303.
 """
 
-import math
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 import pytest
 
 # Import from integration conftest for mock_hass
-from tests.integration.conftest import mock_hass
 
 
 @pytest.mark.asyncio
@@ -116,7 +114,7 @@ async def test_power_profile_watts_single_trip_compacted_at_end(
     non_zero_count = sum(1 for v in power_profile if v > 0)
     matrix_non_zero = sum(1 for v in row if v > 0)
     
-    print(f"\n=== Test: Single trip with def_start=0 ===")
+    print("\n=== Test: Single trip with def_start=0 ===")
     print(f"def_start_timestep = {def_start}")
     print(f"def_end_timestep = {def_end}")
     print(f"def_total_hours = {def_total}")

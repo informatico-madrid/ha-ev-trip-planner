@@ -247,7 +247,6 @@ class TestEMHASSIndexChronological:
             if def_start is None or def_end is None:
                 continue
 
-            expected_end = def_start + def_total_hours
             # FIX: def_end is based on fin_ventana (trip departure time).
             # The test's old invariant def_end == def_start + def_total_hours is WRONG.
             # def_end should be based on the charging window end (trip departure).

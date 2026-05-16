@@ -16,13 +16,11 @@ ACTUAL: power_profile_watts shows 11000W (11kW)
 """
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 
 from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
-from custom_components.ev_trip_planner.emhass.load_publisher import LoadPublisherConfig
 
 
 class MockConfigEntry:

@@ -5,7 +5,7 @@ Cada test corresponde a una rama específica del código.
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
 
 @pytest.fixture
@@ -124,7 +124,6 @@ async def test_def_end_timestep_uses_precomputed_fin_ventana(
             def_end_timestep = max(0, min(int(math.ceil(delta_fin - 0.001)), horizon_hours))
             _pre_computed_fin = True
     """
-    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
     
     now = datetime.now(timezone.utc)
     pre_computed_fin = now + timedelta(hours=8)  # 8 horas desde ahora
@@ -162,17 +161,10 @@ async def test_def_end_timestep_uses_fin_ventana_from_charging_windows(
     
     Escenario: charging_windows tiene fin_ventana = ahora + 8 horas
     """
-    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
     
     now = datetime.now(timezone.utc)
     fin_ventana = now + timedelta(hours=8)  # 8 horas desde ahora
     
-    # Simular charging_windows[0]["fin_ventana"]
-    charging_windows = [{
-        "fin_ventana": fin_ventana,
-        "inicio_ventana": now,
-        "ventana_horas": 8.0
-    }]
     
     # Calcular lo que esperamos
     delta_fin = (fin_ventana - now).total_seconds() / 3600  # = 8.0
@@ -262,6 +254,6 @@ async def test_all_branches_summary():
     print(f"RAMA 4 (fallback - BUG): def_end={rama4} <- ESTE ES EL PROBLEMA!")
     
     print("="*60)
-    print(f"\nSi el sensor muestra def_end=2, está usando la Rama 4 (BUG)")
-    print(f"Si el sensor muestra def_end=8, está usando la Rama 3 (CORRECTO)")
-    print(f"\nEl fix debe asegurar que NUNCA se use la Rama 4")
+    print("\nSi el sensor muestra def_end=2, está usando la Rama 4 (BUG)")
+    print("Si el sensor muestra def_end=8, está usando la Rama 3 (CORRECTO)")
+    print("\nEl fix debe asegurar que NUNCA se use la Rama 4")
