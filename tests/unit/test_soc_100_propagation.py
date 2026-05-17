@@ -1,48 +1,31 @@
-"""
-SOC 100% propagation behavior test
+"""SOC 100% propagation behavior test.
 
-This test verifies the current proactive charging algorithm:
-- With SOC 100%, the system schedules proactive charging to prepare for future trips
+Legacy source: tests/_legacy_snapshot/from-epic/test_soc_100_propagation.py
+
+Adapted to SOLID API:
+- Import from `emhass.adapter` not `emhass_adapter`
+- Uses `async_publish_all_deferrable_loads()` → inspect `_cached_per_trip_params`
+
+Proactive charging at SOC 100%:
+- Even at SOC 100%, the system schedules proactive charging to prepare for future trips
 - The real power profile limits charging to battery capacity
+- BUG: If proactive charging is NOT wired, trips at SOC 100% may get 0 charge hours
 """
 
-import logging
-from unittest.mock import AsyncMock, MagicMock
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.calculations import calculate_energy_needed
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
-
-logger = logging.getLogger(__name__)
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class TestSOC100Propagation:
     """Verifies proactive charging at SOC 100% uses power profile clamping."""
 
-    def setup_method(self):
-        """Initial setup for each test."""
-        # Mock of the configuration entry
-        self.mock_entry = MagicMock()
-        self.mock_entry.data = {
-            "soc_sensor": "sensor.ev_battery_soc",
-            "charging_power_kw": 3.4,
-            "battery_capacity_kwh": 50.0,
-            "planning_horizon_days": 7,
-            "max_deferrable_loads": 5,
-            "safety_margin_percent": 10.0,
-        }
-        self.mock_entry.entry_id = "test_entry"
-
-        # Mock of Home Assistant
-        self.mock_hass = MagicMock()
-        self.mock_hass.data = {}
-
-        # Mock SOC sensor (at 100%)
-        self.mock_soc_sensor = MagicMock()
-        self.mock_soc_sensor.state = 100.0  # 100% SOC!
-        self.mock_hass.states.get.return_value = self.mock_soc_sensor
-
+    @pytest.mark.asyncio
     async def test_soc_100_first_trip_must_not_have_2_hours(self):
         """
         Verifies proactive charging at SOC 100% assigns charge hours to trips.
@@ -51,163 +34,98 @@ class TestSOC100Propagation:
         were zeroed out incorrectly. With proactive charging, even at SOC 100%,
         trips should receive minimum charge hours.
         """
-        # Create EXACT scenario that causes deficit propagation
-        # The first trip (30 kWh) will absorb deficit from subsequent trips
+        hass = MagicMock()
+        hass.config = MagicMock()
+        hass.config.config_dir = "/tmp/test_config"
+        hass.config.time_zone = timezone.utc
+        hass.data = {}
+        hass.services = MagicMock()
+        hass.services.async_call = AsyncMock()
+        hass.services.has_service = MagicMock(return_value=True)
+
+        mock_store = MagicMock()
+        mock_store.async_load = AsyncMock(return_value={})
+        mock_store.async_save = AsyncMock()
+
+        entry = MagicMock()
+        entry.entry_id = "test_entry"
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "vehicle_name": "test_vehicle",
+            "max_deferrable_loads": 50,
+            "charging_power": 3.4,
+            "battery_capacity": 50.0,
+            "safety_margin_percent": 10.0,
+        }
+        entry.options = {}
+
+        with patch(
+            "custom_components.ev_trip_planner.emhass.adapter.Store",
+            return_value=mock_store,
+        ):
+            adapter = EMHASSAdapter(hass, entry)
+            await adapter.async_load()
+
+        # Create scenario from user report: 5 trips with tight deadlines
         trips = [
-            {
-                "id": "primer_viaje",  # This will absorb INCORRECTLY
-                "tipo": "recurring",
-                "dia_semana": "1",  # Tuesday
-                "hora": "09:00",
-                "kwh": 30.0,  # The trip causing the bug per user report
-                "descripcion": "First trip at 100% SOC",
-            },
-            {
-                "id": "segundo_viaje",  # Has small window, will generate deficit
-                "tipo": "recurring",
-                "dia_semana": "1",  # Tuesday (same day)
-                "hora": "10:00",  # Only 1 hour later
-                "kwh": 45.0,  # Heavy load in very small window
-                "descripcion": "Trip with small window (generates deficit)",
-            },
-            {
-                "id": "tercer_viaje",
-                "tipo": "recurring",
-                "dia_semana": "2",  # Wednesday
-                "hora": "14:00",
-                "kwh": 15.0,
-                "descripcion": "Normal trip",
-            },
-            {
-                "id": "cuarto_viaje",
-                "tipo": "recurring",
-                "dia_semana": "3",  # Thursday
-                "hora": "18:00",
-                "kwh": 20.0,
-                "descripcion": "Normal trip",
-            },
-            {
-                "id": "quinto_viaje",
-                "tipo": "recurring",
-                "dia_semana": "4",  # Friday
-                "hora": "08:00",
-                "kwh": 25.0,
-                "descripcion": "Normal trip",
-            },
+            {"id": "primer_viaje", "tipo": "recurring", "kwh": 30.0},
+            {"id": "segundo_viaje", "tipo": "recurring", "kwh": 45.0},
+            {"id": "tercer_viaje", "tipo": "recurring", "kwh": 15.0},
+            {"id": "cuarto_viaje", "tipo": "recurring", "kwh": 20.0},
+            {"id": "quinto_viaje", "tipo": "recurring", "kwh": 25.0},
         ]
 
-        # Configuration with SOC 100% - INITIAL STATE MUST NOT CHANGE
-        battery_capacity = 50.0
-        soc_current = 100.0  # SOC AT 100% - THIS MUST NOT CHANGE!
-        charging_power_kw = 3.4
-        safety_margin = 10.0
+        now = datetime.now(timezone.utc)
+        for i, trip in enumerate(trips):
+            # Stagger trips: 36h, 61h, 86h, 111h, 136h from now
+            trip["datetime"] = (now + timedelta(hours=36 + i * 25)).isoformat()
 
-        logger.debug("=== USER EXACT SCENARIO ===")
-        logger.debug("Initial SOC: %s%%", soc_current)
-        logger.debug("Battery: %s kWh", battery_capacity)
-        logger.debug("Power: %s kW", charging_power_kw)
-        logger.debug("")
+        with (
+            patch.object(
+                adapter, "_get_current_soc", new_callable=AsyncMock, return_value=100.0
+            ),
+            patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock, return_value=None
+            ),
+        ):
+            result = await adapter.async_publish_all_deferrable_loads(trips)
 
-        # Verify individual calculations (all should be 0)
-        logger.debug("=== INDIVIDUAL CALCULATIONS (no propagation) ===")
-        for trip in trips:
-            energy_info = calculate_energy_needed(
-                trip=trip,
-                battery_capacity_kwh=battery_capacity,
-                soc_current=soc_current,
-                charging_power_kw=charging_power_kw,
-                safety_margin_percent=safety_margin,
-            )
-            logger.debug(
-                "%s (%s kWh): Energy = %s kWh, Hours = %s",
-                trip["id"],
-                trip["kwh"],
-                energy_info["energia_necesaria_kwh"],
-                energy_info["horas_carga_necesarias"],
-            )
-
-        logger.debug("")
-        logger.debug("INDIVIDUAL CONCLUSIONS:")
-        logger.debug("- With proactive charging, all trips have energy > 0")
-        logger.debug(
-            "- The first trip (30 kWh): With proactive charging, charging is scheduled to prepare for the trip"
-        )
-        logger.debug("")
-
-        # Create adapter
-        adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
-        mock_store = AsyncMock()
-        mock_store.async_save = AsyncMock()
-        adapter._store = mock_store
-        adapter._presence_monitor = None
-
-        # Mock SOC AT 100% - MUST NOT CHANGE!
-        adapter._get_current_soc = AsyncMock(return_value=100.0)
-        adapter._get_hora_regreso = AsyncMock(return_value=None)
-
-        # Publish all together (this activates deficit propagation)
-        logger.debug("=== PUBLISHING ALL TRIPS (activating deficit propagation) ===")
-        result = await adapter.async_publish_all_deferrable_loads(trips)
-        logger.debug("publish_all result: %s", result)
-        logger.debug("")
-
-        # Get cached parameters
-        per_trip_params = getattr(adapter, "_cached_per_trip_params", {})
-
-        logger.debug("=== FINAL VERIFICATION (proactive charging) ===")
-        logger.debug("Expected (with proactive charging at 100% SOC):")
-        logger.debug("  def_total_hours: all > 0 (minimum charge = trip energy)")
-        logger.debug("  P_deferrable_nom: all > 0 (proactive charging)")
-        logger.debug("")
-
-        # Verify the first trip (the one with the bug per user report)
-        primer_viaje_params = per_trip_params.get("primer_viaje", {})
-        def_hours = primer_viaje_params.get("def_total_hours", 0)
-        power_nom = primer_viaje_params.get("P_deferrable_nom", 0.0)
-
-        logger.debug("First trip (30 kWh, SOC 100%%):")
-        logger.debug("  def_total_hours = %s", def_hours)
-        logger.debug("  P_deferrable_nom = %s W", power_nom)
-        logger.debug("")
+        assert result is True
 
         # Proactive charging: even at SOC 100%, trips require minimum charge
-        # (to prepare for future trips in a chain)
-        if def_hours > 0:
-            logger.debug(
-                "First trip has %s charge hours (proactive charging)", def_hours
-            )
-            logger.debug("  P_deferrable_nom = %s W", power_nom)
-        else:
-            # With proactive charging, this should NOT happen
-            logger.debug("First trip has 0 hours (unexpected with proactive charging)")
-            assert (
-                def_hours > 0
-            ), "With proactive charging, the first trip must have charge hours > 0"
+        per_trip_params = adapter._cached_per_trip_params
 
-        for i, trip in enumerate(trips):
+        primer_viaje_params = per_trip_params.get("primer_viaje", {})
+        def_hours = primer_viaje_params.get("def_total_hours", 0)
+        power_nom = primer_viaje_params.get("power_watts", 0.0)
+
+        if def_hours > 0:
+            # With proactive charging, the first trip should have charge hours
+            pass
+        else:
+            # If this fails, proactive charging is NOT wired at SOC 100%
+            assert def_hours > 0, (
+                f"With proactive charging at SOC 100%, primer_viaje must have charge hours > 0, got {def_hours}"
+            )
+
+        for trip in trips:
             trip_id = trip["id"]
             if trip_id in per_trip_params:
                 params = per_trip_params[trip_id]
                 def_hours = params.get("def_total_hours", 0)
-                power_nom = params.get("P_deferrable_nom", 0.0)
+                power_nom = params.get("power_watts", 0.0)
 
-                logger.debug(
-                    "Trip %s (%s kWh): def_total_hours = %s, P_deferrable_nom = %s W",
-                    i + 1,
-                    trip["kwh"],
-                    def_hours,
-                    power_nom,
+                # With proactive charging, def_hours and power_watts should both be > 0
+                assert def_hours > 0, (
+                    f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours} at SOC 100%"
+                )
+                assert power_nom > 0, (
+                    f"Trip {trip_id} failed proactive charging: power_watts is {power_nom} at SOC 100%"
                 )
 
-                # With proactive charging, def_hours and power_nom should both be > 0
-                assert (
-                    def_hours > 0
-                ), f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours}"
-                assert (
-                    power_nom > 0
-                ), f"Trip {trip_id} failed proactive charging: P_deferrable_nom is {power_nom}"
-
-    def test_soc_100_impossible_physics(self):
+    @pytest.mark.asyncio
+    async def test_soc_100_impossible_physics(self):
         """
         Test that verifies the physics principle: you cannot charge a car beyond 100% SOC.
 
@@ -216,15 +134,6 @@ class TestSOC100Propagation:
         battery_capacity = 50.0
         soc_current = 100.0
         charging_power_kw = 3.4
-
-        # With SOC 100%, available energy is maximum
-        energia_disponible = battery_capacity * (soc_current / 100.0)
-
-        logger.debug("=== PHYSICS VERIFICATION ===")
-        logger.debug("Battery: %s kWh", battery_capacity)
-        logger.debug("SOC: %s%%", soc_current)
-        logger.debug("Available energy: %s kWh", energia_disponible)
-        logger.debug("Charging power: %s kW", charging_power_kw)
 
         # Physics principle: cannot charge beyond 100% SOC
         assert soc_current <= 100.0, "SOC cannot exceed 100%"
@@ -237,27 +146,8 @@ class TestSOC100Propagation:
             energia_adicional_maxima = battery_capacity * (100.0 - soc_current) / 100.0
             horas_carga_maximas = energia_adicional_maxima / charging_power_kw
 
-        logger.debug(
-            "Maximum additional energy possible: %s kWh", energia_adicional_maxima
-        )
-        logger.debug("Maximum possible charge hours: %s", horas_carga_maximas)
-
         # With SOC 100%, nothing can be charged
-        assert (
-            energia_adicional_maxima == 0.0
-        ), "With SOC 100%, no additional energy can be charged"
-        assert horas_carga_maximas == 0.0, "With SOC 100%, there cannot be charge hours"
-
-        # NOTE: While physically true, the algorithm now charges proactively
-        # even at SOC 100%. The actual power profile clamping prevents
-        # charging beyond battery capacity.
-        logger.debug("Physics principle verified: SOC 100%% = 0 physical charge hours")
-        logger.debug(
-            "   (The proactive charging algorithm schedules charging to prepare future trips)"
+        assert energia_adicional_maxima == 0.0, (
+            "With SOC 100%, no additional energy can be charged"
         )
-        logger.debug("   The real power profile limits charging to battery capacity")
-
-
-if __name__ == "__main__":
-    # Verify proactive charging behavior at SOC 100%
-    pytest.main([__file__, "-v", "-s"])
+        assert horas_carga_maximas == 0.0, "With SOC 100%, there cannot be charge hours"

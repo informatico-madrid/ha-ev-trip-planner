@@ -10,12 +10,15 @@ Note: All CONF_* keys are used in the config flow and entity configuration.
 Default values are optimized for typical EV/PHEV usage patterns.
 """
 
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 DOMAIN = "ev_trip_planner"
 
 # Config entry version for migrations
 CONFIG_VERSION = 3
+
+# Dispatcher signal for reactive updates
+SIGNAL_TRIPS_UPDATED = "ev_trip_planner_trips_updated"
 
 # Configuration keys
 CONF_VEHICLE_NAME = "vehicle_name"
@@ -55,15 +58,19 @@ CONTROL_TYPE_SCRIPT = "script"
 CONTROL_TYPE_EXTERNAL = "external"
 
 # Defaults
+# These are form display defaults ONLY. Never use as runtime fallbacks.
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
+DEFAULT_BATTERY_CAPACITY_KWH = 50.0  # kWh (typical EV battery capacity)
 DEFAULT_SOC_BUFFER_PERCENT = (
     10  # percent (minimum SOC buffer for backward deficit propagation)
 )
+DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
 DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
+DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
 # Battery health / Dynamic SOC capping (always-on)
 CONF_T_BASE = "t_base"
@@ -103,3 +110,24 @@ DAYS_OF_WEEK = [
     "sabado",
     "domingo",
 ]
+
+# TripEmhassSensor documented attribute keys
+# Prevents data leak of internal cache keys (activo, *_array, p_deferrable_matrix, etc.)
+TRIP_EMHASS_ATTR_KEYS: frozenset[str] = frozenset({
+    "def_total_hours",
+    "P_deferrable_nom",
+    "def_start_timestep",
+    "def_end_timestep",
+    "power_profile_watts",
+    "trip_id",
+    "emhass_index",
+    "kwh_needed",
+    "deadline",
+})
+
+
+class ConfigEntryProtocol(Protocol):
+    """Protocol for Home Assistant config entries."""
+
+    entry_id: str
+    data: dict[str, Any]

@@ -1,0 +1,13 @@
+{
+  "threshold": 2.0,
+  "mode": "mild",
+  "minTokens": 50,
+  "minLines": 10,
+  "reporters": ["console"],
+  "ignore": [
+    "**/__init__.py",
+    "**/templates/**",
+    "**/*.yaml",
+    "**/*.yml"
+  ]
+}

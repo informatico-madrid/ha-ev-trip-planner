@@ -26,8 +26,6 @@ from custom_components.ev_trip_planner.__init__ import (
 # =============================================================================
 
 
-
-
 # =============================================================================
 # Helper Functions
 # =============================================================================
@@ -98,12 +96,19 @@ def _create_mock_manager():
     def _get_punctual_trips():
         return list(manager._punctual_trips.values())
 
-    manager.async_add_recurring_trip = AsyncMock(side_effect=_add_recurring_trip)
-    manager.async_add_punctual_trip = AsyncMock(side_effect=_add_punctual_trip)
-    manager.async_update_trip = AsyncMock(side_effect=_update_trip)
-    manager.async_delete_trip = AsyncMock(side_effect=_delete_trip)
-    manager.async_get_recurring_trips = AsyncMock(side_effect=_get_recurring_trips)
-    manager.async_get_punctual_trips = AsyncMock(side_effect=_get_punctual_trips)
+    # The handler factories call manager._crud.X() and manager._lifecycle.X()
+    manager._crud = MagicMock()
+    manager._crud.async_add_recurring_trip = AsyncMock(side_effect=_add_recurring_trip)
+    manager._crud.async_add_punctual_trip = AsyncMock(side_effect=_add_punctual_trip)
+    manager._crud.async_update_trip = AsyncMock(side_effect=_update_trip)
+    manager._crud.async_delete_trip = AsyncMock(side_effect=_delete_trip)
+    manager._crud.async_get_recurring_trips = AsyncMock(
+        side_effect=_get_recurring_trips
+    )
+    manager._crud.async_get_punctual_trips = AsyncMock(side_effect=_get_punctual_trips)
+
+    manager._lifecycle = MagicMock()
+    manager._lifecycle.async_delete_all_trips = AsyncMock()
 
     return manager
 
@@ -185,9 +190,9 @@ class TestFullUserJourney:
         )
 
         # Verify trip was created — trip_create handler returns None,
-        # so verify via the manager's async_add_recurring_trip call
-        assert manager.async_add_recurring_trip.called
-        call_kwargs = manager.async_add_recurring_trip.call_args.kwargs or {}
+        # so verify via the manager's _crud async_add_recurring_trip call
+        assert manager._crud.async_add_recurring_trip.called
+        call_kwargs = manager._crud.async_add_recurring_trip.call_args.kwargs or {}
         assert call_kwargs.get("dia_semana") == "lunes"
         assert call_kwargs.get("hora") == "08:00"
         assert call_kwargs.get("km") == 50.0
@@ -243,7 +248,7 @@ class TestFullUserJourney:
         )
 
         # Verify update was successful
-        assert manager.async_update_trip.called
+        assert manager._crud.async_update_trip.called
 
         # Verify the trip was updated by listing trips again
         result = await mock_hass_full_journey.services.async_call(
@@ -282,7 +287,7 @@ class TestFullUserJourney:
         )
 
         # Verify punctual trip was created
-        assert manager.async_add_punctual_trip.called
+        assert manager._crud.async_add_punctual_trip.called
 
         # =====================================================================
         # STEP 7: Verify both trips exist
@@ -320,8 +325,8 @@ class TestFullUserJourney:
         )
 
         # Verify deletion was successful
-        assert manager.async_delete_trip.called
-        args, kwargs = manager.async_delete_trip.call_args
+        assert manager._crud.async_delete_trip.called
+        args, kwargs = manager._crud.async_delete_trip.call_args
         assert (kwargs.get("trip_id") or args[0]) == punctual_trip_id
 
         # Verify the trip was deleted
@@ -351,8 +356,8 @@ class TestFullUserJourney:
         )
 
         # Verify deletion was successful
-        assert manager.async_delete_trip.called
-        args, kwargs = manager.async_delete_trip.call_args
+        assert manager._crud.async_delete_trip.called
+        args, kwargs = manager._crud.async_delete_trip.call_args
         assert (kwargs.get("trip_id") or args[0]) == trip_id
 
         # =====================================================================

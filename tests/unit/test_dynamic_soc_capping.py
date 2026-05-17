@@ -566,6 +566,6 @@ class TestScenarioValidation:
 
         # Without capping, would be ~90h at >80%
         # With capping, should be significantly less
-        assert (
-            total_hours_above_80 < 10.0
-        ), f"Week total at >80% SOC should drop significantly, got {total_hours_above_80:.1f}h"
+        assert total_hours_above_80 < 10.0, (
+            f"Week total at >80% SOC should drop significantly, got {total_hours_above_80:.1f}h"
+        )

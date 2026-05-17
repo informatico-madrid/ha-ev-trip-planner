@@ -5,9 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.ev_trip_planner.trip_manager import TripManager
-
-
+from custom_components.ev_trip_planner.trip import TripManager
+from custom_components.ev_trip_planner.trip._soc_window import SOCWindowCalculator
 
 
 @pytest.fixture
@@ -61,15 +60,17 @@ class TestConsecutiveDeficits:
                 {"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip_b},
             ]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
 
         def mock_soc_objetivo_base(trip, battery_capacity_kwh):
             if trip["id"] == "trip_a":
                 return 30.0
             return 40.0
 
-        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+        trip_manager._state._soc._calcular_soc_objetivo_base = mock_soc_objetivo_base
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -85,7 +86,7 @@ class TestConsecutiveDeficits:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -93,13 +94,16 @@ class TestConsecutiveDeficits:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 2
@@ -108,19 +112,19 @@ class TestConsecutiveDeficits:
         result_b = next(r for r in results if r["trip_id"] == "trip_b")
 
         # B has its own deficit of 10
-        assert (
-            result_b["deficit_acumulado"] == 10.0
-        ), f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
+        assert result_b["deficit_acumulado"] == 10.0, (
+            f"B deficit: expected 10.0, got {result_b['deficit_acumulado']}"
+        )
 
         # A has B's deficit propagated
-        assert (
-            result_a["deficit_acumulado"] == 10.0
-        ), f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        assert result_a["deficit_acumulado"] == 10.0, (
+            f"A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        )
 
         # A's target = base 30 + deficit 10 = 40
-        assert (
-            result_a["soc_objetivo"] == 40.0
-        ), f"A target: expected 40.0, got {result_a['soc_objetivo']}"
+        assert result_a["soc_objetivo"] == 40.0, (
+            f"A target: expected 40.0, got {result_a['soc_objetivo']}"
+        )
 
     @pytest.mark.asyncio
     async def test_single_trip_no_deficit(self, trip_manager):
@@ -147,9 +151,13 @@ class TestConsecutiveDeficits:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -164,7 +172,7 @@ class TestConsecutiveDeficits:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -172,26 +180,29 @@ class TestConsecutiveDeficits:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
         result_a = results[0]
 
         # A has no deficit
-        assert (
-            result_a["deficit_acumulado"] == 0.0
-        ), f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
+        assert result_a["deficit_acumulado"] == 0.0, (
+            f"A deficit: expected 0.0, got {result_a['deficit_acumulado']}"
+        )
         # A's target is just base target (no deficit propagated)
-        assert (
-            result_a["soc_objetivo"] == 30.0
-        ), f"A target: expected 30.0, got {result_a['soc_objetivo']}"
+        assert result_a["soc_objetivo"] == 30.0, (
+            f"A target: expected 30.0, got {result_a['soc_objetivo']}"
+        )
 
 
 class TestAC1:
@@ -242,8 +253,10 @@ class TestAC1:
                 {"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": night_trip},
             ]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
 
         # Morning base = 30% energy + 10% buffer = 40%
         # Night base = 80% energy (buffer not added in this scenario to get 20% deficit)
@@ -254,7 +267,7 @@ class TestAC1:
                 return 40.0  # 30% energy + 10% buffer
             return 80.0  # 80% energy target (buffer applied differently)
 
-        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+        trip_manager._state._soc._calcular_soc_objetivo_base = mock_soc_objetivo_base
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -270,7 +283,7 @@ class TestAC1:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -278,13 +291,16 @@ class TestAC1:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 2
@@ -293,19 +309,19 @@ class TestAC1:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Night has deficit of 20
-        assert (
-            result_night["deficit_acumulado"] == 20.0
-        ), f"Night deficit: expected 20.0, got {result_night['deficit_acumulado']}"
+        assert result_night["deficit_acumulado"] == 20.0, (
+            f"Night deficit: expected 20.0, got {result_night['deficit_acumulado']}"
+        )
 
         # Morning has deficit propagated from night: 20
-        assert (
-            result_morning["deficit_acumulado"] == 20.0
-        ), f"Morning deficit: expected 20.0, got {result_morning['deficit_acumulado']}"
+        assert result_morning["deficit_acumulado"] == 20.0, (
+            f"Morning deficit: expected 20.0, got {result_morning['deficit_acumulado']}"
+        )
 
         # Morning target = 30% base + 10% buffer + 20% deficit = 60%
-        assert (
-            result_morning["soc_objetivo"] == 60.0
-        ), f"Morning target: expected 60.0, got {result_morning['soc_objetivo']}"
+        assert result_morning["soc_objetivo"] == 60.0, (
+            f"Morning target: expected 60.0, got {result_morning['soc_objetivo']}"
+        )
 
 
 class TestAC2:
@@ -373,15 +389,17 @@ class TestAC2:
                 {"soc_inicio": 45.0, "arrival_soc": 45.0, "trip": night_trip},
             ]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
 
         def mock_soc_objetivo_base(trip, battery_capacity_kwh):
             if trip["id"] == "morning":
                 return 40.0  # 30% energy + 10% buffer
             return 80.0  # 80% energy target
 
-        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+        trip_manager._state._soc._calcular_soc_objetivo_base = mock_soc_objetivo_base
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -397,7 +415,7 @@ class TestAC2:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -405,13 +423,16 @@ class TestAC2:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 2
@@ -420,12 +441,12 @@ class TestAC2:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Verify no deficit propagation (night has no deficit)
-        assert (
-            result_night["deficit_acumulado"] == 0.0
-        ), f"Night deficit should be 0 (no deficit), got {result_night['deficit_acumulado']}"
-        assert (
-            result_morning["deficit_acumulado"] == 0.0
-        ), f"Morning deficit should be 0 (no propagation), got {result_morning['deficit_acumulado']}"
+        assert result_night["deficit_acumulado"] == 0.0, (
+            f"Night deficit should be 0 (no deficit), got {result_night['deficit_acumulado']}"
+        )
+        assert result_morning["deficit_acumulado"] == 0.0, (
+            f"Morning deficit should be 0 (no propagation), got {result_morning['deficit_acumulado']}"
+        )
 
         # Key AC-2 assertion: morning kwh_necesarios > night kwh_necesarios
         # Morning: (40-0)=40% gap → 20 kWh
@@ -436,12 +457,12 @@ class TestAC2:
         )
 
         # Verify specific values
-        assert (
-            result_morning["kwh_necesarios"] == 20.0
-        ), f"Morning kwh_necesarios: expected 20.0, got {result_morning['kwh_necesarios']}"
-        assert (
-            result_night["kwh_necesarios"] == 17.5
-        ), f"Night kwh_necesarios: expected 17.5, got {result_night['kwh_necesarios']}"
+        assert result_morning["kwh_necesarios"] == 20.0, (
+            f"Morning kwh_necesarios: expected 20.0, got {result_morning['kwh_necesarios']}"
+        )
+        assert result_night["kwh_necesarios"] == 17.5, (
+            f"Night kwh_necesarios: expected 17.5, got {result_night['kwh_necesarios']}"
+        )
 
 
 class TestAC3:
@@ -499,16 +520,18 @@ class TestAC3:
                 {"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": night_trip},
             ]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
         # AC-3: 20% SOC/hour charging rate (double AC-1's 10%)
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=20.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=20.0)
 
         def mock_soc_objetivo_base(trip, battery_capacity_kwh):
             if trip["id"] == "morning":
                 return 40.0  # 30% energy + 10% buffer
             return 80.0  # 80% energy target
 
-        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+        trip_manager._state._soc._calcular_soc_objetivo_base = mock_soc_objetivo_base
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -524,7 +547,7 @@ class TestAC3:
                 for trip in trips
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -532,13 +555,16 @@ class TestAC3:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 2
@@ -547,19 +573,19 @@ class TestAC3:
         result_night = next(r for r in results if r["trip_id"] == "night")
 
         # Night has NO deficit (20% + 80% capacity = 100% > 80% target)
-        assert (
-            result_night["deficit_acumulado"] == 0.0
-        ), f"Night deficit: expected 0.0, got {result_night['deficit_acumulado']}"
+        assert result_night["deficit_acumulado"] == 0.0, (
+            f"Night deficit: expected 0.0, got {result_night['deficit_acumulado']}"
+        )
 
         # Morning has NO deficit propagated (night had no deficit to propagate)
-        assert (
-            result_morning["deficit_acumulado"] == 0.0
-        ), f"Morning deficit: expected 0.0, got {result_morning['deficit_acumulado']}"
+        assert result_morning["deficit_acumulado"] == 0.0, (
+            f"Morning deficit: expected 0.0, got {result_morning['deficit_acumulado']}"
+        )
 
         # Morning target = 30% base + 10% buffer = 40% (no deficit added)
-        assert (
-            result_morning["soc_objetivo"] == 40.0
-        ), f"Morning target: expected 40.0, got {result_morning['soc_objetivo']}"
+        assert result_morning["soc_objetivo"] == 40.0, (
+            f"Morning target: expected 40.0, got {result_morning['soc_objetivo']}"
+        )
 
 
 class TestAC4:
@@ -599,10 +625,14 @@ class TestAC4:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": single_trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
         # 30% energy + 10% buffer = 40% target
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=40.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=40.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -617,7 +647,7 @@ class TestAC4:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -625,27 +655,30 @@ class TestAC4:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
         result = results[0]
 
         # No accumulated deficit (single trip, no previous trips)
-        assert (
-            result["deficit_acumulado"] == 0.0
-        ), f"deficit_acumulado: expected 0.0, got {result['deficit_acumulado']}"
+        assert result["deficit_acumulado"] == 0.0, (
+            f"deficit_acumulado: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
         # SOC target = 30% energy + 10% buffer = 40%
-        assert (
-            result["soc_objetivo"] == 40.0
-        ), f"soc_objetivo: expected 40.0, got {result['soc_objetivo']}"
+        assert result["soc_objetivo"] == 40.0, (
+            f"soc_objetivo: expected 40.0, got {result['soc_objetivo']}"
+        )
 
 
 class TestEmptyAndSingleTrip:
@@ -654,22 +687,28 @@ class TestEmptyAndSingleTrip:
     @pytest.mark.asyncio
     async def test_empty_trips(self, trip_manager):
         """Test that empty trips list returns empty results."""
-        results = await trip_manager.calcular_hitos_soc(
-            trips=[],
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=[],
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
         assert results == []
 
     @pytest.mark.asyncio
     async def test_none_trips(self, trip_manager):
         """Test that None trips returns empty results."""
-        results = await trip_manager.calcular_hitos_soc(
-            trips=None,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=None,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
         assert results == []
 
@@ -711,9 +750,13 @@ class TestEdgeShortWindow:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=80.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=80.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -728,7 +771,7 @@ class TestEdgeShortWindow:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -736,13 +779,16 @@ class TestEdgeShortWindow:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -751,9 +797,9 @@ class TestEdgeShortWindow:
         # Capacity = 10% * 0.5h = 5%
         # Achieveable = 20% + 5% = 25%
         # Deficit = 80% - 25% = 55%
-        assert (
-            result["deficit_acumulado"] == 55.0
-        ), f"Short window deficit: expected 55.0, got {result['deficit_acumulado']}"
+        assert result["deficit_acumulado"] == 55.0, (
+            f"Short window deficit: expected 55.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestEdgeExact:
@@ -792,10 +838,14 @@ class TestEdgeExact:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
         # 10% SOC/hour * 6 hours = 60% capacity
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=80.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=80.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -810,7 +860,7 @@ class TestEdgeExact:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -818,13 +868,16 @@ class TestEdgeExact:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -832,9 +885,9 @@ class TestEdgeExact:
 
         # 20% + (10% * 6h) = 80% achievable = 80% target
         # Deficit = 0
-        assert (
-            result["deficit_acumulado"] == 0.0
-        ), f"Exact charging deficit: expected 0.0, got {result['deficit_acumulado']}"
+        assert result["deficit_acumulado"] == 0.0, (
+            f"Exact charging deficit: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestEdgeSurplus:
@@ -873,9 +926,13 @@ class TestEdgeSurplus:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=70.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=70.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -890,7 +947,7 @@ class TestEdgeSurplus:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -898,13 +955,16 @@ class TestEdgeSurplus:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -912,9 +972,9 @@ class TestEdgeSurplus:
 
         # 50% + (10% * 4h) = 90% achievable > 70% target
         # Deficit = 0
-        assert (
-            result["deficit_acumulado"] == 0.0
-        ), f"Surplus charging deficit: expected 0.0, got {result['deficit_acumulado']}"
+        assert result["deficit_acumulado"] == 0.0, (
+            f"Surplus charging deficit: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestThreeTripChain:
@@ -991,8 +1051,10 @@ class TestThreeTripChain:
                 {"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip_c},
             ]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
 
         def mock_soc_objetivo_base(trip, battery_capacity_kwh):
             if trip["id"] == "trip_a":
@@ -1001,7 +1063,7 @@ class TestThreeTripChain:
                 return 50.0  # 50% energy
             return 50.0  # 50% energy target
 
-        trip_manager._calcular_soc_objetivo_base = mock_soc_objetivo_base
+        trip_manager._state._soc._calcular_soc_objetivo_base = mock_soc_objetivo_base
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             # A: 4h window, B: 3h window (tight), C: 2h window (deficit)
@@ -1035,7 +1097,7 @@ class TestThreeTripChain:
                 },
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1043,13 +1105,16 @@ class TestThreeTripChain:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 3
@@ -1059,27 +1124,27 @@ class TestThreeTripChain:
         result_c = next(r for r in results if r["trip_id"] == "trip_c")
 
         # Trip C: 20% + 20% = 40% < 50% target → deficit = 10%
-        assert (
-            result_c["deficit_acumulado"] == 10.0
-        ), f"Trip C deficit: expected 10.0, got {result_c['deficit_acumulado']}"
+        assert result_c["deficit_acumulado"] == 10.0, (
+            f"Trip C deficit: expected 10.0, got {result_c['deficit_acumulado']}"
+        )
 
         # Trip B: receives C's 10%, target = 50% + 10% = 60%
         # 20% + 30% = 50% < 60% target → B's own deficit = 10%, total = 20%
-        assert (
-            result_b["deficit_acumulado"] == 20.0
-        ), f"Trip B deficit: expected 20.0, got {result_b['deficit_acumulado']}"
+        assert result_b["deficit_acumulado"] == 20.0, (
+            f"Trip B deficit: expected 20.0, got {result_b['deficit_acumulado']}"
+        )
 
         # Trip A: receives B's deficit (B generated 10% own deficit to propagate)
         # A's deficit_acumulado = B's propagated deficit = 10%
         # Note: B's propagated deficit is B's own deficit, not the total (20%)
-        assert (
-            result_a["deficit_acumulado"] == 10.0
-        ), f"Trip A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        assert result_a["deficit_acumulado"] == 10.0, (
+            f"Trip A deficit: expected 10.0, got {result_a['deficit_acumulado']}"
+        )
 
         # Trip A target = 30% base + 10% deficit = 40%
-        assert (
-            result_a["soc_objetivo"] == 40.0
-        ), f"Trip A target: expected 40.0, got {result_a['soc_objetivo']}"
+        assert result_a["soc_objetivo"] == 40.0, (
+            f"Trip A target: expected 40.0, got {result_a['soc_objetivo']}"
+        )
 
 
 class TestBatteryFallback:
@@ -1111,11 +1176,15 @@ class TestBatteryFallback:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
 
         # 7.4 kW / 75.0 kWh * 100 = 9.87% SOC/hour
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=9.87)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=9.87)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1130,7 +1199,7 @@ class TestBatteryFallback:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1138,13 +1207,16 @@ class TestBatteryFallback:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 75.0},  # Explicit 75.0 kWh
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -1153,9 +1225,9 @@ class TestBatteryFallback:
         # kwh_necesarios = (30% - 50%) * 75.0 / 100 = -15 kWh (clamped to 0)
         # But since soc_objetivo > soc_inicio is false, it should be 0
         # Actually: target 30%, start 50%, so gap is negative -> 0 kWh needed
-        assert (
-            result["kwh_necesarios"] == 0.0
-        ), f"kwh_necesarios with explicit battery: expected 0.0, got {result['kwh_necesarios']}"
+        assert result["kwh_necesarios"] == 0.0, (
+            f"kwh_necesarios with explicit battery: expected 0.0, got {result['kwh_necesarios']}"
+        )
 
     @pytest.mark.asyncio
     async def test_battery_capacity_none_fallback(self, trip_manager):
@@ -1179,11 +1251,15 @@ class TestBatteryFallback:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 30.0, "arrival_soc": 30.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
 
         # 7.4 kW / 50.0 kWh * 100 = 14.8% SOC/hour (default fallback)
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=14.8)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=14.8)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1198,7 +1274,7 @@ class TestBatteryFallback:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1206,23 +1282,26 @@ class TestBatteryFallback:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
         # Pass None as vehicle_config to test fallback
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=30.0,
-            charging_power_kw=7.4,
-            vehicle_config=None,  # None to test fallback
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=30.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
         result = results[0]
 
         # kwh_necesarios = (30% - 30%) * 50.0 / 100 = 0 kWh
-        assert (
-            result["kwh_necesarios"] == 0.0
-        ), f"kwh_necesarios with None config: expected 0.0, got {result['kwh_necesarios']}"
+        assert result["kwh_necesarios"] == 0.0, (
+            f"kwh_necesarios with None config: expected 0.0, got {result['kwh_necesarios']}"
+        )
 
     @pytest.mark.asyncio
     async def test_battery_capacity_missing_key(self, trip_manager):
@@ -1245,11 +1324,15 @@ class TestBatteryFallback:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
 
         # With fallback to 50.0 kWh: 7.4 / 50.0 * 100 = 14.8% SOC/hour
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=14.8)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=14.8)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1264,7 +1347,7 @@ class TestBatteryFallback:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1272,14 +1355,17 @@ class TestBatteryFallback:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
         # Pass empty dict to test missing key fallback
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=7.4,
-            vehicle_config={},  # Empty config - battery_capacity_kwh key missing
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -1287,9 +1373,9 @@ class TestBatteryFallback:
 
         # With 50% start, 30% target, gap = 10%
         # kwh_necesarios = 10% * 50.0 / 100 = 5.0 kWh
-        assert (
-            result["kwh_necesarios"] == 5.0
-        ), f"kwh_necesarios with missing key: expected 5.0, got {result['kwh_necesarios']}"
+        assert result["kwh_necesarios"] == 5.0, (
+            f"kwh_necesarios with missing key: expected 5.0, got {result['kwh_necesarios']}"
+        )
 
 
 class TestChargingPowerAffectsRate:
@@ -1323,10 +1409,14 @@ class TestChargingPowerAffectsRate:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
         # 3.6 kW / 50 kWh * 100 = 7.2% SOC/hour
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=7.2)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=80.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=7.2)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=80.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1341,7 +1431,7 @@ class TestChargingPowerAffectsRate:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1349,13 +1439,16 @@ class TestChargingPowerAffectsRate:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=3.6,  # Low charging power
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -1363,9 +1456,9 @@ class TestChargingPowerAffectsRate:
 
         # 20% + (7.2% * 4h) = 48.8% achievable < 80% target
         # Deficit = 80% - 48.8% = 31.2%
-        assert (
-            result["deficit_acumulado"] == 31.2
-        ), f"Low power deficit: expected 31.2, got {result['deficit_acumulado']}"
+        assert result["deficit_acumulado"] == 31.2, (
+            f"Low power deficit: expected 31.2, got {result['deficit_acumulado']}"
+        )
 
     @pytest.mark.asyncio
     async def test_high_charging_power_11kw(self, trip_manager):
@@ -1392,10 +1485,14 @@ class TestChargingPowerAffectsRate:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 20.0, "arrival_soc": 20.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
         # 11.0 kW / 50 kWh * 100 = 22% SOC/hour
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=22.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=80.0)
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=22.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=80.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1410,7 +1507,7 @@ class TestChargingPowerAffectsRate:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1418,13 +1515,16 @@ class TestChargingPowerAffectsRate:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=20.0,
-            charging_power_kw=11.0,  # High charging power
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=20.0,
+                charging_power_kw=11.0,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -1432,9 +1532,9 @@ class TestChargingPowerAffectsRate:
 
         # 20% + (22% * 4h) = 108% > 80% target
         # NO deficit
-        assert (
-            result["deficit_acumulado"] == 0.0
-        ), f"High power deficit: expected 0.0, got {result['deficit_acumulado']}"
+        assert result["deficit_acumulado"] == 0.0, (
+            f"High power deficit: expected 0.0, got {result['deficit_acumulado']}"
+        )
 
 
 class TestResultStructure:
@@ -1483,9 +1583,13 @@ class TestResultStructure:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 30.0, "arrival_soc": 30.0, "trip": trip}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1500,7 +1604,7 @@ class TestResultStructure:
                 }
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1508,13 +1612,16 @@ class TestResultStructure:
             dt_str = trip.get("datetime")
             return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M")
 
-        trip_manager._get_trip_time = mock_get_trip_time
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=30.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=30.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1
@@ -1529,23 +1636,23 @@ class TestResultStructure:
 
         # Verify field types
         assert isinstance(result["trip_id"], str), "trip_id should be str"
-        assert isinstance(
-            result["soc_objetivo"], (int, float)
-        ), "soc_objetivo should be numeric"
-        assert isinstance(
-            result["kwh_necesarios"], (int, float)
-        ), "kwh_necesarios should be numeric"
-        assert isinstance(
-            result["deficit_acumulado"], (int, float)
-        ), "deficit_acumulado should be numeric"
+        assert isinstance(result["soc_objetivo"], (int, float)), (
+            "soc_objetivo should be numeric"
+        )
+        assert isinstance(result["kwh_necesarios"], (int, float)), (
+            "kwh_necesarios should be numeric"
+        )
+        assert isinstance(result["deficit_acumulado"], (int, float)), (
+            "deficit_acumulado should be numeric"
+        )
 
         # Verify ventana_carga structure
         ventana = result["ventana_carga"]
         assert "ventana_horas" in ventana, "Missing ventana_carga.ventana_horas"
         assert "kwh_necesarios" in ventana, "Missing ventana_carga.kwh_necesarios"
-        assert (
-            "horas_carga_necesarias" in ventana
-        ), "Missing ventana_carga.horas_carga_necesarias"
+        assert "horas_carga_necesarias" in ventana, (
+            "Missing ventana_carga.horas_carga_necesarias"
+        )
         assert "inicio_ventana" in ventana, "Missing ventana_carga.inicio_ventana"
         assert "fin_ventana" in ventana, "Missing ventana_carga.fin_ventana"
         assert "es_suficiente" in ventana, "Missing ventana_carga.es_suficiente"
@@ -1606,9 +1713,13 @@ class TestDynamicSOCCappingIntegration:
                 {"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_b},
             ]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1632,7 +1743,7 @@ class TestDynamicSOCCappingIntegration:
                 },
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1648,14 +1759,17 @@ class TestDynamicSOCCappingIntegration:
                 tzinfo=timezone.utc
             )
 
-        trip_manager._get_trip_time = mock_get_trip_time
-        trip_manager.hass = mock_hass
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
+        trip_manager._state.hass = mock_hass
 
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 2
@@ -1687,9 +1801,13 @@ class TestDynamicSOCCappingIntegration:
         async def mock_calcular_soc_inicio_trips(*args, **kwargs):
             return [{"soc_inicio": 50.0, "arrival_soc": 50.0, "trip": trip_a}]
 
-        trip_manager.calcular_soc_inicio_trips = mock_calcular_soc_inicio_trips
-        trip_manager._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
-        trip_manager._calcular_soc_objetivo_base = MagicMock(return_value=30.0)
+        trip_manager._soc_window.calcular_soc_inicio_trips = (
+            mock_calcular_soc_inicio_trips
+        )
+        trip_manager._state._soc._calcular_tasa_carga_soc = MagicMock(return_value=10.0)
+        trip_manager._state._soc._calcular_soc_objetivo_base = MagicMock(
+            return_value=30.0
+        )
 
         async def mock_calcular_ventana_carga_multitrip(*args, **kwargs):
             return [
@@ -1704,7 +1822,7 @@ class TestDynamicSOCCappingIntegration:
                 },
             ]
 
-        trip_manager.calcular_ventana_carga_multitrip = (
+        trip_manager._soc_window.calcular_ventana_carga_multitrip = (
             mock_calcular_ventana_carga_multitrip
         )
 
@@ -1714,15 +1832,18 @@ class TestDynamicSOCCappingIntegration:
         def mock_get_trip_time(trip):
             return "not_a_datetime"  # type: ignore[return-value]
 
-        trip_manager._get_trip_time = mock_get_trip_time
-        trip_manager.hass = mock_hass
+        trip_manager._state._soc._get_trip_time = mock_get_trip_time
+        trip_manager._state.hass = mock_hass
 
         # This should NOT raise — the except branch handles the exception
-        results = await trip_manager.calcular_hitos_soc(
-            trips=trips,
-            soc_inicial=50.0,
-            charging_power_kw=7.4,
-            vehicle_config={"battery_capacity_kwh": 50.0},
+        results = await trip_manager._soc_window.calcular_hitos_soc(
+            SOCWindowCalculator(
+                trips=trips,
+                soc_inicial=50.0,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+                safety_margin_percent=10.0,
+            ),
         )
 
         assert len(results) == 1

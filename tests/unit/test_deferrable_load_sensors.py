@@ -22,8 +22,6 @@ from custom_components.ev_trip_planner.sensor import EmhassDeferrableLoadSensor
 pytestmark = pytest.mark.asyncio
 
 
-
-
 @pytest.fixture
 def mock_coordinator(mock_hass):
     """Create mock TripPlannerCoordinator with EMHASS data structure."""
@@ -397,3 +395,90 @@ class TestPowerProfileSemantics:
         assert result[1] == 7200.0
         assert result[2] == 11000.0
         assert result[3] == 22000.0
+
+    async def test_extra_state_attributes_when_coordinator_data_is_none(self, sensor):
+        """coordinator.data=None returns empty dict (lines 87-91)."""
+        sensor.coordinator.data = None
+        result = sensor.extra_state_attributes
+        assert result == {}
+
+    async def test_extra_state_attributes_with_per_trip_emhass_params(
+        self, mock_coordinator, sensor
+    ):
+        """Aggregation loop with per_trip_emhass_params (lines 153-205)."""
+        mock_coordinator.data = {
+            "recurring_trips": {},
+            "punctual_trips": {},
+            "kwh_today": 12.5,
+            "hours_today": 2.0,
+            "next_trip": None,
+            "emhass_power_profile": [100.0] * 168,
+            "emhass_deferrables_schedule": [
+                {"index": 0, "kwh": 5.0, "start_timestep": 10, "end_timestep": 20}
+            ],
+            "emhass_status": "ready",
+            "per_trip_emhass_params": {
+                "rec_1": {
+                    "activo": True,
+                    "kwh_needed": 5.0,
+                    "p_deferrable_matrix": [[0.0] * 168],
+                    "def_total_hours": 2,
+                    "power_watts": 3000.0,
+                    "def_start_timestep": 10,
+                    "def_end_timestep": 20,
+                },
+                "rec_2": {
+                    "activo": False,  # Inactive — should be skipped
+                    "kwh_needed": 3.0,
+                },
+            },
+        }
+        attrs = sensor.extra_state_attributes
+        # Basic attrs
+        assert attrs["vehicle_id"] == "test_vehicle"
+        assert attrs["emhass_status"] == "ready"
+        # Aggregated from active trips only (rec_1)
+        assert "p_deferrable_matrix" in attrs
+        # p_deferrable_matrix is a list of rows (one per deferrable load)
+        assert len(attrs["p_deferrable_matrix"]) == 1
+        assert (
+            len(attrs["p_deferrable_matrix"][0]) == 168
+        )  # Each row has 168 timesteps (7 days * 24h)
+        assert attrs["def_total_hours_array"] == [2]
+        assert attrs["p_deferrable_nom_array"] == [3000.0]
+        assert attrs["def_start_timestep_array"] == [10]
+        assert attrs["def_end_timestep_array"] == [20]
+        # Inactive trip (rec_2) should not contribute
+        assert attrs["number_of_deferrable_loads"] == 1
+
+    async def test_extra_state_attributes_trip_without_power_matrix(
+        self, mock_coordinator, sensor
+    ):
+        """Trip with params but no p_deferrable_matrix counts as 1 load (lines 179-182)."""
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "emhass_power_profile": [0.0] * 168,
+            "per_trip_emhass_params": {
+                "rec_1": {
+                    "activo": True,
+                    "kwh_needed": 5.0,
+                    # No p_deferrable_matrix — should count as 1 deferrable load
+                },
+            },
+        }
+        attrs = sensor.extra_state_attributes
+        assert attrs["number_of_deferrable_loads"] == 1
+        # No p_deferrable_matrix from this trip
+        assert "p_deferrable_matrix" not in attrs
+
+    async def test_extra_state_attributes_no_params_empty_arrays(
+        self, mock_coordinator, sensor
+    ):
+        """No per_trip_params → aggregation paths not taken but number_of_deferrable_loads=0."""
+        mock_coordinator.data = {
+            **mock_coordinator.data,
+            "per_trip_emhass_params": {},
+        }
+        attrs = sensor.extra_state_attributes
+        assert attrs["number_of_deferrable_loads"] == 0
+        assert "p_deferrable_matrix" not in attrs

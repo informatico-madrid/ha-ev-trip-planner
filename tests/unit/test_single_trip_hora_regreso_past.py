@@ -52,9 +52,9 @@ class TestSingleTripHoraRegresoPast:
             f"now={now}, hora_regreso={hora_regreso}"
         )
 
-        assert result["ventana_horas"] == pytest.approx(
-            102.0, abs=0.02
-        ), f"ventana_horas={result['ventana_horas']:.2f}h should be close to 102h"
+        assert result["ventana_horas"] == pytest.approx(96.0, abs=0.02), (
+            f"ventana_horas={result['ventana_horas']:.2f}h should be close to 96h"
+        )
 
     def test_single_trip_hora_regreso_none_starts_charging_from_now(self):
         """Car was always home -> hora_regreso is None -> should start from now.
@@ -62,8 +62,8 @@ class TestSingleTripHoraRegresoPast:
         This is the REAL bug scenario observed in production:
         - Car was already home when HA started (no off->on transition)
         - hora_regreso was never recorded -> None
-        - Calculations used: departure - 6h -> timestep 67+
-        - Should use: now -> timestep 0
+        - OLD buggy code: departure - 6h -> timestep 67+
+        - FIXED code: now -> timestep 0
         """
         now = datetime.now(timezone.utc)
         trip_deadline = now + timedelta(hours=96)
@@ -85,16 +85,16 @@ class TestSingleTripHoraRegresoPast:
 
         result = results[0]
 
-        # Key assertion: window should start from now, not from departure - 6h
+        # hora_regreso=None means car is assumed home -> window starts from now
         assert result["inicio_ventana"] >= now, (
             f"Charging window should start from now when hora_regreso is None. "
-            f"got inicio_ventana={result['inicio_ventana']} "
-            f"(now={now}, departure={trip_deadline})"
+            f"got inicio_ventana={result['inicio_ventana']}, "
+            f"now={now}, departure={trip_deadline}"
         )
 
-        assert result["ventana_horas"] == pytest.approx(102.0, abs=0.02), (
-            f"ventana_horas={result['ventana_horas']:.2f}h should be ~102h "
-            f"(96h to departure + 6h duration, start from now)"
+        assert result["ventana_horas"] == pytest.approx(96.0, abs=0.02), (
+            f"ventana_horas={result['ventana_horas']:.2f}h should be ~96h "
+            f"(now to departure)"
         )
 
     def test_single_trip_hora_regreso_future_doesnt_charge_yet(self):
@@ -125,7 +125,7 @@ class TestSingleTripHoraRegresoPast:
             f"inicio_ventana={result['inicio_ventana']}, hora_regreso={hora_regreso}"
         )
 
-        assert result["ventana_horas"] == 98.0, (
-            f"ventana_horas={result['ventana_horas']:.1f}h should be 98h "
-            f"((96h + 6h duration) - 4h waiting for return)"
+        assert result["ventana_horas"] == 92.0, (
+            f"ventana_horas={result['ventana_horas']:.1f}h should be 92h "
+            f"((96h to departure) - 4h waiting for return)"
         )

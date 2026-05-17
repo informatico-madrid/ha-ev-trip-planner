@@ -10,7 +10,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class MockConfigEntry:
@@ -83,13 +83,16 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 7.4,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+        "soc_sensor": "sensor.ev_soc",
     }
 
     entry = MockConfigEntry("test_vehicle", config)
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)
@@ -130,12 +133,12 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_falsy_id(
         )
         assert "valid_trip" in adapter._cached_per_trip_params
         # Verify falsy IDs are NOT present as keys in the cache
-        assert (
-            None not in adapter._cached_per_trip_params
-        ), "None should not be a cache key"
-        assert (
-            "" not in adapter._cached_per_trip_params
-        ), "Empty string should not be a cache key"
+        assert None not in adapter._cached_per_trip_params, (
+            "None should not be a cache key"
+        )
+        assert "" not in adapter._cached_per_trip_params, (
+            "Empty string should not be a cache key"
+        )
 
 
 @pytest.mark.asyncio
@@ -150,13 +153,16 @@ async def test_async_publish_all_deferrable_loads_skips_trip_with_no_id_field(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 7.4,
+        "battery_capacity_kwh": 50.0,
+        "safety_margin_percent": 10.0,
+        "soc_sensor": "sensor.ev_soc",
     }
 
     entry = MockConfigEntry("test_vehicle", config)
     entry.runtime_data = MockRuntimeData(coordinator=mock_coordinator)
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(hass, entry)

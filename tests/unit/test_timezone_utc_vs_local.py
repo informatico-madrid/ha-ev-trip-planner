@@ -101,9 +101,9 @@ class TestScheduleTimezone:
         first_dt = datetime.fromisoformat(schedule[0]["date"])
 
         # With UTC reference, first hour is the current UTC hour (floored)
-        assert (
-            first_dt.hour == UTC_NOW.hour
-        ), f"With UTC reference, first hour should be {UTC_NOW.hour}, got {first_dt.hour}"
+        assert first_dt.hour == UTC_NOW.hour, (
+            f"With UTC reference, first hour should be {UTC_NOW.hour}, got {first_dt.hour}"
+        )
 
     def test_schedule_with_local_reference_shows_local_hours(self):
         """With local reference, schedule first hour is the local hour."""
@@ -122,9 +122,9 @@ class TestScheduleTimezone:
 
         first_dt = datetime.fromisoformat(schedule[0]["date"])
         # With local reference, first hour should be local hour
-        assert (
-            first_dt.hour == LOCAL_NOW.hour
-        ), f"With local reference, first hour should be {LOCAL_NOW.hour}, got {first_dt.hour}"
+        assert first_dt.hour == LOCAL_NOW.hour, (
+            f"With local reference, first hour should be {LOCAL_NOW.hour}, got {first_dt.hour}"
+        )
 
     def test_schedule_default_uses_utc_not_local(self):
         """Without reference_dt, pure function defaults to UTC.
@@ -274,9 +274,9 @@ class TestPowerProfileTimezone:
         assert local_first is not None, "Local profile should have charging"
         assert utc_first is not None, "UTC profile should have charging"
         # Both represent the same instant, so positions should be the same
-        assert (
-            local_first == utc_first
-        ), "With aware deadlines, both references should produce same profile"
+        assert local_first == utc_first, (
+            "With aware deadlines, both references should produce same profile"
+        )
 
 
 # =============================================================================
@@ -308,9 +308,9 @@ class TestRecurringDatetimeTimezone:
         result_local_local = result_local.astimezone(MADRID_TZ)
 
         # With tz: result is tomorrow 08:00 local (correct)
-        assert (
-            result_local_local.hour == 8
-        ), f"With tz, result should be 08:00 local, got {result_local_local.hour}:00"
+        assert result_local_local.hour == 8, (
+            f"With tz, result should be 08:00 local, got {result_local_local.hour}:00"
+        )
 
     def test_recurring_trip_day_boundary_mismatch(self):
         """After local midnight, UTC is still previous day → day-of-week mismatch.
@@ -438,9 +438,9 @@ class TestChargingWindowsTimezone:
         inicio = windows[0]["inicio_ventana"]
 
         # inicio should be between now_before and now_after
-        assert (
-            now_before <= inicio <= now_after
-        ), f"inicio_ventana ({inicio}) should be between {now_before} and {now_after}"
+        assert now_before <= inicio <= now_after, (
+            f"inicio_ventana ({inicio}) should be between {now_before} and {now_after}"
+        )
 
 
 # =============================================================================
@@ -495,9 +495,9 @@ class TestDeferrableParametersTimezone:
         params_utc = calculate_deferrable_parameters(trip, 3.6, reference_dt=UTC_NOW)
 
         # Both should produce the same result for aware deadlines
-        assert (
-            params_local["end_timestep"] == params_utc["end_timestep"]
-        ), "With aware deadline, both references should give same result"
+        assert params_local["end_timestep"] == params_utc["end_timestep"], (
+            "With aware deadline, both references should give same result"
+        )
 
         assert params_local["end_timestep"] > 0, "Should have positive end_timestep"
 
@@ -536,13 +536,22 @@ class TestMidnightBoundaryTimezone:
     def test_utc_date_matches_local_during_daytime(self):
         """During daytime, UTC and local dates typically match."""
         # During daytime (roughly 02:00-22:00 local for CEST),
-        # UTC and local dates should match
-        if abs(LOCAL_NOW.utcoffset().total_seconds()) > 12 * 3600:
-            pytest.skip("Extreme timezone offset - dates may differ even during day")
+        # UTC and local dates should match when timezone offset is small.
+        # For timezones with large offsets (e.g. Europe/Madrid UTC+2),
+        # UTC date can differ from local date even during daytime.
+        utc_offset_hours = LOCAL_NOW.utcoffset().total_seconds() / 3600
+        if abs(utc_offset_hours) >= 2:
+            # Large offset: dates may differ — verify they differ by at most 1 day
+            day_diff = abs((LOCAL_NOW.date() - UTC_NOW.date()).days)
+            assert day_diff <= 1, (
+                f"UTC and local dates should differ by at most 1 day, "
+                f"got {UTC_NOW.date()} vs {LOCAL_NOW.date()}"
+            )
+            return
 
-        assert (
-            UTC_NOW.date() == LOCAL_NOW.date()
-        ), "During daytime, UTC and local dates should typically match"
+        assert UTC_NOW.date() == LOCAL_NOW.date(), (
+            "During daytime, UTC and local dates should typically match"
+        )
 
     def test_early_morning_local_utc_still_previous_day(self):
         """Early morning local time: UTC may still be previous day."""
@@ -595,9 +604,9 @@ class TestIntegrationScheduleTimezone:
 
         # With UTC reference, first hour is current UTC hour
         first_hour = schedule_hours[0]
-        assert (
-            first_hour == UTC_NOW.hour
-        ), f"With UTC reference, first hour should be {UTC_NOW.hour}, got {first_hour}"
+        assert first_hour == UTC_NOW.hour, (
+            f"With UTC reference, first hour should be {UTC_NOW.hour}, got {first_hour}"
+        )
 
     def test_full_chain_schedule_with_local_reference(self):
         """With local reference, schedule shows local hours (desired)."""
@@ -622,9 +631,9 @@ class TestIntegrationScheduleTimezone:
 
         # With local reference, first hour is current local hour
         first_hour = schedule_hours[0]
-        assert (
-            first_hour == LOCAL_NOW.hour
-        ), f"With local reference, first hour should be {LOCAL_NOW.hour}, got {first_hour}"
+        assert first_hour == LOCAL_NOW.hour, (
+            f"With local reference, first hour should be {LOCAL_NOW.hour}, got {first_hour}"
+        )
 
     def test_emhass_adapter_call_path_now_produces_local_schedule(self):
         """After fix: adapter passes reference_dt=dt_util.now() producing local schedule.

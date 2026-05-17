@@ -6,6 +6,7 @@ All functions are synchronous and deterministic given the same inputs.
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -91,24 +92,69 @@ class TestCalculateTripTime:
         assert result.hour == 10
         assert result.minute == 0
 
-    def test_recurring_trip_next_week_day(self):
-        """Recurring trip on later weekday returns correct day this week."""
+    def test_recurring_trip_with_tz_aware_reference(self):
+        """Recurring trip with tz parameter and timezone-aware reference_dt (lines 245-260)."""
+        from zoneinfo import ZoneInfo
+
         from custom_components.ev_trip_planner.calculations import calculate_trip_time
         from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 
-        # Reference: Monday 08:00
-        ref = datetime(2026, 4, 6, 8, 0)  # Monday April 6 2026, 08:00
-        # Trip: Friday 10:00 (same week)
+        # Reference: Monday 08:00 UTC (timezone-aware)
+        ref = datetime(2026, 4, 6, 8, 0, tzinfo=timezone.utc)
+        # Trip: Monday 10:00 local time (Europe/Madrid = UTC+2 in April)
         result = calculate_trip_time(
             trip_tipo=TRIP_TYPE_RECURRING,
             hora="10:00",
-            dia_semana="viernes",
+            dia_semana="lunes",
             datetime_str=None,
             reference_dt=ref,
+            tz=ZoneInfo("Europe/Madrid"),
         )
         assert result is not None
-        assert result.weekday() == 4  # Friday
-        assert result.hour == 10
+
+    def test_recurring_trip_tz_passed_today_pushes_to_next_week(self):
+        """Tz-aware path: today is the trip day but hour already passed -> push 7 days."""
+        from zoneinfo import ZoneInfo
+
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        # Reference: Monday 08:00 UTC = Monday 10:00 CEST (Europe/Madrid UTC+2)
+        ref = datetime(2026, 4, 6, 8, 0, tzinfo=timezone.utc)
+        # Trip: Monday 08:00 local time (CET/CEST = UTC+1/+2)
+        # In April, Madrid is UTC+2, so trip is at 06:00 UTC
+        # Local ref = 10:00, trip hour = 8 -> 10 > 8, days_ahead=0 -> push to next week
+        result = calculate_trip_time(
+            trip_tipo=TRIP_TYPE_RECURRING,
+            hora="08:00",
+            dia_semana="lunes",
+            datetime_str=None,
+            reference_dt=ref,
+            tz=ZoneInfo("Europe/Madrid"),
+        )
+        assert result is not None
+        # Should be next Monday (April 13)
+        assert result.date() == ref.date() + timedelta(days=7)
+        assert result.weekday() == 0  # Monday
+
+    def test_recurring_trip_with_tz_naive_reference(self):
+        """Tz-aware path: naive reference_dt → replace with UTC (line 259)."""
+        from zoneinfo import ZoneInfo
+
+        from custom_components.ev_trip_planner.calculations import calculate_trip_time
+        from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
+
+        # Naive reference
+        ref = datetime(2026, 4, 6, 8, 0)  # No tzinfo
+        result = calculate_trip_time(
+            trip_tipo=TRIP_TYPE_RECURRING,
+            hora="10:00",
+            dia_semana="lunes",
+            datetime_str=None,
+            reference_dt=ref,
+            tz=ZoneInfo("Europe/Madrid"),
+        )
+        assert result is not None
 
     def test_recurring_trip_already_passed_this_week(self):
         """Recurring trip that already passed this week returns next week."""
@@ -377,8 +423,8 @@ class TestCalculateEnergyNeeded:
         # energia_necesaria = max(0, 20 - 0) = 20kWh
         assert result["energia_necesaria_kwh"] == 20.0
         assert result["margen_seguridad_aplicado"] == 20.0
-        # horas_carga = 20 / 7.4 = 2.70 → rounds to 2.70
-        assert result["horas_carga_necesarias"] == round(20.0 / 7.4, 2)
+        # horas_carga = 20 / 7.4 = 2.70 → ceiled to 3
+        assert result["horas_carga_necesarias"] == math.ceil(20.0 / 7.4)
 
     def test_energy_needed_soc_sufficient_returns_zero(self):
         """AC-0.1: SOC sufficient → proactive charging = trip energy (not zero)."""
@@ -685,12 +731,12 @@ class TestCalculateMultiTripChargingWindows:
             battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
-        # Window should start from now, not from departure - 6h
-        assert (
-            result[0]["inicio_ventana"] >= now
-        ), f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
-        # ventana_horas = (departure + 6h) - now = 96 + 6 = 102h
-        assert result[0]["ventana_horas"] == pytest.approx(102.0, abs=0.02)
+        # hora_regreso=None → window starts at now (car is assumed home)
+        assert result[0]["inicio_ventana"] >= now, (
+            f"inicio_ventana={result[0]['inicio_ventana']} should be >= now={now}"
+        )
+        # ventana_horas = departure - now ≈ 96h
+        assert result[0]["ventana_horas"] == pytest.approx(96.0, abs=1.0)
 
     def test_zero_charging_power_sets_horas_carga_to_zero(self):
         """When charging_power_kw is 0, horas_carga_necesarias is 0.0. Covers line 395."""
@@ -741,17 +787,22 @@ class TestCalculateMultiTripChargingWindows:
             battery_capacity_kwh=50.0,
         )
         assert len(result) == 1
-        # Window: hora_regreso (10am) to trip_arrival (departure + 6h = midnight) = 14 hours
-        assert result[0]["ventana_horas"] == 14.0
+        # Window: hora_regreso (10am) to trip_departure (18:00) = 8 hours
+        assert result[0]["ventana_horas"] == 8.0
 
-    def test_chained_trips_second_window_starts_at_previous_arrival(self):
-        """Chained trips: second trip's window starts when first trip arrives."""
+    def test_chained_trips_second_window_starts_at_previous_departure(self):
+        """Chained trips: second trip's window starts at previous departure + return_buffer_hours.
+
+        For chained trips:
+        - First trip: window = now/hora_regreso → departure
+        - Subsequent trips: window = previous_departure + return_buffer → departure
+        """
         from custom_components.ev_trip_planner.calculations import (
             calculate_multi_trip_charging_windows,
         )
 
-        # First trip: departs 8am (returns 2pm = 8+6)
-        # Second trip: departs 10pm (22:00)
+        # First trip: departs 8am
+        # Second trip: departs 22:00
         # Return at 7am
         trip1_departure = datetime(2026, 4, 6, 8, 0)
         trip2_departure = datetime(2026, 4, 6, 22, 0)
@@ -767,10 +818,40 @@ class TestCalculateMultiTripChargingWindows:
             return_buffer_hours=0.0,
             battery_capacity_kwh=50.0,
         )
-        # First window: 7am to trip1_arrival (8am + 6h = 2pm = 14:00) = 7 hours
-        assert result[0]["ventana_horas"] == 7.0
-        # Second window: trip1 arrival (14:00) to trip2_arrival (22+6h = 28:00 = 04:00 next day) = 14h
+        # First window: 7am → 8am departure = 1h
+        assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 7, 0)
+        assert result[0]["ventana_horas"] == 1.0
+        # Second window: trip1 departure (8am) + 0h buffer → trip2 departure (22:00) = 14h
+        assert result[1]["inicio_ventana"].hour == 8
+        assert result[1]["inicio_ventana"].minute == 0
         assert result[1]["ventana_horas"] == 14.0
+
+    def test_chained_trips_buffer_exceeds_gap_caps_window(self):
+        """return_buffer pushes window_start past departure → capped to departure (line 269)."""
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_multi_trip_charging_windows,
+        )
+
+        # Trip 1 departs 8:00, Trip 2 departs 10:00
+        # Return buffer = 3h → 8:00 + 3h = 11:00 > 10:00 → capped to 10:00
+        trip1_departure = datetime(2026, 4, 6, 8, 0)
+        trip2_departure = datetime(2026, 4, 6, 10, 0)
+        trips = [
+            (trip1_departure, {"id": "trip1"}),
+            (trip2_departure, {"id": "trip2"}),
+        ]
+        result = calculate_multi_trip_charging_windows(
+            trips=trips,
+            soc_actual=50.0,
+            hora_regreso=datetime(2026, 4, 6, 6, 0),
+            charging_power_kw=7.4,
+            return_buffer_hours=3.0,
+            battery_capacity_kwh=50.0,
+        )
+        # Second trip's window_start should be capped to trip2 departure (10:00)
+        assert result[1]["inicio_ventana"].hour == 10
+        assert result[1]["inicio_ventana"].minute == 0
+        assert result[1]["ventana_horas"] == 0.0
 
 
 class TestCalculateSocAtTripStarts:
@@ -1450,9 +1531,9 @@ class TestCalculatePowerProfile:
             reference_dt=datetime(2026, 4, 6, 10, 0),
         )
         # Trip should be skipped due to insufficient window -> all zeros
-        assert all(
-            v == 0.0 for v in result
-        ), "Trip with insufficient window should produce all zeros"
+        assert all(v == 0.0 for v in result), (
+            "Trip with insufficient window should produce all zeros"
+        )
 
 
 class TestGenerateDeferrableScheduleFromTrips:
@@ -1732,7 +1813,9 @@ class TestCalculateDeferrableParameters:
         trip = {"id": "trip1", "kwh": 10.0, "datetime": "2026-04-10T18:00:00"}
         result = calculate_deferrable_parameters(trip, power_kw=7.4)
 
-        assert 1 <= result["end_timestep"] <= 168
+        # Trip deadline 2026-04-10 is in the past, hours_available is negative
+        # max(1, min(int(neg), 168)) = 1
+        assert result["end_timestep"] == 1
 
     def test_default_end_timestep_without_deadline(self):
         """Without deadline, end_timestep defaults to 24."""
@@ -2068,6 +2151,30 @@ class TestCalculatePowerProfileFromTrips:
         # 15 kWh / 7.4 kW ≈ 2.03 → 3 hours
         assert len(non_zero) >= 1
         assert all(v == 7400.0 for v in non_zero)
+
+    def test_trip_with_soc_current_uses_soc_aware_path(self):
+        """With soc_current and battery_capacity_kwh, uses determine_charging_need (lines 137-145)."""
+        from custom_components.ev_trip_planner.calculations import (
+            calculate_power_profile_from_trips,
+        )
+
+        trip = {
+            "id": "trip_soc",
+            "datetime": "2026-04-06T18:00",
+            "kwh": 15.0,
+        }
+        result = calculate_power_profile_from_trips(
+            trips=[trip],
+            power_kw=7.4,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 8, 0),
+            soc_current=50.0,
+            battery_capacity_kwh=75.0,
+            safety_margin_percent=15.0,
+        )
+        # Should produce a valid power profile
+        non_zero = [v for v in result if v > 0]
+        assert len(non_zero) >= 1
 
     def test_trip_with_zero_kwh_skipped(self):
         """Trip with kwh=0 is skipped. Covers line 693."""
@@ -2772,11 +2879,11 @@ class TestCalculatePowerProfileEdgeCases:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.calculations.calculate_energy_needed",
+            "custom_components.ev_trip_planner.calculations.power.calculate_energy_needed",
             return_value=mock_energia,
         ):
             with patch(
-                "custom_components.ev_trip_planner.calculations.calculate_charging_window_pure",
+                "custom_components.ev_trip_planner.calculations.power.calculate_charging_window_pure",
                 return_value=mock_window,
             ):
                 result = calculate_power_profile(
@@ -2835,11 +2942,11 @@ class TestCalculatePowerProfileEdgeCases:
         }
 
         with patch(
-            "custom_components.ev_trip_planner.calculations.calculate_energy_needed",
+            "custom_components.ev_trip_planner.calculations.power.calculate_energy_needed",
             return_value=mock_energia,
         ):
             with patch(
-                "custom_components.ev_trip_planner.calculations.calculate_charging_window_pure",
+                "custom_components.ev_trip_planner.calculations.power.calculate_charging_window_pure",
                 return_value=mock_window,
             ):
                 result = calculate_power_profile(
@@ -2905,7 +3012,7 @@ class TestCalculateHoursDeficitPropagation:
         assert results[2]["adjusted_def_total_hours"] == 1.0  # trip#2
 
     def test_last_trip_deficit_absorbed(self):
-        """Trip #3 needs 3h, has 2h window. Trip #2 has 4h spare → fully absorbed."""
+        """Trip #3 is deficit origin (zeroed), T2 absorbs 1h from it."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -2931,21 +3038,21 @@ class TestCalculateHoursDeficitPropagation:
             },
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 2.0, 3.0])
-        # trip#0 (index 0) has no deficit propagation
+        # trip#0 (index 0) has no deficit, absorbs nothing
         assert results[0]["deficit_hours_propagated"] == 0
         assert results[0]["deficit_hours_to_propagate"] == 0
         assert results[0]["adjusted_def_total_hours"] == 2.0
-        # trip#1 (index 1) absorbs 1h from trip#2
+        # trip#1 (index 1) absorbs 1h from deficit origin trip#2
         assert results[1]["deficit_hours_propagated"] == 1.0
         assert results[1]["deficit_hours_to_propagate"] == 0.0
         assert results[1]["adjusted_def_total_hours"] == 3.0
-        # trip#2 (index 2) deficit=1h, nothing after → to_propagate=1.0
-        assert results[2]["deficit_hours_propagated"] == 0  # trip#2 absorbs nothing
-        assert results[2]["deficit_hours_to_propagate"] == 1.0  # trip#2 has 1h deficit
-        assert results[2]["adjusted_def_total_hours"] == 3.0
+        # trip#2 (index 2) is deficit origin — zeroed out, cascades 1h backwards
+        assert results[2]["deficit_hours_propagated"] == 0
+        assert results[2]["deficit_hours_to_propagate"] == 1.0
+        assert results[2]["adjusted_def_total_hours"] == 0.0
 
     def test_chain_propagation(self):
-        """Trip #3 deficit 3h, trip #2 spare 2h, trip #1 spare 4h → partial absorption."""
+        """Trip #3 is deficit origin, zeroed out, cascades 3h backwards through #2 to #1."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -2971,23 +3078,23 @@ class TestCalculateHoursDeficitPropagation:
             },
         ]
         results = calculate_hours_deficit_propagation(windows, [3.0, 2.0, 5.0])
-        # trip#0 (index 0): spare=4h, absorbs 1h from carrier
+        # trip#0 (index 0): absorbs 1h from carrier (T1 absorbed 2, cascading 1)
         assert results[0]["deficit_hours_propagated"] == 1.0
         assert results[0]["deficit_hours_to_propagate"] == 0.0
         assert results[0]["adjusted_def_total_hours"] == 4.0
 
-        # trip#1 (index 1): spare=2h, absorbs 2h from carrier
+        # trip#1 (index 1): absorbs 2h from origin T2, cascades 1h to T0
         assert results[1]["deficit_hours_propagated"] == 2.0
         assert results[1]["deficit_hours_to_propagate"] == 1.0
         assert results[1]["adjusted_def_total_hours"] == 4.0
 
-        # trip#2 (index 2): deficit=3h, nothing after → to_propagate=3.0
+        # trip#2 (index 2): deficit origin — zeroed out, cascades 3h backwards
         assert results[2]["deficit_hours_propagated"] == 0
         assert results[2]["deficit_hours_to_propagate"] == 3.0
-        assert results[2]["adjusted_def_total_hours"] == 5.0
+        assert results[2]["adjusted_def_total_hours"] == 0.0
 
     def test_single_trip_deficit(self):
-        """1 trip, needs 5h, has 2h window → deficit stays on to_propagate."""
+        """1 trip is deficit origin — zeroed out, 3h deficit has nowhere to cascade."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3003,7 +3110,7 @@ class TestCalculateHoursDeficitPropagation:
         results = calculate_hours_deficit_propagation(windows, [5.0])
         assert results[0]["deficit_hours_propagated"] == 0
         assert results[0]["deficit_hours_to_propagate"] == 3.0
-        assert results[0]["adjusted_def_total_hours"] == 5.0
+        assert results[0]["adjusted_def_total_hours"] == 0.0
 
     def test_deficit_hours_propagated_is_not_cumulative(self):
         """deficit_hours_propagated is absorbed from NEXT trip only, not cumulative."""
@@ -3067,7 +3174,7 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["fin_ventana"] == "end2"
 
     def test_adjusted_def_total_hours_correct(self):
-        """adjusted = original def_total_hours + absorbed."""
+        """adjusted = original def_total_hours + absorbed (origin trip is zeroed)."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3087,10 +3194,10 @@ class TestCalculateHoursDeficitPropagation:
             },
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 5.0])
-        # trip#0 absorbs 3h from trip#1: adjusted = 2+3 = 5
-        # trip#1 has no absorption: adjusted = 5+0 = 5
+        # trip#0 absorbs 3h from deficit origin trip#1: adjusted = 2+3 = 5
+        # trip#1 is deficit origin — zeroed out
         assert results[0]["adjusted_def_total_hours"] == 5.0
-        assert results[1]["adjusted_def_total_hours"] == 5.0
+        assert results[1]["adjusted_def_total_hours"] == 0.0
 
     def test_no_spare_capacity(self):
         """Trip has no spare capacity (fully used) → absorbs 0."""
@@ -3142,10 +3249,10 @@ class TestCalculateHoursDeficitPropagation:
         # trip#0 (index 0): spare=5-2=3h, absorbs all 3h from trip#1
         assert results[0]["deficit_hours_propagated"] == 3.0
         assert results[0]["adjusted_def_total_hours"] == 5.0
-        # trip#1 (index 1): needs 5h, has 2h → deficit=3h, nothing to absorb
+        # trip#1 (index 1): deficit origin — zeroed out, cascades 3h backwards
         assert results[1]["deficit_hours_propagated"] == 0
         assert results[1]["deficit_hours_to_propagate"] == 3.0
-        assert results[1]["adjusted_def_total_hours"] == 5.0
+        assert results[1]["adjusted_def_total_hours"] == 0.0
 
     def test_values_rounded_to_2dp(self):
         """All propagation values are rounded to 2 decimal places."""

@@ -8,15 +8,6 @@ Tests end-to-end con Playwright que verifican el flujo completo de CRUD de viaje
 ## Ejecución rápida
 
 ```bash
-# 1. Arrancar Home Assistant (con Docker)
-docker compose up -d
-
-# 2. Onboarding (solo la primera vez)
-./scripts/ha-onboard.sh
-
-# 3. Ejecutar los tests
-npx playwright test tests/e2e/ --workers=1
-# o
 make test-e2e
 ```
 

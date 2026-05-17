@@ -1,0 +1,6 @@
+# signals.jsonl — append-only control event log (Phase 6, signal-log-and-ci-autodetect)
+# Schema: type=control, signal, from, to, task, status, timestamp, iteration, reason
+# DO NOT EDIT existing lines. Resolve a signal by appending a new line with status=resolved.
+# Examples (commented out — lines starting with # are not valid JSONL; remove the # to use):
+# {"type":"control","signal":"HOLD","from":"external-reviewer","to":"coordinator","task":"task-1.1","status":"active","timestamp":"2026-01-01T00:00:00Z","iteration":1,"reason":"<why>"}
+# {"type":"control","signal":"HOLD","from":"external-reviewer","to":"coordinator","task":"task-1.1","status":"resolved","timestamp":"2026-01-01T00:05:00Z","iteration":2,"reason":"<resolution>"}

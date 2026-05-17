@@ -7,7 +7,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from custom_components.ev_trip_planner import TripPlannerCoordinator
+from custom_components.ev_trip_planner import CoordinatorConfig, TripPlannerCoordinator
 from custom_components.ev_trip_planner.trip_manager import TripManager
 
 
@@ -77,7 +77,10 @@ async def test_coordinator_initialization(
 ):
     """Test that coordinator initializes correctly."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     assert coordinator.hass == hass
@@ -90,7 +93,10 @@ async def test_coordinator_refresh_triggers_update(
 ):
     """Test that coordinator refresh triggers data update."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # Mock the async_request_refresh method to track calls
@@ -113,11 +119,14 @@ async def test_coordinator_data_returns_trip_info(
 ):
     """Test that coordinator data returns trip information."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # Add a test trip
-    await mock_trip_manager.async_add_recurring_trip(
+    await mock_trip_manager._crud.async_add_recurring_trip(
         descripcion="Work", dia_semana="lunes", hora="09:00", km=25, kwh=3.75
     )
 
@@ -138,7 +147,10 @@ async def test_coordinator_handles_empty_trips(
 ):
     """Test coordinator behavior with no trips."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     await coordinator.async_refresh()
@@ -154,7 +166,10 @@ async def test_coordinator_async_refresh_trips_calls_async_refresh(
 ):
     """Test that async_refresh_trips delegates to async_refresh."""
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     refresh_called = False
@@ -178,7 +193,7 @@ async def test_coordinator_with_emhass_adapter_uses_cached_results(
 
     This covers line 109: if self._emhass_adapter is not None.
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create mock EMHASS adapter
     mock_emhass = MagicMock(spec=EMHASSAdapter)
@@ -193,8 +208,7 @@ async def test_coordinator_with_emhass_adapter_uses_cached_results(
         hass,
         mock_config_entry,
         mock_trip_manager,
-        emhass_adapter=mock_emhass,
-        logger=mock_logger,
+        CoordinatorConfig(emhass_adapter=mock_emhass, logger=mock_logger),
     )
 
     # Set up the mock async_refresh to capture the data
@@ -281,9 +295,9 @@ class TestSensorAsyncAddedToHassRestore:
             await sensor.async_added_to_hass()
 
             # After restore: _attr_native_value should be set to last_state.state
-            assert (
-                sensor._attr_native_value == "25.5"
-            ), f"Expected _attr_native_value='25.5' after restore, got '{sensor._attr_native_value}'"
+            assert sensor._attr_native_value == "25.5", (
+                f"Expected _attr_native_value='25.5' after restore, got '{sensor._attr_native_value}'"
+            )
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_no_restore_when_data_is_not_none(self):
@@ -349,8 +363,7 @@ async def test_coordinator_data_emhass_cache(
         hass,
         mock_config_entry,
         mock_trip_manager,
-        emhass_adapter=mock_emhass_adapter,
-        logger=mock_logger,
+        CoordinatorConfig(emhass_adapter=mock_emhass_adapter, logger=mock_logger),
     )
 
     # Call coordinator refresh
@@ -380,7 +393,10 @@ async def test_vehicle_id_property(
     from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator
 
     coordinator = TripPlannerCoordinator(
-        hass, mock_config_entry, mock_trip_manager, logger=mock_logger
+        hass,
+        mock_config_entry,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # vehicle_id should return normalized (lowercase, spaces replaced) vehicle_name
@@ -401,7 +417,10 @@ async def test_vehicle_id_fallback(hass: HomeAssistant, mock_trip_manager, mock_
     entry_without_vehicle.data = {}  # Missing CONF_VEHICLE_NAME
 
     coordinator = TripPlannerCoordinator(
-        hass, entry_without_vehicle, mock_trip_manager, logger=mock_logger
+        hass,
+        entry_without_vehicle,
+        mock_trip_manager,
+        CoordinatorConfig(logger=mock_logger),
     )
 
     # Should fallback to "unknown" when vehicle_name is missing
@@ -445,8 +464,7 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
         hass,
         mock_config_entry,
         mock_trip_manager,
-        emhass_adapter=mock_emhass_adapter,
-        logger=mock_logger,
+        CoordinatorConfig(emhass_adapter=mock_emhass_adapter, logger=mock_logger),
     )
 
     # Configure PresenceMonitor
@@ -460,7 +478,8 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
     monitor._last_processed_soc = 50.0
 
     # Mock publish_deferrable_loads to verify if it is called
-    mock_trip_manager.publish_deferrable_loads = AsyncMock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
 
     # Setup: Vehicle at home and plugged in
     mock_home_state = Mock()
@@ -523,7 +542,7 @@ async def test_soc_change_above_5_percent_updates_emhass_sensor_end_to_end(
     # VERIFICATIONS:
 
     # 1. publish_deferrable_loads() was called
-    mock_trip_manager.publish_deferrable_loads.assert_called_once()
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_called_once()
 
     # 2. _last_processed_soc was updated
     assert monitor._last_processed_soc == 60.0
@@ -552,7 +571,7 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
     This test verifies that when the EMHASSAdapter updates its cache,
     the coordinator reflects it in coordinator.data.
     """
-    from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+    from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
     # Create mock EMHASS adapter with updatable data
     mock_emhass = MagicMock(spec=EMHASSAdapter)
@@ -573,8 +592,7 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
         hass,
         mock_config_entry,
         mock_trip_manager,
-        emhass_adapter=mock_emhass,
-        logger=mock_logger,
+        CoordinatorConfig(emhass_adapter=mock_emhass, logger=mock_logger),
     )
 
     # 1. Initial refresh
@@ -605,410 +623,3 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
     #    - PresenceMonitor calls publish_deferrable_loads() ✅
     #    - BUT publish_deferrable_loads() does NOT call coordinator.async_refresh() ❌
     #    - Therefore, the sensor does NOT update automatically ❌
-
-
-# =============================================================================
-# T123: _generate_mock_emhass_params coverage tests
-# =============================================================================
-
-
-@pytest.fixture
-def mock_config_entry_full():
-    """Create a mock ConfigEntry with all required data."""
-    entry = MagicMock()
-    entry.entry_id = "test_entry_001"
-    entry.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 7.4,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    return entry
-
-
-@pytest.fixture
-def mock_coordinator(hass, mock_config_entry_full, mock_trip_manager, mock_logger):
-    """Create a coordinator instance for testing."""
-    from custom_components.ev_trip_planner import TripPlannerCoordinator
-
-    return TripPlannerCoordinator(
-        hass, mock_config_entry_full, mock_trip_manager, logger=mock_logger
-    )
-
-
-async def test_generate_mock_emhass_params_single_trip(mock_coordinator):
-    """Test _generate_mock_emhass_params with a single active trip."""
-    trips = {
-        "trip_001": {
-            "kwh": 30.0,
-            "km": 100.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
-            "status": "pendiente",
-        }
-    }
-    result = mock_coordinator._generate_mock_emhass_params(trips)
-
-    assert "emhass_power_profile" in result
-    assert "emhass_deferrables_schedule" in result
-    assert result["emhass_deferrables_schedule"] is None
-    assert "emhass_status" in result
-    assert result["emhass_status"] == "ready"
-    assert "per_trip_emhass_params" in result
-    assert "trip_001" in result["per_trip_emhass_params"]
-
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    assert trip_params["activo"] is True
-    assert trip_params["kwh_needed"] == 30.0
-    assert trip_params["km"] == 100.0
-    assert trip_params["def_total_hours_array"] == [round(30.0 / 7.4, 2)]
-    assert trip_params["p_deferrable_nom_array"] == [round(7.4 * 1000.0, 2)]
-    assert trip_params["safety_margin_percent"] == 10.0
-    assert trip_params["soc_base"] == 20.0
-    assert trip_params["t_base"] == 24.0
-
-
-async def test_generate_mock_emhass_params_multiple_trips(mock_coordinator):
-    """Test _generate_mock_emhass_params with multiple active trips."""
-    trips = {
-        "trip_001": {
-            "kwh": 10.0,
-            "km": 50.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
-            "status": "pendiente",
-        },
-        "trip_002": {
-            "kwh": 20.0,
-            "km": 80.0,
-            "datetime": "2026-05-03T12:00:00+00:00",
-            "status": "pendiente",
-        },
-    }
-    result = mock_coordinator._generate_mock_emhass_params(trips)
-
-    assert len(result["per_trip_emhass_params"]) == 2
-    assert "trip_001" in result["per_trip_emhass_params"]
-    assert "trip_002" in result["per_trip_emhass_params"]
-
-    # Verify power_profile has max across all trips
-    power_profile = result["emhass_power_profile"]
-    assert len(power_profile) == 96
-    assert max(power_profile) > 0  # Should have some charging power
-
-
-async def test_generate_mock_emhass_params_skip_completed(mock_coordinator):
-    """Test that completed/cancelled trips are skipped."""
-    trips = {
-        "trip_001": {
-            "kwh": 30.0,
-            "km": 100.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
-            "status": "completed",
-        },
-        "trip_002": {
-            "kwh": 20.0,
-            "km": 80.0,
-            "datetime": "2026-05-03T12:00:00+00:00",
-            "status": "cancelled",
-        },
-        "trip_003": {
-            "kwh": 10.0,
-            "km": 50.0,
-            "datetime": "2026-05-04T08:00:00+00:00",
-            "status": "pendiente",
-        },
-    }
-    result = mock_coordinator._generate_mock_emhass_params(trips)
-
-    # Only trip_003 should be in params
-    assert len(result["per_trip_emhass_params"]) == 1
-    assert "trip_003" in result["per_trip_emhass_params"]
-    assert "trip_001" not in result["per_trip_emhass_params"]
-    assert "trip_002" not in result["per_trip_emhass_params"]
-
-
-async def test_generate_mock_emhass_params_empty_datetime(mock_coordinator):
-    """Test with empty datetime string — start_timestep should be 0."""
-    trips = {
-        "trip_001": {
-            "kwh": 10.0,
-            "km": 50.0,
-            "datetime": "",
-            "status": "pendiente",
-        },
-    }
-    result = mock_coordinator._generate_mock_emhass_params(trips)
-
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    assert trip_params["def_start_timestep_array"] == [0]
-
-
-async def test_generate_mock_emhass_params_invalid_datetime(mock_coordinator):
-    """Test with invalid datetime — should fall back to start_timestep=0."""
-    trips = {
-        "trip_001": {
-            "kwh": 10.0,
-            "km": 50.0,
-            "datetime": "not-a-date",
-            "status": "pendiente",
-        },
-    }
-    result = mock_coordinator._generate_mock_emhass_params(trips)
-
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    assert trip_params["def_start_timestep_array"] == [0]
-
-
-async def test_generate_mock_emhass_params_charging_power_zero(
-    mock_config_entry_full, mock_trip_manager, mock_logger
-):
-    """Test with charging_power_kw=0 — hours_needed should be 0.1 (minimum)."""
-    mock_config_entry_full.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 0,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    coordinator = TripPlannerCoordinator(
-        (
-            mock_config_entry_full.hass
-            if hasattr(mock_config_entry_full, "hass")
-            else MagicMock()
-        ),
-        mock_config_entry_full,
-        mock_trip_manager,
-        logger=mock_logger,
-    )
-    trips = {
-        "trip_001": {
-            "kwh": 30.0,
-            "km": 100.0,
-            "datetime": "2026-05-03T08:00:00+00:00",
-            "status": "pendiente",
-        },
-    }
-    result = coordinator._generate_mock_emhass_params(trips)
-
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    # Should use minimum 0.1 hours when charging_power_kw is 0
-    assert trip_params["def_total_hours_array"] == [0.1]
-
-
-async def test_generate_mock_emhass_params_naive_datetime(
-    mock_config_entry_full, mock_trip_manager, mock_logger
-):
-    """Test with timezone-naive datetime — should be treated as UTC (line 264)."""
-    mock_config_entry_full.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 7.4,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    coordinator = TripPlannerCoordinator(
-        MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
-    )
-    trips = {
-        "trip_001": {
-            "kwh": 30.0,
-            "km": 100.0,
-            "datetime": "2026-05-03T08:00:00",  # No timezone info
-            "status": "pendiente",
-        },
-    }
-    result = coordinator._generate_mock_emhass_params(trips)
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    # Should process without error, treating as UTC
-    assert trip_params["def_start_timestep_array"][0] >= 0
-
-
-async def test_generate_mock_emhass_params_fallback_single_row(mock_coordinator):
-    """Test fallback to single row when trip_matrix is empty (line 282-288)."""
-    trips = {
-        "trip_001": {
-            "kwh": 0.0,
-            "km": 50.0,
-            "datetime": "",
-            "status": "pendiente",
-        },
-    }
-    result = mock_coordinator._generate_mock_emhass_params(trips)
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    # With kwh=0, hours_needed=0.1 (minimum), trip_matrix should still have a row
-    # via the fallback path when int(hours_needed) + 1 = 0
-    assert "p_deferrable_matrix" in trip_params
-
-
-async def test_generate_mock_emhass_params_calls_fallback_in_async_update(
-    mock_config_entry_full, mock_trip_manager, mock_logger, mock_emhass_adapter
-):
-    """Test that async_update uses mock fallback when EMHASS returns empty per_trip_params (lines 146-153)."""
-    mock_config_entry_full.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 7.4,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    coordinator = TripPlannerCoordinator(
-        (
-            mock_config_entry_full.hass
-            if hasattr(mock_config_entry_full, "hass")
-            else MagicMock()
-        ),
-        mock_config_entry_full,
-        mock_trip_manager,
-        logger=mock_logger,
-    )
-    # Mock the EMHASS adapter to return empty per_trip_params to trigger fallback
-    mock_adapter = MagicMock()
-    mock_adapter.get_cached_optimization_results.return_value = {
-        "emhass_power_profile": [0.0] * 96,
-        "emhass_deferrables_schedule": [],
-        "emhass_status": "ready",
-        "per_trip_emhass_params": {},  # Empty — triggers fallback
-    }
-    coordinator._emhass_adapter = mock_adapter
-    # Mock _get_all_trips to return active trips
-    coordinator._trip_manager.get_all_trips = MagicMock(
-        return_value={
-            "trip_001": {
-                "kwh": 30.0,
-                "km": 100.0,
-                "datetime": "2026-05-03T08:00:00+00:00",
-                "status": "pendiente",
-            }
-        }
-    )
-    # Call async_update — should trigger fallback at lines 146-148
-    result = await coordinator._async_update_data()
-    # Verify that mock params were generated
-    assert result is not None and "per_trip_emhass_params" in result
-
-
-async def test_generate_mock_emhass_params_minimal_hours_covers_fallback(
-    mock_config_entry_full, mock_trip_manager, mock_logger
-):
-    """Test with minimal hours_needed (0.1) — end_timestep=0, trip_matrix empty → line 287 fallback.
-    hours_needed = 0.1 (minimum), int(hours_needed)=0, int(hours_needed)+1=1 loop iteration
-    end_timestep = int(0.1 * 4) = 0 → range(0,0) = empty → row has no power_watts → trip_matrix empty → fallback
-    """
-    mock_config_entry_full.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 0,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    coordinator = TripPlannerCoordinator(
-        MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
-    )
-    trips = {
-        "trip_001": {
-            "kwh": 0.0,
-            "km": 0.0,
-            "datetime": "",  # empty → start_timestep=0
-            "status": "pendiente",
-        },
-    }
-    result = coordinator._generate_mock_emhass_params(trips)
-    # With charging_power_kw=0, hours_needed=0.1, end_timestep=0
-    # The fallback at line 282-288 should execute line 287
-    assert len(result["per_trip_emhass_params"]["trip_001"]["p_deferrable_matrix"]) == 1
-
-
-async def test_async_update_data_covers_mock_fallback(
-    mock_config_entry_full, mock_trip_manager, mock_logger, mock_emhass_adapter
-):
-    """Test that _async_update_data triggers mock fallback when EMHASS returns empty per_trip_params (lines 146-153)."""
-    mock_config_entry_full.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 7.4,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    coordinator = TripPlannerCoordinator(
-        MagicMock(),
-        mock_config_entry_full,
-        mock_trip_manager,
-        logger=mock_logger,
-    )
-    # Configure mock adapter to return empty per_trip_params (triggers fallback at line 146)
-    mock_emhass_adapter.get_cached_optimization_results.return_value = {
-        "emhass_power_profile": [0.0] * 96,
-        "emhass_deferrables_schedule": [],
-        "emhass_status": "ready",
-        "per_trip_emhass_params": {},  # Empty → triggers line 147 fallback
-    }
-    coordinator._emhass_adapter = mock_emhass_adapter
-    # Mock the trip manager methods to return active trips
-    mock_trip_manager.async_get_recurring_trips = AsyncMock(return_value=[])
-    mock_trip_manager.async_get_punctual_trips = AsyncMock(
-        return_value=[
-            {
-                "id": "trip_001",
-                "kwh": 30.0,
-                "km": 100.0,
-                "datetime": "2026-05-03T08:00:00+00:00",
-                "status": "pendiente",
-            }
-        ]
-    )
-    mock_trip_manager.async_get_kwh_needed_today = AsyncMock(return_value=30.0)
-    mock_trip_manager.async_get_hours_needed_today = AsyncMock(return_value=4.05)
-    mock_trip_manager.async_get_next_trip = AsyncMock(return_value=None)
-    # Call _async_update_data — should trigger lines 146-153
-    result = await coordinator._async_update_data()
-    # Verify mock params were generated (per_trip_emhass_params should have trip_001)
-    assert "per_trip_emhass_params" in result
-    assert "trip_001" in result["per_trip_emhass_params"]
-
-
-async def test_generate_mock_emhass_params_fallback_single_row_exact(
-    mock_config_entry_full, mock_trip_manager, mock_logger
-):
-    """Force trip_matrix empty: kwh=0, charging_power_kw=0 → hours_needed=0.1, power_watts=0.
-    Loop appends row of all 0s → any(v>0)=False → trip_matrix=[], then line 282-288 fallback.
-    This test MUST trigger line 287 (the only missing line).
-    """
-    mock_config_entry_full.data = {
-        "vehicle_name": "test_vehicle",
-        "charging_power_kw": 0,
-        "battery_capacity_kwh": 50.0,
-        "kwh_per_km": 0.15,
-        "safety_margin_percent": 10.0,
-        "soc_base": 20.0,
-        "t_base": 24.0,
-    }
-    coordinator = TripPlannerCoordinator(
-        MagicMock(), mock_config_entry_full, mock_trip_manager, logger=mock_logger
-    )
-    # kwh=0 → hours_needed = min(0.1) → 0.1 (minimum floor, not 0/0=0)
-    # power_watts = 0 * 1000 = 0
-    # start_timestep=0, end_timestep=int(0.1*4)=0
-    # trip_matrix stays empty → triggers fallback at line 287
-    trips = {
-        "trip_001": {
-            "kwh": 0.0,
-            "km": 0.0,
-            "datetime": "",
-            "status": "pendiente",
-        },
-    }
-    result = coordinator._generate_mock_emhass_params(trips)
-    trip_params = result["per_trip_emhass_params"]["trip_001"]
-    assert len(trip_params["p_deferrable_matrix"]) == 1

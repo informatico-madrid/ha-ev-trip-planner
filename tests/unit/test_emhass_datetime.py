@@ -37,9 +37,9 @@ class TestDatetimeOffsetBug:
         hours_available = (deadline_dt - now_aware).total_seconds() / 3600
 
         # If we get here, the fix works (aware datetime subtraction works)
-        assert (
-            hours_available > 0
-        ), f"Deadline should be in the future, got {hours_available} hours"
+        assert hours_available > 0, (
+            f"Deadline should be in the future, got {hours_available} hours"
+        )
 
     def test_aware_datetime_subtraction_works(self):
         """Test that offset-aware datetime subtraction works.
@@ -57,9 +57,9 @@ class TestDatetimeOffsetBug:
         hours_available = (deadline_dt - now_aware).total_seconds() / 3600
 
         assert isinstance(hours_available, float)
-        assert (
-            hours_available > 0
-        ), f"Deadline should be in the future, got {hours_available} hours"
+        assert hours_available > 0, (
+            f"Deadline should be in the future, got {hours_available} hours"
+        )
 
     def test_iso_string_with_tz_produces_aware_datetime(self):
         """Verify ISO strings with timezone produce offset-aware datetimes.

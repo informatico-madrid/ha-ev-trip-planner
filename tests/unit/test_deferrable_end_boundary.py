@@ -19,7 +19,10 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import (
+    EMHASSAdapter,
+    PerTripCacheParams,
+)
 
 
 @pytest.mark.asyncio
@@ -37,6 +40,8 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
     now = datetime.now(timezone.utc)
@@ -53,7 +58,7 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -69,7 +74,6 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
         hora_regreso=hora_regreso,
         charging_power_kw=3.6,
         battery_capacity_kwh=60.0,
-        duration_hours=6.0,
         safety_margin_percent=10.0,
     )
 
@@ -100,13 +104,14 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
 
     # Now call the actual code
     await adapter._populate_per_trip_cache_entry(
-        trip=trip,
-        trip_id=trip["id"],
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
-        soc_current=50.0,
-        hora_regreso=hora_regreso,
+        PerTripCacheParams(
+            trip=trip,
+            trip_id=trip["id"],
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+            soc_current=50.0,
+        ),
     )
 
     params = adapter._cached_per_trip_params.get(trip["id"])
@@ -117,18 +122,22 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
     print(f"DEBUG: Actual def_end = {actual_def_end}")
     print(f"DEBUG: Actual window size = {actual_def_end - actual_def_start} hours")
 
-    # The bug: def_end is calculated from hours_available, not fin_ventana
-    assert (
-        actual_def_end == expected_def_end
-    ), f"BUG: def_end ({actual_def_end}) should equal {expected_def_end} (calculated from fin_ventana), not hours_available"
-
-    # Also verify window is valid for charging
+    # CORRECT behavior: def_end is based on fin_ventana (trip departure), NOT
+    # def_start + total_hours (which would make window = charging time only).
+    # The charging window = opportunity to charge, which spans from
+    # inicio_ventana to fin_ventana (the full opportunity window).
     def_total_hours = params.get("def_total_hours")
     window_size = actual_def_end - actual_def_start
 
-    assert (
-        window_size >= def_total_hours
-    ), f"BUG: Window ({window_size}h) too small for {def_total_hours}h charging"
+    # Verify window is large enough for charging
+    assert window_size >= def_total_hours, (
+        f"Window ({window_size}h) too small for {def_total_hours}h charging"
+    )
+
+    # Verify def_end is based on fin_ventana (trip departure time)
+    assert actual_def_end == expected_def_end, (
+        f"def_end ({actual_def_end}) should equal fin_ventana hours from now ({expected_def_end})"
+    )
 
 
 if __name__ == "__main__":

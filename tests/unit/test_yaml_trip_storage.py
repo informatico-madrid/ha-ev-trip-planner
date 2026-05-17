@@ -10,7 +10,6 @@ import pytest
 class TestYamlTripStorageAsyncLoad:
     """Tests for YamlTripStorage.async_load()."""
 
-
     @pytest.mark.asyncio
     async def test_async_load_with_data_wraps_dict(self, mock_hass):
         """Test async_load when Store returns data wrapped in 'data' key."""
@@ -113,7 +112,6 @@ class TestYamlTripStorageAsyncLoad:
 
 class TestYamlTripStorageAsyncSave:
     """Tests for YamlTripStorage.async_save()."""
-
 
     @pytest.mark.asyncio
     async def test_async_save_calls_store_with_correct_data(self, mock_hass):

@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.ev_trip_planner.calculations import calculate_energy_needed
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class TestDeferrableHoursCalculation:
@@ -168,76 +168,38 @@ class TestDeferrableHoursCalculation:
 
         print("=== VERIFICACIÓN DEL BUG (debe fallar) ===")
 
-        bugs_detectados = []
-
-        for i, trip in enumerate(trips):
+        for trip in trips:
             trip_id = trip["id"]
             if trip_id in per_trip_params:
                 params = per_trip_params[trip_id]
                 def_hours = params.get("def_total_hours", 0)
-                power_nom = params.get("P_deferrable_nom", 0.0)
-                power_profile = params.get("power_profile_watts", [])
-
-                # Contar horas no-cero en el perfil
-                non_zero_hours = sum(1 for p in power_profile if p > 0)
+                power_watts = params.get("power_watts", 0.0)
 
                 print(f"{trip_id} ({trip['kwh']} kWh):")
                 print(f"  def_total_hours = {def_hours}")
-                print(f"  P_deferrable_nom = {power_nom} W")
-                print(f"  Horas con carga en P_deferrable = {non_zero_hours}")
-                print(f"  Perfil (primeras 24h): {power_profile[:24]}")
+                print(f"  power_watts = {power_watts} W")
                 print("")
 
-                # BUG: Si P_deferrable tiene carga (non_zero_hours > 0),
-                # entonces def_total_hours DEBE ser > 0
-                # Y P_deferrable_nom DEBE ser > 0
-                if non_zero_hours > 0:
-                    if def_hours == 0:
-                        print(f"❌ BUG DETECTADO en {trip_id}:")
-                        print(f"   P_deferrable tiene {non_zero_hours} horas con carga")
-                        print("   PERO def_total_hours = 0 (debería ser > 0)")
-                        bugs_detectados.append(
-                            {
-                                "trip_id": trip_id,
-                                "bug": "def_total_hours_mismatch",
-                                "non_zero_hours": non_zero_hours,
-                                "def_hours": def_hours,
-                            }
-                        )
-
-                    if power_nom == 0.0:
-                        print(f"❌ BUG DETECTADO en {trip_id}:")
-                        print(
-                            f"   P_deferrable tiene carga (non_zero_hours = {non_zero_hours})"
-                        )
-                        print("   PERO P_deferrable_nom = 0.0 W (debería ser 3400.0 W)")
-                        bugs_detectados.append(
-                            {
-                                "trip_id": trip_id,
-                                "bug": "P_deferrable_nom_mismatch",
-                                "non_zero_hours": non_zero_hours,
-                                "power_nom": power_nom,
-                            }
-                        )
-
-        # Reportar resultados
-        if bugs_detectados:
-            print("\n=== BUGS CONFIRMADOS ===")
-            for bug in bugs_detectados:
-                print(f"{bug['trip_id']}: {bug['bug']}")
-                if bug["bug"] == "def_total_hours_mismatch":
-                    print(f"  - Tiene {bug['non_zero_hours']} horas de carga en perfil")
-                    print(f"  - Pero def_total_hours = {bug['def_hours']}")
-                elif bug["bug"] == "P_deferrable_nom_mismatch":
-                    print(f"  - Tiene {bug['non_zero_hours']} horas de carga en perfil")
-                    print(f"  - Pero P_deferrable_nom = {bug['power_nom']} W")
-
-            pytest.fail(
-                f"Bugs detectados en {len(bugs_detectados)} viaje(s): "
-                f"def_total_hours y/o P_deferrable_nom no coinciden con P_deferrable"
-            )
-        else:
-            print("\n✅ No se detectaron bugs en esta ejecución")
+                # En SOLID API: def_total_hours y power_watts deben ser > 0
+                # cuando hay un viaje con energía que cargar
+                if trip["kwh"] > 0:
+                    assert def_hours > 0, (
+                        f"Trip {trip_id}: requiere {trip['kwh']} kWh "
+                        f"pero def_total_hours = {def_hours} (debería ser > 0)"
+                    )
+                    assert power_watts > 0, (
+                        f"Trip {trip_id}: requiere {trip['kwh']} kWh "
+                        f"pero power_watts = {power_watts} W (debería ser > 0)"
+                    )
+                else:
+                    assert def_hours == 0, (
+                        f"Trip {trip_id}: sin energía necesaria "
+                        f"pero def_total_hours = {def_hours} (debería ser 0)"
+                    )
+                    assert power_watts == 0.0, (
+                        f"Trip {trip_id}: sin energía necesaria "
+                        f"pero power_watts = {power_watts} W (debería ser 0.0)"
+                    )
 
 
 if __name__ == "__main__":

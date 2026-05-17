@@ -16,13 +16,14 @@ from custom_components.ev_trip_planner.const import (
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
-from custom_components.ev_trip_planner.emhass_adapter import EMHASSAdapter
+from custom_components.ev_trip_planner.emhass.adapter import (
+    EMHASSAdapter,
+    PerTripCacheParams,
+)
 
 
 @pytest.mark.asyncio
-async def test_populate_cache_entry_def_end_gt_def_start(
-    mock_hass, mock_store
-):
+async def test_populate_cache_entry_def_end_gt_def_start(mock_hass, mock_store):
     """
     Bug: When charging window starts near deadline, def_end_timestep equals
     def_start_timestep, creating a zero-duration window.
@@ -33,6 +34,8 @@ async def test_populate_cache_entry_def_end_gt_def_start(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
     now = datetime.now(timezone.utc)
@@ -47,7 +50,7 @@ async def test_populate_cache_entry_def_end_gt_def_start(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
@@ -55,13 +58,14 @@ async def test_populate_cache_entry_def_end_gt_def_start(
 
     # Call _populate_per_trip_cache_entry which calculates def_start and def_end
     await adapter._populate_per_trip_cache_entry(
-        trip=trip,
-        trip_id=trip["id"],
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
-        soc_current=50.0,
-        hora_regreso=None,  # Car not yet returned - triggers the bug scenario
+        PerTripCacheParams(
+            trip=trip,
+            trip_id=trip["id"],
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+            soc_current=50.0,
+        ),
     )
 
     # Get cached parameters
@@ -72,21 +76,19 @@ async def test_populate_cache_entry_def_end_gt_def_start(
     def_end = params.get("def_end_timestep")
     def_total_hours = params.get("def_total_hours")
 
-    assert (
-        def_end > def_start
-    ), f"BUG: def_end ({def_end}) should be > def_start ({def_start}) for {def_total_hours}h charge"
+    assert def_end > def_start, (
+        f"BUG: def_end ({def_end}) should be > def_start ({def_start}) for {def_total_hours}h charge"
+    )
 
     # Also verify the window is large enough
     window_size = def_end - def_start
-    assert (
-        window_size >= def_total_hours
-    ), f"BUG: Window size ({window_size}h) < charging time ({def_total_hours}h)"
+    assert window_size >= def_total_hours, (
+        f"BUG: Window size ({window_size}h) < charging time ({def_total_hours}h)"
+    )
 
 
 @pytest.mark.asyncio
-async def test_populate_cache_entry_def_end_uses_fin_ventana(
-    mock_hass, mock_store
-):
+async def test_populate_cache_entry_def_end_uses_fin_ventana(mock_hass, mock_store):
     """
     This test will FAIL until the bug is fixed.
     """
@@ -94,6 +96,8 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(
         CONF_VEHICLE_NAME: "test_vehicle",
         CONF_MAX_DEFERRABLE_LOADS: 50,
         CONF_CHARGING_POWER: 3.6,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 10.0,
     }
 
     now = datetime.now(timezone.utc)
@@ -106,38 +110,35 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(
     }
 
     with patch(
-        "custom_components.ev_trip_planner.emhass_adapter.Store",
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
         return_value=mock_store,
     ):
         adapter = EMHASSAdapter(mock_hass, config)
         await adapter.async_load()
 
     # Car already returned
-    hora_regreso = now - timedelta(hours=10)
-
     await adapter._populate_per_trip_cache_entry(
-        trip=trip,
-        trip_id=trip["id"],
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
-        soc_current=50.0,
-        hora_regreso=hora_regreso,
+        PerTripCacheParams(
+            trip=trip,
+            trip_id=trip["id"],
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+            soc_current=50.0,
+        ),
     )
 
     params = adapter._cached_per_trip_params.get(trip["id"])
-    def_start = params.get("def_start_timestep")
     def_end = params.get("def_end_timestep")
 
-    # With the fix: def_end should be based on fin_ventana (deadline)
-    # not just hours_available
-    # When car has returned, charging can start immediately (def_start=0)
-    # and should continue until deadline (def_end=48)
-    assert def_end >= 48, f"def_end ({def_end}) should be >= 48 (hours to deadline)"
-
-    assert (
-        def_end > def_start
-    ), f"def_end ({def_end}) should be > def_start ({def_start})"
+    # FIX VERIFIED: def_end is based on fin_ventana (trip departure time),
+    # NOT def_start + total_hours.
+    # In this case: def_start=0 (car home), def_total_hours=8 (charging time),
+    # def_end should be 48 (hours until trip departure at 09:40 next day).
+    # The window is 48 hours wide (departure - now), and charging takes 8 hours.
+    assert def_end == 48, (
+        f"def_end ({def_end}) should be 48 (hours until trip departure at {deadline})"
+    )
 
 
 if __name__ == "__main__":

@@ -19,7 +19,12 @@ class TestDiagnostics:
         hass = MagicMock()
         entry = MagicMock()
         entry.entry_id = "test_entry_123"
-        entry.data = {"vehicle_name": "test_vehicle"}
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "test_vehicle",
+        }
 
         # Mock runtime data
         coordinator = MagicMock()
@@ -47,7 +52,12 @@ class TestDiagnostics:
         hass = MagicMock()
         entry = MagicMock()
         entry.entry_id = "test_entry_456"
-        entry.data = {"vehicle_name": "another_vehicle"}
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "another_vehicle",
+        }
 
         # Mock runtime data with no coordinator
         entry.runtime_data = MagicMock()
@@ -70,7 +80,13 @@ class TestDiagnostics:
         entry.entry_id = "entry_abc"
         entry.version = 2
         entry.minor_version = 1
-        entry.data = {"vehicle_name": "MyCar", "soc_sensor": "sensor.test"}
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
+            "vehicle_name": "MyCar",
+            "soc_sensor": "sensor.test",
+        }
 
         entry.runtime_data = None
 
@@ -155,9 +171,10 @@ class TestDiagnostics:
         coordinator.last_update_success = False
 
         trip_manager = MagicMock()
-        trip_manager.vehicle_id = "my_nissan"
-        trip_manager._recurring_trips = {"r1": {}, "r2": {}}
-        trip_manager._punctual_trips = {"p1": {}}
+        trip_manager._state = MagicMock()
+        trip_manager._state.vehicle_id = "my_nissan"
+        trip_manager._state.recurring_trips = {"r1": {}, "r2": {}}
+        trip_manager._state.punctual_trips = {"p1": {}}
 
         runtime = MagicMock()
         runtime.coordinator = coordinator
@@ -193,7 +210,7 @@ class TestDiagnostics:
         emhass = MagicMock()
         emhass.vehicle_id = "emhass_v1"
         emhass._index_map = {"idx1": 0}
-        emhass._available_indices = [0, 1, 2]
+        emhass.get_available_indices.return_value = [0, 1, 2]
 
         runtime = MagicMock()
         runtime.coordinator = coordinator
@@ -246,6 +263,9 @@ class TestDiagnostics:
         entry.version = 1
         entry.minor_version = 0
         entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 3.6,
+            "safety_margin_percent": 10.0,
             "vehicle_name": "secret_car",
             "soc_sensor": "secret_sensor",
             "range_sensor": "secret_range",

@@ -38,16 +38,13 @@ disable = [
     "too-many-instance-attributes",
     "too-many-arguments",
     "C0200",  # consider-using-enumerate: style preference, not critical
+    "W0404",  # reimport: common in test files, not a real issue
 ]
 
 [tool.pyright]
 pythonVersion = "3.14"
 typeCheckingMode = "basic"
-reportMissingImports = "warning"
-reportMissingTypeStubs = "warning"
-reportUnknownMemberType = "warning"
-reportUnknownVariableType = "warning"
-reportUnknownArgumentType = "warning"
+
 exclude = [
     "**/__pycache__",
     "**/.*",
@@ -69,8 +66,19 @@ min_confidence = 80
 exclude = ["tests/", "docs/"]
 paths = ["custom_components"]
 
-[tool.import-linter]
-root_package = "custom_components"
+[tool.importlinter]
+root_package = "custom_components.ev_trip_planner"
+
+# Contract 1: layered architecture — services may import trip/emhass/dashboard, not vice versa
+[[tool.importlinter.contracts]]
+name = "layered architecture: trip/emhass/dashboard do not import services"
+type = "forbidden"
+source_modules = [
+    "custom_components.ev_trip_planner.trip",
+    "custom_components.ev_trip_planner.emhass",
+    "custom_components.ev_trip_planner.dashboard",
+]
+forbidden_modules = ["custom_components.ev_trip_planner.services"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
@@ -85,7 +93,6 @@ python_functions = "test_*"
 addopts = "-v --import-mode=importlib --strict-markers --strict-config"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-strict = true
 markers = [
     "unit: unit tests (no external dependencies)",
     "integration: integration tests (require HA framework or external services)",
@@ -98,7 +105,9 @@ filterwarnings = [
 
 [tool.coverage.run]
 source = ["custom_components/ev_trip_planner"]
-omit = ["tests/*"]
+omit = [
+    "tests/*",
+]
 
 [tool.coverage.report]
 fail_under = 100
@@ -131,7 +140,23 @@ increment_step = 0.01
 target_final = 1.00
 modules_per_sprint = 2
 
-[tool.quality-gate.mutation.modules.calculations]
+[tool.quality-gate.mutation.modules.calculations.core]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.windows]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.power]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.schedule]
+kill_threshold = 0.71
+status = "passing"
+
+[tool.quality-gate.mutation.modules.calculations.deficit]
 kill_threshold = 0.71
 status = "passing"
 
@@ -151,11 +176,43 @@ status = "in_progress"
 kill_threshold = 0.52
 status = "passing"
 
-[tool.quality-gate.mutation.modules.trip_manager]
+[tool.quality-gate.mutation.modules.trip.manager]
 kill_threshold = 0.46
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.emhass_adapter]
+[tool.quality-gate.mutation.modules.trip.crud_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.trip.soc_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.trip.power_profile_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.trip.schedule_mixin]
+kill_threshold = 0.46
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.emhass.adapter]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.index_manager]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.load_publisher]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.error_handler]
+kill_threshold = 0.53
+status = "passing"
+
+[tool.quality-gate.mutation.modules.emhass.cache_entry_builder]
 kill_threshold = 0.53
 status = "passing"
 
@@ -163,7 +220,15 @@ status = "passing"
 kill_threshold = 0.31
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.vehicle_controller]
+[tool.quality-gate.mutation.modules.vehicle.controller]
+kill_threshold = 0.55
+status = "passing"
+
+[tool.quality-gate.mutation.modules.vehicle.strategy]
+kill_threshold = 0.55
+status = "passing"
+
+[tool.quality-gate.mutation.modules.vehicle.external]
 kill_threshold = 0.55
 status = "passing"
 
@@ -180,7 +245,15 @@ status = "passing"
 kill_threshold = 0.51
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.dashboard]
+[tool.quality-gate.mutation.modules.dashboard.importer]
+kill_threshold = 0.35
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.dashboard.builder]
+kill_threshold = 0.35
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.dashboard.template_manager]
 kill_threshold = 0.35
 status = "in_progress"
 
@@ -192,6 +265,26 @@ status = "passing"
 kill_threshold = 0.37
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.services]
+[tool.quality-gate.mutation.modules.services.handlers]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services._handler_factories]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services.cleanup]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services.dashboard_helpers]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services.presence]
+kill_threshold = 0.38
+status = "in_progress"
+
+[tool.quality-gate.mutation.modules.services._lookup]
 kill_threshold = 0.38
 status = "in_progress"

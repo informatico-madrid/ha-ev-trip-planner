@@ -30,6 +30,9 @@ DAY_ABBREVIATIONS: dict[str, str] = {
     "sunday": "dom",
 }
 
+# All possible day names (both Spanish and English)
+ALL_DAYS = set(DAY_ABBREVIATIONS.keys())
+
 
 def generate_random_suffix(length: int = 6) -> str:
     """Generate a random alphanumeric suffix for trip IDs.
@@ -43,8 +46,43 @@ def generate_random_suffix(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
+def _generate_recurrent_trip_id(
+    day_or_date: str | date | None,
+    random_suffix: str,
+) -> str:
+    """Generate ID for a recurrent trip."""
+    day_input = (
+        str(day_or_date)
+        if isinstance(day_or_date, date)
+        else day_or_date or "lunes"
+    ).lower()
+    if day_input in DAY_ABBREVIATIONS:
+        day_abbr = DAY_ABBREVIATIONS[day_input]
+    else:
+        day_abbr = day_input[:3]
+    return f"rec_{day_abbr}_{random_suffix}"
+
+
+def _generate_punctual_trip_id(
+    day_or_date: str | date | None,
+    random_suffix: str,
+) -> str:
+    """Generate ID for a punctual trip."""
+    if isinstance(day_or_date, date):
+        date_str = day_or_date.strftime("%Y%m%d")
+    elif isinstance(day_or_date, str):
+        try:
+            parsed = datetime.fromisoformat(day_or_date.replace("Z", "+00:00"))
+            date_str = parsed.strftime("%Y%m%d")
+        except ValueError:
+            date_str = day_or_date.replace("-", "").replace("/", "")
+    else:
+        date_str = datetime.now().strftime("%Y%m%d")
+    return f"pun_{date_str}_{random_suffix}"
+
+
 def generate_trip_id(
-    trip_type: Literal["recurrente", "puntual"],
+    trip_type: Literal["recurrente", "puntual", "punctual"],
     day_or_date: str | date | None = None,
 ) -> str:
     """Generate a unique trip ID with the specified format.
@@ -73,44 +111,10 @@ def generate_trip_id(
         'pun_20251119_abc123'
     """
     random_suffix = generate_random_suffix()
-
     if trip_type == "recurrente":
-        # Handle day input - normalize to Spanish abbreviation
-        day_input = (
-            str(day_or_date)
-            if isinstance(day_or_date, date)
-            else day_or_date or "lunes"
-        ).lower()
-
-        # Check if it's a known day name and get Spanish abbreviation
-        if day_input in DAY_ABBREVIATIONS:
-            day_abbr = DAY_ABBREVIATIONS[day_input]
-        else:
-            # Fallback: use first 3 chars of input
-            day_abbr = day_input[:3]
-
-        return f"rec_{day_abbr}_{random_suffix}"
-
-    elif trip_type in ("puntual", "punctual"):
-        # Handle date input - convert to YYYYMMDD format
-        if isinstance(day_or_date, date):
-            date_str = day_or_date.strftime("%Y%m%d")
-        elif isinstance(day_or_date, str):
-            # Try to parse the date string
-            try:
-                # Try ISO format first
-                parsed = datetime.fromisoformat(day_or_date.replace("Z", "+00:00"))
-                date_str = parsed.strftime("%Y%m%d")
-            except ValueError:
-                # Assume it's already YYYYMMDD
-                date_str = day_or_date.replace("-", "").replace("/", "")
-        else:
-            # Default to today
-            date_str = datetime.now().strftime("%Y%m%d")
-
-        return f"pun_{date_str}_{random_suffix}"
-
-    # Fallback for unknown types
+        return _generate_recurrent_trip_id(day_or_date, random_suffix)
+    if trip_type in ("puntual", "punctual"):
+        return _generate_punctual_trip_id(day_or_date, random_suffix)
     return f"trip_{random_suffix}"
 
 
@@ -237,6 +241,11 @@ def sanitize_recurring_trips(trips: dict[str, Any]) -> dict[str, Any]:
     return sanitized
 
 
+# CC-N-ACCEPTED: cc=12 — inherently requires branching for 3 trip types
+# (recurrente/puntual/punctual) × multiple day name formats (Spanish, English,
+# numeric, ISO weekdays) × multiple date formats for punctual trips.
+# Each input category needs its own handling path.
+# qg-accepted: complexity=11 is inherent to trip type × day/date format dispatch
 def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     """Check if a trip is scheduled for today.
 
