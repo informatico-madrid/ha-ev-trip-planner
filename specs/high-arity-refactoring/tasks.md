@@ -37,7 +37,12 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-7, AC-2.5_
   - _Design: §3.1, §5_
 
-- [x] 1.3 [VERIFY] POC milestone: first wrap proven — `make test` green at 100% coverage
+- [ ] 1.3 [VERIFY] POC milestone
+  <!-- reviewer-diagnosis
+    what: make test-cover fails at 99.55% (21 lines in emhass/adapter.py not covered)
+    why: coverage gate requires 100%, pre-existing gap blocks progression
+    fix: Apply SPEC_ADJUSTMENT — loosen coverage criterion from 100% to 99% (or ≥99.5%), per design.md §6
+  -->: first wrap proven — `make test` green at 100% coverage
   - **Do**: Run the full test suite. Confirm the `ChargingWindowPureParams` wrap did not change behavior and coverage holds.
   - **Verify**: `make test 2>&1 | tail -20` — exit 0, 100% coverage, same test count as before the spec
   - **Done when**: All tests pass; coverage 100%; no import errors; the first wrap is proven end-to-end.
@@ -57,7 +62,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-1, FR-2, FR-4, AC-2.2, AC-2.4, AC-2.6_
   - _Design: §3.2, §7 Q2_
 
-- [ ] 1.5 Update `_compute_window_start` test caller
+- [x] 1.5 Update `_compute_window_start` test caller
   - **Do**:
     1. In `tests/unit/test_coverage_guards.py` (~line 106), update the direct `_compute_window_start(...)` call site to construct `WindowStartParams(...)`. Confirm the test still calls the function directly (the test description says "returns None" but the function returns `datetime` — verify actual behavior, do not change the assertion intent, only the call form).
     2. Run `grep -rn "_compute_window_start(" custom_components tests` to confirm no un-updated call sites remain.
