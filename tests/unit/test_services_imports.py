@@ -18,13 +18,11 @@ ALL_PUBLIC_NAMES: tuple[str, ...] = (
     "PLATFORMS",
     "CoordinatorType",
     "register_services",
-    "create_dashboard_input_helpers",
     "async_cleanup_stale_storage",
     "async_cleanup_orphaned_emhass_sensors",
     "build_presence_config",
     "async_register_static_paths",
     "async_register_panel_for_entry",
-    "async_import_dashboard_for_entry",
     "async_unload_entry_cleanup",
     "async_remove_entry_cleanup",
 )

@@ -1,11 +1,11 @@
 """Tests for config_flow/main.py uncovered validation and error paths.
 
-Covers the 26 lines not reached by existing tests:
+Covers the 24 lines not reached by existing tests:
 - Sensor data update after validation (366-377)
 - EMHASS step proceed after validation (411)
 - Presence step: auto-select failure (474-477), sensor not found (493, 504-506, 517-519)
 - Notifications step: service validation, logging (574-583, 593, 596)
-- Entry creation: dashboard/panel exceptions (664-666, 682-684)
+- Entry creation: panel registration exception
 """
 
 from __future__ import annotations
@@ -217,57 +217,18 @@ class TestAsyncStepNotifications:
 
 
 class TestAsyncCreateEntryExceptions:
-    """Test _async_create_entry exception paths (lines 664-666, 682-684)."""
-
-    @pytest.mark.asyncio
-    async def test_dashboard_import_exception(self, caplog):
-        """Lines 664-666: Dashboard import exception → warning, flow continues."""
-        handler = EVTripPlannerFlowHandler()
-        handler.hass = MagicMock()
-        handler.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
-
-        with (
-            patch(
-                "custom_components.ev_trip_planner.config_flow.main.import_dashboard",
-                side_effect=RuntimeError("dashboard error"),
-            ) as _,
-            patch(
-                "custom_components.ev_trip_planner.config_flow.main.is_lovelace_available",
-                return_value=True,
-            ),
-            patch(
-                "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
-                return_value=None,
-            ),
-        ):
-            result = await handler._async_create_entry()
-
-        assert result is not None
-        # Dashboard exception is caught and logged as warning
-        assert any(
-            "Could not auto-import dashboard" in r.message for r in caplog.records
-        )
+    """Test _async_create_entry exception paths."""
 
     @pytest.mark.asyncio
     async def test_panel_registration_exception(self, caplog):
-        """Lines 682-684: Panel registration exception → warning, flow continues."""
+        """Panel registration exception → warning, flow continues."""
         handler = EVTripPlannerFlowHandler()
         handler.hass = MagicMock()
         handler.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
 
-        with (
-            patch(
-                "custom_components.ev_trip_planner.config_flow.main.import_dashboard",
-                return_value=None,
-            ),
-            patch(
-                "custom_components.ev_trip_planner.config_flow.main.is_lovelace_available",
-                return_value=True,
-            ),
-            patch(
-                "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
-                side_effect=RuntimeError("panel error"),
-            ),
+        with patch(
+            "custom_components.ev_trip_planner.config_flow.main.panel_module.async_register_panel",
+            side_effect=RuntimeError("panel error"),
         ):
             result = await handler._async_create_entry()
 

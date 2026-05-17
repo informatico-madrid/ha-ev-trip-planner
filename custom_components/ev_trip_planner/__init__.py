@@ -30,13 +30,11 @@ from .trip._types import TripManagerConfig
 from .services import (
     async_cleanup_orphaned_emhass_sensors,
     async_cleanup_stale_storage,
-    async_import_dashboard_for_entry,
     async_register_panel_for_entry,
     async_register_static_paths,
     async_remove_entry_cleanup,
     async_unload_entry_cleanup,
     build_presence_config,
-    create_dashboard_input_helpers,
     register_services,
 )
 from .trip import TripManager
@@ -296,12 +294,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(
         entry, PLATFORMS
     )  # pragma: no cover reason=HA lifecycle — platform forwarding during entry setup
-    await create_dashboard_input_helpers(
-        hass, vehicle_id
-    )  # pragma: no cover reason=HA lifecycle — dashboard helpers creation during entry setup
-    await async_import_dashboard_for_entry(
-        hass, entry, vehicle_id
-    )  # pragma: no cover reason=HA lifecycle — dashboard import during entry setup
     return True  # pragma: no cover reason=HA lifecycle — success return from async_setup_entry
 
 

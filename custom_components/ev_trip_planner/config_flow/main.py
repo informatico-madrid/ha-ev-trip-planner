@@ -51,10 +51,6 @@ from ..const import (
     MAX_T_BASE,
     MIN_T_BASE,
 )
-from ..dashboard import (  # type: ignore[reportAttributeAccessIssue]
-    import_dashboard,
-    is_lovelace_available,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -666,35 +662,6 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             data=vehicle_data,
         )
         _LOGGER.info("Config entry created successfully for %s", vehicle_name)
-
-        # Try to import dashboard after entry creation
-        # We do this after creation to ensure hass is fully initialized
-        try:
-            # Check Lovelace availability
-            use_charts = is_lovelace_available(self.hass)
-            _LOGGER.info(
-                "Lovelace available: %s, will use %s dashboard",
-                use_charts,
-                "full" if use_charts else "simple",
-            )
-
-            # Attempt to import dashboard (non-blocking)
-            # Note: This may fail silently if Lovelace is not fully ready
-            # The dashboard can also be imported manually from UI
-            await import_dashboard(
-                self.hass,
-                vehicle_id=vehicle_id,
-                vehicle_name=vehicle_name,
-                use_charts=use_charts,
-            )
-            _LOGGER.info("Dashboard imported successfully for %s", vehicle_name)
-        except Exception as err:
-            # Log but don't fail the flow - dashboard import is optional
-            _LOGGER.warning(
-                "Could not auto-import dashboard for %s: %s",
-                vehicle_name,
-                err,
-            )
 
         # Register native panel for the vehicle
         # This creates a sidebar entry in HA without requiring Lovelace

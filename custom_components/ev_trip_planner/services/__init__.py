@@ -40,10 +40,8 @@ from .cleanup import (
     async_unload_entry_cleanup,
 )
 from .dashboard_helpers import (
-    async_import_dashboard_for_entry,
     async_register_panel_for_entry,
     async_register_static_paths,
-    create_dashboard_input_helpers,
 )
 
 __all__ = [
@@ -51,13 +49,11 @@ __all__ = [
     "CoordinatorType",
     "async_cleanup_orphaned_emhass_sensors",
     "async_cleanup_stale_storage",
-    "async_import_dashboard_for_entry",
     "async_register_panel_for_entry",
     "async_register_static_paths",
     "async_remove_entry_cleanup",
     "async_unload_entry_cleanup",
     "build_presence_config",
-    "create_dashboard_input_helpers",
     "make_add_recurring_handler",
     "make_add_punctual_handler",
     "make_cancel_punctual_handler",
