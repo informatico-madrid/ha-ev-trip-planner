@@ -18,6 +18,7 @@ from ._helpers import (
     _ensure_aware,
     resolve_trip_deadline,
 )
+from .windows import ChargingWindowPureParams
 from .core import calculate_trip_time
 from .deficit import determine_charging_need
 from .windows import calculate_charging_window_pure, calculate_energy_needed
@@ -332,12 +333,14 @@ def _try_populate_window(
         return
 
     ventana_info = calculate_charging_window_pure(
-        trip_departure_time=trip_departure_time,
-        soc_actual=soc_current,
-        hora_regreso=hora_regreso,
-        charging_power_kw=charging_power_kw,
-        energia_kwh=energia_kwh,
-        duration_hours=6.0,
+        ChargingWindowPureParams(
+            trip_departure_time=trip_departure_time,
+            soc_actual=soc_current,
+            hora_regreso=hora_regreso,
+            charging_power_kw=charging_power_kw,
+            energia_kwh=energia_kwh,
+            duration_hours=6.0,
+        ),
     )
 
     if not ventana_info.get("es_suficiente", False):

@@ -8,6 +8,7 @@ window calculations for single and multi-trip scenarios.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -100,26 +101,23 @@ def calculate_energy_needed(
     }
 
 
-def calculate_charging_window_pure(
-    trip_departure_time: Optional[datetime],
-    soc_actual: float,
-    hora_regreso: Optional[datetime],
-    charging_power_kw: float,
-    energia_kwh: float,
-    duration_hours: float = 6.0,
-) -> Dict[str, Any]:
-    # qg-accepted: arity=6 is the charging window API — domain inputs only
+@dataclass(frozen=True, kw_only=True)
+class ChargingWindowPureParams:
+    trip_departure_time: Optional[datetime]
+    soc_actual: float
+    hora_regreso: Optional[datetime]
+    charging_power_kw: float
+    energia_kwh: float
+    duration_hours: float = 6.0
+
+
+def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str, Any]:
     """Pure charging window calculation without any async or hass.
 
     Computes the available charging window between return and departure.
 
     Args:
-        trip_departure_time: When the trip departs (end of charging window)
-        soc_actual: Current SOC percentage
-        hora_regreso: When the vehicle returns (start of charging window)
-        charging_power_kw: Charging power in kW
-        energia_kwh: Energy needed for the trip in kWh
-        duration_hours: Default trip duration in hours (default 6.0)
+        params: Encapsulated charging window parameters.
 
     Returns:
         Dictionary with:
@@ -130,6 +128,13 @@ def calculate_charging_window_pure(
             - fin_ventana: Window end datetime (trip departure)
             - es_suficiente: True if window is sufficient
     """
+    trip_departure_time = params.trip_departure_time
+    soc_actual = params.soc_actual
+    hora_regreso = params.hora_regreso
+    charging_power_kw = params.charging_power_kw
+    energia_kwh = params.energia_kwh
+    duration_hours = params.duration_hours
+
     # Ensure all datetime inputs are timezone-aware (treat naive as UTC)
     if hora_regreso is not None and getattr(hora_regreso, "tzinfo", None) is None:
         hora_regreso = hora_regreso.replace(tzinfo=timezone.utc)
