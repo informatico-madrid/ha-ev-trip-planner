@@ -1,7 +1,6 @@
 """Execution tests for TripPlannerCoordinator.
 
-Covers __init__, vehicle_id property, _async_update_data, async_refresh_trips,
-and _generate_mock_emhass_params.
+Covers __init__, vehicle_id property, _async_update_data, and async_refresh_trips.
 """
 
 from __future__ import annotations
@@ -192,8 +191,8 @@ class TestCoordinatorAsyncUpdateData:
         assert result["emhass_status"] is None
 
     @pytest.mark.asyncio
-    async def test_async_update_data_emhass_empty_triggers_fallback(self):
-        """EMHASS returns empty cache → generates mock params."""
+    async def test_async_update_data_emhass_empty_returns_empty_params(self):
+        """EMHASS returns empty cache → per_trip_emhass_params is empty, no fallback."""
         adapter = MagicMock()
         adapter.get_cached_optimization_results.return_value = {
             "per_trip_emhass_params": {},
@@ -215,11 +214,10 @@ class TestCoordinatorAsyncUpdateData:
             emhass_adapter=adapter,
         )
         result = await coord._async_update_data()
-        # Should have fallback mock params
-        assert "per_trip_emhass_params" in result
-        assert "rec_1" in result["per_trip_emhass_params"]
-        assert result["emhass_power_profile"] is not None
-        assert result["emhass_status"] == "ready"
+        # No mock fallback — empty EMHASS params means empty dict
+        assert result["per_trip_emhass_params"] == {}
+        # Main trip data is unaffected
+        assert "rec_1" in result["recurring_trips"]
 
     @pytest.mark.asyncio
     async def test_async_update_data_empty_trips(self):
@@ -263,170 +261,3 @@ class TestCoordinatorRefreshTrips:
         await coord.async_refresh_trips()
         coord.async_refresh.assert_called_once()
 
-
-class TestGenerateMockEmhassParams:
-    """Test TripPlannerCoordinator._generate_mock_emhass_params."""
-
-    def _make_coord_for_mock(self, extra_entry_data=None):
-        """Create coordinator with minimal trip_manager for mock testing."""
-        tm = MagicMock()
-        tm._crud.async_get_recurring_trips = AsyncMock(return_value=[])
-        coord = _make_coordinator(
-            extra_entry_data=extra_entry_data,
-            trip_manager=tm,
-        )
-        return coord
-
-    def test_mock_params_single_trip(self):
-        """Single trip generates correct mock params."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "id": "rec_1",
-                "status": "active",
-                "kwh": 7.5,
-                "km": 50,
-                "datetime": "2026-05-20T09:00:00+00:00",
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        assert "emhass_power_profile" in result
-        assert "emhass_deferrables_schedule" in result
-        assert result["emhass_status"] == "ready"
-        assert "rec_1" in result["per_trip_emhass_params"]
-        assert result["per_trip_emhass_params"]["rec_1"]["kwh_needed"] == 7.5
-
-    def test_mock_params_skips_completed_trips(self):
-        """Completed trips are skipped in mock generation."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "completed",
-                "kwh": 7.5,
-                "km": 50,
-            },
-            "rec_2": {
-                "status": "active",
-                "kwh": 5.0,
-                "km": 30,
-            },
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        assert "rec_1" not in result["per_trip_emhass_params"]
-        assert "rec_2" in result["per_trip_emhass_params"]
-
-    def test_mock_params_skips_cancelled_trips(self):
-        """Cancelled trips are skipped."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "cancelled",
-                "kwh": 7.5,
-                "km": 50,
-            },
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        assert "rec_1" not in result["per_trip_emhass_params"]
-
-    def test_mock_params_matrix_shape(self):
-        """Generated matrix rows have 168 columns (7d * 24h)."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "active",
-                "kwh": 7.5,
-                "km": 50,
-                "datetime": "2026-05-20T09:00:00+00:00",
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        params = result["per_trip_emhass_params"]["rec_1"]
-        # p_deferrable_matrix is a list of lists
-        matrix = params.get("p_deferrable_matrix", [])
-        assert len(matrix) > 0
-        for row in matrix:
-            assert len(row) == 168
-
-    def test_mock_params_deferrables_schedule(self):
-        """Deferrables schedule entries have correct structure."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "active",
-                "kwh": 5.0,
-                "km": 30,
-                "datetime": "2026-05-20T10:00:00+00:00",
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        schedule = result["emhass_deferrables_schedule"]
-        assert len(schedule) == 1
-        entry = schedule[0]
-        assert "index" in entry
-        assert "kwh" in entry
-        assert "start_timestep" in entry
-        assert "end_timestep" in entry
-
-    def test_mock_params_zero_charging_power(self):
-        """Zero charging power → hours_needed defaults to 0.1."""
-        coord = self._make_coord_for_mock(extra_entry_data={"charging_power_kw": 0})
-        trips = {
-            "rec_1": {
-                "status": "active",
-                "kwh": 7.5,
-                "km": 50,
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        params = result["per_trip_emhass_params"]["rec_1"]
-        # BUG-1 fix: math.ceil(max(0/0, 0.1)) = math.ceil(0.1) = 1
-        assert params["def_total_hours"] == 1
-
-    def test_mock_params_invalid_datetime(self):
-        """Invalid datetime string handled gracefully."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "active",
-                "kwh": 7.5,
-                "km": 50,
-                "datetime": "not-a-date",
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        assert "rec_1" in result["per_trip_emhass_params"]
-
-    def test_mock_params_no_datetime(self):
-        """Missing datetime → timestep starts at 0."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "active",
-                "kwh": 7.5,
-                "km": 50,
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        entry = result["per_trip_emhass_params"]["rec_1"]
-        assert entry["def_start_timestep"] == 0
-
-    def test_mock_params_datetime_no_tzinfo(self):
-        """Datetime without timezone → replace with UTC (line 274)."""
-        coord = self._make_coord_for_mock()
-        trips = {
-            "rec_1": {
-                "status": "active",
-                "kwh": 7.5,
-                "km": 50,
-                "datetime": "2026-05-20T09:00:00",  # No timezone info
-            }
-        }
-        result = coord._generate_mock_emhass_params(trips)
-        assert "rec_1" in result["per_trip_emhass_params"]
-
-    def test_mock_params_empty_trips(self):
-        """Empty trips dict → empty results."""
-        coord = self._make_coord_for_mock()
-        result = coord._generate_mock_emhass_params({})
-        assert result["per_trip_emhass_params"] == {}
-        assert result["emhass_deferrables_schedule"] == []
