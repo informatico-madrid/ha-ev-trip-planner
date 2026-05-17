@@ -45,7 +45,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-7, NFR-2_
   - **Note**: Coverage at 99.55% (21 lines in emhass/adapter.py) — pre-existing, confirmed via git stash revert. The `ChargingWindowPureParams` wrap is behavior-neutral. Requires SPEC_ADJUSTMENT to loosen coverage gate from 100% to 99% or fix pre-existing gaps.
 
-- [ ] 1.4 Add `WindowStartParams` dataclass, change `_compute_window_start` signature, refactor caller `loop_now` tracking
+- [x] 1.4 Add `WindowStartParams` dataclass, change `_compute_window_start` signature, refactor caller `loop_now` tracking
   - **Do**:
     1. In `calculations/windows.py`, add `@dataclass(frozen=True, kw_only=True)` class `WindowStartParams` before `_compute_window_start` (~line 324) with fields per design.md §3.2: `idx: int`, `trip_departure_time: datetime`, `hora_regreso: datetime | None`, `return_buffer_hours: float`, `loop_now: datetime | None`, `prev_departure: datetime | None`, `now: datetime | None`.
     2. Change signature to `def _compute_window_start(params: WindowStartParams) -> datetime:`; body reads `params.<field>`. Remove the `# qg-accepted: arity=7 ...` comment.
