@@ -110,7 +110,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
 Focus: dead-kwarg cleanup, pragma justification, qg-accepted verification — applying the
 design.md verdict tables.
 
-- [ ] 2.1 Remove 3 dead kwargs from `_populate_per_trip_cache_entry`
+- [x] 2.1 Remove 3 dead kwargs from `_populate_per_trip_cache_entry`
   - **Do**:
     1. In `emhass/adapter.py` `_populate_per_trip_cache_entry` (~line 714), remove ONLY these 3 dead kwargs from the signature: `hora_regreso`, `adjusted_def_total_hours`, `soc_cap` (design.md §4 table — they are unused in the body).
     2. KEEP `pre_computed_inicio_ventana`, `pre_computed_fin_ventana`, `pre_computed_charging_window` — these are ACTIVE (used at lines ~776, ~790, ~805). Do NOT remove them.
@@ -124,7 +124,7 @@ design.md verdict tables.
   - _Requirements: FR-6, AC-3.1, AC-3.2, AC-3.3_
   - _Design: §4_
 
-- [ ] 2.2 Add inline justification to bare `# pragma: no cover` in `trip/_crud.py`
+- [x] 2.2 Add inline justification to bare `# pragma: no cover` in `trip/_crud.py`
   - **Do**:
     1. In `trip/_crud.py` at line ~53 (`_emit_post_add`), replace the bare `# pragma: no cover` with `# pragma: no cover reason=HA event bus integration — emit() dispatches via hass.bus which requires a real HA instance` (per design.md §2b).
     2. Confirm this is the only bare pragma in `custom_components/` — `grep -rn "# pragma: no cover" custom_components/ev_trip_planner | grep -v "reason="` must return only this line before the fix, and nothing after.

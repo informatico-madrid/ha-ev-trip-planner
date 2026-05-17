@@ -50,7 +50,7 @@ class TripCRUD:
 
     def _emit_post_add(
         self, event_name: str, trip_data: Dict[str, Any]
-    ) -> None:  # pragma: no cover
+    ) -> None:  # pragma: no cover reason=HA event bus integration — emit() dispatches via hass.bus which requires a real HA instance
         """Emit trip-created and EMHASS sensor events after adding a trip."""
         entry_id = self._state.entry_id or ""
         trip_id = trip_data["id"]
