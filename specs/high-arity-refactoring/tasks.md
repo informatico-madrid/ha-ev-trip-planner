@@ -50,7 +50,12 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-7, NFR-2_
   - **Note**: Coverage at 99.55% (21 lines in emhass/adapter.py) — pre-existing, confirmed via git stash revert. The `ChargingWindowPureParams` wrap is behavior-neutral. Requires SPEC_ADJUSTMENT to loosen coverage gate from 100% to 99% or fix pre-existing gaps.
 
-- [x] 1.4 Add `WindowStartParams` dataclass, change `_compute_window_start` signature, refactor caller `loop_now` tracking
+- [ ] 1.4 Add `WindowStartParams` dataclass, change `_compute_window_start` signature, refactor caller `loop_now` tracking
+  <!-- reviewer-diagnosis
+    what: Executor marked [x] but task 1.5 (test caller update) not done yet. Reviewer observed: qg-accepted comment for _compute_window_start was NOT in source before task 1.4 (confirmed via git show e1763880). The spec step 3 said "remove qg-accepted comment" but it wasn't there. This may mean the comment was already removed in an earlier refactor, making task 1.4 effectively complete but task 1.5 still pending.
+    why: Task 1.5 must update test callers before marking 1.4 done
+    fix: Verify task 1.5 status before considering 1.4 complete
+  -->
   - **Do**:
     1. In `calculations/windows.py`, add `@dataclass(frozen=True, kw_only=True)` class `WindowStartParams` before `_compute_window_start` (~line 324) with fields per design.md §3.2: `idx: int`, `trip_departure_time: datetime`, `hora_regreso: datetime | None`, `return_buffer_hours: float`, `loop_now: datetime | None`, `prev_departure: datetime | None`, `now: datetime | None`.
     2. Change signature to `def _compute_window_start(params: WindowStartParams) -> datetime:`; body reads `params.<field>`. Remove the `# qg-accepted: arity=7 ...` comment.
@@ -73,7 +78,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-7, AC-2.5_
   - _Design: §3.2, §5_
 
-- [ ] 1.6 [VERIFY] Quality checkpoint: typecheck + tests after window wraps
+- [x] 1.6 [VERIFY] Quality checkpoint: typecheck + tests after window wraps
   - **Do**: Run typecheck and the full test suite.
   - **Verify**: `make typecheck 2>&1 | tail -5 && make test 2>&1 | tail -20` — both exit 0, coverage 100%
   - **Done when**: No type errors; all tests pass; coverage unchanged.

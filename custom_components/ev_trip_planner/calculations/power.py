@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
@@ -286,23 +287,27 @@ def _compute_window_position(
     return hora_inicio_carga, horas_necesarias, horas_hasta_fin
 
 
-def _populate_profile(
-    power_profile: List[float],
-    hora_inicio: int,
-    horas_necesarias: int,
-    horas_hasta_fin: int,
-    profile_length: int,
-    charging_power_watts: float,
-) -> None:
-    # qg-accepted: arity=6 — helper needs all params for profile population
+@dataclass(frozen=True, kw_only=True)
+class PopulateProfileParams:
+    """Parameters for `_populate_profile`."""
+
+    power_profile: List[float]
+    hora_inicio: int
+    horas_necesarias: int
+    horas_hasta_fin: int
+    profile_length: int
+    charging_power_watts: float
+
+
+def _populate_profile(params: PopulateProfileParams) -> None:
     """Populate power profile hours for a charging window."""
     # horas_necesarias can be float from ventana_info
     for h in range(
-        hora_inicio,
-        min(int(hora_inicio + horas_necesarias), horas_hasta_fin, profile_length),
+        params.hora_inicio,
+        min(int(params.hora_inicio + params.horas_necesarias), params.horas_hasta_fin, params.profile_length),
     ):
-        if 0 <= h < profile_length:
-            power_profile[h] = charging_power_watts
+        if 0 <= h < params.profile_length:
+            params.power_profile[h] = params.charging_power_watts
 
 
 def _try_populate_window(
@@ -352,10 +357,12 @@ def _try_populate_window(
 
     hora_inicio, horas_necesarias, horas_hasta_fin = pos
     _populate_profile(
-        power_profile,
-        hora_inicio,
-        horas_necesarias,
-        horas_hasta_fin,
-        profile_length,
-        charging_power_watts,
+        PopulateProfileParams(
+            power_profile=power_profile,
+            hora_inicio=hora_inicio,
+            horas_necesarias=horas_necesarias,
+            horas_hasta_fin=horas_hasta_fin,
+            profile_length=profile_length,
+            charging_power_watts=charging_power_watts,
+        ),
     )
