@@ -11,6 +11,10 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from custom_components.ev_trip_planner.calculations.windows import (
+    ChargingWindowPureParams,
+)
+
 
 class TestCalculateDayIndex:
     """Tests for calculate_day_index."""
@@ -606,11 +610,13 @@ class TestCalculateChargingWindowPure:
         )
 
         result = calculate_charging_window_pure(
-            trip_departure_time=None,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=7.4,
-            energia_kwh=20.0,
+            ChargingWindowPureParams(
+                trip_departure_time=None,
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            ),
         )
         # Window = hora_regreso (10:00) + duration (6h) - hora_regreso (10:00) = 6h
         assert result["ventana_horas"] == 6.0
@@ -626,11 +632,13 @@ class TestCalculateChargingWindowPure:
         )
 
         result = calculate_charging_window_pure(
-            trip_departure_time=datetime(2026, 4, 6, 18, 0),
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=0.0,
-            energia_kwh=20.0,
+            ChargingWindowPureParams(
+                trip_departure_time=datetime(2026, 4, 6, 18, 0),
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=0.0,
+                energia_kwh=20.0,
+            ),
         )
         assert result["horas_carga_necesarias"] == 0.0
         assert result["es_suficiente"] is True  # 0 hours needed = sufficient
@@ -644,11 +652,13 @@ class TestCalculateChargingWindowPure:
         departure = datetime(2026, 4, 6, 18, 0)  # 6 PM
         retorno = datetime(2026, 4, 6, 10, 0)  # 10 AM (same day)
         result = calculate_charging_window_pure(
-            trip_departure_time=departure,
-            soc_actual=50.0,
-            hora_regreso=retorno,
-            charging_power_kw=7.4,
-            energia_kwh=20.0,
+            ChargingWindowPureParams(
+                trip_departure_time=departure,
+                soc_actual=50.0,
+                hora_regreso=retorno,
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            ),
         )
         assert result["ventana_horas"] > 0
         assert result["es_suficiente"] is not None
@@ -661,11 +671,13 @@ class TestCalculateChargingWindowPure:
 
         departure = datetime(2026, 4, 6, 18, 0)  # 6 PM
         result = calculate_charging_window_pure(
-            trip_departure_time=departure,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=7.4,
-            energia_kwh=20.0,
+            ChargingWindowPureParams(
+                trip_departure_time=departure,
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            ),
         )
         # Estimated return = 18:00 - 6h = 12:00
         # Window = 18:00 - 12:00 = 6h
@@ -679,11 +691,13 @@ class TestCalculateChargingWindowPure:
         )
 
         result = calculate_charging_window_pure(
-            trip_departure_time=None,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=7.4,
-            energia_kwh=20.0,
+            ChargingWindowPureParams(
+                trip_departure_time=None,
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            ),
         )
         assert result["ventana_horas"] == 0.0
         assert result["es_suficiente"] is True  # No charging needed
@@ -696,11 +710,13 @@ class TestCalculateChargingWindowPure:
 
         # 1 hour window, need 5 hours to charge
         result = calculate_charging_window_pure(
-            trip_departure_time=datetime(2026, 4, 6, 11, 0),
-            soc_actual=0.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=7.4,  # 7.4 kW -> ~2.7h for 20 kWh
-            energia_kwh=20.0,
+            ChargingWindowPureParams(
+                trip_departure_time=datetime(2026, 4, 6, 11, 0),
+                soc_actual=0.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=7.4,  # 7.4 kW -> ~2.7h for 20 kWh
+                energia_kwh=20.0,
+            ),
         )
         # Window is 1h but need ~2.7h -> not sufficient
         assert result["es_suficiente"] is False

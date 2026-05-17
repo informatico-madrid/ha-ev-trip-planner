@@ -12,7 +12,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
 (`ChargingWindowPureParams`) fully wired — dataclass added, prod + test callers updated,
 `make test` green at 100% coverage. Once one wrap is proven, the rest are mechanical.
 
-- [ ] 1.1 Add `ChargingWindowPureParams` dataclass and change `calculate_charging_window_pure` signature
+- [x] 1.1 Add `ChargingWindowPureParams` dataclass and change `calculate_charging_window_pure` signature
   - **Do**:
     1. In `calculations/windows.py`, add `@dataclass(frozen=True, kw_only=True)` class `ChargingWindowPureParams` immediately before `calculate_charging_window_pure` (line ~103) with fields exactly per design.md §3.1: `trip_departure_time: Optional[datetime]`, `soc_actual: float`, `hora_regreso: Optional[datetime]`, `charging_power_kw: float`, `energia_kwh: float`, `duration_hours: float = 6.0`.
     2. Change the function signature to `def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str, Any]:` and rewrite the body to read each value from `params.<field>`.
@@ -25,7 +25,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-1, FR-2, FR-3, AC-2.1, AC-2.4, AC-2.6_
   - _Design: §3.1_
 
-- [ ] 1.2 Update `calculate_charging_window_pure` callers (prod + tests)
+- [x] 1.2 Update `calculate_charging_window_pure` callers (prod + tests)
   - **Do**:
     1. In `calculations/power.py` `_try_populate_window` (~line 334), wrap the `calculate_charging_window_pure(...)` call args in `ChargingWindowPureParams(...)`; add the import from `.windows`.
     2. In `tests/unit/test_calculations.py`, update the 6 direct call sites (lines ~608, 628, 646, 663, 681, 698) to construct `ChargingWindowPureParams(...)` and pass it. Mock-patch target strings (`...calculations.power.calculate_charging_window_pure` at ~2886, ~2949) stay unchanged.
