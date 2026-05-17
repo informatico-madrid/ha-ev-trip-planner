@@ -6,7 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.ev_trip_planner.sensor.entity_trip_planner import TripPlannerSensor
+from custom_components.ev_trip_planner.sensor.entity_trip_planner import (
+    TripPlannerSensor,
+)
 
 
 class TestAsyncAddedToHass:
@@ -59,7 +61,10 @@ class TestAsyncAddedToHass:
         await sensor.async_added_to_hass()
 
         # Value should NOT be set (restore=False)
-        assert not hasattr(sensor, "_attr_native_value") or sensor._attr_native_value is None
+        assert (
+            not hasattr(sensor, "_attr_native_value")
+            or sensor._attr_native_value is None
+        )
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_skips_restore_when_coordinator_has_data(self):
@@ -82,7 +87,10 @@ class TestAsyncAddedToHass:
         await sensor.async_added_to_hass()
 
         # Value should NOT be overwritten since coordinator has data
-        assert not hasattr(sensor, "_attr_native_value") or sensor._attr_native_value is None
+        assert (
+            not hasattr(sensor, "_attr_native_value")
+            or sensor._attr_native_value is None
+        )
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_skips_when_no_last_state(self):
@@ -103,4 +111,7 @@ class TestAsyncAddedToHass:
         await sensor.async_added_to_hass()
 
         # Value should NOT be set since last_state is None
-        assert not hasattr(sensor, "_attr_native_value") or sensor._attr_native_value is None
+        assert (
+            not hasattr(sensor, "_attr_native_value")
+            or sensor._attr_native_value is None
+        )

@@ -281,10 +281,10 @@ class TestResolveTripDeadline:
         trip = {
             "id": "trip_1",
             "tipo": "recurrente",
-            "dia_semana": "miercoles",
-            "hora": "08:00",  # This might be invalid in current week context
+            "dia_semana": "lunes",
+            "hora": "",  # Empty string -> calculate_trip_time returns None
         }
         now = datetime(2026, 5, 17, 10, 0, 0, tzinfo=timezone.utc)
         result = resolve_trip_deadline(trip, now, timezone.utc)
-        # Could be None if the day/time combination produces no valid deadline
-        assert result is None or isinstance(result, datetime)
+        # Empty hora makes calculate_trip_time return None -> lines 198-203 execute
+        assert result is None

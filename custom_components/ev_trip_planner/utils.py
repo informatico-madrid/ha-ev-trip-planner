@@ -52,9 +52,7 @@ def _generate_recurrent_trip_id(
 ) -> str:
     """Generate ID for a recurrent trip."""
     day_input = (
-        str(day_or_date)
-        if isinstance(day_or_date, date)
-        else day_or_date or "lunes"
+        str(day_or_date) if isinstance(day_or_date, date) else day_or_date or "lunes"
     ).lower()
     if day_input in DAY_ABBREVIATIONS:
         day_abbr = DAY_ABBREVIATIONS[day_input]

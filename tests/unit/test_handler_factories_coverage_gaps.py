@@ -85,14 +85,16 @@ class TestAddRecurringTrip:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "dia_semana": "lunes",
-                    "hora": "08:00",
-                    "km": 30.0,
-                    "kwh": 5.0,
-                    "descripcion": "Test trip",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "dia_semana": "lunes",
+                        "hora": "08:00",
+                        "km": 30.0,
+                        "kwh": 5.0,
+                        "descripcion": "Test trip",
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_add_recurring_trip.assert_called_once()
@@ -120,12 +122,14 @@ class TestAddPunctualTrip:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "datetime": "2026-05-20T08:00:00+00:00",
-                    "km": 30.0,
-                    "kwh": 5.0,
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "datetime": "2026-05-20T08:00:00+00:00",
+                        "km": 30.0,
+                        "kwh": 5.0,
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_add_punctual_trip.assert_called_once()
@@ -153,10 +157,12 @@ class TestDeleteTrip:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "trip_id": "123",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "trip_id": "123",
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_delete_trip.assert_called_once()
@@ -184,10 +190,12 @@ class TestPauseRecurring:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "trip_id": "123",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "trip_id": "123",
+                    }
+                )
                 await handler(call)
 
         mgr._lifecycle.async_pause_recurring_trip.assert_called_once()
@@ -215,10 +223,12 @@ class TestResumeRecurring:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "trip_id": "123",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "trip_id": "123",
+                    }
+                )
                 await handler(call)
 
         mgr._lifecycle.async_resume_recurring_trip.assert_called_once()
@@ -246,10 +256,12 @@ class TestCompletePunctual:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "trip_id": "123",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "trip_id": "123",
+                    }
+                )
                 await handler(call)
 
         mgr._lifecycle.async_complete_punctual_trip.assert_called_once()
@@ -277,10 +289,12 @@ class TestCancelPunctual:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "trip_id": "123",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "trip_id": "123",
+                    }
+                )
                 await handler(call)
 
         mgr._lifecycle.async_cancel_punctual_trip.assert_called_once()
@@ -297,7 +311,9 @@ class TestImportWeeklyPattern:
         handler = make_import_weekly_pattern_handler(hass)
 
         mgr = _make_manager()
-        mgr._crud.async_get_recurring_trips = AsyncMock(return_value=[{"id": "old_trip"}])
+        mgr._crud.async_get_recurring_trips = AsyncMock(
+            return_value=[{"id": "old_trip"}]
+        )
         mgr._crud.async_delete_trip = AsyncMock()
 
         with patch(
@@ -308,13 +324,15 @@ class TestImportWeeklyPattern:
                 "custom_components.ev_trip_planner.services._handler_factories._ensure_setup",
                 new=AsyncMock(),
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "clear_existing": True,
-                    "pattern": {
-                        "1": [{"hora": "08:00", "km": 30.0, "kwh": 5.0}],
-                    },
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "clear_existing": True,
+                        "pattern": {
+                            "1": [{"hora": "08:00", "km": 30.0, "kwh": 5.0}],
+                        },
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_delete_trip.assert_called_once()
@@ -327,7 +345,9 @@ class TestImportWeeklyPattern:
         handler = make_import_weekly_pattern_handler(hass)
 
         mgr = _make_manager()
-        mgr._crud.async_get_recurring_trips = AsyncMock(side_effect=Exception("DB error"))
+        mgr._crud.async_get_recurring_trips = AsyncMock(
+            side_effect=Exception("DB error")
+        )
         mgr._crud.async_delete_trip = AsyncMock()
 
         with patch(
@@ -338,13 +358,15 @@ class TestImportWeeklyPattern:
                 "custom_components.ev_trip_planner.services._handler_factories._ensure_setup",
                 new=AsyncMock(),
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "clear_existing": True,
-                    "pattern": {
-                        "1": [{"hora": "08:00", "km": 30.0, "kwh": 5.0}],
-                    },
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "clear_existing": True,
+                        "pattern": {
+                            "1": [{"hora": "08:00", "km": 30.0, "kwh": 5.0}],
+                        },
+                    }
+                )
                 await handler(call)
 
         # Should NOT call delete_trip since existing=[] after exception
@@ -475,11 +497,13 @@ class TestEditTrip:
                     "custom_components.ev_trip_planner.services._handler_factories._ensure_setup",
                     new=AsyncMock(),
                 ):
-                    call = _make_call({
-                        "vehicle_id": "test_vehicle",
-                        "trip_id": "123",
-                        "updates": {"km": 40.0},
-                    })
+                    call = _make_call(
+                        {
+                            "vehicle_id": "test_vehicle",
+                            "trip_id": "123",
+                            "updates": {"km": 40.0},
+                        }
+                    )
                     await handler(call)
 
         mgr._crud.async_update_trip.assert_called_once()
@@ -517,11 +541,13 @@ class TestTripUpdateDescripcion:
                         "custom_components.ev_trip_planner.services._handler_factories._find_entry_by_vehicle",
                         return_value=entry,
                     ):
-                        call = _make_call({
-                            "vehicle_id": "test_vehicle",
-                            "trip_id": "123",
-                            "descripcion": "Test description",
-                        })
+                        call = _make_call(
+                            {
+                                "vehicle_id": "test_vehicle",
+                                "trip_id": "123",
+                                "descripcion": "Test description",
+                            }
+                        )
                         await handler(call)
 
         # Verify descripcion was set in updates
@@ -557,11 +583,13 @@ class TestTripUpdateDescripcion:
                         "custom_components.ev_trip_planner.services._handler_factories._find_entry_by_vehicle",
                         return_value=entry,
                     ):
-                        call = _make_call({
-                            "vehicle_id": "test_vehicle",
-                            "trip_id": "123",
-                            "description": "English description",
-                        })
+                        call = _make_call(
+                            {
+                                "vehicle_id": "test_vehicle",
+                                "trip_id": "123",
+                                "description": "English description",
+                            }
+                        )
                         await handler(call)
 
         # Verify description was mapped to descripcion in updates
@@ -601,11 +629,13 @@ class TestTripUpdateWithUpdatesDict:
                         "custom_components.ev_trip_planner.services._handler_factories._find_entry_by_vehicle",
                         return_value=entry,
                     ):
-                        call = _make_call({
-                            "vehicle_id": "test_vehicle",
-                            "trip_id": "123",
-                            "updates": {"km": 50.0, "dia_semana": "martes"},
-                        })
+                        call = _make_call(
+                            {
+                                "vehicle_id": "test_vehicle",
+                                "trip_id": "123",
+                                "updates": {"km": 50.0, "dia_semana": "martes"},
+                            }
+                        )
                         await handler(call)
 
         # Verify updates dict was passed directly
@@ -627,9 +657,17 @@ class TestTripUpdateSensorUpdate:
 
         mgr = _make_manager()
         mgr._crud.async_update_trip = AsyncMock()
-        mgr._crud.async_get_recurring_trips = AsyncMock(return_value=[
-            {"id": "123", "dia_semana": "lunes", "hora": "08:00", "km": 30.0, "kwh": 5.0}
-        ])
+        mgr._crud.async_get_recurring_trips = AsyncMock(
+            return_value=[
+                {
+                    "id": "123",
+                    "dia_semana": "lunes",
+                    "hora": "08:00",
+                    "km": 30.0,
+                    "kwh": 5.0,
+                }
+            ]
+        )
 
         coordinator = MagicMock()
         coordinator.async_refresh_trips = AsyncMock()
@@ -658,13 +696,15 @@ class TestTripUpdateSensorUpdate:
                             "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
                             mock_async_update,
                         ):
-                            call = _make_call({
-                                "vehicle_id": "test_vehicle",
-                                "trip_id": "123",
-                                "dia_semana": "lunes",
-                                "hora": "09:00",
-                                "km": 35.0,
-                            })
+                            call = _make_call(
+                                {
+                                    "vehicle_id": "test_vehicle",
+                                    "trip_id": "123",
+                                    "dia_semana": "lunes",
+                                    "hora": "09:00",
+                                    "km": 35.0,
+                                }
+                            )
                             await handler(call)
 
         mock_async_update.assert_called_once()
@@ -721,15 +761,17 @@ class TestTripCreate:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "type": "recurrente",
-                    "dia_semana": "lunes",
-                    "hora": "08:00",
-                    "km": 30.0,
-                    "kwh": 5.0,
-                    "descripcion": "Recurring test",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "type": "recurrente",
+                        "dia_semana": "lunes",
+                        "hora": "08:00",
+                        "km": 30.0,
+                        "kwh": 5.0,
+                        "descripcion": "Recurring test",
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_add_recurring_trip.assert_called_once()
@@ -758,14 +800,16 @@ class TestTripCreate:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "type": "puntual",
-                    "datetime": "2026-05-20T08:00:00+00:00",
-                    "km": 25.0,
-                    "kwh": 4.0,
-                    "description": "Punctual test",
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "type": "puntual",
+                        "datetime": "2026-05-20T08:00:00+00:00",
+                        "km": 25.0,
+                        "kwh": 4.0,
+                        "description": "Punctual test",
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_add_punctual_trip.assert_called_once()
@@ -793,12 +837,14 @@ class TestTripCreate:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "type": "invalid_type",
-                    "km": 30.0,
-                    "kwh": 5.0,
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "type": "invalid_type",
+                        "km": 30.0,
+                        "kwh": 5.0,
+                    }
+                )
                 await handler(call)
 
         # No trip should be created
@@ -819,9 +865,17 @@ class TestTripUpdateSensorException:
 
         mgr = _make_manager()
         mgr._crud.async_update_trip = AsyncMock()
-        mgr._crud.async_get_recurring_trips = AsyncMock(return_value=[
-            {"id": "123", "dia_semana": "lunes", "hora": "08:00", "km": 30.0, "kwh": 5.0}
-        ])
+        mgr._crud.async_get_recurring_trips = AsyncMock(
+            return_value=[
+                {
+                    "id": "123",
+                    "dia_semana": "lunes",
+                    "hora": "08:00",
+                    "km": 30.0,
+                    "kwh": 5.0,
+                }
+            ]
+        )
 
         coordinator = MagicMock()
         coordinator.async_refresh_trips = AsyncMock()
@@ -850,11 +904,13 @@ class TestTripUpdateSensorException:
                             "custom_components.ev_trip_planner.sensor.async_update_trip_sensor",
                             mock_async_update,
                         ):
-                            call = _make_call({
-                                "vehicle_id": "test_vehicle",
-                                "trip_id": "123",
-                                "km": 35.0,
-                            })
+                            call = _make_call(
+                                {
+                                    "vehicle_id": "test_vehicle",
+                                    "trip_id": "123",
+                                    "km": 35.0,
+                                }
+                            )
                             # Should NOT raise - exception is caught
                             await handler(call)
 
@@ -885,20 +941,23 @@ class TestTripCreateWithDayOfWeek:
                 "custom_components.ev_trip_planner.services._handler_factories._get_coordinator",
                 return_value=coordinator,
             ):
-                call = _make_call({
-                    "vehicle_id": "test_vehicle",
-                    "type": "recurrente",
-                    "day_of_week": "monday",
-                    "time": "10:00",
-                    "km": 40.0,
-                    "kwh": 6.0,
-                })
+                call = _make_call(
+                    {
+                        "vehicle_id": "test_vehicle",
+                        "type": "recurrente",
+                        "day_of_week": "monday",
+                        "time": "10:00",
+                        "km": 40.0,
+                        "kwh": 6.0,
+                    }
+                )
                 await handler(call)
 
         mgr._crud.async_add_recurring_trip.assert_called_once()
         call_kwargs = mgr._crud.async_add_recurring_trip.call_args[1]
         assert call_kwargs["dia_semana"] == "monday"
         assert call_kwargs["hora"] == "10:00"
+
     """Test make_trip_update_handler branches."""
 
     @pytest.mark.asyncio
@@ -911,11 +970,13 @@ class TestTripCreateWithDayOfWeek:
             "custom_components.ev_trip_planner.services._handler_factories._find_entry_by_vehicle",
             return_value=None,
         ):
-            call = _make_call({
-                "vehicle_id": "test_vehicle",
-                "trip_id": "123",
-                "km": 30.0,
-            })
+            call = _make_call(
+                {
+                    "vehicle_id": "test_vehicle",
+                    "trip_id": "123",
+                    "km": 30.0,
+                }
+            )
             await handler(call)
 
     @pytest.mark.asyncio
@@ -946,14 +1007,16 @@ class TestTripCreateWithDayOfWeek:
                         "custom_components.ev_trip_planner.services._handler_factories._find_entry_by_vehicle",
                         return_value=entry,
                     ):
-                        call = _make_call({
-                            "vehicle_id": "test_vehicle",
-                            "trip_id": "123",
-                            "dia_semana": "lunes",
-                            "hora": "09:00",
-                            "km": 30.0,
-                            "kwh": 5.0,
-                        })
+                        call = _make_call(
+                            {
+                                "vehicle_id": "test_vehicle",
+                                "trip_id": "123",
+                                "dia_semana": "lunes",
+                                "hora": "09:00",
+                                "km": 30.0,
+                                "kwh": 5.0,
+                            }
+                        )
                         await handler(call)
 
         mgr._crud.async_update_trip.assert_called_once()

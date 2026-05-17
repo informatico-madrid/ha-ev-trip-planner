@@ -304,7 +304,11 @@ def _populate_profile(params: PopulateProfileParams) -> None:
     # horas_necesarias can be float from ventana_info
     for h in range(
         params.hora_inicio,
-        min(int(params.hora_inicio + params.horas_necesarias), params.horas_hasta_fin, params.profile_length),
+        min(
+            int(params.hora_inicio + params.horas_necesarias),
+            params.horas_hasta_fin,
+            params.profile_length,
+        ),
     ):
         if 0 <= h < params.profile_length:
             params.power_profile[h] = params.charging_power_watts

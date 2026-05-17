@@ -361,6 +361,7 @@ def calculate_deficit_propagation(
 # PURE: Hours deficit propagation
 # =============================================================================
 
+
 # qg-accepted: complexity=11 is inherent to deficit propagation algorithm
 def calculate_hours_deficit_propagation(
     windows: List[Dict[str, Any]],

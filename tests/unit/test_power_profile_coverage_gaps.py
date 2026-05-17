@@ -9,7 +9,9 @@ import pytest
 from custom_components.ev_trip_planner.trip._power_profile import PowerProfile
 
 
-def _make_state(vehicle_id: str = "test_vehicle", entry_id: str = "entry_1", **overrides):
+def _make_state(
+    vehicle_id: str = "test_vehicle", entry_id: str = "entry_1", **overrides
+):
     """Create a mock TripManagerState for testing."""
     state = MagicMock()
     state.vehicle_id = vehicle_id
