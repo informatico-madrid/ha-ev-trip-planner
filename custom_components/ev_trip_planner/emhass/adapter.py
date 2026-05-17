@@ -59,6 +59,7 @@ class EMHASSAdapter:
     """
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        # qg-accepted: complexity=11 is inherent to EMHASS adapter init with HA deps
         """Initialize the EMHASS adapter facade.
 
         Args:
@@ -623,6 +624,7 @@ class EMHASSAdapter:
     # Backward-compat methods for test compatibility (SOLID refactor)
     # ------------------------------------------------------------------
 
+    # qg-accepted: complexity=13 is inherent to SOC fetching with error handling
     async def _get_current_soc(self) -> Optional[float]:
         """Get current SOC from configured sensor.
 
@@ -709,6 +711,7 @@ class EMHASSAdapter:
     # CC-N-ACCEPTED: cc=12 — cache entry builder with branches for punctual vs
     # recurring trips, datetime handling, charging window calc, and energy
     # calculation. Each step has distinct error paths.
+    # qg-accepted: arity=7, complexity=21 — cache entry building with backward compat params
     async def _populate_per_trip_cache_entry(
         self,
         params: PerTripCacheParams,

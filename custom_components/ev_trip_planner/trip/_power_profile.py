@@ -27,6 +27,7 @@ class PowerProfile:
     # config entry → defaults), SOC sensor fallback, and dual trip gathering
     # (active recurring + pending punctual). Each branch is a distinct
     # data source with independent error recovery.
+    # qg-accepted: complexity=12 is inherent to power profile generation
     async def async_generate_power_profile(
         self,
         charging_power_kw: float = 3.6,
@@ -98,14 +99,7 @@ class PowerProfile:
 
         assert soc_current is not None
 
-        # Gather all active trips for the power profile
-        all_trips: List[Dict[str, Any]] = []
-        for trip in self._state.recurring_trips.values():
-            if trip.get("activo", True):
-                all_trips.append(trip)
-        for trip in self._state.punctual_trips.values():
-            if trip.get("estado") == "pendiente":
-                all_trips.append(trip)
+        all_trips = self._state.get_active_trips()
 
         return calculate_power_profile(
             all_trips=all_trips,

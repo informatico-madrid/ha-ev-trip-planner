@@ -47,15 +47,8 @@ class TripScheduler:
 
     async def _load_active_trips(self) -> List[Dict[str, Any]]:
         """Load active trips, compute deadlines, and sort by urgency."""
-        await self._state._persistence._load_trips()
-
-        all_trips: List[Dict[str, Any]] = []
-        for trip in self._state.recurring_trips.values():
-            if trip.get("activo", True):
-                all_trips.append(trip)
-        for trip in self._state.punctual_trips.values():
-            if trip.get("estado") == "pendiente":
-                all_trips.append(trip)
+        all_trips = await self._state._persistence._load_trips()
+        all_trips = self._state.get_active_trips()
 
         now = datetime.now(timezone.utc)
         for trip in all_trips:

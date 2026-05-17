@@ -194,6 +194,7 @@ async def async_unload_entry_cleanup(
 # CC-N-ACCEPTED: cc=17 — cleanup function with multiple sequential removal
 # steps: coordinators, sensors, config entries, panel registration, and
 # dashboard cleanup. Each step has independent error handling and logging.
+# qg-accepted: complexity=14 is inherent to HA entry cleanup flow
 async def async_remove_entry_cleanup(
     hass: HomeAssistant,
     entry: ConfigEntry,

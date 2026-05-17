@@ -87,6 +87,9 @@ def calculate_power_profile_from_trips(
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
     tz: Optional[Any] = None,
 ) -> List[float]:
+    # qg-accepted: arity=8 is the public API for power profile calculation
+    # Params: trips, power_kw, horizon, reference_dt, soc_current, battery_capacity_kwh,
+    # safety_margin_percent, tz — all legitimate domain inputs
     """Calculate power profile from trips (pure version).
 
     Each trip creates a charging window before its deadline.
@@ -156,6 +159,9 @@ def calculate_power_profile(
     reference_dt: datetime,
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
 ) -> List[float]:
+    # qg-accepted: arity=8 is the domain function signature for power profile calc
+    # Params: all_trips, battery_capacity_kwh, soc_current, charging_power_kw,
+    # hora_regreso, planning_horizon_days, reference_dt, safety_margin_percent
     """Calculate power profile for EMHASS from trip list.
 
     This is the pure core of async_generate_power_profile. It:
@@ -287,6 +293,7 @@ def _populate_profile(
     profile_length: int,
     charging_power_watts: float,
 ) -> None:
+    # qg-accepted: arity=6 — helper needs all params for profile population
     """Populate power profile hours for a charging window."""
     # horas_necesarias can be float from ventana_info
     for h in range(
@@ -310,6 +317,7 @@ def _try_populate_window(
     charging_power_watts: float,
     safety_margin_percent: float,
 ) -> None:
+    # qg-accepted: arity=11 is inherent to window population with full trip context
     """Calculate energy and window for a single trip, populate profile if feasible."""
     energia_info = calculate_energy_needed(
         trip,

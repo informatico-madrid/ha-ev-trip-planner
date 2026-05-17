@@ -27,6 +27,21 @@ class TripManagerState:
     _trips: dict[str, dict[str, Any]] = field(default_factory=dict)
     recurring_trips: dict[str, dict[str, Any]] = field(default_factory=dict)
     punctual_trips: dict[str, dict[str, Any]] = field(default_factory=dict)
+    def get_active_trips(self) -> list[dict[str, Any]]:
+        """Gather all active trips (recurring + punctual) for power profile or scheduling.
+
+        Single source of truth for trip gathering — used by both
+        PowerProfile.async_generate_power_profile and ScheduleManager.
+        """
+        active: list[dict[str, Any]] = []
+        for trip in self.recurring_trips.values():
+            if trip.get("activo", True):
+                active.append(trip)
+        for trip in self.punctual_trips.values():
+            if trip.get("estado") == "pendiente":
+                active.append(trip)
+        return active
+
     last_update: Optional[str] = None
     storage: Optional[YamlTripStorage] = None
     emhass_adapter: Optional[EMHASSAdapter] = None

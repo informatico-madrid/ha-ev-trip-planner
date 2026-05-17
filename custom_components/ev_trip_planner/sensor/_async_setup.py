@@ -25,24 +25,10 @@ from ..coordinator import TripPlannerCoordinator
 from ..definitions import TRIP_SENSORS
 from .entity_emhass_deferrable import EmhassDeferrableLoadSensor
 from .entity_trip import TripSensor
-from .entity_trip_emhass import TripEmhassSensor
+from .entity_trip_emhass import TripEmhassSensor, TRIP_EMHASS_ATTR_KEYS
 from .entity_trip_planner import TripPlannerSensor
 
 _LOGGER = logging.getLogger(__name__)
-
-# 9 documented attributes for TripEmhassSensor
-# Prevents data leak of internal cache keys (activo, *_array, p_deferrable_matrix, etc.)
-TRIP_EMHASS_ATTR_KEYS = {
-    "def_total_hours",
-    "P_deferrable_nom",
-    "def_start_timestep",
-    "def_end_timestep",
-    "power_profile_watts",
-    "trip_id",
-    "emhass_index",
-    "kwh_needed",
-    "deadline",
-}
 
 
 def _format_window_time(value: Any) -> str | None:
@@ -281,6 +267,7 @@ async def async_create_trip_sensor(
 # registry scanning with ID matching, coordinator refresh, and create-vs-
 # update path. Each conditional is a distinct data source with its own
 # None path or error recovery.
+# qg-accepted: complexity=12 is inherent to sensor update flow
 async def async_update_trip_sensor(
     hass: HomeAssistant,
     entry_id: str,

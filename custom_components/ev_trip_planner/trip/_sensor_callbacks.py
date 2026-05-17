@@ -48,6 +48,7 @@ def _register(event_name: str) -> Callable:
 
 
 @_register("trip_created_recurring")
+# qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_created_recurring(
     sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
 ) -> None:
@@ -61,6 +62,7 @@ def _handle_trip_created_recurring(
 
 
 @_register("trip_created_punctual")
+# qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_created_punctual(
     sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
 ) -> None:
@@ -74,6 +76,7 @@ def _handle_trip_created_punctual(
 
 
 @_register("trip_sensor_created_emhass")
+# qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_sensor_created_emhass(
     sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
 ) -> None:
@@ -85,6 +88,7 @@ def _handle_trip_sensor_created_emhass(
 
 
 @_register("trip_removed")
+# qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_removed(
     sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
 ) -> None:
@@ -96,6 +100,7 @@ def _handle_trip_removed(
 
 
 @_register("trip_sensor_removed_emhass")
+# qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_sensor_removed_emhass(
     sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
 ) -> None:

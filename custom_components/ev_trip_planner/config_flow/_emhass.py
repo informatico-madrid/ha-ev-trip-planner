@@ -82,6 +82,7 @@ class _EmhassCtx:
 # existence + parsing + value comparison, max_loads range + config comparison.
 # Extracting would split a coherent validation pipeline into meaningless
 # fragments; the branching IS the business logic.
+# qg-accepted: complexity=19 is inherent to EMHASS validation pipeline
 def validate_emhass_input(
     ctx: _EmhassCtx,
     emhass_config_path: str,

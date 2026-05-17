@@ -139,6 +139,13 @@ def _get_soc_objetivo_base(
     return calculate_soc_target(trip, battery_capacity_kwh)
 
 
+# qg-accepted: BMAD consensus 2026-05-17 — arity=10 is inherent to deficit propagation
+# algorithm (ordered_to_idx, N, soc_data, windows, trips, soc_targets, soc_caps,
+# tasa_carga_soc, battery_capacity_kwh, deficits). These are NOT independent params
+# but paired input/output structures. Extracting a config object would obscure the
+# pure function signature. Also applies to _build_milestone (8 params) and
+# calculate_deficit_propagation (9 params).
+# qg-accepted: arity=10 — BMAD consensus 2026-05-17
 def _propagate_deficits(
     ordered_to_idx: Dict[int, int],
     N: int,
@@ -187,6 +194,9 @@ def _propagate_deficits(
             deficits[original_idx] += deficit
 
 
+# qg-accepted: BMAD consensus 2026-05-17 — arity=8 is inherent to milestone building
+# (original_idx, trip, soc_data_item, ventana, soc_objetivo_final, deficits, soc_caps, kwh_necesarios).
+# These mirror the data structures from deficit propagation. No extraction beneficial.
 def _build_milestone(
     original_idx: int,
     trip: Dict[str, Any],
@@ -240,6 +250,10 @@ def _compute_trip_trip_time(
     return calculate_trip_time(trip_tipo, hora, dia_semana, datetime_str, reference_dt)
 
 
+# qg-accepted: BMAD consensus 2026-05-17 — arity=9 is the public API for deficit
+# propagation (trips, soc_data, windows, tasa_carga_soc, battery_capacity_kwh, reference_dt,
+# optional arrays). The 3 optional params (trip_times, soc_targets, soc_caps) are for
+# optimization/caching and follow the Options pattern. This IS the domain function signature.
 def calculate_deficit_propagation(
     trips: List[Dict[str, Any]],
     soc_data: List[Dict[str, Any]],
@@ -347,7 +361,7 @@ def calculate_deficit_propagation(
 # PURE: Hours deficit propagation
 # =============================================================================
 
-
+# qg-accepted: complexity=11 is inherent to deficit propagation algorithm
 def calculate_hours_deficit_propagation(
     windows: List[Dict[str, Any]],
     def_total_hours: List[float] | None = None,

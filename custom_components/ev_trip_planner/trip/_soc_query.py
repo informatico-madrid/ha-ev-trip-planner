@@ -179,7 +179,10 @@ class SOCQuery:
         battery_capacity_kwh: float,
         consumption_kwh_per_km: float = 0.15,
     ) -> float:
-        """Calculates the base SOC target percentage for a trip."""
+        """Calculates the base SOC target percentage for a trip.
+
+        Delegates to SOCHelpers — implementation lives in one place (SOCHelpers).
+        """
         return self._state._soc_helpers._calcular_soc_objetivo_base(
             trip, battery_capacity_kwh, consumption_kwh_per_km
         )

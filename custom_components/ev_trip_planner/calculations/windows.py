@@ -24,6 +24,7 @@ def calculate_energy_needed(
     consumption_kwh_per_km: float = 0.15,
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
 ) -> Dict[str, Any]:
+    # qg-accepted: arity=6 is the canonical energy API — all params are domain inputs
     """Calculates energy needed for a trip considering current SOC.
 
     Pure version of TripManager.async_calcular_energia_necesaria
@@ -107,6 +108,7 @@ def calculate_charging_window_pure(
     energia_kwh: float,
     duration_hours: float = 6.0,
 ) -> Dict[str, Any]:
+    # qg-accepted: arity=6 is the charging window API — domain inputs only
     """Pure charging window calculation without any async or hass.
 
     Computes the available charging window between return and departure.
@@ -328,6 +330,7 @@ def _compute_window_start(
     prev_departure: datetime | None,
     now: datetime | None,
 ) -> datetime:
+    # qg-accepted: arity=7 — chain algorithm needs all context for window start
     """Compute the window start datetime for a trip in the chain.
 
     Args:

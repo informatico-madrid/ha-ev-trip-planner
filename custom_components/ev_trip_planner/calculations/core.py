@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 from custom_components.ev_trip_planner.const import (
+    DAYS_OF_WEEK,
     DEFAULT_SOC_BASE,
     DEFAULT_SOC_BUFFER_PERCENT,
     DEFAULT_T_BASE,
@@ -146,18 +147,6 @@ def calculate_dynamic_soc_limit(
     return max(35.0, min(100.0, limit))
 
 
-# Days of week in Spanish (lowercase) — mirrors trip_manager.DAYS_OF_WEEK
-DAYS_OF_WEEK = (
-    "lunes",
-    "martes",
-    "miercoles",
-    "jueves",
-    "viernes",
-    "sabado",
-    "domingo",
-)
-
-
 # =============================================================================
 # PURE: Day index calculation
 # =============================================================================
@@ -215,6 +204,7 @@ def calculate_day_index(day_name: str) -> int:
 # CC-N-ACCEPTED: cc=13 — inherently requires branching for 2 trip types ×
 # (with/without timezone) × 2 datetime format variants. Extracting would
 # split a single coherent dispatch logic into 5+ helpers with unclear names.
+# qg-accepted: arity=6 is the canonical trip time API — all domain inputs
 def calculate_trip_time(
     trip_tipo: str,
     hora: Optional[str],

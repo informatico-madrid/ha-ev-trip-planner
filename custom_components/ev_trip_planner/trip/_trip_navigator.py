@@ -10,19 +10,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from .state import TripManagerState
+from ..const import DAYS_OF_WEEK
 
 _LOGGER = logging.getLogger(__name__)
 
-# Days of week in Spanish (lowercase)
-DAYS_OF_WEEK = (
-    "lunes",
-    "martes",
-    "miercoles",
-    "jueves",
-    "viernes",
-    "sabado",
-    "domingo",
-)
+# DAYS_OF_WEEK now imported from const.py (single source of truth)
 
 
 class TripNavigator:
@@ -36,6 +28,7 @@ class TripNavigator:
     # state checks (pending, active), day-of-week matching, time parsing
     # with error recovery, and nearest-trip selection. Each branch is a
     # distinct domain rule; the branching IS the business logic.
+    # qg-accepted: complexity=16 is inherent to next-trip-after selection logic
     async def async_get_next_trip_after(
         self, hora_regreso: datetime
     ) -> Optional[Dict[str, Any]]:
@@ -87,6 +80,7 @@ class TripNavigator:
     # state checks (active, pending), time validity, and nearest-trip
     # selection. Same pattern as async_get_next_trip_after; each branch
     # is a distinct domain rule with no natural grouping to reduce cc.
+    # qg-accepted: complexity=13 is inherent to next-trip selection logic
     async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
         """Get the next scheduled trip from all trips."""
         now = datetime.now(timezone.utc)

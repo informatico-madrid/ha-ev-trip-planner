@@ -11,25 +11,13 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from ..const import DOMAIN
+from ..const import DOMAIN, TRIP_EMHASS_ATTR_KEYS
 from ..coordinator import TripPlannerCoordinator
 
 if TYPE_CHECKING:
     from homeassistant.helpers.device_registry import DeviceInfo
 
-# 9 documented attributes for TripEmhassSensor
-# Prevents data leak of internal cache keys (activo, *_array, p_deferrable_matrix, etc.)
-TRIP_EMHASS_ATTR_KEYS = {
-    "def_total_hours",
-    "P_deferrable_nom",
-    "def_start_timestep",
-    "def_end_timestep",
-    "power_profile_watts",
-    "trip_id",
-    "emhass_index",
-    "kwh_needed",
-    "deadline",
-}
+# TRIP_EMHASS_ATTR_KEYS now imported from const.py (single source of truth)
 
 # Re-export for backwards compatibility
 __all__ = ["TripEmhassSensor", "TRIP_EMHASS_ATTR_KEYS"]

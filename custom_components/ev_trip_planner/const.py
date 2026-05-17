@@ -111,6 +111,20 @@ DAYS_OF_WEEK = [
     "domingo",
 ]
 
+# TripEmhassSensor documented attribute keys
+# Prevents data leak of internal cache keys (activo, *_array, p_deferrable_matrix, etc.)
+TRIP_EMHASS_ATTR_KEYS: frozenset[str] = frozenset({
+    "def_total_hours",
+    "P_deferrable_nom",
+    "def_start_timestep",
+    "def_end_timestep",
+    "power_profile_watts",
+    "trip_id",
+    "emhass_index",
+    "kwh_needed",
+    "deadline",
+})
+
 
 class ConfigEntryProtocol(Protocol):
     """Protocol for Home Assistant config entries."""

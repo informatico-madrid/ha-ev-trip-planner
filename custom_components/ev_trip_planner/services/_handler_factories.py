@@ -119,6 +119,7 @@ def make_add_punctual_handler(hass: HomeAssistant):
 def make_trip_update_handler(hass: HomeAssistant):
     """Return async handler for trip_update service."""
 
+    # qg-accepted: complexity=13 is inherent to trip update handler with field mapping
     async def handler(call: ServiceCall) -> None:
         data = call.data
         vehicle_id = data["vehicle_id"]

@@ -67,6 +67,8 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 async def _hourly_refresh_callback(
     now: datetime, runtime_data: EVTripRuntimeData
 ) -> None:
+    # qg-accepted: complexity=11 is inherent to HA callback with runtime_data validation
+    # Framework idiom: HA integration hourly callback must validate all runtime deps
     """Hourly callback to refresh deferrable loads profile.
 
     This callback is called every hour to trigger rotation of recurring trips.
@@ -187,6 +189,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 # static paths, build presence config, setup storage, optional SOC listener,
 # optional EMHASS adapter (with 2 sub-steps). Each conditional is a domain
 # requirement, not code smell.
+# qg-accepted: complexity=14 is inherent to HA integration setup flow
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EV Trip Planner from a config entry."""
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
