@@ -277,15 +277,14 @@ class TestResolveTripDeadline:
         # May be None if the calculated time is in the past
         assert result is None or isinstance(result, datetime)
 
-    def test_resolve_returns_none_when_result_is_none(self):
-        """Lines 198-203: When calculate_trip_time returns None, resolve returns None."""
+    def test_resolve_returns_none_when_calculate_trip_time_returns_none(self):
+        """Lines 156-162: No datetime or day/time fields returns None via normalize."""
         trip = {
             "id": "trip_1",
-            "tipo": "recurrente",
-            "dia_semana": "miercoles",
-            "hora": "08:00",  # This might be invalid in current week context
+            "tipo": "puntual",
+            # No datetime AND no day/time → normalize_trip_fields returns None
+            # → resolve returns None at line 156-162
         }
         now = datetime(2026, 5, 17, 10, 0, 0, tzinfo=timezone.utc)
         result = resolve_trip_deadline(trip, now, timezone.utc)
-        # Could be None if the day/time combination produces no valid deadline
-        assert result is None or isinstance(result, datetime)
+        assert result is None

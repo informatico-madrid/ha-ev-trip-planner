@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -86,6 +86,60 @@ class TestGetManager:
         """Line 142: _ensure_setup is a no-op pass."""
         mgr = MagicMock()
         await _ensure_setup(mgr)  # Should not raise
+
+    @pytest.mark.asyncio
+    async def test_get_manager_creates_new_manager_when_not_in_runtime_data(self):
+        """Lines 84-122: Creates new TripManager when runtime_data.trip_manager is None."""
+        hass = MagicMock()
+        entry = _make_entry("entry_1", "test_vehicle", {"vehicle_name": "Test Vehicle"})
+        entry.runtime_data.trip_manager = None  # Not in runtime storage
+        hass.config_entries.async_entries.return_value = [entry]
+
+        result = await _get_manager(hass, "test_vehicle")
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_get_manager_async_setup_exception_caught_and_logged(self):
+        """Lines 97-113: Exception in async_setup is caught and logged."""
+        hass = MagicMock()
+        entry = _make_entry("entry_1", "test_vehicle", {"vehicle_name": "Test Vehicle"})
+        entry.runtime_data.trip_manager = None  # Will create new
+
+        # Make async_setup raise
+        async_setup_error = RuntimeError("Storage corrupted")
+        mock_persistence = MagicMock()
+        mock_persistence.async_setup = AsyncMock(side_effect=async_setup_error)
+        mock_persistence.async_save_trips = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.trip.manager.TripPersistence",
+            return_value=mock_persistence,
+        ):
+            hass.config_entries.async_entries.return_value = [entry]
+            result = await _get_manager(hass, "test_vehicle")
+
+        # Manager still returned despite error
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_get_manager_returns_existing_manager(self):
+        """Lines 123-129: Returns existing manager when already in runtime_data."""
+        hass = MagicMock()
+        entry = _make_entry("entry_1", "test_vehicle", {"vehicle_name": "Test Vehicle"})
+
+        # Create a real-ish mock manager
+        existing_manager = MagicMock()
+        existing_manager._state = MagicMock()
+        existing_manager._state.recurring_trips = {}
+        existing_manager._state.punctual_trips = {}
+
+        entry.runtime_data.trip_manager = existing_manager
+        hass.config_entries.async_entries.return_value = [entry]
+
+        result = await _get_manager(hass, "test_vehicle")
+
+        assert result is existing_manager
 
 
 class TestBuildPresenceConfig:

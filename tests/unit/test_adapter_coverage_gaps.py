@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -338,3 +338,102 @@ class TestLines650652KmFallbackAndLine695:
                 # hours_available ~8 hours, int() may truncate to 7 or 8
                 def_end = cache_entry.get("def_end_timestep")
                 assert def_end in (7, 8)
+
+
+class TestGetCachedOptimizationResults:
+    """Test get_cached_optimization_results (lines 244-251)."""
+
+    def test_with_cached_params_logs_per_trip(self):
+        """Lines 244-251: Non-empty _cached_per_trip_params triggers per-trip log loop."""
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        adapter._cached_per_trip_params = {
+            "trip_001": {
+                "def_total_hours": 5,
+                "def_start_timestep": 2,
+                "def_end_timestep": 8,
+            },
+            "trip_002": {
+                "def_total_hours": 3,
+                "def_start_timestep": 4,
+                "def_end_timestep": 9,
+            },
+        }
+        adapter._cached_power_profile = [0, 100, 200, 0]
+        adapter._cached_deferrables_schedule = [0, 1, 1, 0]
+        adapter._cached_emhass_status = "ok"
+
+        result = adapter.get_cached_optimization_results()
+
+        assert result["per_trip_emhass_params"] == adapter._cached_per_trip_params
+        assert result["emhass_power_profile"] == [0, 100, 200, 0]
+
+
+class TestPrecomputeWithSocFallback:
+    """Test _precompute_and_process_trips SOC fallback (lines 415-422)."""
+
+    @pytest.mark.asyncio
+    async def test_soc_sensor_unavailable_triggers_fallback(self):
+        """Lines 415-422: _get_current_soc returning None logs fallback."""
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+
+        # _get_current_soc returns None → triggers SOC sensor unavailable path
+        adapter._get_current_soc = AsyncMock(return_value=None)
+
+        trips = [
+            {
+                "id": "trip_001",
+                "tipo": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "km": 30.0,
+            }
+        ]
+
+        # This should NOT raise — fallback to 50.0 SOC
+        soc_used = await adapter._precompute_and_process_trips(trips, 60.0)
+        assert soc_used == 50.0
+
+
+class TestApplyDeficitResultsBreak:
+    """Test _apply_deficit_results edge cases (lines 1052, 1064)."""
+
+    def test_break_when_more_results_than_active(self):
+        """Line 1052: More results than active params triggers break."""
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        adapter._cached_per_trip_params = {}
+
+        # 3 results but only 1 active — break at i=1
+        active = [
+            {"def_start_timestep": 0, "emhass_index": 0, "power_watts": 3600}
+        ]
+        results = [
+            {"adjusted_def_total_hours": 5.0},
+            {"adjusted_def_total_hours": 3.0},
+            {"adjusted_def_total_hours": 2.0},
+        ]
+        # Should NOT raise — break at i=1 (i >= n)
+        adapter._apply_deficit_results(results, active)
+
+    def test_continue_when_trip_id_is_none(self):
+        """Line 1064: _find_trip_id_for_params returns None → continue."""
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        # _cached_per_trip_params is empty, so identity check always fails
+        adapter._cached_per_trip_params = {}
+
+        # active[0] is a different dict than any in _cached_per_trip_params
+        active = [
+            {"def_start_timestep": 0, "emhass_index": 0, "power_watts": 3600}
+        ]
+        results = [
+            {"adjusted_def_total_hours": 5.0},
+        ]
+        # Should NOT raise — continue when trip_id is None
+        adapter._apply_deficit_results(results, active)

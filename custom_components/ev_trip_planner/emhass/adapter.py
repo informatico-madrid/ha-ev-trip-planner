@@ -676,19 +676,6 @@ class EMHASSAdapter:
                 soc_sensor,
                 state.state,
             )
-        if self._entry:
-            entry_data = dict(getattr(self._entry, "options", {}) or {})
-            entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
-            soc_sensor = entry_data.get("soc_sensor")
-
-        if not soc_sensor:
-            return None
-        state = self.hass.states.get(soc_sensor)
-        if state is None:
-            return None
-        try:
-            return float(state.state)
-        except (ValueError, TypeError):
             return None
 
     def _calculate_deadline_from_trip(self, trip: Dict[str, Any]) -> Optional[datetime]:

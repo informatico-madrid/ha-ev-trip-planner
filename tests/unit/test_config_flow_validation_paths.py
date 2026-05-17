@@ -10,7 +10,7 @@ Covers the 24 lines not reached by existing tests:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
@@ -237,3 +237,68 @@ class TestAsyncCreateEntryExceptions:
         assert any(
             "Could not register native panel" in r.message for r in caplog.records
         )
+
+
+class TestAsyncStepPresenceHappyPath:
+    """Test presence step happy path: valid sensor, proceed to notifications.
+
+    Covers lines 507 (auto-select log), 550-559 (store data + transition).
+    """
+
+    @pytest.mark.asyncio
+    async def test_presence_with_auto_selected_sensor(self):
+        """Lines 506-510, 550-559: Auto-select finds sensor → proceed to notifications."""
+        handler = EVTripPlannerFlowHandler()
+        handler.hass = MagicMock()
+        handler.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+        # auto_select_sensor returns a dict with charging_sensor populated
+        with patch(
+            "custom_components.ev_trip_planner.config_flow._entities.auto_select_sensor",
+            return_value={"charging_sensor": "binary_sensor.charger"},
+        ):
+            # hass.states.get must return a valid state for the charging sensor
+            mock_state = MagicMock()
+            mock_state.state = "on"
+            handler.hass.states.get = MagicMock(
+                return_value=mock_state
+            )
+
+            # Patch async_step_notifications to return a known result
+            handler.async_step_notifications = AsyncMock(
+                return_value={"type": "FORM", "step_id": "notifications"}
+            )
+
+            # Submit empty form (no sensor provided → triggers auto-select)
+            result = await handler.async_step_presence({})
+
+        assert result == {"type": "FORM", "step_id": "notifications"}
+        # Verify _get_vehicle_data was called and updated
+        vd = handler.context["vehicle_data"]
+        assert vd.get("charging_sensor") == "binary_sensor.charger"
+
+    @pytest.mark.asyncio
+    async def test_presence_with_provided_sensor(self):
+        """Lines 550-559: User provides sensor directly → proceed to notifications."""
+        handler = EVTripPlannerFlowHandler()
+        handler.hass = MagicMock()
+        handler.context = {"vehicle_data": {"vehicle_name": "test_vehicle"}}
+
+        # User provides charging_sensor directly, no auto-select needed
+        mock_state = MagicMock()
+        mock_state.state = "on"
+        handler.hass.states.get = MagicMock(
+            return_value=mock_state
+        )
+
+        handler.async_step_notifications = AsyncMock(
+            return_value={"type": "FORM", "step_id": "notifications"}
+        )
+
+        result = await handler.async_step_presence({
+            "charging_sensor": "binary_sensor.my_charger",
+        })
+
+        assert result == {"type": "FORM", "step_id": "notifications"}
+        vd = handler.context["vehicle_data"]
+        assert vd.get("charging_sensor") == "binary_sensor.my_charger"

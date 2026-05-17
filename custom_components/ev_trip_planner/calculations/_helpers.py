@@ -195,11 +195,4 @@ def resolve_trip_deadline(
             tz=tz,
         )
 
-    if result is None:
-        _LOGGER.debug(
-            "resolve_trip_deadline: trip %s has invalid day/time, skipping",
-            trip.get("id"),
-        )
-        return None
-
     return _ensure_aware(result)
