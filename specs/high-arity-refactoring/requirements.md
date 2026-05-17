@@ -97,6 +97,7 @@ Close the arity tech-debt opened in epic `tech-debt-cleanup` AC-4.1–4.9 AND au
 | FR-13 | Class C pragmas: justification added or test written + pragma removed | Medium | AC-5.4 |
 | FR-14 | Class A pragmas: justification comment present (add if missing) | Low | AC-5.5 |
 | FR-15 | `make test` still passes at 100% coverage after pragma removals | High | AC-5.6 |
+| FR-16 | Full quality gate passes before merge: `make quality-gate` exits zero | High | All 6 layers (L3A→L1→L2→L3B→L4) pass |
 
 ---
 
@@ -105,10 +106,10 @@ Close the arity tech-debt opened in epic `tech-debt-cleanup` AC-4.1–4.9 AND au
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
 | NFR-1 | Type safety | pyright basic mode | Zero type errors |
-| NFR-2 | Test coverage | pytest-cov line coverage | No regression vs. pre-change baseline |
+| NFR-2 | Test coverage | pytest-cov line coverage | 100% (no regression) |
 | NFR-3 | Code style | ruff + pylint | Zero new violations |
 | NFR-4 | Arity gate | `make layer3a` | Zero unaccepted violations |
-| NFR-5 | All quality gates | `make check` | Full pass |
+| NFR-5 | Full quality gate | `make quality-gate` | All 6 layers pass: L3A (SOLID AST), L1 (tests+E2E), L2 (mutation), L3B (BMAD consensus), L4 (security) |
 
 ---
 
@@ -154,7 +155,7 @@ Close the arity tech-debt opened in epic `tech-debt-cleanup` AC-4.1–4.9 AND au
 ## Success Criteria
 
 - `make layer3a` exits zero with no unaccepted arity violations
-- `make check` (test + lint + typecheck) exits zero
+- `make quality-gate` exits zero (all 6 layers)
 - `_populate_per_trip_cache_entry` has no dead kwargs
 - Every `qg-accepted` arity comment in `calculations/` states a specific, honest constraint (not "needs all params")
 - All `# pragma: no cover` marks in `custom_components/` are classified and either justified with a specific reason or removed with test coverage added
@@ -172,14 +173,16 @@ Close the arity tech-debt opened in epic `tech-debt-cleanup` AC-4.1–4.9 AND au
 
 **Observable signals**:
 - PASS looks like:
+  - `make quality-gate` exits 0 (all 6 layers green)
   - `make layer3a` exits 0 with no arity violations listed
-  - `make test` exits 0, same test count as before
+  - `make test` exits 0, same test count as before, 100% coverage
   - `make typecheck` exits 0 (pyright: 0 errors)
   - `make lint` exits 0 (ruff: 0 violations)
-  - `_populate_per_trip_cache_entry` signature shows only `(self, params: PerTripCacheParams)`
+  - `_populate_per_trip_cache_entry` signature shows `(self, params: PerTripCacheParams, pre_computed_*=None ×3)`
 - FAIL looks like:
+  - `make quality-gate` fails at any layer
   - `make layer3a` reports any function with arity > 5 and no `qg-accepted` comment
-  - `make test` shows any test failures or import errors
+  - `make test` shows any test failures, import errors, or coverage < 100%
   - pyright reports type errors on new dataclass fields or call sites
   - ruff reports RUF009 (mutable default in dataclass field)
 

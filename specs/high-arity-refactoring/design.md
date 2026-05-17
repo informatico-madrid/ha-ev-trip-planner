@@ -489,8 +489,9 @@ For this spec, the wraps are pure structural changes — existing tests exercise
 
 | Check | Expected result |
 |-------|----------------|
+| `make quality-gate` | **All 6 layers pass**: L3A (SOLID AST) → L1 (tests+E2E) → L2 (mutation) → L3B (BMAD consensus) → L4 (security). Exit 0. |
 | `make layer3a` | Zero unaccepted arity violations. `_compute_window_start`, `calculate_charging_window_pure`, `_populate_profile` no longer appear. `_populate_per_trip_cache_entry` no longer appears (arity drops to 4 effective). `_validate_field` no longer appears (effective arity = 5). |
-| `make test` | 1417 tests pass (same count). 100% coverage unchanged. |
+| `make test` | Same test count. 100% coverage unchanged. |
 | `make typecheck` | Zero pyright errors. Dataclass fields match function body usage. |
 | `make lint` | Zero ruff violations. No RUF009 (no mutable defaults). No B006. |
 | `grep "# qg-accepted" calculations/` | All remaining marks have specific, named rationale. No "needs all params", "domain inputs only", "helper needs all params", "needs all context". |
