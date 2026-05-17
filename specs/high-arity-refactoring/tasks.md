@@ -85,7 +85,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - **Commit**: `chore(high-arity-refactoring): pass quality checkpoint` (only if fixes needed)
   - _Requirements: FR-7, NFR-1, NFR-2_
 
-- [ ] 1.7 Add `PopulateProfileParams` dataclass, change `_populate_profile` signature, update caller
+- [x] 1.7 Add `PopulateProfileParams` dataclass, change `_populate_profile` signature, update caller
   - **Do**:
     1. In `calculations/power.py`, add `@dataclass(frozen=True, kw_only=True)` class `PopulateProfileParams` before `_populate_profile` (~line 288) with fields per design.md §3.3: `power_profile: List[float]`, `hora_inicio: int`, `horas_necesarias: int`, `horas_hasta_fin: int`, `profile_length: int`, `charging_power_watts: float`. No `default_factory` — caller always passes an existing list.
     2. Change signature to `def _populate_profile(params: PopulateProfileParams) -> None:`; body reads `params.<field>` (in-place mutation of `params.power_profile` is fine — frozen blocks reassignment, not list mutation). Remove the `# qg-accepted: arity=6 ...` comment.

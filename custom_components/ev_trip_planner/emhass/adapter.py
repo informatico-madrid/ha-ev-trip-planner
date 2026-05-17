@@ -711,28 +711,20 @@ class EMHASSAdapter:
     # CC-N-ACCEPTED: cc=12 — cache entry builder with branches for punctual vs
     # recurring trips, datetime handling, charging window calc, and energy
     # calculation. Each step has distinct error paths.
-    # qg-accepted: arity=7, complexity=21 — cache entry building with backward compat params
     async def _populate_per_trip_cache_entry(
         self,
         params: PerTripCacheParams,
-        # Remaining params kept as optional kwargs for test compatibility.
-        # They are not used in the method body — only accepted for backward compat.
-        hora_regreso: Optional[datetime] = None,
         pre_computed_inicio_ventana: Optional[datetime] = None,
         pre_computed_fin_ventana: Optional[datetime] = None,
         pre_computed_charging_window: Optional[List[Dict[str, Any]]] = None,
-        adjusted_def_total_hours: Optional[float] = None,
-        soc_cap: Optional[float] = None,
     ) -> None:
         """Build and cache per-trip EMHASS parameters.
 
         Args:
             params: Bundled per-trip cache parameters (reduced arity from 11 to 2).
-            hora_regreso: Unused — kept for test compatibility.
             pre_computed_inicio_ventana: Test-only batch-mode parameter.
             pre_computed_fin_ventana: Test-only batch-mode parameter.
-            adjusted_def_total_hours: Unused — kept for test compatibility.
-            soc_cap: Unused — kept for test compatibility.
+            pre_computed_charging_window: Test-only batch-mode parameter.
         """
         trip = params.trip
         trip_id = params.trip_id
