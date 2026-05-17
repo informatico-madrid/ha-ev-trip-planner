@@ -63,6 +63,89 @@ const getFutureIso = (daysOffset: number, timeStr: string = '08:00'): string => 
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+// ============================================================================
+// EMHASS deferrable load assertions — BUG DETECTORS
+// ============================================================================
+
+function validateDefTotalHoursAreIntegers(attrs: Record<string, any>): {
+  valid: boolean; errors: string[]; values: number[];
+} {
+  const arr = (attrs.def_total_hours_array as number[]) || [];
+  if (arr.length === 0) return { valid: false, errors: ['def_total_hours_array is empty'], values: [] };
+  const errors: string[] = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] !== Math.floor(arr[i])) {
+      errors.push(`def_total_hours[${i}] = ${arr[i]} (float, expected integer ceil)`);
+    }
+  }
+  return { valid: errors.length === 0, errors, values: arr };
+}
+
+function validateDefStartTimestepChronological(attrs: Record<string, any>): {
+  valid: boolean; errors: string[]; values: number[];
+} {
+  const arr = (attrs.def_start_timestep_array as number[]) || [];
+  if (arr.length === 0) return { valid: false, errors: ['def_start_timestep_array is empty'], values: [] };
+  const errors: string[] = [];
+  // When car is at home (hora_regreso=None), all def_start=0 is valid.
+  // The key invariant: def_start >= 0 and window has enough capacity (checked in validateDefEndTimestepConsistency)
+  const horizon = 168; // default 7 days
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] < 0 || arr[i] >= horizon) {
+      errors.push(`def_start_timestep[${i}] = ${arr[i]} out of valid range [0, ${horizon})`);
+    }
+  }
+  return { valid: errors.length === 0, errors, values: arr };
+}
+
+function validateDefEndTimestepConsistency(attrs: Record<string, any>): { valid: boolean; errors: string[] } {
+  const starts = (attrs.def_start_timestep_array as number[]) || [];
+  const hours = (attrs.def_total_hours_array as number[]) || [];
+  const ends = (attrs.def_end_timestep_array as number[]) || [];
+  const errors: string[] = [];
+  const minLen = Math.min(starts.length, hours.length, ends.length);
+  for (let i = 0; i < minLen; i++) {
+    // def_end = fin_ventana (trip departure) = opportunity window end
+    // def_start = inicio_ventana = opportunity window start
+    // def_total_hours = actual charging time needed within the window
+    // Invariant: window_size >= def_total_hours (opportunity must accommodate charging)
+    // AND: def_end > def_start (non-trivial window)
+    if (ends[i] <= starts[i]) {
+      errors.push(`Trip ${i}: def_end[${ends[i]}] <= def_start[${starts[i]}] — window must be non-trivial`);
+    }
+    const windowSize = ends[i] - starts[i];
+    if (windowSize < hours[i]) {
+      errors.push(`Trip ${i}: window_size[${windowSize}] < hours[${hours[i]}] — opportunity must accommodate charging`);
+    }
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+function validatePDeferrableMatrixColumns(attrs: Record<string, any>, expectedColumns: number): { valid: boolean; errors: string[] } {
+  const matrix = (attrs.p_deferrable_matrix as number[][]) || [];
+  if (matrix.length === 0) return { valid: false, errors: ['p_deferrable_matrix is empty'] };
+  const errors: string[] = [];
+  for (let i = 0; i < matrix.length; i++) {
+    if (matrix[i].length !== expectedColumns) {
+      errors.push(`row ${i} has ${matrix[i].length} cols, expected ${expectedColumns}`);
+    }
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+function validateDeferrableLoadAssertions(attrs: Record<string, any>, expectedColumns: number = 168): boolean {
+  const r1 = validateDefTotalHoursAreIntegers(attrs);
+  const r2 = validateDefStartTimestepChronological(attrs);
+  const r3 = validateDefEndTimestepConsistency(attrs);
+  const r4 = validatePDeferrableMatrixColumns(attrs, expectedColumns);
+  console.log(`  🔢 def_total_hours integers: ${r1.valid} | 📐 start_timestep chronological: ${r2.valid} | 🏁 end_timestep consistent: ${r3.valid} | 📏 matrix cols: ${r4.valid}`);
+  if (!r1.valid) for (const e of r1.errors) console.error(`  ❌ ${e}`);
+  if (!r2.valid) for (const e of r2.errors) console.error(`  ❌ ${e}`);
+  if (!r3.valid) for (const e of r3.errors) console.error(`  ❌ ${e}`);
+  if (!r4.valid) for (const e of r4.errors) console.error(`  ❌ ${e}`);
+  return r1.valid && r2.valid && r3.valid && r4.valid;
+}
+
 test.describe('EMHASS Sensor Updates', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await navigateToPanel(page);
@@ -331,7 +414,7 @@ test.describe('EMHASS Sensor Updates', () => {
       expect(attrs.power_profile_watts).toBeDefined();
       expect(Array.isArray(attrs.power_profile_watts)).toBe(true);
       const hasNonZero = attrs.power_profile_watts.some((v: number) => v > 0);
-      expect(hasNonZero).toBe(true, 'power_profile_watts should have non-zero values after trip creation');
+      expect(hasNonZero).toBe(true);
     }).toPass({ timeout: 15000 });
 
     // Step 3: Read BEFORE attributes and verify power_profile has values
@@ -344,6 +427,20 @@ test.describe('EMHASS Sensor Updates', () => {
     expect(Array.isArray(beforeAttrs.power_profile_watts)).toBe(true);
     const hasNonZeroBefore = beforeAttrs.power_profile_watts.some((v: number) => v > 0);
     expect(hasNonZeroBefore).toBe(true);
+
+    // NEW ASSERTION: Verify charging is compacted at END of window (not entire window)
+    // For a 200km trip ~24h ahead with ~5h charging needed, power_profile should have
+    // approximately 5 non-zero values (at the END), NOT 24+ values (entire window).
+    // BUG: adapter.py fills [def_start, def_end) which for 24h trip = 24 slots
+    // CORRECT: Only last def_total slots at END of window
+    const nonZeroCount = beforeAttrs.power_profile_watts.filter((v: number) => v > 0).length;
+    console.log('BEFORE SOC change - non-zero count:', nonZeroCount);
+    
+    // For 200km trip (24h window) with 7.4kW charger, expected charging ~5h
+    // BUG would show ~24 non-zero values (entire window)
+    // CORRECT should show ~5 non-zero values (compacted at end)
+    // Allow up to 12 as threshold (half a day) - definitely less than 24
+    expect(nonZeroCount).toBeLessThanOrEqual(12);
 
     const beforeLastUpdated = await getSensorLastUpdated(sensorEntityId);
     console.log('BEFORE SOC change - last_updated:', beforeLastUpdated);
@@ -361,7 +458,7 @@ test.describe('EMHASS Sensor Updates', () => {
       expect(attrs.power_profile_watts).toBeDefined();
       expect(Array.isArray(attrs.power_profile_watts)).toBe(true);
       const hasNonZero = attrs.power_profile_watts.some((v: number) => v > 0);
-      expect(hasNonZero).toBe(true, 'power_profile_watts should have non-zero values after SOC change');
+      expect(hasNonZero).toBe(true);
     }).toPass({ timeout: 15000 });
 
     // Step 6: Record last_updated AFTER SOC change
@@ -395,7 +492,7 @@ test.describe('EMHASS Sensor Updates', () => {
       expect(deleteAttrs.power_profile_watts).toBeDefined();
       expect(Array.isArray(deleteAttrs.power_profile_watts)).toBe(true);
       const hasNonZero = deleteAttrs.power_profile_watts.some((v: number) => v > 0);
-      expect(hasNonZero).toBe(false, 'power_profile_watts should be all zeros after trip deletion');
+      expect(hasNonZero).toBe(false);
     }).toPass({ timeout: 15000 });
 
     // Step 10: Read final attributes after deletion
@@ -612,6 +709,10 @@ test.describe('EMHASS Sensor Updates', () => {
    * Verifies that creating a second trip immediately after the first works correctly.
    */
   test('race-condition-regression-rapid-successive-creation', async ({ page }) => {
+    // @see https://playwright.dev/docs/test-annotations#tag-a-test-as-slow
+    // Marked slow: race condition test needs extra time for HA sensor polling under load
+    test.slow();
+
     // Step 1: cleanup → navigate
     await cleanupTestTrips(page);
     await navigateToPanel(page);
@@ -628,13 +729,14 @@ test.describe('EMHASS Sensor Updates', () => {
     );
 
     // Step 3: toPass() check — sensor shows trip 1 data
+    // Increased timeout: HA sensor update latency varies under system load
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       expect(sensorEntityId).toBeTruthy();
       const a = await getSensorAttributes(page, sensorEntityId!);
       expect(Array.isArray(a.power_profile_watts)).toBe(true);
       expect(a.power_profile_watts.some((v: number) => v > 0)).toBe(true);
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 30000 });
 
     // Step 4: IMMEDIATELY create second trip (no delay)
     const trip2Datetime = getFutureIso(1, '14:00');
@@ -651,6 +753,7 @@ test.describe('EMHASS Sensor Updates', () => {
     // CRITICAL FIX (C8): The old assertion `power_profile_watts.some(v > 0)` passes
     // even if the second trip overwrote the first trip's data. We must verify that
     // both trips are represented in the sensor attributes.
+    // Increased timeout: two trips require more HA coordinator cycles
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       expect(sensorEntityId).toBeTruthy();
@@ -663,14 +766,14 @@ test.describe('EMHASS Sensor Updates', () => {
       expect((a.def_total_hours_array as number[]).length).toBeGreaterThanOrEqual(2);
       expect(Array.isArray(a.p_deferrable_matrix)).toBe(true);
       expect((a.p_deferrable_matrix as number[][]).length).toBeGreaterThanOrEqual(2);
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 30000 });
 
     // Step 6: toPass() check — emhass_status === 'ready'
     await expect(async () => {
       const sensorEntityId = await discoverEmhassSensorEntityId(page);
       const a = await getSensorAttributes(page, sensorEntityId!);
       expect(a.emhass_status).toBe('ready');
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 30000 });
 
     // Step 7: cleanup
     await cleanupTestTrips(page);

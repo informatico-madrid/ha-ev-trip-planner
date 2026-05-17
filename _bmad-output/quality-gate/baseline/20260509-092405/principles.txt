@@ -1,0 +1,270 @@
+{
+  "DRY": {
+    "status": "FAIL",
+    "violations": 12,
+    "duplicate_blocks": [
+      {
+        "block_preview": "            return False\n        try:\n            domain, service = self.notific",
+        "file1": "ev_trip_planner/emhass_adapter.py",
+        "line1": 1426,
+        "file2": "ev_trip_planner/presence_monitor.py",
+        "line2": 538
+      },
+      {
+        "block_preview": "        try:\n            domain, service = self.notification_service.split(\".\", ",
+        "file1": "ev_trip_planner/emhass_adapter.py",
+        "line1": 1427,
+        "file2": "ev_trip_planner/presence_monitor.py",
+        "line2": 539
+      },
+      {
+        "block_preview": "            domain, service = self.notification_service.split(\".\", 1)\n          ",
+        "file1": "ev_trip_planner/emhass_adapter.py",
+        "line1": 1428,
+        "file2": "ev_trip_planner/presence_monitor.py",
+        "line2": 540
+      },
+      {
+        "block_preview": "            await self.hass.services.async_call(\n                domain,\n       ",
+        "file1": "ev_trip_planner/emhass_adapter.py",
+        "line1": 1429,
+        "file2": "ev_trip_planner/presence_monitor.py",
+        "line2": 541
+      },
+      {
+        "block_preview": "                self.vehicle_id,\n                title,\n            )\n          ",
+        "file1": "ev_trip_planner/emhass_adapter.py",
+        "line1": 1440,
+        "file2": "ev_trip_planner/presence_monitor.py",
+        "line2": 552
+      },
+      {
+        "block_preview": "    \"lunes\",\n    \"martes\",\n    \"miercoles\",\n    \"jueves\",\n    \"viernes\",\n    \"sa",
+        "file1": "ev_trip_planner/const.py",
+        "line1": 66,
+        "file2": "ev_trip_planner/calculations.py",
+        "line2": 124
+      },
+      {
+        "block_preview": "    \"martes\",\n    \"miercoles\",\n    \"jueves\",\n    \"viernes\",\n    \"sabado\",\n    \"d",
+        "file1": "ev_trip_planner/const.py",
+        "line1": 67,
+        "file2": "ev_trip_planner/calculations.py",
+        "line2": 125
+      },
+      {
+        "block_preview": "DAYS_OF_WEEK = (\n    \"lunes\",\n    \"martes\",\n    \"miercoles\",\n    \"jueves\",\n    \"",
+        "file1": "ev_trip_planner/calculations.py",
+        "line1": 123,
+        "file2": "ev_trip_planner/trip_manager.py",
+        "line2": 41
+      },
+      {
+        "block_preview": "    \"lunes\",\n    \"martes\",\n    \"miercoles\",\n    \"jueves\",\n    \"viernes\",\n    \"sa",
+        "file1": "ev_trip_planner/const.py",
+        "line1": 66,
+        "file2": "ev_trip_planner/trip_manager.py",
+        "line2": 42
+      },
+      {
+        "block_preview": "    \"martes\",\n    \"miercoles\",\n    \"jueves\",\n    \"viernes\",\n    \"sabado\",\n    \"d",
+        "file1": "ev_trip_planner/const.py",
+        "line1": 67,
+        "file2": "ev_trip_planner/trip_manager.py",
+        "line2": 43
+      }
+    ]
+  },
+  "KISS": {
+    "status": "FAIL",
+    "violations": 60,
+    "details": [
+      {
+        "file": "src/",
+        "function": "async_publish_deferrable_load",
+        "lineno": 355,
+        "issue": "complexity=13 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_calculate_deadline_from_trip",
+        "lineno": 516,
+        "issue": "complexity=11 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_populate_per_trip_cache_entry",
+        "lineno": 586,
+        "issue": "complexity=30 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_populate_per_trip_cache_entry",
+        "lineno": 586,
+        "issue": "arity=11 > 5"
+      },
+      {
+        "file": "src/",
+        "function": "async_publish_all_deferrable_loads",
+        "lineno": 891,
+        "issue": "complexity=60 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "async_publish_all_deferrable_loads",
+        "lineno": 891,
+        "issue": "nesting=5 > 4"
+      },
+      {
+        "file": "src/",
+        "function": "publish_deferrable_loads",
+        "lineno": 1398,
+        "issue": "complexity=21 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "async_check_emhass_response_sensors",
+        "lineno": 1670,
+        "issue": "complexity=12 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "async_cleanup_vehicle_indices",
+        "lineno": 2135,
+        "issue": "complexity=27 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "verify_cleanup",
+        "lineno": 2387,
+        "issue": "complexity=13 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_handle_config_entry_update",
+        "lineno": 2469,
+        "issue": "complexity=16 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_calculate_power_profile_from_trips",
+        "lineno": 2615,
+        "issue": "arity=6 > 5"
+      },
+      {
+        "file": "src/",
+        "function": "async_check_home_status",
+        "lineno": 105,
+        "issue": "complexity=11 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "__init__",
+        "lineno": 205,
+        "issue": "arity=7 > 5"
+      },
+      {
+        "file": "src/",
+        "function": "import_dashboard",
+        "lineno": 281,
+        "issue": "complexity=23 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_validate_dashboard_config",
+        "lineno": 567,
+        "issue": "complexity=12 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_save_lovelace_dashboard",
+        "lineno": 771,
+        "issue": "complexity=15 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "_save_dashboard_yaml_fallback",
+        "lineno": 1044,
+        "issue": "complexity=17 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "calculate_trip_time",
+        "lineno": 220,
+        "issue": "complexity=12 > 10"
+      },
+      {
+        "file": "src/",
+        "function": "calculate_trip_time",
+        "lineno": 220,
+        "issue": "arity=6 > 5"
+      }
+    ]
+  },
+  "YAGNI": {
+    "status": "FAIL",
+    "violations": 10,
+    "unused_imports": [
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 14
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 11
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 11
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 7
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 7
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 8
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 7
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 7
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 7
+      },
+      {
+        "module": "__future__.annotations",
+        "alias": "annotations",
+        "lineno": 6
+      }
+    ]
+  },
+  "LoD": {
+    "status": "PASS",
+    "violations": 0,
+    "details": []
+  },
+  "CoI": {
+    "status": "PASS",
+    "violations": 0,
+    "details": []
+  }
+}

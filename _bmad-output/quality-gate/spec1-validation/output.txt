@@ -1,0 +1,77 @@
+tee: _bmad-output/quality-gate/spec1-validation/output.txt: No such file or directory
+[0;32m[INFO][0m Creating baseline at: _bmad-output/quality-gate/baseline/20260509-092405
+
+[0;34m[STEP][0m 1/17: Running pytest...
+[0;32m[INFO][0m   pytest: pass
+[0;34m[STEP][0m 2/17: Running coverage check...
+[0;32m[INFO][0m   coverage: pass
+[0;34m[STEP][0m 3/17: Running mutation gate (mutation_analyzer.py)...
+[0;32m[INFO][0m   mutation gate: pass
+[0;34m[STEP][0m 4/17: Running E2E tests (make e2e)...
+[0;32m[INFO][0m   e2e: fail
+[0;34m[STEP][0m 5/17: Running E2E SOC suite (make e2e-soc)...
+[0;32m[INFO][0m   e2e-soc: pass
+[0;34m[STEP][0m 6/17: Running weak test detector...
+[0;32m[INFO][0m   weak_tests: pass
+[0;34m[STEP][0m 7/17: Running mutation kill-map analysis...
+[0;32m[INFO][0m   mutation killmap: pass
+[0;34m[STEP][0m 8/17: Running test diversity metric...
+[0;32m[INFO][0m   diversity: pass
+[0;34m[STEP][0m 9/17: Running ruff linting...
+[0;32m[INFO][0m   ruff: pass
+[0;34m[STEP][0m 10/17: Running pyright typecheck...
+[0;32m[INFO][0m   pyright: fail
+[0;34m[STEP][0m 11/17: Running SOLID Tier A (solid_metrics.py)...
+[0;32m[INFO][0m   SOLID Tier A: pass
+[0;34m[STEP][0m 12/17: Running SOLID Tier B (llm_solid_judge.py)...
+[0;32m[INFO][0m   SOLID Tier B (LLM): pass
+[0;34m[STEP][0m 13/17: Running principles checker...
+[0;32m[INFO][0m   principles: pass
+[0;34m[STEP][0m 14/17: Running antipatterns Tier A (AST-based)...
+[0;32m[INFO][0m   antipatterns Tier A: pass
+[0;34m[STEP][0m 15/17: Running antipatterns Tier B (antipattern_judge.py)...
+[0;32m[INFO][0m   antipatterns Tier B (LLM): pass
+[0;34m[STEP][0m 16/17: Running Layer 4 unified security scanner...
+[0;32m[INFO][0m   layer4 security: fail
+[0;34m[STEP][0m 17/17: Checking Tier B consensus report...
+[0;32m[INFO][0m   tier-b consensus: pass
+
+[0;32m[INFO][0m Baseline complete!
+
+Baseline files created in: _bmad-output/quality-gate/baseline/20260509-092405
+
+Layer 1 - Test Execution:
+  - pytest.txt              : Unit test results
+  - coverage.txt            : Coverage report
+  - mutation-gate.txt       : Mutation gate (per-module thresholds)
+  - mutation-killmap.txt    : Mutation kill-map analysis
+  - e2e.txt                 : E2E test results
+  - e2e-soc.txt             : E2E SOC dynamic capping suite results
+
+Layer 2 - Test Quality:
+  - weak-tests.txt          : Weak test detection (A1-A8 rules)
+  - diversity.txt           : Test diversity metric
+
+Layer 3 - Code Quality:
+  - ruff.txt                : Linting results
+  - pyright.json            : Type checking results
+  - solid-tier-a.txt        : SOLID AST-based (deterministic)
+  - solid-tier-b.txt        : SOLID LLM context (requires BMAD)
+  - principles.txt          : DRY, KISS, YAGNI, LoD, CoI
+  - antipatterns-tier-a.txt : Antipatterns AST-based (25 patterns)
+  - antipatterns-tier-b.txt : Antipatterns LLM context (25 patterns)
+
+Layer 4 - Security & Defense:
+  - layer4-security.json    : Unified security scanner (8 tools)
+  - layer4-security-stderr.txt : Security scanner summary
+
+Layer 3B - Tier B Consensus:
+  - tier-b-consensus.md     : BMAD Party Mode consensus results
+
+  - baseline.json           : Combined metrics
+
+Latest baseline: _bmad-output/quality-gate/baseline/latest -> 20260509-092405
+
+Compare future runs:
+  diff _bmad-output/quality-gate/baseline/latest/<file> \
+       _bmad-output/quality-gate/baseline/<new-timestamp>/<file>

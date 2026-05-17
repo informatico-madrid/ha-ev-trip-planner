@@ -1,0 +1,85 @@
+{
+  "S": {
+    "status": "FAIL",
+    "violations": [
+      {
+        "file": "custom_components",
+        "class": "EMHASSAdapter",
+        "lineno": 60,
+        "issues": [
+          "public_methods=28 > 7 (SRP)",
+          "max_arity=12 > 5 (high CC proxy)"
+        ]
+      },
+      {
+        "file": "custom_components",
+        "class": "PresenceMonitor",
+        "lineno": 37,
+        "issues": [
+          "public_methods=12 > 7 (SRP)"
+        ]
+      },
+      {
+        "file": "custom_components",
+        "class": "DashboardImportResult",
+        "lineno": 198,
+        "issues": [
+          "max_arity=8 > 5 (high CC proxy)"
+        ]
+      },
+      {
+        "file": "custom_components",
+        "class": "TripManager",
+        "lineno": 90,
+        "issues": [
+          "public_methods=32 > 7 (SRP)",
+          "max_arity=7 > 5 (high CC proxy)"
+        ]
+      },
+      {
+        "file": "custom_components",
+        "class": "TripPlannerCoordinator",
+        "lineno": 35,
+        "issues": [
+          "max_arity=6 > 5 (high CC proxy)"
+        ]
+      },
+      {
+        "file": "custom_components",
+        "class": "VehicleController",
+        "lineno": 288,
+        "issues": [
+          "public_methods=10 > 7 (SRP)"
+        ]
+      },
+      {
+        "file": "custom_components",
+        "class": "EVTripPlannerFlowHandler",
+        "lineno": 287,
+        "issues": [
+          "public_methods=8 > 7 (SRP)"
+        ]
+      }
+    ]
+  },
+  "O": {
+    "status": "FAIL",
+    "violations": [
+      {
+        "issue": "abstractness=3.3% < 10% (need ABC/Protocol for OCP)"
+      }
+    ]
+  },
+  "L": {
+    "status": "PASS",
+    "violations": []
+  },
+  "I": {
+    "status": "PASS",
+    "violations": []
+  },
+  "D": {
+    "status": "PASS",
+    "violations": []
+  }
+}

@@ -220,6 +220,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.24] - 2026-05-14 - SOLID Refactoring (3-solid-refactor COMPLETED)
+
+### Technical Details
+
+**Architectural Transformation: 9 God-Class Modules → 9 SOLID Packages**
+
+This release completes the systematic decomposition of 9 god-class modules (12,400+ LOC) into SOLID-compliant packages using a dual-agent quality system with harness-driven TDD.
+
+#### Decomposition Results
+
+| Package | Original Module | LOC | Pattern | Sub-modules |
+|---------|----------------|-----|---------|-------------|
+| `emhass/` | emhass_adapter.py | 2,733 | Facade + Composition | adapter, index_manager, load_publisher, error_handler |
+| `trip/` | trip_manager.py | 2,503 | Facade + Mixins | manager, _crud_mixin, _soc_mixin, _power_profile_mixin, _schedule_mixin |
+| `services/` | services.py | 1,635 | Module Facade | __init__, _handler_factories, handlers, cleanup |
+| `dashboard/` | dashboard.py | 1,285 | Facade + Builder | __init__, template_manager, _paths |
+| `calculations/` | calculations.py | 1,690 | Functional Decomposition | windows, soc, deferrable, battery |
+| `vehicle/` | vehicle_controller.py | 537 | Strategy Pattern | __init__, strategies |
+| `sensor/` | sensor.py | 1,041 | Platform Decomposition | platform, entities |
+| `config_flow/` | config_flow.py | 1,038 | Flow Type Decomposition | steps |
+| `presence_monitor/` | presence_monitor.py | 806 | Concern Isolation | __init__, schedule_monitor |
+
+#### Quality Metrics
+
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| SOLID Compliance | 3/5 FAIL | 5/5 PASS | ✅ |
+| God Classes | 4 | 0 | ✅ -100% |
+| Quality Gate | FAILED | PASS | ✅ |
+| KISS Complexity | 60 | 40 | -33% |
+| Mutation Kill Rate | 48.9% | 62.5% | +13.6pp |
+| Pyright Errors | 1 | 0 | ✅ |
+
+#### Technical Highlights
+
+- **3-Phase Shim Migration Strategy**: Each decomposition followed Skeleton + re-exports → TDD decomposition → cleanup shims pattern. Every commit green and bisectable.
+- **lint-imports Contracts**: Architectural fitness functions enforcing dependency direction between packages
+- **Dual-Agent Quality System**: spec-executor + external-reviewer with anti-evasion policy preventing fabrication and spec integrity degradation
+- **TDD Triplets**: RED→GREEN→YELLOW per decomposition task ensuring test coverage throughout
+- **Pattern Selection Per Package**: Domain-driven pattern selection (Facade+Composition, Facade+Mixins, Strategy, Builder, Functional Decomposition) based on package responsibilities
+
+#### Files Added
+
+- `custom_components/ev_trip_planner/emhass/` — 4 sub-modules
+- `custom_components/ev_trip_planner/trip/` — 5 sub-modules
+- `custom_components/ev_trip_planner/services/` — 4 sub-modules
+- `custom_components/ev_trip_planner/dashboard/` — 3 sub-modules
+- `custom_components/ev_trip_planner/calculations/` — 4 sub-modules
+- `custom_components/ev_trip_planner/vehicle/` — 2 sub-modules
+- `custom_components/ev_trip_planner/sensor/` — 2 sub-modules
+- `custom_components/ev_trip_planner/config_flow/` — 5 sub-modules
+- `custom_components/ev_trip_planner/presence_monitor/` — 2 sub-modules
+
+#### Quality Verification
+
+- SOLID Tier A (deterministic AST-based): 5/5 PASS
+- Tier B (BMAD consensus party): all packages validated
+- Zero regressions in test suite (900+ tests passing)
+- 81% test coverage maintained
+- lint-imports contracts: all 6 contracts satisfied
+
+#### Spec Documentation
+
+- [`specs/3-solid-refactor/`](specs/3-solid-refactor/) — Complete spec with requirements, design, task list
+- [`specs/3-solid-refactor/.progress.md`](specs/3-solid-refactor/.progress.md) — 731 lines of execution evidence
+- [`specs/3-solid-refactor/task_review.md`](specs/3-solid-refactor/task_review.md) — 2084 lines of review decisions
+
+---
+
 ## [0.5.23] - 2026-05-03 - Dynamic SOC Capping for Battery Health (M4.0.3 COMPLETED)
 
 ### Added

@@ -1,0 +1,83 @@
+{
+  "total_tests": 608,
+  "diversity_score": 0.508,
+  "min_edit_distance": 3,
+  "max_edit_distance": 2178,
+  "similar_pairs": [
+    {
+      "file": "test_sensor_coverage.py",
+      "test1": "test_extra_state_attributes_returns_empty_when_coordinator_data_is_none",
+      "test2": "test_extra_state_attributes_returns_empty_dict_when_coordinator_data_is_none",
+      "edit_distance": 8,
+      "similarity": 0.989
+    },
+    {
+      "file": "test_utils.py",
+      "test1": "test_invalid_minute_60",
+      "test2": "test_invalid_minute_61",
+      "edit_distance": 3,
+      "similarity": 0.982
+    },
+    {
+      "file": "test_utils.py",
+      "test1": "test_invalid_hour_25",
+      "test2": "test_invalid_hour_24",
+      "edit_distance": 3,
+      "similarity": 0.981
+    },
+    {
+      "file": "test_calculations.py",
+      "test1": "test_trip_with_zero_kwh_has_zero_power",
+      "test2": "test_trip_with_negative_kwh_has_zero_power",
+      "edit_distance": 20,
+      "similarity": 0.966
+    },
+    {
+      "file": "test_config_flow_missing.py",
+      "test1": "test_get_emhass_max_deferrable_loads_num_loads_none",
+      "test2": "test_get_emhass_max_deferrable_loads_num_loads_zero",
+      "edit_distance": 12,
+      "similarity": 0.953
+    },
+    {
+      "file": "test_config_flow_missing.py",
+      "test1": "test_get_emhass_max_deferrable_loads_num_loads_zero",
+      "test2": "test_get_emhass_max_deferrable_loads_num_loads_negative",
+      "edit_distance": 12,
+      "similarity": 0.953
+    },
+    {
+      "file": "test_trip_id_generation.py",
+      "test1": "test_recurrent_english_tuesday",
+      "test2": "test_recurrent_english_thursday",
+      "edit_distance": 9,
+      "similarity": 0.951
+    },
+    {
+      "file": "test_utils.py",
+      "test1": "test_recurring_trip_tuesday_returns_true_when_today_is_tuesday",
+      "test2": "test_recurring_trip_thursday_returns_true_when_today_is_thursday",
+      "edit_distance": 15,
+      "similarity": 0.95
+    },
+    {
+      "file": "test_trip_id_generation.py",
+      "test1": "test_recurrent_english_monday",
+      "test2": "test_recurrent_english_sunday",
+      "edit_distance": 9,
+      "similarity": 0.95
+    },
+    {
+      "file": "test_utils.py",
+      "test1": "test_generate_punctual_with_iso_date_string",
+      "test2": "test_generate_punctual_with_slash_date_string",
+      "edit_distance": 11,
+      "similarity": 0.948
+    }
+  ],
+  "summary": {
+    "high_diversity": false,
+    "low_diversity": false,
+    "similar_pair_count": 299
+  }
+}

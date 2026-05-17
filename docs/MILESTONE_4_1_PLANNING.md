@@ -19,7 +19,7 @@ Milestone 4.1 extends the Smart Charging Profile functionality (Milestone 4) wit
 
 **Added Value**: Up to 30% charging cost reduction, support for homes with multiple EVs, and interactive UI for real-time monitoring.
 
-**Starting Point**: Milestone 4 implemented and in production — binary profile of 168 values (24h × 7d), EMHASS integration with dynamic index per trip, SOC-aware, coordinated with `presence_monitor` and `schedule_monitor`.
+**Starting Point**: Milestone 4 implemented and in production — binary profile of 168 values (24h × 7d), EMHASS integration with dynamic index per trip, SOC-aware, coordinated with `presence_monitor`.
 
 ---
 

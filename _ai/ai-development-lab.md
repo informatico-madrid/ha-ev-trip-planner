@@ -226,6 +226,77 @@ The project has evolved through **7 methodological phases**, each leaving artifa
 
 ---
 
+### Phase 8: Harness-Driven SOLID Refactoring (2026-Q2)
+
+**Description:** Decomposition of 9 god-class modules (12,400+ LOC) into SOLID-compliant packages using a dual-agent quality system with 3-phase shim migration strategy.
+
+**Characteristics:**
+- 3-phase shim migration: Skeleton + re-exports → TDD decomposition → cleanup shims
+- Per-package pattern selection based on domain characteristics
+- TDD triplets per decomposition task (RED → GREEN → YELLOW)
+- Architectural fitness functions via lint-imports contracts
+- Dual-agent quality: deterministic AST checks + BMAD consensus party
+- Each commit green and bisectable throughout decomposition
+
+**Pattern Selection Per Package:**
+
+| Package | Original LOC | Pattern | Rationale |
+|---------|-------------|---------|-----------|
+| `emhass/` | 2,733 | Facade + Composition | Adapter layer with multiple responsibilities |
+| `trip/` | 2,503 | Facade + Mixins | Trip management with cross-cutting concerns |
+| `services/` | 1,635 | Module Facade | Service registration and handler factories |
+| `dashboard/` | 1,285 | Facade + Builder | Template loading and configuration |
+| `calculations/` | 1,690 | Functional Decomposition | Pure functions with no side effects |
+| `vehicle/` | 537 | Strategy Pattern | Vehicle control with swappable strategies |
+| `sensor/` | 1,041 | Platform Decomposition | Sensor platform abstraction |
+| `config_flow/` | 1,038 | Flow Type Decomposition | Config flow step isolation |
+| `presence_monitor/` | 806 | Concern Isolation | Presence detection separation |
+
+**Quality Gate Results:**
+
+| Metric | Before | After |
+|--------|--------|-------|
+| SOLID Compliance | 3/5 FAIL | 5/5 PASS |
+| God Classes | 4 | 0 |
+| Quality Gate | FAILED | PASS |
+| KISS Complexity | 60 | 40 (-33%) |
+| Mutation Kill Rate | 48.9% | 62.5% (+13.6pp) |
+| Pyright Errors | 1 | 0 |
+| Test Coverage | 81% | 81% |
+
+**3-Phase Shim Migration Strategy:**
+
+1. **Phase 1 (Skeleton):** Create package with `__init__.py` re-exporting everything from old monolith. Tests still pass.
+2. **Phase 2 (TDD Decomposition):** Add new sub-modules with RED tests first. Wire via facade. Each commit green.
+3. **Phase 3 (Cleanup):** Remove transitional shims. Verify all contracts. Final quality gate.
+
+**Dual-Agent Quality System:**
+- **spec-executor:** Implements decomposition tasks following spec
+- **external-reviewer:** Validates each task independently, prevents fabrication and anti-evasion
+- Anti-trampa policy: No exceptions for pre-existing code, skippable tasks, or acceptable regression
+- BMAD consensus party: 3-agent per-package validation before final quality gate
+
+**Artifacts:**
+- `specs/3-solid-refactor/` — Complete spec with requirements, design, task list
+- `specs/3-solid-refactor/.progress.md` — 731 lines of execution evidence
+- `specs/3-solid-refactor/task_review.md` — 2084 lines of review decisions
+- `_ai/SOLID_REFACTORING_CASE_STUDY.md` — Transformation narrative
+
+**Results:**
+- 9 god-class modules eliminated
+- 45+ sub-modules created across 9 packages
+- 5/5 SOLID Tier A (deterministic AST-based)
+- Zero regressions in test suite
+- 100% spec integrity maintained throughout
+
+**Lessons learned:**
+- God-class decomposition is tractable with harness-driven TDD
+- Pattern selection per package produces better metrics than one-pattern-fits-all
+- Anti-evasion policy is critical when refactoring legacy code
+- 3-phase shim strategy enables continuous green commits during risky refactoring
+
+---
+
 ### Arc 4: Dual-Agent Quality System (2026-Q2 — discovered during M403 execution)
 
 **Description:** During M403-Dynamic-SOC-Capping (136 tasks), the `.roo` agent's full quality system was discovered and documented. This system — with 117 skills (17 review/quality + 100 BMAD/game dev/LangChain) — was living outside git (in `.roo/`) but its artifacts were consumed by Ralph's VERIFY steps throughout the execution, creating a dual-layer quality architecture.
@@ -275,9 +346,9 @@ The project has evolved through **7 methodological phases**, each leaving artifa
 
 ---
 
-### The 4 Evolutionary Arcs
+### The 5 Evolutionary Arcs
 
-Instead of viewing the 7 phases as independent, they are grouped into **4 narrative arcs** that tell the learning story:
+Instead of viewing the 8 phases as independent, they are grouped into **5 narrative arcs** that tell the learning story:
 
 | Arc | Included Phases | Narrative | Result |
 |-----|-----------------|-----------|--------|
@@ -285,6 +356,7 @@ Instead of viewing the 7 phases as independent, they are grouped into **4 narrat
 | **Systematization** | 3-4 (Domain Context, Speckit) → 5 (Ralph) | "Structured specs + parallel verification elevate quality" | Phase 5 Verification Loop, 99.7% coverage |
 | **Orchestration** | 6 (BMad + Ralph) | "Multi-agent with agentic verification is the future" | 23 skills, 29 specs, automated workflow |
 | **Dual-Agent Quality** | 7 (M403) | "Deterministic + consensus quality gates are the next frontier" | 1822 tests, 100% coverage, 117 .roo skills, Gito + CodeRabbit |
+| **Architectural Redemption** | 8 (SPEC-3 SOLID Refactor) | "Legacy code can be decomposed to SOLID with harness-driven refactoring" | 9 god-classes → 9 packages, 5/5 SOLID, 0 regressions |
 
 **Key insight:** Each arc resolved the previous one's problems but introduced new challenges. The technical debt from Arc 1 could only be managed after reaching Arc 3.
 

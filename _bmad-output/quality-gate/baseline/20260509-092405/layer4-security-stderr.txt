@@ -1,0 +1,33 @@
+Running bandit...
+Running safety...
+Running gitleaks...
+Running semgrep...
+Running checkov...
+Running deptry...
+Running vulture...
+Running trivy...
+Phase 2: CWE deduplication + confidence scoring...
+Phase 2 result: No findings above confidence threshold → PASS
+Results written to _bmad-output/quality-gate/baseline/20260509-092405/layer4-security.json
+
+============================================================
+SECURITY SCAN SUMMARY
+============================================================
+ ✓ bandit       [required    ] PASS     (14 unique, 0.4s)
+ ✓ safety       [required    ] PASS     (0 unique, 0.0s)
+ ✓ gitleaks     [required    ] PASS     (0 unique, 2.7s)
+ ✓ semgrep      [recommended ] PASS     (0 unique, 0.0s)
+ ✓ checkov      [recommended ] PASS     (0 unique, 0.0s)
+ ✓ deptry       [recommended ] PASS     (0 unique, 0.1s)
+ ✓ vulture      [recommended ] PASS     (0 unique, 0.1s)
+ ✓ trivy        [optional    ] PASS     (0 unique, 0.0s)
+============================================================
+ Phase 2: 0 duplicates removed
+ Unique findings: 14
+ Confidence threshold: 0.7
+ Findings ≥ confidence: 0
+============================================================
+ OVERALL: FAIL
+ By severity: {'critical': 0, 'high': 0, 'medium': 0, 'low': 14, 'info': 0}
+ Phases completed: deterministic, dedup_confidence
+============================================================
