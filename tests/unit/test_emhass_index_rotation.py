@@ -146,9 +146,9 @@ class TestEMHASSIndexRotation:
             de = params["def_end_timestep"]
             dt = params["def_total_hours"]
 
-            if not (0 <= ds < 168):
+            if not 0 <= ds < 168:
                 bugs.append(f"{trip_id}: def_start={ds} out of range [0, 168)")
-            if not (0 <= de <= 168):
+            if not 0 <= de <= 168:
                 bugs.append(f"{trip_id}: def_end={de} out of range [0, 168]")
             if dt <= 0:
                 bugs.append(f"{trip_id}: def_total_hours={dt} must be > 0")

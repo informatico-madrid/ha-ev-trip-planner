@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-import pytest
 
 from custom_components.ev_trip_planner.calculations._helpers import (
     _ensure_aware,

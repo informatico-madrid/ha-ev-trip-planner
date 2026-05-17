@@ -8,8 +8,7 @@ Lines 1118-1122: SOC unavailable error path in publish_deferrable_load
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 

@@ -129,7 +129,6 @@ def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str
             - es_suficiente: True if window is sufficient
     """
     trip_departure_time = params.trip_departure_time
-    soc_actual = params.soc_actual
     hora_regreso = params.hora_regreso
     charging_power_kw = params.charging_power_kw
     energia_kwh = params.energia_kwh
