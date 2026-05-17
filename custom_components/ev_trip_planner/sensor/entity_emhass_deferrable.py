@@ -88,9 +88,7 @@ class EmhassDeferrableLoadSensor(
         arrays = self._collect_arrays(active_trips)
         return self._build_aggregate_result(matrix, number_of_loads, arrays)
 
-    def _extract_matrix_and_count(
-        self, active_trips: List[Dict[str, Any]]
-    ) -> tuple:
+    def _extract_matrix_and_count(self, active_trips: List[Dict[str, Any]]) -> tuple:
         """Extract p_deferrable_matrix and count loads from active trips."""
         matrix: List[List[float]] = []
         count = 0
@@ -114,10 +112,16 @@ class EmhassDeferrableLoadSensor(
         propagated values — no stale cached arrays.
         """
         return {
-            "def_total_hours_array": [p.get("def_total_hours", 0) for p in active_trips],
+            "def_total_hours_array": [
+                p.get("def_total_hours", 0) for p in active_trips
+            ],
             "p_deferrable_nom_array": [p.get("power_watts", 0) for p in active_trips],
-            "def_start_timestep_array": [p.get("def_start_timestep", 0) for p in active_trips],
-            "def_end_timestep_array": [p.get("def_end_timestep", 0) for p in active_trips],
+            "def_start_timestep_array": [
+                p.get("def_start_timestep", 0) for p in active_trips
+            ],
+            "def_end_timestep_array": [
+                p.get("def_end_timestep", 0) for p in active_trips
+            ],
         }
 
     def _build_aggregate_result(
@@ -140,11 +144,13 @@ class EmhassDeferrableLoadSensor(
         Includes aggregated deferrable load parameters from all active trips.
         """
         if self.coordinator.data is None:
-            _LOGGER.warning("BUG-DEBUG: extra_state_attributes called but coordinator.data is None")
+            _LOGGER.warning(
+                "BUG-DEBUG: extra_state_attributes called but coordinator.data is None"
+            )
             return {}
 
         vehicle_id = getattr(self.coordinator, "vehicle_id", self._entry_id)
-        
+
         per_trip = self.coordinator.data.get("per_trip_emhass_params", {})
         _LOGGER.warning(
             "BUG-DEBUG: extra_state_attributes per_trip_emhass_params=%d trips",
@@ -159,10 +165,12 @@ class EmhassDeferrableLoadSensor(
                 tp.get("def_end_timestep_array"),
                 tp.get("p_deferrable_nom_array"),
             )
-        
+
         attrs: Dict[str, Any] = {
             "power_profile_watts": self.coordinator.data.get("emhass_power_profile"),
-            "deferrables_schedule": self.coordinator.data.get("emhass_deferrables_schedule"),
+            "deferrables_schedule": self.coordinator.data.get(
+                "emhass_deferrables_schedule"
+            ),
             "emhass_status": self.coordinator.data.get("emhass_status"),
             "vehicle_id": vehicle_id,
         }

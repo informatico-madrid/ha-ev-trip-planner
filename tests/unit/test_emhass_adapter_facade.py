@@ -59,17 +59,13 @@ class TestEMHASSAdapterFacade:
         assert hasattr(adapter, "_cached_deferrables_schedule")
         assert hasattr(adapter, "_config_entry_listener")
 
-    def test_emhass_adapter_has_error_handler_attribute(
-        self, mock_hass, mock_entry
-    ):
+    def test_emhass_adapter_has_error_handler_attribute(self, mock_hass, mock_entry):
         """EMHASSAdapter instances have an ErrorHandler."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         assert hasattr(adapter, "_error_handler")
         assert isinstance(adapter._error_handler, ErrorHandler)
 
-    def test_emhass_adapter_has_index_manager_attribute(
-        self, mock_hass, mock_entry
-    ):
+    def test_emhass_adapter_has_index_manager_attribute(self, mock_hass, mock_entry):
         """EMHASSAdapter instances have an IndexManager."""
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         assert hasattr(adapter, "_index_manager")

@@ -56,7 +56,10 @@ class TestProcessTripsWithWindowsException:
     ):
         """Lines 401-402: Exception during _populate_per_trip_cache_entry sets _cached_emhass_status to error."""
         window_by_trip_id: dict[str, dict[str, Any]] = {
-            "trip_001": {"inicio_ventana": datetime.now(timezone.utc), "fin_ventana": datetime.now(timezone.utc) + timedelta(hours=4)},
+            "trip_001": {
+                "inicio_ventana": datetime.now(timezone.utc),
+                "fin_ventana": datetime.now(timezone.utc) + timedelta(hours=4),
+            },
         }
         trips = [{"id": "trip_001"}]
         with patch.object(

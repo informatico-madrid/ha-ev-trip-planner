@@ -294,7 +294,9 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 step_id="presence",
                 data_schema=STEP_PRESENCE_SCHEMA,
                 errors={"base": error_key},
-                description_placeholders={"description": "Configure presence detection."},
+                description_placeholders={
+                    "description": "Configure presence detection."
+                },
             )  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
         return None
 
@@ -370,7 +372,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         """Validate sensor fields and return appropriate response."""
         # Validate battery capacity (reasonable range: 10-200 kWh)
         result = self._validate_field(
-            user_input, CONF_BATTERY_CAPACITY, 10, 200,
+            user_input,
+            CONF_BATTERY_CAPACITY,
+            10,
+            200,
             "invalid_battery_capacity",
             "Battery capacity must be between 10 and 200 kWh",
         )
@@ -379,7 +384,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
         # Validate consumption (reasonable range: 0.05-0.5 kWh/km)
         result = self._validate_field(
-            user_input, CONF_CONSUMPTION, 0.05, 0.5,
+            user_input,
+            CONF_CONSUMPTION,
+            0.05,
+            0.5,
             "invalid_consumption",
             "Consumption must be between 0.05 and 0.5 kWh/km",
         )
@@ -388,7 +396,10 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
         # Validate safety margin (reasonable range: 0-50%)
         result = self._validate_field(
-            user_input, CONF_SAFETY_MARGIN, 0, 50,
+            user_input,
+            CONF_SAFETY_MARGIN,
+            0,
+            50,
             "invalid_safety_margin",
             "Safety margin must be between 0 and 50%",
         )
@@ -522,12 +533,17 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         )
 
         # Validate charging sensor exists
-        result = self._validate_sensor_exists(charging_sensor, "charging_sensor_not_found")
+        result = self._validate_sensor_exists(
+            charging_sensor, "charging_sensor_not_found"
+        )
         if result:
             return result
 
         # Validate optional sensors exist (if provided)
-        for key, error_key in [(CONF_HOME_SENSOR, "home_sensor_not_found"), (CONF_PLUGGED_SENSOR, "plugged_sensor_not_found")]:
+        for key, error_key in [
+            (CONF_HOME_SENSOR, "home_sensor_not_found"),
+            (CONF_PLUGGED_SENSOR, "plugged_sensor_not_found"),
+        ]:
             entity = user_input.get(key)
             if entity:
                 result = self._validate_sensor_exists(entity, error_key)

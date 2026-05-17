@@ -175,7 +175,9 @@ def _propagate_deficits(
         capacidad_carga = tasa_carga_soc * ventana["ventana_horas"]
 
         if soc_data_item["soc_inicio"] + capacidad_carga < soc_objetivo_final:
-            deficit = soc_objetivo_final - (soc_data_item["soc_inicio"] + capacidad_carga)
+            deficit = soc_objetivo_final - (
+                soc_data_item["soc_inicio"] + capacidad_carga
+            )
 
             if ordered_idx > 0:
                 prev_idx = ordered_to_idx.get(ordered_idx - 1)
@@ -293,8 +295,16 @@ def calculate_deficit_propagation(
     # Phase 1: Reverse pass — detect and propagate deficits
     deficits = [0.0] * len(trips)
     _propagate_deficits(
-        ordered_to_idx, len(trips), soc_data, windows, trips,
-        soc_targets, soc_caps, tasa_carga_soc, battery_capacity_kwh, deficits,
+        ordered_to_idx,
+        len(trips),
+        soc_data,
+        windows,
+        trips,
+        soc_targets,
+        soc_caps,
+        tasa_carga_soc,
+        battery_capacity_kwh,
+        deficits,
     )
 
     # Phase 2: Forward pass — build results with accumulated deficits
@@ -319,8 +329,14 @@ def calculate_deficit_propagation(
 
         results.append(
             _build_milestone(
-                original_idx, trip, soc_data_item, ventana,
-                soc_objetivo_final, deficits, soc_caps, kwh_necesarios,
+                original_idx,
+                trip,
+                soc_data_item,
+                ventana,
+                soc_objetivo_final,
+                deficits,
+                soc_caps,
+                kwh_necesarios,
             )
         )
 
@@ -401,9 +417,7 @@ def calculate_hours_deficit_propagation(
             result = dict(windows[i])
             result["deficit_hours_propagated"] = 0.0
             result["deficit_hours_to_propagate"] = 0.0
-            result["adjusted_def_total_hours"] = round(
-                def_total_hours[i], 2
-            )
+            result["adjusted_def_total_hours"] = round(def_total_hours[i], 2)
             results[i] = result
         return results
 
@@ -435,9 +449,7 @@ def calculate_hours_deficit_propagation(
             result = dict(windows[i])
             result["deficit_hours_propagated"] = 0.0
             result["deficit_hours_to_propagate"] = 0.0
-            result["adjusted_def_total_hours"] = round(
-                original_def_total, 2
-            )
+            result["adjusted_def_total_hours"] = round(original_def_total, 2)
             results[i] = result
             continue
 
@@ -455,9 +467,7 @@ def calculate_hours_deficit_propagation(
             result["adjusted_def_total_hours"] = 0.0
         else:
             # Earlier trips absorb deficit → def_total INCREASES.
-            result["adjusted_def_total_hours"] = round(
-                original_def_total + absorbed, 2
-            )
+            result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)
         results[i] = result
 
     return results
@@ -558,11 +568,13 @@ def _resolve_tz(tz: Any) -> Any:
     if isinstance(tz, str):
         try:
             from zoneinfo import ZoneInfo
+
             tz = ZoneInfo(tz)
         except (ImportError, Exception):
             return None
     if not isinstance(tz, timezone):
         import datetime as _dt
+
         if not isinstance(tz, _dt.tzinfo):
             return None
     return tz
@@ -577,14 +589,21 @@ def _compute_next_with_tz(
 ) -> datetime:
     """Compute next occurrence when a timezone is provided."""
     aware_ref = (
-        reference_dt if reference_dt.tzinfo is not None
+        reference_dt
+        if reference_dt.tzinfo is not None
         else reference_dt.replace(tzinfo=timezone.utc)
     )
     local_ref = aware_ref.astimezone(tz)
     local_date = local_ref.date()
     candidate_local = datetime(
-        local_date.year, local_date.month, local_date.day,
-        hour, minute, 0, 0, tzinfo=tz,
+        local_date.year,
+        local_date.month,
+        local_date.day,
+        hour,
+        minute,
+        0,
+        0,
+        tzinfo=tz,
     )
     current_day = local_ref.isoweekday() % 7
     days_ahead = (day - current_day) % 7
@@ -601,9 +620,7 @@ def _compute_next_naive(
     reference_dt: datetime,
 ) -> datetime:
     """Compute next occurrence without timezone (backward compat)."""
-    candidate = reference_dt.replace(
-        hour=hour, minute=minute, second=0, microsecond=0
-    )
+    candidate = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
     current_day = (reference_dt.weekday() + 1) % 7
     days_ahead = (day - current_day) % 7
     if days_ahead == 0 and candidate < reference_dt:
@@ -643,5 +660,7 @@ def calculate_next_recurring_datetime(
     resolved_tz = _resolve_tz(tz)
 
     if resolved_tz is not None:
-        return _compute_next_with_tz(parsed_day, hour, minute, reference_dt, resolved_tz)
+        return _compute_next_with_tz(
+            parsed_day, hour, minute, reference_dt, resolved_tz
+        )
     return _compute_next_naive(parsed_day, hour, minute, reference_dt)

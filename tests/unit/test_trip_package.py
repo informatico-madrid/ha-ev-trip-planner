@@ -577,10 +577,13 @@ class TestSOCMixin:
         mock_hass.states.get = MagicMock(return_value=mock_state)
 
         entry = MagicMock()
-        entry.data = {"soc_sensor": "sensor.battery", "battery_capacity_kwh": 50.0,
+        entry.data = {
+            "soc_sensor": "sensor.battery",
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle"}
+            "vehicle_name": "test_vehicle",
+        }
         mock_hass.config_entries.async_entries = MagicMock(return_value=[entry])
 
         tm = _make_tm(mock_hass)

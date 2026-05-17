@@ -90,9 +90,7 @@ class TestPowerProfileWattsCompaction:
             with patch.object(
                 adapter, "_get_hora_regreso", new_callable=AsyncMock
             ) as mock_hora:
-                mock_hora.return_value = (
-                    datetime.now(timezone.utc) - timedelta(hours=2)
-                )
+                mock_hora.return_value = datetime.now(timezone.utc) - timedelta(hours=2)
 
                 now = datetime.now(timezone.utc)
 
@@ -190,9 +188,7 @@ class TestPowerProfileWattsCompaction:
             with patch.object(
                 adapter, "_get_hora_regreso", new_callable=AsyncMock
             ) as mock_hora:
-                mock_hora.return_value = (
-                    datetime.now(timezone.utc) - timedelta(hours=2)
-                )
+                mock_hora.return_value = datetime.now(timezone.utc) - timedelta(hours=2)
 
                 now = datetime.now(timezone.utc)
 
@@ -228,8 +224,12 @@ class TestPowerProfileWattsCompaction:
         expected_total = def_total_1 + def_total_2
 
         print("\n=== DEBUG ===")
-        print(f"Trip 1: def_start={cache1.get('def_start_timestep')}, def_end={cache1.get('def_end_timestep')}, def_total={def_total_1}")
-        print(f"Trip 2: def_start={cache2.get('def_start_timestep')}, def_end={cache2.get('def_end_timestep')}, def_total={def_total_2}")
+        print(
+            f"Trip 1: def_start={cache1.get('def_start_timestep')}, def_end={cache1.get('def_end_timestep')}, def_total={def_total_1}"
+        )
+        print(
+            f"Trip 2: def_start={cache2.get('def_start_timestep')}, def_end={cache2.get('def_end_timestep')}, def_total={def_total_2}"
+        )
         print(f"Expected non-zero: {expected_total}")
 
         power_profile = adapter._cached_power_profile

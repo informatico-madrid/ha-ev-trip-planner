@@ -177,9 +177,8 @@ async def test_soc_caps_applied_to_kwh_calculation():
     entry.entry_id = "test_entry_soc"
     entry.data = {
         "battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle",
+        "charging_power_kw": 3.6,
+        "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 60.0,
@@ -233,7 +232,9 @@ async def test_soc_caps_applied_to_kwh_calculation():
         hours = params["def_total_hours"]
         # BUG-1: Should be ceil'd int, not float
         # This test verifies the cache structure is correct even if value type is wrong
-        assert isinstance(hours, (int, float)), f"def_total_hours is not numeric: {type(hours)}"
+        assert isinstance(hours, (int, float)), (
+            f"def_total_hours is not numeric: {type(hours)}"
+        )
         assert hours >= 0, f"def_total_hours negative: {hours}"
 
 
@@ -251,9 +252,8 @@ async def test_real_capacity_scales_power_profile():
     entry.entry_id = "test_entry_soh"
     entry.data = {
         "battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle",
+        "charging_power_kw": 3.6,
+        "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 60.0,

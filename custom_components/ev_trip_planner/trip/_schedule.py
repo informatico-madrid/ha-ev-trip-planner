@@ -117,7 +117,9 @@ class TripScheduler:
             if horas_hasta_viaje < 0:
                 continue
 
-            hora_inicio_carga = _helpers.compute_charging_window(horas_hasta_viaje, horas_necesarias)
+            hora_inicio_carga = _helpers.compute_charging_window(
+                horas_hasta_viaje, horas_necesarias
+            )
 
             for h in range(
                 int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)
@@ -167,9 +169,15 @@ class TripScheduler:
         trips = await self._load_active_trips()
         battery_capacity, safety_margin = self._read_battery_config()
         power_profiles, num_trips = await self._build_power_profiles(
-            trips, battery_capacity, safety_margin, charging_power_kw, planning_horizon_days
+            trips,
+            battery_capacity,
+            safety_margin,
+            charging_power_kw,
+            planning_horizon_days,
         )
-        schedule = self._build_schedule_matrix(power_profiles, num_trips, planning_horizon_days)
+        schedule = self._build_schedule_matrix(
+            power_profiles, num_trips, planning_horizon_days
+        )
         return schedule
 
     async def publish_deferrable_loads(

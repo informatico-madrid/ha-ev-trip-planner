@@ -38,9 +38,9 @@ def mock_entry():
     entry.entry_id = "test_entry"
     entry.data = {
         "battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle",
+        "charging_power_kw": 3.6,
+        "safety_margin_percent": 10.0,
+        "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 50.0,
@@ -170,4 +170,6 @@ class TestEMHASSWindowInvariant:
                 f"Wide window violated for {trip_id}: "
                 f"window={window} < hours={def_total_hours}"
             )
-            assert window >= 2, f"Window should be at least 2h for wide windows: {trip_id} window={window}"
+            assert window >= 2, (
+                f"Window should be at least 2h for wide windows: {trip_id} window={window}"
+            )

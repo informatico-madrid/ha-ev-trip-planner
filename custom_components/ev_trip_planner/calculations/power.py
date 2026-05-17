@@ -16,9 +16,6 @@ from ..utils import calcular_energia_kwh
 from . import _helpers
 from ._helpers import (
     _ensure_aware,
-    ceil_hours,
-    compute_charging_window,
-    kw_to_watts,
     resolve_trip_deadline,
 )
 from .core import calculate_trip_time
@@ -60,7 +57,9 @@ def _compute_charging_hours(
     if horas_necesarias == 0:
         horas_necesarias = 1
 
-    hora_inicio_carga = _helpers.compute_charging_window(horas_hasta_viaje, horas_necesarias)
+    hora_inicio_carga = _helpers.compute_charging_window(
+        horas_hasta_viaje, horas_necesarias
+    )
     hora_fin = min(horas_hasta_viaje, horizon)
     return hora_inicio_carga, hora_fin
 
@@ -125,17 +124,22 @@ def calculate_power_profile_from_trips(
         if kwh <= 0:
             continue
 
-        delta = deadline_dt - now
         horas_hasta_viaje = int(_helpers.compute_hours_until(deadline_dt, now))
         if horas_hasta_viaje < 0:
             continue
 
         hora_inicio, hora_fin = _compute_charging_hours(
-            kwh, power_kw, horizon, horas_hasta_viaje,
+            kwh,
+            power_kw,
+            horizon,
+            horas_hasta_viaje,
         )
         _populate_profile_slice(
-            power_profile, hora_inicio, hora_fin,
-            horizon, charging_power_watts,
+            power_profile,
+            hora_inicio,
+            hora_fin,
+            horizon,
+            charging_power_watts,
         )
 
     _LOGGER.debug("Final profile non_zero=%d", sum(1 for x in power_profile if x > 0))
@@ -191,9 +195,16 @@ def calculate_power_profile(
 
     for trip_departure_time, _, trip in trips_with_deadlines:
         _try_populate_window(
-            trip, trip_departure_time, battery_capacity_kwh, soc_current,
-            charging_power_kw, hora_regreso, reference_dt, power_profile,
-            profile_length, charging_power_watts,
+            trip,
+            trip_departure_time,
+            battery_capacity_kwh,
+            soc_current,
+            charging_power_kw,
+            hora_regreso,
+            reference_dt,
+            power_profile,
+            profile_length,
+            charging_power_watts,
             safety_margin_percent,
         )
 
@@ -201,7 +212,8 @@ def calculate_power_profile(
 
 
 def _normalize_datetimes(
-    reference_dt: datetime, hora_regreso: Optional[datetime],
+    reference_dt: datetime,
+    hora_regreso: Optional[datetime],
 ) -> tuple:
     """Normalize datetime inputs to UTC-aware."""
     if getattr(reference_dt, "tzinfo", None) is None:
@@ -212,7 +224,8 @@ def _normalize_datetimes(
 
 
 def _assign_deadlines(
-    all_trips: List[Dict[str, Any]], reference_dt: datetime,
+    all_trips: List[Dict[str, Any]],
+    reference_dt: datetime,
 ) -> List[tuple]:
     """Assign trip deadlines and return non-empty list of (deadline, idx, trip)."""
     trips_with_deadlines: List[tuple] = []
@@ -221,8 +234,10 @@ def _assign_deadlines(
         if trip_tipo is None:
             continue
         trip_time = calculate_trip_time(
-            trip_tipo, trip.get("hora"),
-            trip.get("dia_semana"), trip.get("datetime"),
+            trip_tipo,
+            trip.get("hora"),
+            trip.get("dia_semana"),
+            trip.get("datetime"),
             reference_dt,
         )
         if trip_time:
@@ -238,7 +253,8 @@ def _assign_priority_indices(trips_with_deadlines: List[tuple]) -> None:
 
 
 def _compute_window_position(
-    reference_dt: datetime, ventana_info: Dict[str, Any],
+    reference_dt: datetime,
+    ventana_info: Dict[str, Any],
 ) -> Optional[Tuple[int, int, int]]:
     """Compute charging window position relative to reference time.
 
@@ -248,7 +264,6 @@ def _compute_window_position(
     inicio_ventana = ventana_info["inicio_ventana"]
     fin_ventana = ventana_info["fin_ventana"]
 
-    delta_inicio = inicio_ventana - reference_dt
     horas_desde_ahora = int(_helpers.compute_hours_until(inicio_ventana, reference_dt))
     hora_inicio_carga = max(0, horas_desde_ahora)
 
@@ -256,7 +271,6 @@ def _compute_window_position(
     if horas_necesarias == 0:
         horas_necesarias = 1
 
-    delta_fin = fin_ventana - reference_dt
     horas_hasta_fin = int(_helpers.compute_hours_until(fin_ventana, reference_dt))
 
     if horas_hasta_fin < 0:
@@ -275,7 +289,10 @@ def _populate_profile(
 ) -> None:
     """Populate power profile hours for a charging window."""
     # horas_necesarias can be float from ventana_info
-    for h in range(hora_inicio, min(int(hora_inicio + horas_necesarias), horas_hasta_fin, profile_length)):
+    for h in range(
+        hora_inicio,
+        min(int(hora_inicio + horas_necesarias), horas_hasta_fin, profile_length),
+    ):
         if 0 <= h < profile_length:
             power_profile[h] = charging_power_watts
 
@@ -295,7 +312,10 @@ def _try_populate_window(
 ) -> None:
     """Calculate energy and window for a single trip, populate profile if feasible."""
     energia_info = calculate_energy_needed(
-        trip, battery_capacity_kwh, soc_current, charging_power_kw,
+        trip,
+        battery_capacity_kwh,
+        soc_current,
+        charging_power_kw,
         safety_margin_percent=safety_margin_percent,
     )
     energia_kwh = energia_info["energia_necesaria_kwh"]
@@ -321,6 +341,10 @@ def _try_populate_window(
 
     hora_inicio, horas_necesarias, horas_hasta_fin = pos
     _populate_profile(
-        power_profile, hora_inicio, horas_necesarias,
-        horas_hasta_fin, profile_length, charging_power_watts,
+        power_profile,
+        hora_inicio,
+        horas_necesarias,
+        horas_hasta_fin,
+        profile_length,
+        charging_power_watts,
     )

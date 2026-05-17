@@ -111,8 +111,10 @@ class IndexManager(IndexManagerBase):
         """
         released = self._index_map.pop(trip_id, None)
         if released is not None:
-            self._released_indices.append({
-                "index": released,
-                "timestamp": datetime.now(timezone.utc),
-            })
+            self._released_indices.append(
+                {
+                    "index": released,
+                    "timestamp": datetime.now(timezone.utc),
+                }
+            )
         return released is not None

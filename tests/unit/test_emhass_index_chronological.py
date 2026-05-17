@@ -42,9 +42,9 @@ def mock_entry():
     entry.entry_id = "test_entry"
     entry.data = {
         "battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle",
+        "charging_power_kw": 3.6,
+        "safety_margin_percent": 10.0,
+        "vehicle_name": "test_vehicle",
         "max_deferrable_loads": 50,
         "charging_power": 7.4,
         "battery_capacity": 50.0,
@@ -84,11 +84,31 @@ class TestEMHASSIndexChronological:
 
         # Create trips with deadlines in deliberately mixed order.
         trips = [
-            {"id": "trip_0", "kwh": 14.8, "datetime": (now + timedelta(hours=43)).isoformat()},
-            {"id": "trip_1", "kwh": 14.8, "datetime": (now + timedelta(hours=8)).isoformat()},
-            {"id": "trip_2", "kwh": 14.8, "datetime": (now + timedelta(hours=29)).isoformat()},
-            {"id": "trip_3", "kwh": 14.8, "datetime": (now + timedelta(hours=163)).isoformat()},
-            {"id": "trip_4", "kwh": 14.8, "datetime": (now + timedelta(hours=63)).isoformat()},
+            {
+                "id": "trip_0",
+                "kwh": 14.8,
+                "datetime": (now + timedelta(hours=43)).isoformat(),
+            },
+            {
+                "id": "trip_1",
+                "kwh": 14.8,
+                "datetime": (now + timedelta(hours=8)).isoformat(),
+            },
+            {
+                "id": "trip_2",
+                "kwh": 14.8,
+                "datetime": (now + timedelta(hours=29)).isoformat(),
+            },
+            {
+                "id": "trip_3",
+                "kwh": 14.8,
+                "datetime": (now + timedelta(hours=163)).isoformat(),
+            },
+            {
+                "id": "trip_4",
+                "kwh": 14.8,
+                "datetime": (now + timedelta(hours=63)).isoformat(),
+            },
         ]
 
         with (
@@ -118,11 +138,11 @@ class TestEMHASSIndexChronological:
         # def_end is always the deadline_hours (fin_ventana = trip departure).
         RETURN_BUFFER = 4.0
         expected_def_starts = {
-            "trip_1": 0,    # first trip: now
-            "trip_2": 12,   # 8 + 4
-            "trip_0": 33,   # 29 + 4
-            "trip_4": 47,   # 43 + 4
-            "trip_3": 67,   # 63 + 4
+            "trip_1": 0,  # first trip: now
+            "trip_2": 12,  # 8 + 4
+            "trip_0": 33,  # 29 + 4
+            "trip_4": 47,  # 43 + 4
+            "trip_3": 67,  # 63 + 4
         }
 
         for trip in trips:
@@ -148,7 +168,7 @@ class TestEMHASSIndexChronological:
                 "trip_3": 163,
                 "trip_4": 63,
             }.get(tid, 0)
-            
+
             assert def_end == deadline_hours, (
                 f"Trip {tid}: def_end({def_end}) should be {deadline_hours} "
                 f"(hours until trip departure). "
@@ -176,8 +196,11 @@ class TestEMHASSIndexChronological:
 
         # Create 5 trips with varying kwh values that produce non-trivial hours.
         trips = [
-            {"id": f"trip_{i}", "kwh": 10.0 + i * 5.0,
-             "datetime": (now + timedelta(hours=36 + i * 25)).isoformat()}
+            {
+                "id": f"trip_{i}",
+                "kwh": 10.0 + i * 5.0,
+                "datetime": (now + timedelta(hours=36 + i * 25)).isoformat(),
+            }
             for i in range(5)
         ]
 
@@ -225,8 +248,11 @@ class TestEMHASSIndexChronological:
         # Deadlines: 152, 157, 162, 167 hours — all within horizon.
         # Multi-trip buffer (4h) ensures proper separation between windows.
         trips = [
-            {"id": f"trip_{i}", "kwh": 14.8,
-             "datetime": (now + timedelta(hours=152 + i * 5)).isoformat()}
+            {
+                "id": f"trip_{i}",
+                "kwh": 14.8,
+                "datetime": (now + timedelta(hours=152 + i * 5)).isoformat(),
+            }
             for i in range(4)
         ]
 

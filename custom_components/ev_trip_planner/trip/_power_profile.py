@@ -46,14 +46,10 @@ class PowerProfile:
 
         if vehicle_config:
             if "battery_capacity_kwh" not in vehicle_config:
-                _LOGGER.error(
-                    "Missing 'battery_capacity_kwh' in vehicle_config"
-                )
+                _LOGGER.error("Missing 'battery_capacity_kwh' in vehicle_config")
                 return []
             if "safety_margin_percent" not in vehicle_config:
-                _LOGGER.error(
-                    "Missing 'safety_margin_percent' in vehicle_config"
-                )
+                _LOGGER.error("Missing 'safety_margin_percent' in vehicle_config")
                 return []
             battery_capacity = vehicle_config["battery_capacity_kwh"]
             safety_margin_percent = vehicle_config["safety_margin_percent"]
@@ -74,14 +70,10 @@ class PowerProfile:
                 if config_entry is not None and config_entry.data is not None:
                     data = config_entry.data
                     if "battery_capacity_kwh" not in data:
-                        _LOGGER.error(
-                            "Missing 'battery_capacity_kwh' in config entry"
-                        )
+                        _LOGGER.error("Missing 'battery_capacity_kwh' in config entry")
                         return []
                     if "safety_margin_percent" not in data:
-                        _LOGGER.error(
-                            "Missing 'safety_margin_percent' in config entry"
-                        )
+                        _LOGGER.error("Missing 'safety_margin_percent' in config entry")
                         return []
                     battery_capacity = data["battery_capacity_kwh"]
                     safety_margin_percent = data["safety_margin_percent"]

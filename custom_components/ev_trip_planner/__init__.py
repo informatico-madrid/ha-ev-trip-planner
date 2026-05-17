@@ -107,7 +107,9 @@ async def _hourly_refresh_callback(
     try:
         await runtime_data.trip_manager._schedule.publish_deferrable_loads()
     except Exception as err:
-        _LOGGER.warning("FLOW2-DEBUG: publish_deferrable_loads FAILED: %s", err, exc_info=True)
+        _LOGGER.warning(
+            "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s", err, exc_info=True
+        )
         return
     except BaseException as err:
         _LOGGER.warning("FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s", err)
@@ -134,7 +136,9 @@ async def _hourly_refresh_callback(
         await runtime_data.coordinator.async_refresh_trips()
         _LOGGER.warning("FLOW2-DEBUG: async_refresh_trips DONE")
     else:
-        _LOGGER.warning("FLOW2-DEBUG: coordinator is None after publish, skipping refresh")
+        _LOGGER.warning(
+            "FLOW2-DEBUG: coordinator is None after publish, skipping refresh"
+        )
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -48,7 +48,9 @@ class TripCRUD:
         """Initialize with shared state."""
         self._state = state
 
-    def _emit_post_add(self, event_name: str, trip_data: Dict[str, Any]) -> None:  # pragma: no cover
+    def _emit_post_add(
+        self, event_name: str, trip_data: Dict[str, Any]
+    ) -> None:  # pragma: no cover
         """Emit trip-created and EMHASS sensor events after adding a trip."""
         entry_id = self._state.entry_id or ""
         trip_id = trip_data["id"]
@@ -115,9 +117,7 @@ class TripCRUD:
             "Added recurring trip %s for vehicle %s", trip_id, state.vehicle_id
         )
 
-        self._emit_post_add(
-            "trip_created_recurring", state.recurring_trips[trip_id]
-        )
+        self._emit_post_add("trip_created_recurring", state.recurring_trips[trip_id])
 
         if state.emhass_adapter:
             await state._emhass_sync._async_publish_new_trip_to_emhass(
@@ -149,9 +149,7 @@ class TripCRUD:
         await state.async_save_trips()
         _LOGGER.info("Added punctual trip %s for vehicle %s", trip_id, state.vehicle_id)
 
-        self._emit_post_add(
-            "trip_created_punctual", state.punctual_trips[trip_id]
-        )
+        self._emit_post_add("trip_created_punctual", state.punctual_trips[trip_id])
 
         if state.emhass_adapter:
             await state._emhass_sync._async_publish_new_trip_to_emhass(

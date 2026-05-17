@@ -11,6 +11,7 @@ has all the required attributes for EMHASS to consume:
 BUG: Currently the sensor only has power_profile_watts attribute,
 missing the 5 deferrable array attributes.
 """
+
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 import logging
@@ -61,14 +62,14 @@ def mock_trip_manager():
     """Create mock TripManager with one active trip."""
     tm = MagicMock()
     tm.vehicle_id = "mi_ev"
-    
+
     # Mock trip manager methods
     tm._crud.async_get_recurring_trips = AsyncMock(return_value=[])
     tm._crud.async_get_punctual_trips = AsyncMock(return_value=[])
     tm._soc_query.async_get_kwh_needed_today = AsyncMock(return_value=5.0)
     tm._soc_query.async_get_hours_needed_today = AsyncMock(return_value=2.0)
     tm._navigator.async_get_next_trip = AsyncMock(return_value=None)
-    
+
     return tm
 
 
@@ -90,7 +91,10 @@ def mock_emhass_adapter():
 @pytest.fixture
 def mock_coordinator(hass, mock_config_entry, mock_trip_manager, mock_emhass_adapter):
     """Create a mock coordinator for testing."""
-    from custom_components.ev_trip_planner.coordinator import TripPlannerCoordinator, CoordinatorConfig
+    from custom_components.ev_trip_planner.coordinator import (
+        TripPlannerCoordinator,
+        CoordinatorConfig,
+    )
 
     config = CoordinatorConfig(emhass_adapter=mock_emhass_adapter)
     coordinator = TripPlannerCoordinator(
@@ -101,7 +105,7 @@ def mock_coordinator(hass, mock_config_entry, mock_trip_manager, mock_emhass_ada
 
 def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config_entry):
     """Test that EMHASS sensor has all required deferrable attributes.
-    
+
     When coordinator provides per_trip_emhass_params, the sensor entity should
     have ALL of these attributes:
     - number_of_deferrable_loads
@@ -109,7 +113,7 @@ def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config
     - p_deferrable_nom_array
     - def_start_timestep_array
     - def_end_timestep_array
-    
+
     Currently this test FAILS because only power_profile_watts is populated.
     """
     from custom_components.ev_trip_planner.sensor.entity_emhass_deferrable import (
@@ -118,7 +122,7 @@ def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config
 
     # Create sensor with coordinator that has mock EMHASS data
     sensor = EmhassDeferrableLoadSensor(mock_coordinator, mock_config_entry.entry_id)
-    
+
     # Simulate coordinator.data with per_trip_emhass_params containing a trip
     mock_coordinator.data = {
         "hours_today": 2.0,
@@ -143,10 +147,10 @@ def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config
             }
         },
     }
-    
+
     # Force sensor to update by accessing extra_state_attributes
     attrs = sensor.extra_state_attributes
-    
+
     # Debug: Print what attributes we have
     print("\n=== DEBUG: Sensor attributes ===")
     print(f"Available attributes: {list(attrs.keys())}")
@@ -157,13 +161,13 @@ def test_emhass_sensor_has_all_required_attributes(mock_coordinator, mock_config
     print(f"def_end_timestep_array: {attrs.get('def_end_timestep_array')}")
     print(f"power_profile_watts: {attrs.get('power_profile_watts')}")
     print("=== END DEBUG ===\n")
-    
+
     # Assert: All required EMHASS attributes must be present
     missing_attrs = []
     for attr in REQUIRED_EMHASS_ATTRIBUTES:
         if attr not in attrs:
             missing_attrs.append(attr)
-    
+
     # This assertion will FAIL - that's expected until the bug is fixed
     assert len(missing_attrs) == 0, (
         f"EMHASS sensor is missing required attributes: {missing_attrs}. "

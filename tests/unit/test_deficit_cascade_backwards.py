@@ -18,19 +18,15 @@ Sin estos 3 assertions por ventana, no se puede detectar un problema en el flujo
 
 from __future__ import annotations
 
-import math
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.calculations import calculate_hours_deficit_propagation
-from custom_components.ev_trip_planner.calculations import determine_charging_need
-from custom_components.ev_trip_planner.calculations.windows import (
-    calculate_multi_trip_charging_windows,
+from custom_components.ev_trip_planner.calculations import (
+    calculate_hours_deficit_propagation,
 )
 from custom_components.ev_trip_planner.const import (
-    CONF_CHARGING_POWER,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
@@ -176,8 +172,10 @@ class TestAdapterDeficitCascadeIntegration:
             cw = c.get("charging_window", [])
             if cw:
                 w = cw[0]
-                print(f"    window: ventana_horas={w.get('ventana_horas')}, "
-                      f"horas_carga={w.get('horas_carga_necesarias')}")
+                print(
+                    f"    window: ventana_horas={w.get('ventana_horas')}, "
+                    f"horas_carga={w.get('horas_carga_necesarias')}"
+                )
         print("======================\n")
 
     def _get_sorted_trips(self, adapter, trip_ids):
@@ -444,9 +442,13 @@ class TestAdapterDeficitCascadeIntegration:
         ]
         hora_regreso = now - timedelta(hours=2)
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 10.0
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -511,15 +513,34 @@ class TestAdapterDeficitCascadeIntegration:
 
         # Same config as main cascade test: T1(22h), T2(8h), T3(2h)
         trips = [
-            {"id": "trip_1", "tipo": "puntual", "datetime": (now + timedelta(hours=22)).isoformat(), "kwh": 5.0},
-            {"id": "trip_2", "tipo": "puntual", "datetime": (now + timedelta(hours=8)).isoformat(), "kwh": 18.0},
-            {"id": "trip_3", "tipo": "puntual", "datetime": (now + timedelta(hours=2)).isoformat(), "kwh": 20.0},
+            {
+                "id": "trip_1",
+                "tipo": "puntual",
+                "datetime": (now + timedelta(hours=22)).isoformat(),
+                "kwh": 5.0,
+            },
+            {
+                "id": "trip_2",
+                "tipo": "puntual",
+                "datetime": (now + timedelta(hours=8)).isoformat(),
+                "kwh": 18.0,
+            },
+            {
+                "id": "trip_3",
+                "tipo": "puntual",
+                "datetime": (now + timedelta(hours=2)).isoformat(),
+                "kwh": 20.0,
+            },
         ]
         hora_regreso = now - timedelta(hours=2)
 
-        with patch.object(adapter, "_get_current_soc", new_callable=AsyncMock) as mock_soc:
+        with patch.object(
+            adapter, "_get_current_soc", new_callable=AsyncMock
+        ) as mock_soc:
             mock_soc.return_value = 10.0
-            with patch.object(adapter, "_get_hora_regreso", new_callable=AsyncMock) as mock_hora:
+            with patch.object(
+                adapter, "_get_hora_regreso", new_callable=AsyncMock
+            ) as mock_hora:
                 mock_hora.return_value = hora_regreso.replace(tzinfo=timezone.utc)
                 mock_pm = MagicMock()
                 mock_pm.async_get_hora_regreso = AsyncMock(
@@ -545,7 +566,15 @@ class TestAdapterDeficitCascadeIntegration:
             )
 
         # def_end_timestep order must still match departure order
-        assert trip_3["def_end_timestep"] < trip_2["def_end_timestep"] < trip_1["def_end_timestep"]
+        assert (
+            trip_3["def_end_timestep"]
+            < trip_2["def_end_timestep"]
+            < trip_1["def_end_timestep"]
+        )
 
         # def_start_timestep order must still match departure order
-        assert trip_3["def_start_timestep"] < trip_2["def_start_timestep"] < trip_1["def_start_timestep"]
+        assert (
+            trip_3["def_start_timestep"]
+            < trip_2["def_start_timestep"]
+            < trip_1["def_start_timestep"]
+        )

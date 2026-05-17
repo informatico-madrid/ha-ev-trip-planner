@@ -14,7 +14,6 @@ Key method names in SOLID code:
 from __future__ import annotations
 
 
-
 from custom_components.ev_trip_planner.emhass.index_manager import IndexManager
 
 
@@ -98,6 +97,4 @@ class TestIndexManagerCooldowndRegression:
 
         # With cooldown active, the released index 0 is skipped and 1 is assigned
         idx1 = mgr.assign_index("trip_1")
-        assert idx1 == 1, (
-            f"Cooldown should skip released index 0, got {idx1}."
-        )
+        assert idx1 == 1, f"Cooldown should skip released index 0, got {idx1}."

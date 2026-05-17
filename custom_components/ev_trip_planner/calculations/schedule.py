@@ -53,7 +53,10 @@ def generate_deferrable_schedule_from_trips(
         for idx, trip in enumerate(trips):
             power_key = f"p_deferrable{idx}"
             entry[power_key] = _compute_trip_power(
-                trip, power_kw, now, hour_offset,
+                trip,
+                power_kw,
+                now,
+                hour_offset,
             )
 
         schedule.append(entry)
@@ -101,7 +104,6 @@ def _compute_trip_power(
     if deadline_dt is None:
         return "0.0"
 
-    delta = deadline_dt - now
     horas_hasta_viaje = int(_helpers.compute_hours_until(deadline_dt, now))
     if horas_hasta_viaje < 0:
         return "0.0"
@@ -138,7 +140,9 @@ def _check_charging_window(
     """
     total_hours = kwh / power_kw if power_kw > 0 else 0
     horas_necesarias = _helpers.ceil_hours(total_hours)
-    hora_inicio_carga = _helpers.compute_charging_window(horas_hasta_viaje, horas_necesarias)
+    hora_inicio_carga = _helpers.compute_charging_window(
+        horas_hasta_viaje, horas_necesarias
+    )
 
     if hora_inicio_carga <= hour_offset < horas_hasta_viaje:
         return str(_helpers.kw_to_watts(power_kw))

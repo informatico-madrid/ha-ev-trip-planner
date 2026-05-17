@@ -43,12 +43,12 @@ def mock_hass(tmp_path):
 async def test_def_start_matches_actual_hours_until_departure(mock_hass, mock_store):
     """
     Test that def_start_timestep equals actual hours from now to trip departure.
-    
+
     Scenario:
     - Now: 02:20 (2:20 AM)
     - Trip departure: 09:40 (7h20m later)
     - def_start_timestep should be ~7 (hours until departure)
-    
+
     Current bug: def_start_timestep is 0 because charging_windows is empty.
     """
     config = {
@@ -143,7 +143,7 @@ async def test_def_start_matches_actual_hours_until_departure(mock_hass, mock_st
 async def test_def_end_uses_trip_departure_not_hours_available(mock_hass, mock_store):
     """
     Test that def_end_timestep is based on trip departure, not hours_available.
-    
+
     Bug: def_end is calculated as min(hours_available, 168) where
     hours_available = (deadline - now). But this should be the actual
     trip departure time, not "hours until deadline from now".

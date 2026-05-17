@@ -110,7 +110,7 @@ def create_recurring_trips(now: datetime) -> list[dict]:
     Create two recurring trips that match the staging scenario:
     - Trip 1: Domingo 09:40 (JS getDay=0)
     - Trip 2: Lunes 21:40 (JS getDay=1)
-    
+
     When now = Friday 12:00, these trips produce windows:
     - Trip 1 window: Friday 12:00 -> Sunday 09:40 (~46 hours)
     - Trip 2 window: Sunday 13:40 -> Monday 21:40 (~32 hours)
@@ -120,17 +120,17 @@ def create_recurring_trips(now: datetime) -> list[dict]:
     # But we want def_end_timestep=40, so let's adjust
     # Actually with JS getDay conversion: 0=Domingo, next Sunday from Friday is 2 days
     # Let's create trips with specific departure times instead
-    
+
     # To get exact windows like staging [0, 44] and [40, 76]:
     # Trip 1: departs at now + 40 hours -> def_end=40
     # Trip 2: departs at now + 76 hours -> def_end=76, starts at 44 (after 4h buffer)
-    
+
     trip1_departure = now + timedelta(hours=40)
     trip2_departure = now + timedelta(hours=76)
-    
+
     # But these are puntual trips. For recurring, we need to use dia_semana.
     # Let's create them as puntual with specific datetime to get exact windows
-    
+
     trip1 = {
         "id": "rec_5_xeqnmt",
         "tipo": "puntual",
@@ -139,7 +139,7 @@ def create_recurring_trips(now: datetime) -> list[dict]:
         "kwh": 5.4,
         "activo": True,
     }
-    
+
     trip2 = {
         "id": "rec_1_fy4pfk",
         "tipo": "puntual",
@@ -148,7 +148,7 @@ def create_recurring_trips(now: datetime) -> list[dict]:
         "kwh": 5.4,
         "activo": True,
     }
-    
+
     return [trip1, trip2]
 
 
@@ -164,13 +164,13 @@ class TestStagingBugReproduction:
     ):
         """
         Reproduce the staging bug: def_total_hours shows [7, 6] instead of [2, 2].
-        
+
         Staging actual values:
         - def_start_timestep: [0, 44]
         - def_end_timestep: [40, 76]
         - def_total_hours: [7, 6] (BUG - should be [2, 2])
         - p_deferrable_nom: [3600.0, 3600.0]
-        
+
         The bug is in emhass_adapter.py where power_watts = power_watts * cap_ratio
         incorrectly reduces energy, causing def_total_hours to be inflated.
         """
@@ -209,7 +209,9 @@ class TestStagingBugReproduction:
                 with patch.object(
                     adapter, "_get_hora_regreso", new_callable=AsyncMock
                 ) as mock_hora:
-                    mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
+                    mock_hora.return_value = hora_regreso_stub.replace(
+                        tzinfo=timezone.utc
+                    )
                     mock_pm = MagicMock()
                     mock_pm.async_get_hora_regreso = AsyncMock(
                         return_value=hora_regreso_stub.replace(tzinfo=timezone.utc),
@@ -226,19 +228,19 @@ class TestStagingBugReproduction:
         cache1 = adapter._cached_per_trip_params["rec_5_xeqnmt"]
         cache2 = adapter._cached_per_trip_params["rec_1_fy4pfk"]
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("STAGING BUG REPRODUCTION - DUMP")
-        print("="*60)
+        print("=" * 60)
         print("\nConfig (from staging):")
         print("  charging_power_kw = 3.4")
         print("  battery_capacity_kwh = 28.0")
         print("  SOC = 65%")
         print("  t_base = 24.0")
-        
+
         print(f"\nnow = {now}")
         print(f"Trip 1 datetime = {trips[0]['datetime']}")
         print(f"Trip 2 datetime = {trips[1]['datetime']}")
-        
+
         print("\n--- Trip 1 (rec_5_xeqnmt) ---")
         print(f"  def_start_timestep: {cache1.get('def_start_timestep', 0)}")
         print(f"  def_end_timestep: {cache1.get('def_end_timestep', 0)}")
@@ -246,7 +248,7 @@ class TestStagingBugReproduction:
         print(f"  power_watts: {cache1.get('power_watts', 0)}")
         print(f"  kwh_needed: {cache1.get('kwh_needed', 0)}")
         print(f"  charging_window: {cache1.get('charging_window', [])}")
-        
+
         print("\n--- Trip 2 (rec_1_fy4pfk) ---")
         print(f"  def_start_timestep: {cache2.get('def_start_timestep', 0)}")
         print(f"  def_end_timestep: {cache2.get('def_end_timestep', 0)}")
@@ -254,33 +256,48 @@ class TestStagingBugReproduction:
         print(f"  power_watts: {cache2.get('power_watts', 0)}")
         print(f"  kwh_needed: {cache2.get('kwh_needed', 0)}")
         print(f"  charging_window: {cache2.get('charging_window', [])}")
-        
+
         print("\n--- Aggregated Arrays (what HA sensor shows) ---")
-        start_array = [cache1.get('def_start_timestep', 0), cache2.get('def_start_timestep', 0)]
-        end_array = [cache1.get('def_end_timestep', 0), cache2.get('def_end_timestep', 0)]
-        total_hours_array = [cache1.get('def_total_hours', 0), cache2.get('def_total_hours', 0)]
-        
+        start_array = [
+            cache1.get("def_start_timestep", 0),
+            cache2.get("def_start_timestep", 0),
+        ]
+        end_array = [
+            cache1.get("def_end_timestep", 0),
+            cache2.get("def_end_timestep", 0),
+        ]
+        total_hours_array = [
+            cache1.get("def_total_hours", 0),
+            cache2.get("def_total_hours", 0),
+        ]
+
         print(f"  def_start_timestep: {start_array}")
         print(f"  def_end_timestep: {end_array}")
         print(f"  def_total_hours: {total_hours_array}")
-        print(f"  p_deferrable_nom (watts): {[cache1.get('power_watts', 0), cache2.get('power_watts', 0)]}")
-        
+        print(
+            f"  p_deferrable_nom (watts): {[cache1.get('power_watts', 0), cache2.get('power_watts', 0)]}"
+        )
+
         print("\n--- power_profile (first 80 slots) ---")
         pp = adapter._cached_power_profile[:80]
         # Show slot number and value for non-zero entries
         non_zero = [(i, pp[i]) for i in range(len(pp)) if pp[i] > 0]
         print(f"  Non-zero slots: {non_zero}")
-        
+
         print("\n--- STAGING EXPECTED (for comparison) ---")
         print("  def_start_timestep: [0, 44]")
         print("  def_end_timestep: [40, 76]")
         print("  def_total_hours: [7, 6] (BUG - should be [2, 2])")
         print("  p_deferrable_nom: [3600.0, 3600.0]")
-        print("="*60)
+        print("=" * 60)
 
         # PRIMARY ASSERTIONS: These match staging
-        assert start_array == [0, 44], f"def_start_timestep should be [0, 44], got {start_array}"
-        assert end_array == [40, 76], f"def_end_timestep should be [40, 76], got {end_array}"
+        assert start_array == [0, 44], (
+            f"def_start_timestep should be [0, 44], got {start_array}"
+        )
+        assert end_array == [40, 76], (
+            f"def_end_timestep should be [40, 76], got {end_array}"
+        )
 
         # BUG ASSERTION: This will FAIL until bug is fixed
         # Staging shows [7, 6] but per spec it should be [2, 2]
@@ -300,7 +317,7 @@ class TestStagingBugReproduction:
     ):
         """
         Verify the number of charging slots in power_profile.
-        
+
         Per spec: each trip has def_total_hours slots at the END of its window.
         Per staging (buggy): trip 1 has 7 slots, trip 2 has 6 slots.
         Per spec (correct): each trip should have 2 slots.
@@ -339,7 +356,9 @@ class TestStagingBugReproduction:
                 with patch.object(
                     adapter, "_get_hora_regreso", new_callable=AsyncMock
                 ) as mock_hora:
-                    mock_hora.return_value = hora_regreso_stub.replace(tzinfo=timezone.utc)
+                    mock_hora.return_value = hora_regreso_stub.replace(
+                        tzinfo=timezone.utc
+                    )
                     mock_pm = MagicMock()
                     mock_pm.async_get_hora_regreso = AsyncMock(
                         return_value=hora_regreso_stub.replace(tzinfo=timezone.utc),
@@ -355,14 +374,14 @@ class TestStagingBugReproduction:
         # Count non-zero slots in power_profile
         power_profile = adapter._cached_power_profile
         non_zero_count = sum(1 for p in power_profile if p > 0)
-        
+
         # Per spec: 2 slots per trip * 2 trips = 4 total slots
         # Per staging (bug): 7 + 6 = 13 total slots
-        
+
         print(f"\nTotal non-zero charging slots: {non_zero_count}")
         print("Expected per spec: 4 (2 slots per trip * 2 trips)")
         print("Staging (bug): 13 (7 + 6 slots)")
-        
+
         # BUG ASSERTION: This will FAIL until bug is fixed
         # Staging shows 13 slots (7 + 6)
         assert non_zero_count == 13, (
@@ -550,7 +569,10 @@ class TestAdapterConfigEntryIntegration:
         # Verify def_total_hours is [2, 2] when using correct config values
         cache1 = adapter._cached_per_trip_params["rec_5_xeqnmt"]
         cache2 = adapter._cached_per_trip_params["rec_1_fy4pfk"]
-        total_hours_array = [cache1.get("def_total_hours", 0), cache2.get("def_total_hours", 0)]
+        total_hours_array = [
+            cache1.get("def_total_hours", 0),
+            cache2.get("def_total_hours", 0),
+        ]
 
         # EXPECTED (correct behavior): def_total_hours = [2, 2]
         # ACTUAL (buggy behavior): def_total_hours = [7, 6] if adapter uses defaults

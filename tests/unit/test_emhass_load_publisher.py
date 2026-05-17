@@ -250,7 +250,7 @@ class TestLoadPublisherDeadline:
     @pytest.mark.freeze_time("2026-05-13 06:00:00+00:00")
     def test_deadline_recurring_same_day_before_trip_time(self):
         """Recurring trip same day but BEFORE trip time → deadline is TODAY.
-        
+
         With the fix (m404-saturday-deadline), when target day == today AND
         the trip time hasn't passed yet, deadline = TODAY (not next week).
         """
@@ -272,7 +272,7 @@ class TestLoadPublisherDeadline:
     @pytest.mark.freeze_time("2026-05-13 10:00:00+00:00")
     def test_deadline_recurring_same_day_after_trip_time(self):
         """Recurring trip same day but AFTER trip time → deadline is NEXT WEEK.
-        
+
         When the trip time has already passed today, the deadline should be
         the same day next week (delta_days = 7 from current time, but actual
         delta days is 6 because the hour is earlier in the day).

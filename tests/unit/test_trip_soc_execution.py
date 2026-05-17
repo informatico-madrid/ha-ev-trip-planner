@@ -54,10 +54,12 @@ class TestSOCHelpers:
         """Matching config entry with charging power."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 22.0,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "charging_power_kw": 22.0}
+            "vehicle_name": "test_vehicle",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         sm = SOCHelpers(state)
         result = sm._get_charging_power()
@@ -67,10 +69,12 @@ class TestSOCHelpers:
         """Invalid charging power value -> default used."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": -5,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "charging_power_kw": -5}
+            "vehicle_name": "test_vehicle",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         sm = SOCHelpers(state)
         result = sm._get_charging_power()
@@ -197,10 +201,13 @@ class TestSOCQuery:
         """SOC fetched from sensor state."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "soc_sensor": "sensor.soc"}
+            "vehicle_name": "test_vehicle",
+            "soc_sensor": "sensor.soc",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         state_obj = MagicMock()
         state_obj.state = "75.5"
@@ -215,10 +222,13 @@ class TestSOCQuery:
         """Sensor state is 'unknown' -> returns 0.0."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "soc_sensor": "sensor.soc"}
+            "vehicle_name": "test_vehicle",
+            "soc_sensor": "sensor.soc",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         state_obj = MagicMock()
         state_obj.state = "unknown"
@@ -233,10 +243,13 @@ class TestSOCQuery:
         """Sensor state is 'unavailable' -> returns 0.0."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "soc_sensor": "sensor.soc"}
+            "vehicle_name": "test_vehicle",
+            "soc_sensor": "sensor.soc",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         state_obj = MagicMock()
         state_obj.state = "unavailable"
@@ -251,10 +264,12 @@ class TestSOCQuery:
         """No soc_sensor in config -> returns 0.0."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle"}
+            "vehicle_name": "test_vehicle",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
 
         sq = SOCQuery(state)
@@ -335,10 +350,12 @@ class TestSOCQuery:
         state.recurring_trips = {}
         state._soc._is_trip_today = MagicMock(return_value=True)
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "charging_power_kw": 3.6}
+            "vehicle_name": "test_vehicle",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         sq = SOCQuery(state)
         result = await sq.async_get_hours_needed_today()
@@ -349,10 +366,12 @@ class TestSOCQuery:
         """_get_charging_power finds config entry with matching vehicle_name (lines 175-177)."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": 7.0,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "charging_power_kw": 7.0}
+            "vehicle_name": "test_vehicle",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         sq = SOCQuery(state)
         result = sq._get_charging_power()
@@ -363,10 +382,12 @@ class TestSOCQuery:
         """_get_charging_power with invalid power -> default (lines 180-181)."""
         state = _make_state()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
+            "charging_power_kw": -5,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "test_vehicle", "charging_power_kw": -5}
+            "vehicle_name": "test_vehicle",
+        }
         state.hass.config_entries.async_entries = MagicMock(return_value=[entry])
         sq = SOCQuery(state)
         result = sq._get_charging_power()

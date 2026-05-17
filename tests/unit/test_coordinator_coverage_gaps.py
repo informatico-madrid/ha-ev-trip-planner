@@ -219,19 +219,25 @@ class TestCalculateRecurringDeparture:
     def test_none_day_val_returns_none(self):
         """Line 443: None day_val should return None."""
         coord = _make_coordinator()
-        result = coord._calculate_recurring_departure(None, "09:00", datetime.now(timezone.utc))
+        result = coord._calculate_recurring_departure(
+            None, "09:00", datetime.now(timezone.utc)
+        )
         assert result is None
 
     def test_none_time_str_returns_none(self):
         """Line 443: None time_str should return None."""
         coord = _make_coordinator()
-        result: Any = coord._calculate_recurring_departure("lunes", None, datetime.now(timezone.utc))
+        result: Any = coord._calculate_recurring_departure(
+            "lunes", None, datetime.now(timezone.utc)
+        )
         assert result is None
 
     def test_numeric_day_0_is_sunday(self):
         """Line 450-451: Day '0' should map to Sunday (6)."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("0", "09:00", now)
         assert result is not None
         assert result.weekday() == 6  # Sunday
@@ -239,7 +245,9 @@ class TestCalculateRecurringDeparture:
     def test_numeric_day_7_is_sunday(self):
         """Line 450-451: Day '7' should map to Sunday (6)."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("7", "09:00", now)
         assert result is not None
         assert result.weekday() == 6  # Sunday
@@ -247,7 +255,9 @@ class TestCalculateRecurringDeparture:
     def test_numeric_day_1_is_monday(self):
         """Line 453: Day '1' should map to Monday (0)."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("1", "09:00", now)
         assert result is not None
         assert result.weekday() == 0  # Monday
@@ -255,7 +265,9 @@ class TestCalculateRecurringDeparture:
     def test_numeric_day_6_is_saturday(self):
         """Line 453: Day '6' should map to Saturday (5)."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("6", "09:00", now)
         assert result is not None
         assert result.weekday() == 5  # Saturday
@@ -263,13 +275,17 @@ class TestCalculateRecurringDeparture:
     def test_invalid_numeric_day_returns_none(self):
         """Line 455: Invalid numeric day (>7) should return None."""
         coord = _make_coordinator()
-        result = coord._calculate_recurring_departure("8", "09:00", datetime.now(timezone.utc))
+        result = coord._calculate_recurring_departure(
+            "8", "09:00", datetime.now(timezone.utc)
+        )
         assert result is None
 
     def test_spanish_day_name(self):
         """Line 457-465: Spanish day name mapping."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("martes", "14:00", now)
         assert result is not None
         assert result.weekday() == 1  # Tuesday
@@ -277,7 +293,9 @@ class TestCalculateRecurringDeparture:
     def test_english_day_name(self):
         """Line 457-465: English day name mapping."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("friday", "18:00", now)
         assert result is not None
         assert result.weekday() == 4  # Friday
@@ -285,7 +303,9 @@ class TestCalculateRecurringDeparture:
     def test_invalid_day_name_returns_none(self):
         """Line 467-468: Invalid day name should return None."""
         coord = _make_coordinator()
-        result = coord._calculate_recurring_departure("funday", "09:00", datetime.now(timezone.utc))
+        result = coord._calculate_recurring_departure(
+            "funday", "09:00", datetime.now(timezone.utc)
+        )
         assert result is None
 
     def test_next_week_when_same_day(self):
@@ -295,7 +315,15 @@ class TestCalculateRecurringDeparture:
         now_day = now.weekday()
         now = now.replace(hour=10, minute=0, second=0, microsecond=0)
         # Use the same day name as today
-        day_names = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        day_names = [
+            "lunes",
+            "martes",
+            "miércoles",
+            "jueves",
+            "viernes",
+            "sábado",
+            "domingo",
+        ]
         result = coord._calculate_recurring_departure(day_names[now_day], "09:00", now)
         assert result is not None
         # Should be next week (7 days from now)
@@ -305,7 +333,9 @@ class TestCalculateRecurringDeparture:
     def test_time_parsing_with_single_part(self):
         """Line 476: Time string with only hour part."""
         coord = _make_coordinator()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         result = coord._calculate_recurring_departure("lunes", "14", now)
         assert result is not None
         assert result.weekday() == 0  # Monday
@@ -324,7 +354,9 @@ class TestCalculateMockTimestepsRecurringPathAlt:
             "dia_semana": "lunes",
             "hora": "08:00",
         }
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         start, end = coord._calculate_mock_timesteps(
             trip=trip,
             charging_power_kw=7.0,
@@ -352,7 +384,9 @@ class TestCalculateMockTimestepsRecurringPathNonIntegerDelta:
         }
         # Use minute=30 so delta is NOT an integer (69.5h instead of 70h)
         # This ensures start < end (69 < 70)
-        now = datetime.now(timezone.utc).replace(hour=10, minute=30, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=30, second=0, microsecond=0
+        )
         start, end = coord._calculate_mock_timesteps(
             trip=trip,
             charging_power_kw=7.0,

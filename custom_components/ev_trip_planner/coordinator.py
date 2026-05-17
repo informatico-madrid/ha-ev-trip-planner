@@ -166,7 +166,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             if (not per_trip_params or not has_profile) and all_trips:
                 _LOGGER.warning(
                     "BUG-DEBUG: FALLBACK TRIGGERED per_trip_params_empty=%s has_profile=%s all_trips=%d",
-                    not per_trip_params, has_profile, len(all_trips),
+                    not per_trip_params,
+                    has_profile,
+                    len(all_trips),
                 )
                 emhass_data = self._generate_mock_emhass_params(all_trips)
                 generated_params = emhass_data.get("per_trip_emhass_params", {})
@@ -259,9 +261,18 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 "per_trip_emhass_params": {},
             }
 
-        charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_hours = config
+        (
+            charging_power_kw,
+            battery_capacity_kwh,
+            consumption_kwh_per_km,
+            horizon_hours,
+        ) = config
         per_trip_params, matrix = self._process_mock_trips(
-            trips, charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_hours
+            trips,
+            charging_power_kw,
+            battery_capacity_kwh,
+            consumption_kwh_per_km,
+            horizon_hours,
         )
         power_profile, deferrables_schedule = self._build_mock_output(
             matrix, per_trip_params, horizon_hours
@@ -284,7 +295,12 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         battery_capacity_kwh = self._entry.data.get("battery_capacity_kwh", 50.0)
         consumption_kwh_per_km = self._entry.data.get("kwh_per_km", DEFAULT_CONSUMPTION)
         horizon_days = int(self._entry.data.get("planning_horizon_days", 7))
-        return charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_days * 24
+        return (
+            charging_power_kw,
+            battery_capacity_kwh,
+            consumption_kwh_per_km,
+            horizon_days * 24,
+        )
 
     def _process_mock_trips(
         self,
@@ -304,7 +320,14 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             if not self._should_process_trip(trip, now):
                 continue
             entry, trip_matrix = self._process_single_mock_trip(
-                trip, trip_id, charging_power_kw, battery_capacity_kwh, consumption_kwh_per_km, horizon_hours, now, index_counter
+                trip,
+                trip_id,
+                charging_power_kw,
+                battery_capacity_kwh,
+                consumption_kwh_per_km,
+                horizon_hours,
+                now,
+                index_counter,
             )
             if entry is not None:
                 per_trip_params[trip_id] = entry
@@ -342,10 +365,15 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
     ) -> tuple[dict[str, Any] | None, list[list[float]]]:
         """Process a single trip and return (entry, trip_matrix). Returns (None, []) if skipped."""
         kwh_needed = float(trip.get("kwh", 0))
-        hours_needed = max(kwh_needed / charging_power_kw if charging_power_kw > 0 else 0, 0.1)
+        hours_needed = max(
+            kwh_needed / charging_power_kw if charging_power_kw > 0 else 0, 0.1
+        )
         _LOGGER.warning(
             "BUG-DEBUG: _process_single_mock_trip trip_id=%s kwh_needed=%.2f charging_power_kw=%.2f hours_needed=%.4f",
-            trip_id, kwh_needed, charging_power_kw, hours_needed,
+            trip_id,
+            kwh_needed,
+            charging_power_kw,
+            hours_needed,
         )
         power_watts = _helpers.kw_to_watts(charging_power_kw)
         start_timestep, end_timestep = self._calculate_mock_timesteps(
@@ -359,7 +387,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hours_needed=hours_needed,
             end_timestep=end_timestep,
         )
-        trip_matrix: list[list[float]] = [row] if any(v > 0 for v in row) else [[0.0] * horizon_hours]
+        trip_matrix: list[list[float]] = (
+            [row] if any(v > 0 for v in row) else [[0.0] * horizon_hours]
+        )
 
         entry = {
             "activo": True,
@@ -373,8 +403,12 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "emhass_index": index_counter,
             "battery_capacity_kwh": battery_capacity_kwh,
             "consumption_kwh_per_km": consumption_kwh_per_km,
-            "safety_margin_percent": float(self._entry.data.get("safety_margin_percent", 10.0)),
-            "soc_base": float(self._entry.data.get("soc_base", DEFAULT_SOC_BUFFER_PERCENT)),
+            "safety_margin_percent": float(
+                self._entry.data.get("safety_margin_percent", 10.0)
+            ),
+            "soc_base": float(
+                self._entry.data.get("soc_base", DEFAULT_SOC_BUFFER_PERCENT)
+            ),
             "t_base": float(self._entry.data.get("t_base", 24.0)),
         }
         return entry, trip_matrix
@@ -407,7 +441,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                     day_val = trip.get("dia_semana") or trip.get("day")
                     time_str = trip.get("hora") or trip.get("time")
                     if day_val is not None and time_str:
-                        deadline_dt = self._calculate_recurring_departure(day_val, time_str, now)
+                        deadline_dt = self._calculate_recurring_departure(
+                            day_val, time_str, now
+                        )
                         if deadline_dt is not None:
                             delta = deadline_dt - now
                             total_hours = delta.total_seconds() / 3600
@@ -424,7 +460,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         """Build power_profile and deferrables_schedule from processed trips."""
         _LOGGER.warning(
             "BUG-DEBUG: _build_mock_output ENTERED matrix_rows=%d per_trip_params_count=%d horizon_hours=%d",
-            len(matrix), len(per_trip_params), horizon_hours,
+            len(matrix),
+            len(per_trip_params),
+            horizon_hours,
         )
         for tid, p in per_trip_params.items():
             _LOGGER.warning(
@@ -442,12 +480,14 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
         deferrables_schedule: list[Any] = []
         for trip_id, params in per_trip_params.items():
-            deferrables_schedule.append({
-                "index": params.get("emhass_index", 0),
-                "kwh": params.get("kwh_needed", 0),
-                "start_timestep": params.get("def_start_timestep", 0),
-                "end_timestep": params.get("def_end_timestep", horizon_hours),
-            })
+            deferrables_schedule.append(
+                {
+                    "index": params.get("emhass_index", 0),
+                    "kwh": params.get("kwh_needed", 0),
+                    "start_timestep": params.get("def_start_timestep", 0),
+                    "end_timestep": params.get("def_end_timestep", horizon_hours),
+                }
+            )
         return power_profile, deferrables_schedule
 
     def _calculate_recurring_departure(
@@ -480,13 +520,22 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
                 return None
         else:
             days_map = {
-                "domingo": 6, "sunday": 6,
-                "lunes": 0, "monday": 0,
-                "martes": 1, "tuesday": 1,
-                "miércoles": 2, "miercoles": 2, "wednesday": 2,
-                "jueves": 3, "thursday": 3,
-                "viernes": 4, "friday": 4,
-                "sábado": 5, "sabado": 5, "saturday": 5,
+                "domingo": 6,
+                "sunday": 6,
+                "lunes": 0,
+                "monday": 0,
+                "martes": 1,
+                "tuesday": 1,
+                "miércoles": 2,
+                "miercoles": 2,
+                "wednesday": 2,
+                "jueves": 3,
+                "thursday": 3,
+                "viernes": 4,
+                "friday": 4,
+                "sábado": 5,
+                "sabado": 5,
+                "saturday": 5,
             }
             target_day = days_map.get(day_str)
             if target_day is None:

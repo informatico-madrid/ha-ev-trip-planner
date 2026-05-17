@@ -62,11 +62,46 @@ class TestEMHASSIndexRotation:
         # spaced enough that the 4h multi-trip buffer does NOT cause def_start >= def_end.
         # Deadlines: 24, 48, 72, 96, 120 hours — all within horizon, well spaced.
         trips_chronological = [
-            {"id": "trip_wednesday", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(), "kwh": 7.0},
-            {"id": "trip_thursday_1", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(), "kwh": 7.0},
-            {"id": "trip_thursday_2", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=72)).isoformat(), "kwh": 7.0},
-            {"id": "trip_friday", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=96)).isoformat(), "kwh": 7.0},
-            {"id": "trip_sunday", "tipo": "puntual", "datetime": (datetime.now(timezone.utc) + timedelta(hours=120)).isoformat(), "kwh": 7.0},
+            {
+                "id": "trip_wednesday",
+                "tipo": "puntual",
+                "datetime": (
+                    datetime.now(timezone.utc) + timedelta(hours=24)
+                ).isoformat(),
+                "kwh": 7.0,
+            },
+            {
+                "id": "trip_thursday_1",
+                "tipo": "puntual",
+                "datetime": (
+                    datetime.now(timezone.utc) + timedelta(hours=48)
+                ).isoformat(),
+                "kwh": 7.0,
+            },
+            {
+                "id": "trip_thursday_2",
+                "tipo": "puntual",
+                "datetime": (
+                    datetime.now(timezone.utc) + timedelta(hours=72)
+                ).isoformat(),
+                "kwh": 7.0,
+            },
+            {
+                "id": "trip_friday",
+                "tipo": "puntual",
+                "datetime": (
+                    datetime.now(timezone.utc) + timedelta(hours=96)
+                ).isoformat(),
+                "kwh": 7.0,
+            },
+            {
+                "id": "trip_sunday",
+                "tipo": "puntual",
+                "datetime": (
+                    datetime.now(timezone.utc) + timedelta(hours=120)
+                ).isoformat(),
+                "kwh": 7.0,
+            },
         ]
 
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
@@ -92,7 +127,13 @@ class TestEMHASSIndexRotation:
         bugs = []
 
         # Check sequential indices 0-4
-        expected_indices = ["trip_wednesday", "trip_thursday_1", "trip_thursday_2", "trip_friday", "trip_sunday"]
+        expected_indices = [
+            "trip_wednesday",
+            "trip_thursday_1",
+            "trip_thursday_2",
+            "trip_friday",
+            "trip_sunday",
+        ]
         for i, trip_id in enumerate(expected_indices):
             params = per_trip_params[trip_id]
             idx = params.get("emhass_index", -1)

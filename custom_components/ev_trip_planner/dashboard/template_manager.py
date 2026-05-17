@@ -26,7 +26,9 @@ from . import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _call_async_executor_sync(_hass, func, *args):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard.js — possible future feature
+def _call_async_executor_sync(
+    _hass, func, *args
+):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard.js — possible future feature
     """Call a function via async executor with fallback for tests.
 
     Returns the direct result (not a coroutine) for compatibility with tests.
@@ -42,7 +44,9 @@ def _call_async_executor_sync(_hass, func, *args):  # pragma: no cover reason=YA
     return func(*args)
 
 
-async def _await_executor_result(result):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard.js — possible future feature
+async def _await_executor_result(
+    result,
+):  # pragma: no cover reason=YAML dashboard import abandoned in favor of lit component dashboard.js — possible future feature
     """Helper to await executor result if it's a coroutine.
 
     Args:

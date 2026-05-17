@@ -52,7 +52,6 @@ class TestSOC100Propagation:
         entry.data = {
             "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
             "vehicle_name": "test_vehicle",
             "max_deferrable_loads": 50,
             "charging_power": 3.4,
@@ -106,9 +105,9 @@ class TestSOC100Propagation:
             pass
         else:
             # If this fails, proactive charging is NOT wired at SOC 100%
-            assert (
-                def_hours > 0
-            ), f"With proactive charging at SOC 100%, primer_viaje must have charge hours > 0, got {def_hours}"
+            assert def_hours > 0, (
+                f"With proactive charging at SOC 100%, primer_viaje must have charge hours > 0, got {def_hours}"
+            )
 
         for trip in trips:
             trip_id = trip["id"]
@@ -118,12 +117,12 @@ class TestSOC100Propagation:
                 power_nom = params.get("power_watts", 0.0)
 
                 # With proactive charging, def_hours and power_watts should both be > 0
-                assert (
-                    def_hours > 0
-                ), f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours} at SOC 100%"
-                assert (
-                    power_nom > 0
-                ), f"Trip {trip_id} failed proactive charging: power_watts is {power_nom} at SOC 100%"
+                assert def_hours > 0, (
+                    f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours} at SOC 100%"
+                )
+                assert power_nom > 0, (
+                    f"Trip {trip_id} failed proactive charging: power_watts is {power_nom} at SOC 100%"
+                )
 
     @pytest.mark.asyncio
     async def test_soc_100_impossible_physics(self):
@@ -148,7 +147,7 @@ class TestSOC100Propagation:
             horas_carga_maximas = energia_adicional_maxima / charging_power_kw
 
         # With SOC 100%, nothing can be charged
-        assert (
-            energia_adicional_maxima == 0.0
-        ), "With SOC 100%, no additional energy can be charged"
+        assert energia_adicional_maxima == 0.0, (
+            "With SOC 100%, no additional energy can be charged"
+        )
         assert horas_carga_maximas == 0.0, "With SOC 100%, there cannot be charge hours"

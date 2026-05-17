@@ -41,7 +41,11 @@ class TestDefTotalHoursMathCeil:
         BUG-1: The current production code uses round() → float.
         After fix: should use math.ceil() → int.
         """
-        trip = {"id": "test_trip", "kwh": 14.37, "datetime": "2026-05-15T10:00:00+00:00"}
+        trip = {
+            "id": "test_trip",
+            "kwh": 14.37,
+            "datetime": "2026-05-15T10:00:00+00:00",
+        }
         result = calculate_energy_needed(
             trip=trip,
             battery_capacity_kwh=50.0,

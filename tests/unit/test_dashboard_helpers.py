@@ -330,10 +330,13 @@ class TestAsyncImportDashboardForEntry:
         """Successful import calls import_dashboard with correct args."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "My Car", "use_charts": True}
+            "vehicle_name": "My Car",
+            "use_charts": True,
+        }
 
         mock_result = MagicMock()
         mock_result.success = True
@@ -358,10 +361,13 @@ class TestAsyncImportDashboardForEntry:
         """Failed import logs warning with error."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "My Car", "use_charts": False}
+            "vehicle_name": "My Car",
+            "use_charts": False,
+        }
 
         mock_result = MagicMock()
         mock_result.success = False
@@ -390,10 +396,12 @@ class TestAsyncImportDashboardForEntry:
         """Import exception → warning logged, no propagation."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "My Car"}
+            "vehicle_name": "My Car",
+        }
 
         with caplog.at_level(
             logging.WARNING,
@@ -419,10 +427,13 @@ class TestAsyncImportDashboardForEntry:
         """use_charts=False passes correctly to import_dashboard."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"battery_capacity_kwh": 50.0,
+        entry.data = {
+            "battery_capacity_kwh": 50.0,
             "charging_power_kw": 3.6,
             "safety_margin_percent": 10.0,
-            "vehicle_name": "My Car", "use_charts": False}
+            "vehicle_name": "My Car",
+            "use_charts": False,
+        }
 
         mock_result = MagicMock()
         mock_result.success = True

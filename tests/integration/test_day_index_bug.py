@@ -7,8 +7,7 @@ Actual: Something else is shown, or the calculation is wrong
 This test file explores the bug by testing calculate_trip_time directly.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from custom_components.ev_trip_planner.calculations.deficit import (
     calculate_next_recurring_datetime,
 )
@@ -23,7 +22,7 @@ class TestSaturdayTripBug:
 
     def test_saturday_trip_should_be_today_on_saturday(self):
         """BUG REPRODUCTION: On Saturday, the Saturday trip should be TODAY.
-        
+
         Staging has trip rec_6_c4ngiu with dia_semana="6" (Saturday), hora="11:50".
         When today is Saturday 2026-05-16 at 09:26, the next occurrence should be
         TODAY at 11:50, NOT in 6 days.
@@ -31,26 +30,26 @@ class TestSaturdayTripBug:
         # Reference: Saturday 2026-05-16 09:26 UTC
         # (user reported issue at ~09:26 on Saturday)
         saturday_morning = datetime(2026, 5, 16, 9, 26, 0, tzinfo=timezone.utc)
-        
+
         # Trip: Saturday, 11:50 - day stored as JS getDay() format (6=Saturday)
         # Note: calculate_next_recurring_datetime expects JS getDay() format (0=Sunday)
         day_js = 6  # Saturday in JS getDay()
         time_str = "11:50"
-        
+
         result = calculate_next_recurring_datetime(
             day=day_js,
             time_str=time_str,
             reference_dt=saturday_morning,
             tz=None,  # UTC
         )
-        
+
         # The result should be TODAY (Saturday) at 11:50
         # NOT Saturday next week
         expected = datetime(2026, 5, 16, 11, 50, 0, tzinfo=timezone.utc)
-        
+
         # Calculate days difference
         days_diff = (result.date() - saturday_morning.date()).days
-        
+
         assert result == expected, (
             f"Saturday trip at 11:50 should be TODAY (May 16) at 11:50 UTC, "
             f"but got {result}. Days ahead: {days_diff}"
@@ -62,19 +61,19 @@ class TestSaturdayTripBug:
 
     def test_calculate_trip_time_with_staging_data(self):
         """Test calculate_trip_time with the actual staging trip data.
-        
+
         This is the function that _trip_navigator uses to get trip times.
         """
         # Saturday 2026-05-16 09:26 UTC
         saturday_morning = datetime(2026, 5, 16, 9, 26, 0, tzinfo=timezone.utc)
-        
+
         # rec_6_c4ngiu: día_semana="6" (Saturday in JS getDay), hora="11:50"
         trip = {
             "tipo": TRIP_TYPE_RECURRING,
             "dia_semana": "6",
             "hora": "11:50",
         }
-        
+
         result = calculate_trip_time(
             trip_tipo=trip["tipo"],
             hora=trip["hora"],
@@ -83,9 +82,9 @@ class TestSaturdayTripBug:
             reference_dt=saturday_morning,
             tz=None,
         )
-        
+
         expected = datetime(2026, 5, 16, 11, 50, 0, tzinfo=timezone.utc)
-        
+
         assert result == expected, (
             f"calculate_trip_time returned {result}, expected {expected}"
         )
@@ -95,21 +94,46 @@ class TestSaturdayTripBug:
 
     def test_staging_trips_order_on_saturday(self):
         """Simulate what _trip_navigator would return on Saturday.
-        
+
         With 5 trips on days 1,3,4,5,6 - on Saturday (day 6), the next trip
         should be the Saturday trip (day 6), not day 1 (next Monday).
         """
         saturday = datetime(2026, 5, 16, 9, 26, 0, tzinfo=timezone.utc)
-        
+
         # All 5 staging trips
         trips = [
-            {"id": "rec_5_xeqnmt", "tipo": TRIP_TYPE_RECURRING, "dia_semana": "1", "hora": "09:30"},
-            {"id": "rec_1_fy4pfk", "tipo": TRIP_TYPE_RECURRING, "dia_semana": "3", "hora": "13:40"},
-            {"id": "rec_2_6hgwk6", "tipo": TRIP_TYPE_RECURRING, "dia_semana": "4", "hora": "09:40"},
-            {"id": "rec_2_gh62hm", "tipo": TRIP_TYPE_RECURRING, "dia_semana": "5", "hora": "09:40"},
-            {"id": "rec_6_c4ngiu", "tipo": TRIP_TYPE_RECURRING, "dia_semana": "6", "hora": "11:50"},
+            {
+                "id": "rec_5_xeqnmt",
+                "tipo": TRIP_TYPE_RECURRING,
+                "dia_semana": "1",
+                "hora": "09:30",
+            },
+            {
+                "id": "rec_1_fy4pfk",
+                "tipo": TRIP_TYPE_RECURRING,
+                "dia_semana": "3",
+                "hora": "13:40",
+            },
+            {
+                "id": "rec_2_6hgwk6",
+                "tipo": TRIP_TYPE_RECURRING,
+                "dia_semana": "4",
+                "hora": "09:40",
+            },
+            {
+                "id": "rec_2_gh62hm",
+                "tipo": TRIP_TYPE_RECURRING,
+                "dia_semana": "5",
+                "hora": "09:40",
+            },
+            {
+                "id": "rec_6_c4ngiu",
+                "tipo": TRIP_TYPE_RECURRING,
+                "dia_semana": "6",
+                "hora": "11:50",
+            },
         ]
-        
+
         # Calculate next trip (simplified _trip_navigator logic)
         next_trip = None
         for trip in trips:
@@ -124,7 +148,7 @@ class TestSaturdayTripBug:
             if trip_time and trip_time > saturday:
                 if next_trip is None or trip_time < next_trip["time"]:
                     next_trip = {"time": trip_time, "trip": trip}
-        
+
         assert next_trip is not None, "Should have found a next trip"
         assert next_trip["trip"]["id"] == "rec_6_c4ngiu", (
             f"BUG: Next trip should be Saturday's trip (rec_6_c4ngiu) but got {next_trip['trip']['id']}"

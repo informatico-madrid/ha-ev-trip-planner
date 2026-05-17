@@ -33,18 +33,27 @@ class TestCalculateDeadlineNumericDay:
     def test_numeric_day_0_is_sunday(self):
         """Line 264: Day '0' should map to Sunday (6)."""
         pub, _ = _make_publisher()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         trip = {
             "tipo": "recurrente",
             "dia_semana": "0",
             "hora": "09:00",
         }
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("datetime.datetime", type("MockDatetime", (), {
-                "now": lambda *a, **k: now,
-                "fromisoformat": datetime.fromisoformat,
-                "timezone": timezone,
-            })())
+            mp.setattr(
+                "datetime.datetime",
+                type(
+                    "MockDatetime",
+                    (),
+                    {
+                        "now": lambda *a, **k: now,
+                        "fromisoformat": datetime.fromisoformat,
+                        "timezone": timezone,
+                    },
+                )(),
+            )
             result = pub._calculate_deadline(trip)
         assert result is not None
         assert result.weekday() == 6  # Sunday
@@ -52,18 +61,27 @@ class TestCalculateDeadlineNumericDay:
     def test_numeric_day_7_is_sunday(self):
         """Line 264: Day '7' should map to Sunday (6)."""
         pub, _ = _make_publisher()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         trip = {
             "tipo": "recurrente",
             "dia_semana": "7",
             "hora": "09:00",
         }
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("datetime.datetime", type("MockDatetime", (), {
-                "now": lambda *a, **k: now,
-                "fromisoformat": datetime.fromisoformat,
-                "timezone": timezone,
-            })())
+            mp.setattr(
+                "datetime.datetime",
+                type(
+                    "MockDatetime",
+                    (),
+                    {
+                        "now": lambda *a, **k: now,
+                        "fromisoformat": datetime.fromisoformat,
+                        "timezone": timezone,
+                    },
+                )(),
+            )
             result = pub._calculate_deadline(trip)
         assert result is not None
         assert result.weekday() == 6  # Sunday
@@ -71,18 +89,27 @@ class TestCalculateDeadlineNumericDay:
     def test_numeric_day_1_is_monday(self):
         """Line 266: Day '1' should map to Monday (0)."""
         pub, _ = _make_publisher()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         trip = {
             "tipo": "recurrente",
             "dia_semana": "1",
             "hora": "09:00",
         }
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("datetime.datetime", type("MockDatetime", (), {
-                "now": lambda *a, **k: now,
-                "fromisoformat": datetime.fromisoformat,
-                "timezone": timezone,
-            })())
+            mp.setattr(
+                "datetime.datetime",
+                type(
+                    "MockDatetime",
+                    (),
+                    {
+                        "now": lambda *a, **k: now,
+                        "fromisoformat": datetime.fromisoformat,
+                        "timezone": timezone,
+                    },
+                )(),
+            )
             result = pub._calculate_deadline(trip)
         assert result is not None
         assert result.weekday() == 0  # Monday
@@ -90,18 +117,27 @@ class TestCalculateDeadlineNumericDay:
     def test_numeric_day_6_is_saturday(self):
         """Line 266: Day '6' should map to Saturday (5)."""
         pub, _ = _make_publisher()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         trip = {
             "tipo": "recurrente",
             "dia_semana": "6",
             "hora": "09:00",
         }
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("datetime.datetime", type("MockDatetime", (), {
-                "now": lambda *a, **k: now,
-                "fromisoformat": datetime.fromisoformat,
-                "timezone": timezone,
-            })())
+            mp.setattr(
+                "datetime.datetime",
+                type(
+                    "MockDatetime",
+                    (),
+                    {
+                        "now": lambda *a, **k: now,
+                        "fromisoformat": datetime.fromisoformat,
+                        "timezone": timezone,
+                    },
+                )(),
+            )
             result = pub._calculate_deadline(trip)
         assert result is not None
         assert result.weekday() == 5  # Saturday
@@ -109,35 +145,53 @@ class TestCalculateDeadlineNumericDay:
     def test_numeric_day_9_returns_none(self):
         """Line 268: Invalid numeric day (>7) should return None."""
         pub, _ = _make_publisher()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         trip = {
             "tipo": "recurrente",
             "dia_semana": "9",
             "hora": "09:00",
         }
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("datetime.datetime", type("MockDatetime", (), {
-                "now": lambda *a, **k: now,
-                "fromisoformat": datetime.fromisoformat,
-                "timezone": timezone,
-            })())
+            mp.setattr(
+                "datetime.datetime",
+                type(
+                    "MockDatetime",
+                    (),
+                    {
+                        "now": lambda *a, **k: now,
+                        "fromisoformat": datetime.fromisoformat,
+                        "timezone": timezone,
+                    },
+                )(),
+            )
             result = pub._calculate_deadline(trip)
         assert result is None
 
     def test_numeric_day_negative(self):
         """Negative numeric day should return None."""
         pub, _ = _make_publisher()
-        now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
         trip = {
             "tipo": "recurrente",
             "dia_semana": "-1",
             "hora": "09:00",
         }
         with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("datetime.datetime", type("MockDatetime", (), {
-                "now": lambda *a, **k: now,
-                "fromisoformat": datetime.fromisoformat,
-                "timezone": timezone,
-            })())
+            mp.setattr(
+                "datetime.datetime",
+                type(
+                    "MockDatetime",
+                    (),
+                    {
+                        "now": lambda *a, **k: now,
+                        "fromisoformat": datetime.fromisoformat,
+                        "timezone": timezone,
+                    },
+                )(),
+            )
             result = pub._calculate_deadline(trip)
         assert result is None

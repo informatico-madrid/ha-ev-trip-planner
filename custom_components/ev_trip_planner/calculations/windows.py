@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..const import DEFAULT_SAFETY_MARGIN
 from ..utils import calcular_energia_kwh
 from . import _helpers
-from ._helpers import kw_to_watts
 
 
 def calculate_energy_needed(
@@ -160,7 +159,6 @@ def calculate_charging_window_pure(
         fin_ventana = inicio_ventana + timedelta(hours=duration_hours)
 
     # Calculate ventana_horas
-    delta = fin_ventana - inicio_ventana
     ventana_horas = max(0.0, _helpers.compute_hours_until(fin_ventana, inicio_ventana))
 
     # kwh_necesarios
@@ -178,7 +176,9 @@ def calculate_charging_window_pure(
     return {
         "ventana_horas": round(ventana_horas, 2),
         "kwh_necesarios": round(kwh_necesarios, 3),
-        "horas_carga_necesarias": math.ceil(horas_carga_necesarias) if horas_carga_necesarias > 0 else 0,
+        "horas_carga_necesarias": math.ceil(horas_carga_necesarias)
+        if horas_carga_necesarias > 0
+        else 0,
         "inicio_ventana": inicio_ventana,
         "fin_ventana": fin_ventana,
         "es_suficiente": es_suficiente,
@@ -271,8 +271,13 @@ def calculate_multi_trip_charging_windows(
             trip_departure_time = _helpers._ensure_aware(trip_departure_time)
 
         window_start = _compute_window_start(
-            idx, trip_departure_time, hora_regreso, return_buffer_hours,
-            loop_now, previous_departure, now,
+            idx,
+            trip_departure_time,
+            hora_regreso,
+            return_buffer_hours,
+            loop_now,
+            previous_departure,
+            now,
         )
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
@@ -300,7 +305,9 @@ def calculate_multi_trip_charging_windows(
             {
                 "ventana_horas": round(ventana_horas, 2),
                 "kwh_necesarios": round(kwh_necesarios, 3),
-                "horas_carga_necesarias": math.ceil(horas_carga_necesarias) if horas_carga_necesarias > 0 else 0,
+                "horas_carga_necesarias": math.ceil(horas_carga_necesarias)
+                if horas_carga_necesarias > 0
+                else 0,
                 "inicio_ventana": window_start,
                 "fin_ventana": trip_departure_time,
                 "es_suficiente": es_suficiente,
@@ -361,7 +368,9 @@ def _compute_window_hours(
     """
     window_start_aware = _helpers._ensure_aware(window_start)
     trip_departure_aware = _helpers._ensure_aware(trip_departure_time)
-    return max(0.0, _helpers.compute_hours_until(trip_departure_aware, window_start_aware))
+    return max(
+        0.0, _helpers.compute_hours_until(trip_departure_aware, window_start_aware)
+    )
 
 
 def build_deferrable_matrix_row(

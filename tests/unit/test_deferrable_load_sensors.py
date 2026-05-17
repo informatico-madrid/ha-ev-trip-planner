@@ -441,7 +441,9 @@ class TestPowerProfileSemantics:
         assert "p_deferrable_matrix" in attrs
         # p_deferrable_matrix is a list of rows (one per deferrable load)
         assert len(attrs["p_deferrable_matrix"]) == 1
-        assert len(attrs["p_deferrable_matrix"][0]) == 168  # Each row has 168 timesteps (7 days * 24h)
+        assert (
+            len(attrs["p_deferrable_matrix"][0]) == 168
+        )  # Each row has 168 timesteps (7 days * 24h)
         assert attrs["def_total_hours_array"] == [2]
         assert attrs["p_deferrable_nom_array"] == [3000.0]
         assert attrs["def_start_timestep_array"] == [10]

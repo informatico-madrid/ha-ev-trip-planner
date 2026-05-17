@@ -206,9 +206,9 @@ def mock_hass_charging_window():
     mock_entry.entry_id = "test_entry_001"
     mock_entry.data = {
         "battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
-            "vehicle_name": "tesla_model_3",
+        "charging_power_kw": 3.6,
+        "safety_margin_percent": 10.0,
+        "vehicle_name": "tesla_model_3",
         "battery_capacity": 75.0,
         "consumption": 0.15,
         "charging_power": 11.0,

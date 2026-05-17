@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .core import calculate_trip_time
 
@@ -79,12 +79,17 @@ def normalize_trip_fields(trip: Dict[str, Any]) -> Dict[str, Any] | None:
     """
     day = trip.get("day") if "day" in trip else trip.get("dia_semana")
     time_str = trip.get("time") if "time" in trip else trip.get("hora")
-    return {"day": day, "time": time_str} if day is not None and time_str is not None else None
+    return (
+        {"day": day, "time": time_str}
+        if day is not None and time_str is not None
+        else None
+    )
 
 
 def _strip_accents(s: str) -> str:
     """Remove diacritical marks: 'miércoles' → 'miercoles'."""
     import unicodedata
+
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
 
@@ -98,8 +103,20 @@ def _is_valid_day(day) -> bool:
     # Valid day names in Spanish and English
     normalized = _strip_accents(day_str)
     valid_names = {
-        "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo",
-        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+        "lunes",
+        "martes",
+        "miercoles",
+        "jueves",
+        "viernes",
+        "sabado",
+        "domingo",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
     }
     return normalized in valid_names
 
@@ -186,4 +203,3 @@ def resolve_trip_deadline(
         return None
 
     return _ensure_aware(result)
-
