@@ -26,7 +26,7 @@
     },
     {
       "name": "high-arity-refactoring",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "solid-refactoring"
       ]

@@ -135,7 +135,7 @@ design.md verdict tables.
   - _Requirements: FR-13, FR-14, AC-5.4_
   - _Design: §2b_
 
-- [ ] 2.3 [VERIFY] Confirm pragma audit verdicts hold (Class A/B/C)
+- [x] 2.3 [VERIFY] Confirm pragma audit verdicts hold (Class A/B/C)
   - **Do**:
     1. Scan all source files: `grep -rn "# pragma: no cover" custom_components/ev_trip_planner/`.
     2. Confirm count matches design.md §2b summary (~50 marks across 9 files), every mark has a `reason=` / inline justification, and zero Class B marks exist (code that could be tested but isn't).
@@ -146,7 +146,7 @@ design.md verdict tables.
   - _Requirements: FR-11, FR-12, AC-5.1, AC-5.2, AC-5.3, AC-5.5_
   - _Design: §2b_
 
-- [ ] 2.4 Verify `_validate_field` arity and conditionally remove its `qg-accepted` comment
+- [x] 2.4 Verify `_validate_field` arity and conditionally remove its `qg-accepted` comment
   - **Do**:
     1. Run `make layer3a` and inspect output. Per design.md §2a / §7 Q1: `_validate_field` in `config_flow/main.py` (~line 263) has 6 declared params; effective arity excluding `self` is 5 (at threshold, not above).
     2. If `make layer3a` does NOT report `_validate_field` as a violation: remove its `# qg-accepted: arity=6 ...` comment entirely (the gate does not fire — suppression is unnecessary).

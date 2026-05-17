@@ -3,15 +3,15 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-16T11:31:29Z
+**Last updated:** 2026-05-17T15:36:43Z
 
 ## Directories (1)
 
 | Directory | Specs | Default |
 |-----------|-------|---------|
-| ./specs | 37 | Yes |
+| ./specs | 38 | Yes |
 
-## All Specs (37)
+## All Specs (38)
 
 | Spec | Directory | Phase | Status |
 |------|-----------|-------|--------|
@@ -51,7 +51,8 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | tooling-foundation | ./specs | completed | done |
 | spec1-dead-code | ./specs | completed | done |
 | 2-test-reorg | ./specs | execution | 53/63 tasks |
-| 3-solid-refactor | ./specs | execution | 147/166 tasks |
+| 3-solid-refactor | ./specs | tasks | 163/166 tasks |
+| high-arity-refactoring | ./specs | execution | 2/23 tasks |
 
 ---
 

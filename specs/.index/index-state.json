@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-05-16T11:31:29Z",
+  "updated": "2026-05-17T15:36:43Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 37,
+      "specsCount": 38,
       "isDefault": true
     }
   ],
@@ -260,9 +260,16 @@
     {
       "name": "3-solid-refactor",
       "path": "./specs/3-solid-refactor",
-      "phase": "execution",
-      "taskIndex": 147,
+      "phase": "tasks",
+      "taskIndex": 163,
       "totalTasks": 166
+    },
+    {
+      "name": "high-arity-refactoring",
+      "path": "./specs/high-arity-refactoring",
+      "phase": "execution",
+      "taskIndex": 2,
+      "totalTasks": 23
     }
   ]
 }

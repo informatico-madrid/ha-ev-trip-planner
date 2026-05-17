@@ -260,7 +260,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             self.context["vehicle_data"] = {}  # type: ignore[typeddict-unknown-key] # HA stub: ConfigFlowContext missing vehicle_data in stubs
         return self.context["vehicle_data"]  # type: ignore[typeddict-item] # HA stub: TypedDict item access not in stubs
 
-    # qg-accepted: arity=6 is the numeric field validation API
+    # qg-accepted: arity=6 — effective arity = 5 (self excluded); layer3a counts self
     def _validate_field(
         self,
         user_input: Dict[str, Any],
