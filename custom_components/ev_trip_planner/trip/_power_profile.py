@@ -41,7 +41,7 @@ class PowerProfile:
 
         # Extract required vehicle config — no silent defaults for car values
         battery_capacity: float
-        soc_current: float
+        soc_current: float | None
         safety_margin_percent: float
 
         if vehicle_config:
@@ -53,7 +53,7 @@ class PowerProfile:
                 return []
             battery_capacity = vehicle_config["battery_capacity_kwh"]
             safety_margin_percent = vehicle_config["safety_margin_percent"]
-            soc_current = vehicle_config.get("soc_current")
+            soc_current: float | None = vehicle_config.get("soc_current")
         else:
             try:
                 config_entry: Optional[ConfigEntry[Any]] = None
@@ -95,6 +95,8 @@ class PowerProfile:
                 )
             except Exception:
                 soc_current = 50.0
+
+        assert soc_current is not None
 
         # Gather all active trips for the power profile
         all_trips: List[Dict[str, Any]] = []

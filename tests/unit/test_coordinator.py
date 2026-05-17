@@ -260,4 +260,3 @@ class TestCoordinatorRefreshTrips:
         coord.async_refresh = AsyncMock(return_value=MagicMock())
         await coord.async_refresh_trips()
         coord.async_refresh.assert_called_once()
-

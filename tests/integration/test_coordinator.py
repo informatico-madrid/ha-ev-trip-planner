@@ -623,5 +623,3 @@ async def test_coordinator_refresh_with_updated_emhass_cache(
     #    - PresenceMonitor calls publish_deferrable_loads() ✅
     #    - BUT publish_deferrable_loads() does NOT call coordinator.async_refresh() ❌
     #    - Therefore, the sensor does NOT update automatically ❌
-
-
