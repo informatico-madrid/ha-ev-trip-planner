@@ -6,9 +6,9 @@ Validates Lovelace dashboard configurations (YAML and JSON storage format).
 Usage: python3 lovelace_validator.py <file_path> [--strict]
 """
 
-import sys
-import re
 import json
+import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Set
 

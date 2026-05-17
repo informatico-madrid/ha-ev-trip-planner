@@ -127,6 +127,44 @@ class ImportVisitor(ast.NodeVisitor):
             self.imports.append(node.module)
 
 
+HA_SKIP_ABCS = frozenset((
+    "Entity", "RestoreEntity", "Platform",
+    "ConfigFlow", "OptionsFlow",
+))
+
+
+def _is_stub_body(func_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Return True if a function body is a stub (pass, ..., or raise NotImplementedError)."""
+    body = func_node.body
+    if not body:
+        return True
+    # Single statement that is pass, Ellipsis, or raise NotImplementedError
+    stmt = body[0]
+    if isinstance(stmt, ast.Pass):
+        return True
+    if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and stmt.value.value is ...:
+        return True
+    if isinstance(stmt, ast.Raise):
+        if stmt.exc is not None and isinstance(stmt.exc, ast.Call):
+            func = stmt.exc.func
+            if isinstance(func, ast.Name) and func.id == "NotImplementedError":
+                return True
+    return False
+
+
+def _has_abstract_decorator(func_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Return True if a function has @abstractmethod decorator."""
+    for deco in func_node.decorator_list:
+        name = None
+        if isinstance(deco, ast.Name):
+            name = deco.id
+        elif isinstance(deco, ast.Attribute):
+            name = deco.attr
+        if name == "abstractmethod":
+            return True
+    return False
+
+
 class ImportGraphBuilder:
     """Build import dependency graph and detect cycles."""
 
@@ -279,6 +317,88 @@ def analyze_solid(src_dir: Path) -> dict[str, Any]:
             # This is a simplified check; full LSP requires type analysis
             pass  # Abstract class detected - OK for OCP/LSP
 
+    # ISP: max_unused_methods_ratio — detect ABCs/Protocols where concrete
+    # subclasses implement abstract methods as stubs (pass, ..., NotImplementedError)
+    # instead of providing real logic.  Ratio = stubs / total abstract methods.
+    # Skip HA framework ABCs (Entity, RestoreEntity, Platform, ConfigFlow, OptionsFlow).
+    max_unused_methods_ratio: float = 0.0
+    isp_threshold = 0.5
+
+    # Build subclass lookup from the already-collected classes
+    subclasses_map: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for c in collector.classes:
+        for base_name in c.get("bases", []):
+            subclasses_map[base_name].append(c)
+
+    # Collect abstract methods from each ABC/Protocol definition
+    abc_abstract_methods: dict[str, list[ast.FunctionDef | ast.AsyncFunctionDef]] = defaultdict(list)
+    for py_file in src_dir.rglob("*.py"):
+        if "__pycache__" in str(py_file):
+            continue
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                base_names = node.bases
+                is_abc = any(
+                    isinstance(b, ast.Name) and b.id not in HA_SKIP_ABCS
+                    and b.id in ("ABC", "Protocol")
+                    for b in base_names
+                )
+                if is_abc:
+                    for item in node.body:
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            if _has_abstract_decorator(item):
+                                abc_abstract_methods[node.name].append(item)
+
+    # For each ABC, count stub implementations across subclasses
+    isp_violations: list[dict[str, Any]] = []
+    for abc_name, abst_methods in abc_abstract_methods.items():
+        if not abst_methods:
+            continue
+        concrete_sub = subclasses_map.get(abc_name, [])
+        if not concrete_sub:
+            continue
+        total_abstract = len(abst_methods)
+        stub_count = 0
+        for am in abst_methods:
+            for sub in concrete_sub:
+                sub_name = sub.get("name", "")
+                # Find the method in the concrete class
+                # Re-parse to get body details
+                for py_file in src_dir.rglob("*.py"):
+                    if "__pycache__" in str(py_file):
+                        continue
+                    try:
+                        sub_tree = ast.parse(py_file.read_text(encoding="utf-8"))
+                    except SyntaxError:
+                        continue
+                    for node in ast.walk(sub_tree):
+                        if isinstance(node, ast.ClassDef) and node.name == sub_name:
+                            for item in node.body:
+                                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                                    if item.name == am.name:
+                                        if _is_stub_body(item):
+                                            stub_count += 1
+                                        break
+                                break
+
+        ratio = stub_count / total_abstract if total_abstract > 0 else 0.0
+        if ratio > max_unused_methods_ratio:
+            max_unused_methods_ratio = ratio
+        if ratio > isp_threshold:
+            isp_violations.append({
+                "class": abc_name,
+                "ratio": round(ratio, 2),
+                "threshold": isp_threshold,
+                "issue": f"ratio={ratio:.1%} > {isp_threshold} (unused abstract methods as stubs)",
+            })
+
+    if isp_violations:
+        violations["I"] = isp_violations
+
     type_hint_coverage = 0.0
     total = sum(c["type_hints_total"] for c in collector.classes)
     if total > 0:
@@ -319,8 +439,9 @@ def analyze_solid(src_dir: Path) -> dict[str, Any]:
             "violations": violations["L"],
         },
         "I": {
-            "status": "PASS",
-            "violations": [],
+            "status": "PASS" if not violations["I"] else "FAIL",
+            "violations": violations["I"],
+            "max_unused_methods_ratio": max_unused_methods_ratio,
         },
         "D": {
             "status": "PASS" if not violations["D"] else "FAIL",

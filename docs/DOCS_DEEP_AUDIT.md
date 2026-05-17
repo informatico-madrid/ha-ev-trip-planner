@@ -96,7 +96,7 @@
 __init__.py ✅       calculations.py ✅    config_flow.py ✅
 const.py ✅          coordinator.py ✅     dashboard.py ✅
 definitions.py ✅    diagnostics.py ✅     emhass_adapter.py ✅
-panel.py ✅          presence_monitor.py ✅ schedule_monitor.py ✅
+panel.py ✅          presence_monitor.py ✅
 sensor.py ✅         services.py ✅        trip_manager.py ✅
 utils.py ✅          vehicle_controller.py ✅ yaml_trip_storage.py ✅
 # NO HAY protocols.py ❌  (18 archivos .py, no 19)
@@ -129,7 +129,6 @@ Unique ID: `emhass_trip_{vehicle_id}_{trip_id}`
 | `config_flow.py` | 949 | 949 | ✅ Sin cambios |
 | `vehicle_controller.py` | 509 | 509 | ✅ Sin cambios |
 | `presence_monitor.py` | 769 | 769 | ✅ Sin cambios |
-| `schedule_monitor.py` | 323 | 323 | ✅ Sin cambios |
 | `dashboard.py` | 1261 | 1261 | ✅ Sin cambios |
 
 ### 7. ✅ Test Count Actualizado

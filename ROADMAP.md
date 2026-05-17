@@ -33,9 +33,9 @@
 - 84% coverage (60 tests)
 
 ### Milestone 3: EMHASS Integration & Smart Control (Dec 8, 2025)
-- `emhass_adapter.py`: Dynamic deferrable load publishing, index pool 0-49, persistence across restarts
-- `vehicle_controller.py`: 4 control strategies (Switch, Service, Script, External) — implemented but not end-to-end tested
-- `presence_monitor.py`: Sensor and coordinate-based presence detection, safety logic
+- `emhass/`: Dynamic deferrable load publishing, index pool 0-49, persistence across restarts
+- `vehicle/`: 4 control strategies (Switch, Service, Script, External) — implemented but not end-to-end tested
+- `presence_monitor/`: Sensor and coordinate-based presence detection, safety logic
 - Extended config flow with EMHASS and presence detection steps
 - 3 new sensors: `active_trips`, `presence_status`, `charging_readiness`
 - Migration service from sliders: `ev_trip_planner.import_from_sliders`
@@ -61,20 +61,24 @@
 - Load distribution just before each trip
 - 5-step config flow
 - Native panel (primary interface) — [`panel.py`](custom_components/ev_trip_planner/panel.py:37) with per-vehicle sidebar entries
-- Per-trip EMHASS sensor — [`TripEmhassSensor`](custom_components/ev_trip_planner/sensor.py:853) provides per-trip parameters
-- Power profile generation — [`async_generate_power_profile()`](custom_components/ev_trip_planner/trip_manager.py:2068)
-- Deferrables schedule generation — [`async_generate_deferrables_schedule()`](custom_components/ev_trip_planner/trip_manager.py:2244)
+- Per-trip EMHASS sensor — [`TripEmhassSensor`](custom_components/ev_trip_planner/sensor/) provides per-trip parameters
+- Power profile generation — [`async_generate_power_profile()`](custom_components/ev_trip_planner/trip/) in trip package
+- Deferrables schedule generation — [`async_generate_deferrables_schedule()`](custom_components/ev_trip_planner/trip/) in trip package
 - Retry logic: 3 attempts in 5-minute window
 - 398 tests passing, 85%+ coverage
-- ⚠️ **NOTE**: Lovelace dashboard auto-import (`dashboard.py`, 1262 lines) still executes on every setup but is DEPRECATED. Users should use the native panel instead.
-- ⚠️ **NOT IMPLEMENTED**: `alerta_tiempo_insuficiente` user notifications — code exists in [`async_calcular_energia_necesaria()`](custom_components/ev_trip_planner/trip_manager.py:1545) but **no sensor, notification, or UI element exposes this value**. The user-facing function [`calcular_ventana_carga()`](custom_components/ev_trip_planner/trip_manager.py:1550) returns `es_suficiente` instead. **Feature not exposed to users.**
+- ⚠️ **NOTE**: Lovelace dashboard auto-import (`dashboard/`, 1262 lines equivalent) still executes on every setup but is DEPRECATED. Users should use the native panel instead.
+- ⚠️ **NOT IMPLEMENTED**: `alerta_tiempo_insuficiente` user notifications — code exists in [`calculations/`](custom_components/ev_trip_planner/calculations/) but **no sensor, notification, or UI element exposes this value**. The user-facing function `calcular_ventana_carga()` returns `es_suficiente` instead. **Feature not exposed to users.**
 
-### SOLID Refactoring (Apr 2026 — feat/solid-refactor-coverage branch)
-- `definitions.py`: `TripSensorEntityDescription` dataclass for sensor definitions
-- `coordinator.py`: Refactored to comply with SOLID, no direct coupling
-- `diagnostics.py`: HACS quality diagnostic support
-- High test coverage >80% for all modules
-- 793 Python tests + 10 E2E Playwright passing
+### SOLID Refactoring (Apr-May 2026 — feat/solid-refactor-coverage branch)
+- **9 god-class modules** decomposed into **9 SOLID-compliant packages** (12,400+ LOC)
+- 45+ sub-modules created across packages: `emhass/`, `trip/`, `services/`, `dashboard/`, `calculations/`, `vehicle/`, `sensor/`, `config_flow/`, `presence_monitor/`
+- **3-phase shim migration**: Skeleton + re-exports → TDD decomposition → cleanup shims (each commit green, bisectable)
+- **Pattern selection per package**: Facade+Composition, Facade+Mixins, Module Facade, Builder, Strategy, Functional Decomposition
+- **Quality metrics**: SOLID 5/5 PASS (Tier A deterministic), 0 god classes, 62.5% mutation kill rate, Pyright 0 errors
+- **Dual-agent quality system**: spec-executor + external-reviewer with anti-evasion policy
+- **lint-imports contracts** enforcing dependency direction between packages
+- Spec: [`specs/3-solid-refactor/`](specs/3-solid-refactor/)
+- CHANGELOG: [0.5.24]
 
 ### Milestone 4.0.1: EMHASS Per-Trip Sensors & Hotfixes (Apr 26, 2026)
 - `TripEmhassSensor`: Per-trip EMHASS sensors with 9 attributes
@@ -95,17 +99,17 @@
 
 | Component | File | Lines | Status |
 |-----------|------|-------|--------|
-| `VehicleControlStrategy` ABC | [`vehicle_controller.py:83`](custom_components/ev_trip_planner/vehicle_controller.py:83) | 430 | ✅ Implemented |
-| `SwitchStrategy` | [`vehicle_controller.py:107`](custom_components/ev_trip_planner/vehicle_controller.py:107) | — | ✅ Implemented |
-| `ServiceStrategy` | [`vehicle_controller.py:146`](custom_components/ev_trip_planner/vehicle_controller.py:146) | — | ✅ Implemented |
-| `ScriptStrategy` | [`vehicle_controller.py:189`](custom_components/ev_trip_planner/vehicle_controller.py:189) | — | ✅ Implemented |
-| `ExternalStrategy` | [`vehicle_controller.py:230`](custom_components/ev_trip_planner/vehicle_controller.py:230) | — | ✅ Implemented |
-| `VehicleController` | [`vehicle_controller.py:280`](custom_components/ev_trip_planner/vehicle_controller.py:280) | — | ✅ Implemented |
-| `PresenceMonitor` | [`presence_monitor.py:34`](custom_components/ev_trip_planner/presence_monitor.py:34) | 770 | ✅ Implemented |
-| `ScheduleMonitor` | [`schedule_monitor.py:14`](custom_components/ev_trip_planner/schedule_monitor.py:14) | 324 | ✅ File exists, NEVER instantiated |
-| `VehicleScheduleMonitor` | [`schedule_monitor.py:55`](custom_components/ev_trip_planner/schedule_monitor.py:55) | — | ✅ File exists, NEVER used |
+| `VehicleControlStrategy` ABC | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | 430 | ✅ Implemented |
+| `SwitchStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
+| `ServiceStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
+| `ScriptStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
+| `ExternalStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
+| `VehicleController` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
+| `PresenceMonitor` | [`presence_monitor/`](custom_components/ev_trip_planner/presence_monitor/) | 770 | ✅ Implemented |
+| `ScheduleMonitor` | [`presence_monitor/`](custom_components/ev_trip_planner/presence_monitor/) | 324 | ✅ File exists, NEVER instantiated |
+| `VehicleScheduleMonitor` | [`presence_monitor/`](custom_components/ev_trip_planner/presence_monitor/) | — | ✅ File exists, NEVER used |
 
-**Gap**: `schedule_monitor.py` is **never imported** in `__init__.py`. The `control_strategy` / `control_type` configuration is **NOT exposed** in the config flow. Users cannot select a vehicle control strategy through the UI.
+**Gap**: `presence_monitor/schedule_monitor.py` is **never imported** in the package. The `control_strategy` / `control_type` configuration is **NOT exposed** in the config flow. Users cannot select a vehicle control strategy through the UI.
 
 **Impact**: The core "smart charging control" feature (automatic charge start/stop based on EMHASS schedules) does NOT work end-to-end, even though all the code exists.
 
@@ -141,8 +145,8 @@
 - **1470 tests** passing, 100% coverage on new code
 
 ### Technical Details
-- **Files Modified**: sensor.py, emhass_adapter.py, trip_manager.py, __init__.py, panel.js
-- **New Tests**: test_trip_emhass_sensor.py, test_propagate_charge_deficit.py
+- **Files Modified**: sensor/, emhass/, trip/, __init__.py, panel.js
+- **New Tests**: Per-trip EMHASS sensor tests, charge deficit propagation tests
 - **Documentation**: docs/emhass-setup.md with Jinja2 templates
 - **Quality**: Mypy clean (19 files, 0 errors)
 
@@ -242,7 +246,7 @@ Horas de Anticipación de Carga:
 - **Time**: 3-4 days
 - **Complexity**: Medium (mathematical function + config flow + tests)
 - **Tests**: 6-8 TDD tests (edge cases: h=0, h=∞, soc_target<lim, monotonicity)
-- **Files**: trip_manager.py, calculations.py, config_flow.py, tests/test_dynamic_soc_capping.py
+- **Files**: trip/, calculations/, config_flow/, tests/
 
 ---
 
@@ -272,7 +276,7 @@ After Milestone 4 production validation, critical issues were documented in [`do
   - **Problem**: The `EmhassDeferrableLoadSensor` aggregates all trips into a single `power_profile_watts`. EMHASS needs separate deferrable profiles per trip to optimize each charge independently.
   - **Status**: `TripEmhassSensor` implemented at `sensor.py:853` — provides per-trip EMHASS parameters. Architecture gap may still exist if individual trip sensors are not properly published to EMHASS.
   - **Impact**: Without proper per-trip publishing, EMHASS optimizes all trips as a single load
-  - **Files**: `sensor.py:853`, `emhass_adapter.py`, `trip_manager.py`, `panel.js`
+  - **Files**: sensor/, emhass/, trip/
 
 - **🔧 Charging power not updating profile** (Gap #5)
   - **Problem**: When changing `charging_power_kw` in options (e.g., 11kW → 3.6kW), the planning sensor does not update
@@ -398,7 +402,7 @@ These limitations are documented and are deliberate design decisions for v1.0:
 
 7. **Manual EMHASS configuration**: Not plug-and-play; requires adding configuration to `configuration.yaml`.
 
-8. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass_adapter.py` as adapter, prepared to add others (Tibber, etc.) in v1.2.
+8. **Single optimizer**: Only EMHASS supported. Architecture uses `emhass/` package as adapter, prepared to add others (Tibber, etc.) in v1.2.
 
 9. **Fixed planning horizon**: 7 days by default, configurable but static. Does not dynamically adapt to EMHASS horizon.
 

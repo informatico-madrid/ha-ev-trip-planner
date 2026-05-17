@@ -6,14 +6,14 @@ Finds duplicate and similar automations/scripts in HA configuration.
 Usage: python3 find_duplicates.py <directory_or_file> [--verbose]
 """
 
-import sys
-import re
-import json
 import hashlib
+import json
+import re
+import sys
+from collections import defaultdict
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import List, Set
-from difflib import SequenceMatcher
-from collections import defaultdict
 
 try:
     import yaml
