@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-
 # === _compute_charging_hours: horas_necesarias == 0 fallback (power.py:101) ===
 
 

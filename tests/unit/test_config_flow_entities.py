@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-
 from custom_components.ev_trip_planner.config_flow._entities import (
     auto_select_sensor,
     scan_entities,

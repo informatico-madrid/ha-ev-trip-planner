@@ -8,11 +8,12 @@ This test file explores the bug by testing calculate_trip_time directly.
 """
 
 from datetime import datetime, timezone
-from custom_components.ev_trip_planner.calculations.deficit import (
-    calculate_next_recurring_datetime,
-)
+
 from custom_components.ev_trip_planner.calculations.core import (
     calculate_trip_time,
+)
+from custom_components.ev_trip_planner.calculations.deficit import (
+    calculate_next_recurring_datetime,
 )
 from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 

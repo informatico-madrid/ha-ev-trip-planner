@@ -11,8 +11,8 @@ from custom_components.ev_trip_planner.coordinator import (
     TripPlannerCoordinator,
 )
 from custom_components.ev_trip_planner.sensor.entity_trip_emhass import (
-    TripEmhassSensor,
     TRIP_EMHASS_ATTR_KEYS,
+    TripEmhassSensor,
 )
 
 

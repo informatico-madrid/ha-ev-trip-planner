@@ -29,13 +29,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.ev_trip_planner.calculations import BatteryCapacity
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,
     CONF_MAX_DEFERRABLE_LOADS,
     CONF_VEHICLE_NAME,
 )
 from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
-from custom_components.ev_trip_planner.calculations import BatteryCapacity
 
 
 class MockConfigEntry:

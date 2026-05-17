@@ -3,9 +3,10 @@
 Cada test corresponde a una rama específica del código.
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture

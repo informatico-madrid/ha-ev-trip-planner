@@ -32,7 +32,6 @@ from custom_components.ev_trip_planner.const import (
 )
 from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
-
 # ===================================================================
 # Pure function tests: algorithm correctness
 # ===================================================================

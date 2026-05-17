@@ -25,7 +25,7 @@ from ..coordinator import TripPlannerCoordinator
 from ..definitions import TRIP_SENSORS
 from .entity_emhass_deferrable import EmhassDeferrableLoadSensor
 from .entity_trip import TripSensor
-from .entity_trip_emhass import TripEmhassSensor, TRIP_EMHASS_ATTR_KEYS
+from .entity_trip_emhass import TripEmhassSensor
 from .entity_trip_planner import TripPlannerSensor
 
 _LOGGER = logging.getLogger(__name__)

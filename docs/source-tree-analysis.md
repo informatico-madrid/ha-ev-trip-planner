@@ -2,7 +2,8 @@
 
 > Generated: 2026-05-14 | Scan Level: Deep | Architecture: SOLID Package Decomposition
 > **Note:** Post-spec-3-solid-refactor structure. 9 god-class modules were decomposed into
-> SOLID-compliant packages. See [_ai/SOLID_REFACTORING_CASE_STUDY.md](../_ai/SOLID_REFACTORING_CASE_STUDY.md).
+> 8 SOLID-compliant packages (dashboard/ package removed in commit 8924d98).
+> See [_ai/SOLID_REFACTORING_CASE_STUDY.md](../_ai/SOLID_REFACTORING_CASE_STUDY.md).
 
 ---
 
@@ -334,7 +335,7 @@ ha-ev-trip-planner/
 | `config_flow/` | ✅ | ✅ | ✅ | ✅ | ✅ | Flow type decomposition |
 | `presence_monitor/` | ✅ | ✅ | ✅ | ✅ | ✅ | Package re-export |
 
-**Overall: SOLID 5/5 PASS** — verified by `solid_metrics.py` Tier A deterministic checker.
+**Overall: SOLID 4/5 PASS** — verified by `solid_metrics.py` Tier A deterministic checker.
 
 ---
 

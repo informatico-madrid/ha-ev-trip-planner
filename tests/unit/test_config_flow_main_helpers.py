@@ -12,13 +12,17 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.ev_trip_planner.config_flow.main import (
-    EVTripPlannerFlowHandler,
-)
 from custom_components.ev_trip_planner.config_flow._emhass import (
     extract_max_deferrable_loads as _get_emhass_max_deferrable_loads,
+)
+from custom_components.ev_trip_planner.config_flow._emhass import (
     extract_planning_horizon as _get_emhass_planning_horizon,
+)
+from custom_components.ev_trip_planner.config_flow._emhass import (
     read_emhass_config as _read_emhass_config,
+)
+from custom_components.ev_trip_planner.config_flow.main import (
+    EVTripPlannerFlowHandler,
 )
 
 

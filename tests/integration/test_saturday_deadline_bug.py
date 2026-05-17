@@ -11,9 +11,10 @@ ACTUAL:   Saturday trip deadline = next Saturday 11:50 (in 7 days)
 This causes the Saturday trip to appear LAST in EMHASS sensor instead of FIRST.
 """
 
-import pytest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from custom_components.ev_trip_planner.emhass.load_publisher import LoadPublisher
 

@@ -8,7 +8,7 @@ This test should FAIL with current code and PASS after fix.
 """
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 

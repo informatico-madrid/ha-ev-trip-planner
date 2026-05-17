@@ -126,7 +126,7 @@ for trip in trips:
 
 # Sort by deadline
 deadlines.sort(key=lambda x: x['deadline_dt'])
-print(f"  Trips ordenados por deadline:")
+print("  Trips ordenados por deadline:")
 for d in deadlines:
     print(f"    {d['trip']['id']}: {d['deadline_dt'].isoformat()} ({d['hours_until']:.2f}h)")
 print()
@@ -210,7 +210,7 @@ for d in deadlines:
     
     if risk <= 0:
         soc_cap = 100.0
-        print(f"    risk <= 0 → soc_cap = 100.0 (no risk)")
+        print("    risk <= 0 → soc_cap = 100.0 (no risk)")
     else:
         limit = DEFAULT_SOC_BASE + 65.0 * (1.0 / (1.0 + risk / t_base))
         soc_cap = max(35.0, min(100.0, limit))
@@ -251,7 +251,7 @@ for d in deadlines:
         capped_hours = capped_energy / charging_power_kw if charging_power_kw > 0 else 0.0
         total_hours = math.ceil(capped_hours) if capped_hours > 0 else 0
         
-        print(f"    soc_cap < 100 AND soc_current < 100 → APPLY CAPPING")
+        print("    soc_cap < 100 AND soc_current < 100 → APPLY CAPPING")
         print(f"    current_energy: ({soc_current}/100) × {battery_capacity_kwh} = {current_energy:.2f} kWh")
         print(f"    max_energy: ({soc_cap:.2f}/100) × {battery_capacity_kwh} = {max_energy:.2f} kWh")
         print(f"    capped_energy: max(0, {max_energy:.2f} - {current_energy:.2f}) = {capped_energy:.2f} kWh")
@@ -259,7 +259,7 @@ for d in deadlines:
         print(f"    total_hours (ceil): {total_hours}")
     else:
         total_hours = d['horas_carga_necesarias']
-        print(f"    NO APPLY CAPPING (soc_cap >= 100 OR soc_current >= 100)")
+        print("    NO APPLY CAPPING (soc_cap >= 100 OR soc_current >= 100)")
         print(f"    total_hours = horas_carga_necesarias = {total_hours}")
     
     print()

@@ -13,7 +13,6 @@ Key method names in SOLID code:
 
 from __future__ import annotations
 
-
 from custom_components.ev_trip_planner.emhass.index_manager import IndexManager
 
 

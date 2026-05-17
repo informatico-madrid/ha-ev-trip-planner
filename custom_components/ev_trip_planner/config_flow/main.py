@@ -17,9 +17,6 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from . import _entities
-from . import _emhass as _emhass_helpers
-
 from .. import panel as panel_module
 from ..const import (
     CONF_BATTERY_CAPACITY,
@@ -51,6 +48,8 @@ from ..const import (
     MAX_T_BASE,
     MIN_T_BASE,
 )
+from . import _emhass as _emhass_helpers
+from . import _entities
 
 _LOGGER = logging.getLogger(__name__)
 

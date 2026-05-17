@@ -10,7 +10,6 @@ More sub-modules will be created as the decomposition progresses.
 from __future__ import annotations
 
 import unicodedata
-
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional

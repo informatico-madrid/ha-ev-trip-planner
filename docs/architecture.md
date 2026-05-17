@@ -1,17 +1,19 @@
 # Architecture Documentation: HA EV Trip Planner
 
-> Generated: 2026-05-14 | Scan Level: Deep | Architecture: SOLID Package Decomposition
-> **Note:** This document reflects the post-spec-3-solid-refactor architecture. 
+> Generated: 2026-05-17 | Scan Level: Deep | Architecture: SOLID Package Decomposition
+> **Note:** This document reflects the post-spec-3-solid-refactor architecture.
 > 9 god-class modules (12,400+ LOC) were decomposed into SOLID-compliant packages.
+> **Note:** The `dashboard/` package was later removed (commit 8924d98) — dashboard functionality
+> is now provided by the native panel component. `solid_metrics.py` shows 4/5 PASS (O-OCP at 9.6% < 10%).
 > See [_ai/SOLID_REFACTORING_CASE_STUDY.md](../_ai/SOLID_REFACTORING_CASE_STUDY.md) for the complete transformation story.
 
 ---
 
 ## Executive Summary
 
-HA EV Trip Planner is a Home Assistant custom component implementing the **DataUpdateCoordinator pattern** with a **SOLID-compliant package architecture**. The system manages EV trip planning, charging optimization, and EMHASS energy integration through a clean separation of concerns across **9 focused packages** (replacing 9 monolithic god-class files).
+HA EV Trip Planner is a Home Assistant custom component implementing the **DataUpdateCoordinator pattern** with a **SOLID-compliant package architecture**. The system manages EV trip planning, charging optimization, and EMHASS energy integration through a clean separation of concerns across **8 focused packages** (replacing 9 monolithic god-class files; `dashboard/` was later removed).
 
-**Key architectural achievement:** Systematic god-class decomposition via spec-driven development with agentic verification, resulting in **SOLID 5/5 PASS** (from 3/5 FAIL) and **0 god-class anti-patterns** (from 4 violations).
+**Key architectural achievement:** Systematic god-class decomposition via spec-driven development with agentic verification, resulting in **SOLID 4/5 PASS** (from 3/5 FAIL — O-OCP at 9.6% < 10% needs one more ABC/Protocol) and **0 god-class anti-patterns** (from 4 violations).
 
 ---
 
@@ -59,11 +61,11 @@ The SOLID decomposition was verified programmatically via `solid_metrics.py` (Ti
 | SOLID Letter | Before (Baseline) | After (V_final) | Verification |
 |-------------|-------------------|-----------------|-------------|
 | **S — SRP** | ❌ FAIL — 7 violations (TripManager 32 methods, EMHASSAdapter 28, PresenceMonitor 12, VehicleController 10) | ✅ PASS — 0 violations | `solid_metrics.py` LCOM4 ≤ 2 |
-| **O — OCP** | ❌ FAIL — abstractness 3.3% < 10% | ✅ PASS — abstractness above threshold | `solid_metrics.py` O-check |
+| **O — OCP** | ❌ FAIL — abstractness 3.3% < 10% | ⚠️ FAIL — abstractness 9.6% < 10% (needs 1 more ABC/Protocol) | `solid_metrics.py` O-check |
 | **L — LSP** | ✅ PASS | ✅ PASS | `solid_metrics.py` L-check |
 | **I — ISP** | ✅ PASS | ✅ PASS | `solid_metrics.py` I-check (max_unused_methods_ratio ≤ 0.5) |
 | **D — DIP** | ✅ PASS | ✅ PASS | `lint-imports` contracts + zero circular dependencies |
-| **Total** | **3/5 PASS** | **5/5 PASS** | **+2 letters improved** |
+| **Total** | **3/5 PASS** | **4/5 PASS** | **+1 letter improved** |
 
 ### Anti-Pattern Eradication
 
@@ -141,9 +143,8 @@ Each god-class was replaced by a **package** exposing its public API via `__init
 | Rule | From | To | Contract |
 |------|------|-----|----------|
 | **No trip → sensor** | `trip/` | `sensor/` | ✅ SensorCallbackRegistry DI |
-| **No dashboard → trip/emhass** | `dashboard/` | `trip/`, `emhass/` | ✅ Independence |
 | **Calculations leaf** | `calculations/` | `utils/`, `const/` only | ✅ Independence |
-| **Services top** | `services/` | `trip/`, `dashboard/`, `emhass/` | ✅ Layered |
+| **Services top** | `services/` | `trip/`, `emhass/` | ✅ Layered |
 | **No cycles** | Any | Any | ✅ Top-level contract |
 
 ---
@@ -160,28 +161,28 @@ Each god-class was replaced by a **package** exposing its public API via `__init
 - Manages `EVTripRuntimeData` per config entry
 - Handles config entry migration (v1 → v2)
 
-#### 2. `trip/` — Trip Management Package (Facade + Mixins)
+#### 2. `trip/` — Trip Management Package (State-Based Composition)
 
-**Pattern**: Facade (`trip/manager.py`) aggregating 5 mixins that share `self.hass/_trips/_storage` semantics.
+**Pattern**: `TripManagerState` dataclass holding shared state + 16 sub-components that receive state in constructor (composition over inheritance).
 
 **Sub-modules**:
 
 | Sub-module | Responsibility | Public API |
 |------------|---------------|------------|
-| `manager.py` | Facade — delegates to mixins | `TripManager.__init__` signature unchanged |
-| `_crud.py` | Trip lifecycle (9 verbs: add/update/delete/get/save/pause/resume/complete/cancel) | `TripCRUD` mixin |
-| `_soc_helpers.py` | SOC calculation helpers | `SOCHelpers` mixin |
+| `manager.py` | Facade — instantiates sub-components with shared state | `TripManager.__init__` signature unchanged |
+| `state.py` | `TripManagerState` dataclass — all shared state (hass, _trips, emhass_adapter, etc.) | `TripState` |
+| `_crud.py` | Trip lifecycle (9 verbs: add/update/delete/get/save/pause/resume/complete/cancel) | `TripCRUD` |
+| `_persistence.py` | Storage persistence | `TripPersistence` |
+| `_soc_helpers.py` | SOC calculation helpers | `SOCHelpers` |
 | `_soc_window.py` | SOC window logic (BUG-001 fix) | `SOCWindowMixin` |
 | `_soc_query.py` | SOC data queries | `SOCQueryMixin` |
 | `_power_profile.py` | Power profile generation | `PowerProfileMixin` |
 | `_schedule.py` | Schedule generation | `ScheduleMixin` |
 | `_sensor_callbacks.py` | Sensor callback registry (DI) | `SensorCallbackRegistry` |
-| `_trip_lifecycle.py` | Trip lifecycle events | `TripLifecycle` mixin |
-| `_trip_navigator.py` | Trip navigation | `TripNavigator` mixin |
-| `_persistence.py` | Storage persistence | `PersistenceMixin` |
-| `_emhass_sync.py` | EMHASS synchronization | `EMHASSMixin` |
+| `_trip_lifecycle.py` | Trip lifecycle events | `TripLifecycle` |
+| `_trip_navigator.py` | Trip navigation (DAYS_OF_WEEK constant) | `TripNavigator` |
+| `_emhass_sync.py` | EMHASS synchronization | `EMHASSSync` |
 | `_types.py` | TypedDict definitions | Trip data types |
-| `state.py` | Shared state management | `TripState` |
 
 #### 3. `emhass/` — EMHASS Adapter Package (Facade + Composition)
 
@@ -244,24 +245,11 @@ Each god-class was replaced by a **package** exposing its public API via `__init
 - Each factory ≤ 80 LOC, cyclomatic ≤ 10
 - Public API preserved: 10 public functions unchanged
 
-#### 6. `dashboard/` — Dashboard Package (Facade + Builder)
+#### 6. `dashboard/` — **REMOVED** (commit 8924d98)
 
-**Pattern**: Builder pattern for dashboard config construction.
+**Status**: Package deleted — dashboard functionality is now provided by the native panel component (`panel.py` + `frontend/`).
 
-**Sub-modules**:
-
-| Sub-module | Responsibility | LOC |
-|------------|---------------|-----|
-| `__init__.py` | Re-exports public API | ~50 |
-| `builder.py` | Dashboard configuration builder (fluent interface) | ~200 |
-| `importer.py` | Dashboard YAML import (delegated from old `import_dashboard`) | ~546 |
-| `template_manager.py` | Template I/O | ~826 (dead YAML template code) |
-| `templates/` | 11 YAML/JS dashboard templates | — |
-
-**Key features**:
-- Supports both storage mode (Supervisor) and YAML mode (Container)
-- `__file__` path fix: uses `Path(__file__).resolve().parent / "templates"` not importlib.resources
-- Builder pattern for config construction
+The old `dashboard/` package (Builder pattern + YAML template import) was dead code replaced by the Lit web component dashboard.
 
 #### 7. `vehicle/` — Vehicle Control Package (Strategy Pattern)
 
@@ -420,12 +408,11 @@ TripPlannerCoordinator._async_update_data()
 │  ┌────────────────────────────────────────────────────────────────┐ │
 │  │           custom_components/ev_trip_planner/                     │ │
 │  │  ┌──────────────────────────────────────────────────────────┐   │ │
-│  │  │  9 SOLID Packages                                        │   │ │
-│  │  │  ├── trip/ (14 modules) — Facade + Mixins                │   │ │
+│  │  │  8 SOLID Packages (dashboard removed)                        │   │ │
+│  │  │  ├── trip/ (16 modules) — State + Sub-components          │   │ │
 │  │  │  ├── emhass/ (4 modules) — Facade + Composition         │   │ │
 │  │  │  ├── calculations/ (7 modules) — Functional Decomp     │   │ │
 │  │  │  ├── services/ (8 modules) — Module Facade + Factories  │   │ │
-│  │  │  ├── dashboard/ (4 modules + templates/) — Builder     │   │ │
 │  │  │  ├── vehicle/ (3 modules) — Strategy Pattern            │   │ │
 │  │  │  ├── sensor/ (5 modules) — Platform Decomposition       │   │ │
 │  │  │  ├── config_flow/ (4 modules) — Flow Type Decomposition  │   │ │

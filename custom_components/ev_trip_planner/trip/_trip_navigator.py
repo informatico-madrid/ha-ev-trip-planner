@@ -9,8 +9,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from .state import TripManagerState
 from ..const import DAYS_OF_WEEK
+from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -18,7 +18,6 @@ from custom_components.ev_trip_planner.trip._persistence import TripPersistence
 from custom_components.ev_trip_planner.trip._trip_lifecycle import TripLifecycle
 from custom_components.ev_trip_planner.trip.state import TripManagerState
 
-
 _NO_ADAPTER = object()
 
 

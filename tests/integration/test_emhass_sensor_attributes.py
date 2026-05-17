@@ -12,10 +12,10 @@ BUG: Currently the sensor only has power_profile_watts attribute,
 missing the 5 deferrable array attributes.
 """
 
-import pytest
-from unittest.mock import MagicMock, AsyncMock
 import logging
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 
 # Required attributes for EMHASS sensor
 REQUIRED_EMHASS_ATTRIBUTES = [
@@ -92,8 +92,8 @@ def mock_emhass_adapter():
 def mock_coordinator(hass, mock_config_entry, mock_trip_manager, mock_emhass_adapter):
     """Create a mock coordinator for testing."""
     from custom_components.ev_trip_planner.coordinator import (
-        TripPlannerCoordinator,
         CoordinatorConfig,
+        TripPlannerCoordinator,
     )
 
     config = CoordinatorConfig(emhass_adapter=mock_emhass_adapter)

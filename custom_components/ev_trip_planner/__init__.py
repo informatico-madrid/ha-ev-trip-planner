@@ -26,7 +26,6 @@ from .const import DOMAIN  # noqa: F401
 from .coordinator import CoordinatorConfig, TripPlannerCoordinator
 from .emhass import EMHASSAdapter
 from .panel import async_unregister_panel  # noqa: F401 (re-export for tests)
-from .trip._types import TripManagerConfig
 from .services import (
     async_cleanup_orphaned_emhass_sensors,
     async_cleanup_stale_storage,
@@ -38,6 +37,7 @@ from .services import (
     register_services,
 )
 from .trip import TripManager
+from .trip._types import TripManagerConfig
 from .utils import normalize_vehicle_id
 from .yaml_trip_storage import YamlTripStorage
 
