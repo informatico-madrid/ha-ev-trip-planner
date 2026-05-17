@@ -95,7 +95,7 @@ Focus: prove the wrap pattern end-to-end. The POC milestone (1.3) is the first w
   - _Requirements: FR-1, FR-2, FR-5, FR-7, AC-2.3, AC-2.4, AC-2.5, AC-2.6_
   - _Design: §3.3, §5_
 
-- [ ] 1.8 [VERIFY] Quality checkpoint: typecheck + tests after all 3 wraps
+- [x] 1.8 [VERIFY] Quality checkpoint: typecheck + tests after all 3 wraps
   - **Do**: Run typecheck and the full test suite.
   - **Verify**: `make typecheck 2>&1 | tail -5 && make test 2>&1 | tail -20` — both exit 0, coverage 100%
   - **Done when**: All 3 wraps done; no type errors; all tests pass; coverage unchanged.
@@ -207,7 +207,7 @@ STOP and alert the user.
   - **Commit**: `chore(high-arity-refactoring): pass local CI` (if fixes needed)
   - _Requirements: FR-8, FR-15, FR-16, NFR-1, NFR-2, NFR-3, NFR-4_
 
-- [ ] V4b [VERIFY] Full quality gate: `make quality-gate` (all 6 layers)
+- [x] V4b [VERIFY] Full quality gate: `make quality-gate` (all 6 layers) — PASSED
   - **Do**: Run the full 6-layer quality gate (L3A SOLID AST → L1 tests+E2E → L2 mutation → L3B BMAD consensus → L4 security).
   - **Verify**: `make quality-gate 2>&1 | tail -30` — exits 0, all 6 layers green
   - **Done when**: `make quality-gate` exits 0; every layer passes.
@@ -215,7 +215,7 @@ STOP and alert the user.
   - _Requirements: FR-16, NFR-5_
   - _Design: §7_
 
-- [ ] V5 [VERIFY] PR opened correctly
+- [x] V5 [VERIFY] PR opened correctly — #48 https://github.com/informatico-madrid/ha-ev-trip-planner/pull/48
   - **Do**:
     1. Confirm current branch is a feature branch: `git branch --show-current` (expect `feat/high-arity-refactoring`). If on `main`, STOP and alert the user.
     2. Push: `git push -u origin feat/high-arity-refactoring`.
@@ -226,7 +226,7 @@ STOP and alert the user.
   - **Output**: `PR_OPENED #<N> → <url>`
   - _Requirements: FR-16, AC-1.3_
 
-- [ ] V6 [VERIFY] AC checklist
+- [x] V6 [VERIFY] AC checklist — all AC-2.x/3.x/5.x verified programmatically
   - **Do**: Read `requirements.md` and verify each AC programmatically:
     - AC-2.1/2.2/2.3: `grep -n "class ChargingWindowPureParams\|class WindowStartParams\|class PopulateProfileParams" custom_components/ev_trip_planner/calculations/` — all 3 present.
     - AC-2.4: each is `@dataclass(frozen=True, kw_only=True)`.
@@ -246,7 +246,7 @@ integration still loads cleanly in the E2E HA instance (no import errors / senso
 from the refactor). E2E uses `make e2e` — port 8123, ephemeral `/tmp/ha-e2e-config/`,
 `hass` direct (NO Docker). No VE0 (no browser UI flow under test).
 
-- [ ] VE1 [VERIFY] E2E startup: launch HA E2E instance, confirm integration loads
+- [x] VE1 [VERIFY] E2E startup: launch HA E2E instance, confirm integration loads — PASSED
   - **Skills**: e2e
   - **Do**:
     1. Start the E2E HA instance via `make e2e` (or the project's E2E startup target) in the background; record PID to `/tmp/ve-pids.txt`.
@@ -257,7 +257,7 @@ from the refactor). E2E uses `make e2e` — port 8123, ephemeral `/tmp/ha-e2e-co
   - **Commit**: None
   - _Requirements: NFR-5, Verification Contract_
 
-- [ ] VE2 [VERIFY] E2E check: trip/charging sensors still produce values after refactor
+- [x] VE2 [VERIFY] E2E check: trip/charging sensors still produce values after refactor — 30 passed
   - **Skills**: e2e
   - **Do**:
     1. Run the project's E2E sensor verification (the `tests/e2e/` `.spec.ts` flow exercised by `make e2e`) — the suite drives a real user flow and asserts trip/charging sensors emit values.
@@ -267,7 +267,7 @@ from the refactor). E2E uses `make e2e` — port 8123, ephemeral `/tmp/ha-e2e-co
   - **Commit**: None
   - _Requirements: FR-7, NFR-5, Verification Contract_
 
-- [ ] VE3 [VERIFY] E2E cleanup: tear down HA E2E instance
+- [x] VE3 [VERIFY] E2E cleanup: tear down HA E2E instance — PASSED
   - **Skills**: e2e
   - **Do**:
     1. Stop HA by PID: `kill $(cat /tmp/ve-pids.txt) 2>/dev/null; sleep 2; kill -9 $(cat /tmp/ve-pids.txt) 2>/dev/null || true`.
@@ -281,7 +281,7 @@ from the refactor). E2E uses `make e2e` — port 8123, ephemeral `/tmp/ha-e2e-co
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 [VERIFY] Monitor CI and resolve failures
+- [x] 5.1 [VERIFY] Monitor CI and resolve failures — all checks green, CodeRabbit review completed
   - **Do**:
     1. After the PR is open, GitHub Actions runs CI asynchronously. Do NOT block on `gh pr checks --watch`.
     2. If CI reports failures (lint/type/test/quality-gate): read details with `gh pr checks`, fix locally, push, and let CI re-run.
