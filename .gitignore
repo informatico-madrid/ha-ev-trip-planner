@@ -95,6 +95,7 @@ playwright-env.local.md
 .qwen/settings.json.orig
 .claude/settings copy.json
 specs/.current-spec
+specs/.current-epic
 .claude/
 .cursor/
 .qwen/
