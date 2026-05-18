@@ -251,7 +251,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify utils meets gate threshold`
   - _Requirements: US-3, FR-7, AC-3.1, AC-3.2, NFR-3_
 
-- [ ] 1.25 [VERIFY] End-of-Phase-A gate checkpoint: full `make mutation` + `make mutation-gate` == OK
+- [x] 1.25 [VERIFY] End-of-Phase-A gate checkpoint: full `make mutation` + `make mutation-gate` == OK
   - **Do**:
     1. Run a full `make mutation` (~10 min, 583 s baseline) so the cache reflects all Phase-A test additions.
     2. Run `make mutation-gate` — MUST report `RESULT: OK` and exit 0 with no threshold lowered and no code excluded.
