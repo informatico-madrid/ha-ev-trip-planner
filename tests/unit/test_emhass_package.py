@@ -1245,12 +1245,13 @@ class TestEMHASSAdapterHandleConfigEntryUpdate:
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
+        initial_value = adapter._stored_charging_power_kw
         adapter._shutting_down = True
         new_entry = MagicMock()
         new_entry.options = {"charging_power_kw": 99.0}
         await adapter._handle_config_entry_update(mock_hass, new_entry)
-        # Should not have changed
-        assert adapter._stored_charging_power_kw is None
+        # Should not have changed due to shutting_down flag
+        assert adapter._stored_charging_power_kw == initial_value
 
 
 class TestEMHASSAdapterIndexMapProperty:
