@@ -130,7 +130,6 @@ class EMHASSAdapter:
 
         # Store the read values for later use
         self._stored_charging_power_kw = charging_power_kw
-        self._stored_battery_capacity_kwh = battery_capacity_kwh
         self._default_consumption = 0.15  # kWh/km, fallback when kwh_per_km missing
 
         # State attributes (used by callers and tests)
@@ -142,9 +141,6 @@ class EMHASSAdapter:
         self._config_entry_listener = None
         self._shutting_down = False
         self._charging_power_kw: float | None = None
-        self._stored_charging_power_kw: float | None = None
-        self._stored_t_base: float | None = None
-        self._stored_soh_sensor: str | None = None
         self._released_indices: list[Dict[str, Any]] = []
 
     @property
