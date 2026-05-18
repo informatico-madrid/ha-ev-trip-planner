@@ -161,6 +161,101 @@ class TestHourlyRefreshCallback:
         mgr._schedule.publish_deferrable_loads.assert_awaited_once()
 
 
+class TestHourlyRefreshCallbackLogAssertions:
+    """Test _hourly_refresh_callback with log output assertions.
+
+    Catches string literal mutation survivors in log messages.
+    """
+
+    @pytest.mark.asyncio
+    async def test_callback_logs_start_message(self, caplog):
+        """Verify the START log message is emitted with correct format.
+
+        Catches mutants that change the log string literal.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # The START log must contain "FLOW2-DEBUG" string
+        assert any("FLOW2-DEBUG" in record.message for record in caplog.records), (
+            "Log message should contain FLOW2-DEBUG prefix"
+        )
+
+    @pytest.mark.asyncio
+    async def test_callback_logs_runtime_data_present(self, caplog):
+        """Verify log includes 'present' when runtime_data is not None.
+
+        Catches mutants that change the ternary string in log message.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # Log should include "present" (since runtime_data is not None)
+        log_text = " ".join(record.message for record in caplog.records)
+        assert "present" in log_text, "Log should say 'present' for non-None runtime_data"
+
+    @pytest.mark.asyncio
+    async def test_callback_no_coordinator_logs_abort(self, caplog):
+        """Verify abort log when coordinator is None.
+
+        Catches mutants that change the abort log string.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        rt = EVTripRuntimeData(
+            coordinator=None,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # Should log the abort message when coordinator is None
+        log_text = " ".join(record.message for record in caplog.records)
+        assert "coordinator" in log_text.lower() or "abort" in log_text.lower(), (
+            "Log should mention coordinator or abort when coordinator is None"
+        )
+
+
 class TestEVTripRuntimeDataFields:
     """Test EVTripRuntimeData with all fields set."""
 

@@ -180,7 +180,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `docs(mutation-score-ramp): log what&why for __init__ gate fix`
   - _Requirements: NFR-7_
 
-- [ ] 1.17 Strengthen/add honest tests for `__init__` survivors to meet its existing threshold (A.3)
+- [x] 1.17 Strengthen/add honest tests for `__init__` survivors to meet its existing threshold (A.3)
   - **Do**:
     1. Targeted run: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.__init__.*"`.
     2. Enumerate survivors: `mutmut results --all true | grep '__init__' | grep ': survived'`.
