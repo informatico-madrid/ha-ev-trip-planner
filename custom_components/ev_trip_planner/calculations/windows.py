@@ -8,6 +8,7 @@ window calculations for single and multi-trip scenarios.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -100,26 +101,23 @@ def calculate_energy_needed(
     }
 
 
-def calculate_charging_window_pure(
-    trip_departure_time: Optional[datetime],
-    soc_actual: float,
-    hora_regreso: Optional[datetime],
-    charging_power_kw: float,
-    energia_kwh: float,
-    duration_hours: float = 6.0,
-) -> Dict[str, Any]:
-    # qg-accepted: arity=6 is the charging window API — domain inputs only
+@dataclass(frozen=True, kw_only=True)
+class ChargingWindowPureParams:
+    trip_departure_time: Optional[datetime]
+    soc_actual: float
+    hora_regreso: Optional[datetime]
+    charging_power_kw: float
+    energia_kwh: float
+    duration_hours: float = 6.0
+
+
+def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str, Any]:
     """Pure charging window calculation without any async or hass.
 
     Computes the available charging window between return and departure.
 
     Args:
-        trip_departure_time: When the trip departs (end of charging window)
-        soc_actual: Current SOC percentage
-        hora_regreso: When the vehicle returns (start of charging window)
-        charging_power_kw: Charging power in kW
-        energia_kwh: Energy needed for the trip in kWh
-        duration_hours: Default trip duration in hours (default 6.0)
+        params: Encapsulated charging window parameters.
 
     Returns:
         Dictionary with:
@@ -130,6 +128,12 @@ def calculate_charging_window_pure(
             - fin_ventana: Window end datetime (trip departure)
             - es_suficiente: True if window is sufficient
     """
+    trip_departure_time = params.trip_departure_time
+    hora_regreso = params.hora_regreso
+    charging_power_kw = params.charging_power_kw
+    energia_kwh = params.energia_kwh
+    duration_hours = params.duration_hours
+
     # Ensure all datetime inputs are timezone-aware (treat naive as UTC)
     if hora_regreso is not None and getattr(hora_regreso, "tzinfo", None) is None:
         hora_regreso = hora_regreso.replace(tzinfo=timezone.utc)
@@ -273,13 +277,15 @@ def calculate_multi_trip_charging_windows(
             trip_departure_time = _helpers._ensure_aware(trip_departure_time)
 
         window_start = _compute_window_start(
-            idx,
-            trip_departure_time,
-            hora_regreso,
-            return_buffer_hours,
-            loop_now,
-            previous_departure,
-            now,
+            WindowStartParams(
+                idx=idx,
+                trip_departure_time=trip_departure_time,
+                hora_regreso=hora_regreso,
+                return_buffer_hours=return_buffer_hours,
+                loop_now=loop_now,
+                prev_departure=previous_departure,
+                now=now,
+            )
         )
 
         # Edge case: cap window_start at trip_departure_time if buffer exceeds gap
@@ -321,39 +327,43 @@ def calculate_multi_trip_charging_windows(
     return results
 
 
-def _compute_window_start(
-    idx: int,
-    trip_departure_time: datetime,
-    hora_regreso: datetime | None,
-    return_buffer_hours: float,
-    loop_now: datetime | None,
-    prev_departure: datetime | None,
-    now: datetime | None,
-) -> datetime:
-    # qg-accepted: arity=7 — chain algorithm needs all context for window start
+@dataclass(frozen=True, kw_only=True)
+class WindowStartParams:
+    """Parameters for computing a trip's charging window start.
+
+    Frozen to prevent accidental mutation. The caller tracks `loop_now` as a
+    separate local variable in the loop — it is passed in via this object but
+    is NOT read back from it (the dataclass is immutable).
+    """
+
+    idx: int
+    trip_departure_time: datetime
+    hora_regreso: datetime | None
+    return_buffer_hours: float
+    loop_now: datetime | None
+    prev_departure: datetime | None
+    now: datetime | None
+
+
+def _compute_window_start(params: WindowStartParams) -> datetime:
     """Compute the window start datetime for a trip in the chain.
 
     Args:
-        idx: Index of the current trip.
-        trip_departure_time: Departure time for this trip.
-        hora_regreso: Physical return timestamp, or None.
-        return_buffer_hours: Gap between trip end and next trip start.
-        loop_now: Cached 'now' from first iteration, or None.
-        prev_departure: Departure time of the previous trip, or None for idx 0.
-        now: Current time from main loop, or None (falls back to datetime.now).
+        params: Named parameters for window start computation.
 
     Returns:
         The computed window start datetime.
     """
-    if idx == 0:
+    if params.idx == 0:
+        loop_now = params.loop_now
         if loop_now is None:
-            loop_now = now or datetime.now(timezone.utc)
+            loop_now = params.now or datetime.now(timezone.utc)
         window_start = _compute_first_trip_window_start(
-            trip_departure_time, hora_regreso, loop_now
+            params.trip_departure_time, params.hora_regreso, loop_now
         )
         return window_start
-    assert prev_departure is not None
-    return prev_departure + timedelta(hours=return_buffer_hours)
+    assert params.prev_departure is not None
+    return params.prev_departure + timedelta(hours=params.return_buffer_hours)
 
 
 def _compute_window_hours(

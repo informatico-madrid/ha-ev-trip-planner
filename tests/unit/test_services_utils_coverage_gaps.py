@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -36,7 +36,9 @@ class TestFindEntryByVehicle:
         entry_none_data.entry_id = "entry_1"
         entry_none_data.data = None
 
-        entry_valid = _make_entry("entry_2", "test_vehicle", {"vehicle_name": "Test Vehicle"})
+        entry_valid = _make_entry(
+            "entry_2", "test_vehicle", {"vehicle_name": "Test Vehicle"}
+        )
         hass.config_entries.async_entries.return_value = [entry_none_data, entry_valid]
 
         result = _find_entry_by_vehicle(hass, "test_vehicle")

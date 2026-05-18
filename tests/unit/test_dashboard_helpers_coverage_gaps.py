@@ -56,9 +56,7 @@ class TestRegisterStaticPathsLegacy:
     def test_other_runtime_error_raises(self):
         """Line 40: RuntimeError without 'already registered' re-raises."""
         hass = MagicMock()
-        hass.http.register_static_path.side_effect = RuntimeError(
-            "Some other error"
-        )
+        hass.http.register_static_path.side_effect = RuntimeError("Some other error")
         static_paths = [("/new", "/path.js", None)]
 
         with __import__("pytest").raises(RuntimeError):

@@ -27,6 +27,7 @@ class TripManagerState:
     _trips: dict[str, dict[str, Any]] = field(default_factory=dict)
     recurring_trips: dict[str, dict[str, Any]] = field(default_factory=dict)
     punctual_trips: dict[str, dict[str, Any]] = field(default_factory=dict)
+
     def get_active_trips(self) -> list[dict[str, Any]]:
         """Gather all active trips (recurring + punctual) for power profile or scheduling.
 

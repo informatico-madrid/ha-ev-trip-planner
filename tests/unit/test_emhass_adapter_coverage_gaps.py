@@ -8,8 +8,7 @@ Lines 1118-1122: SOC unavailable error path in publish_deferrable_load
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -144,8 +143,6 @@ class TestGetCurrentSoc:
         assert result == 75.0
 
 
-
-
 class TestPublishDeferrableLoad:
     """Test async_publish_deferrable_load SOC unavailable path (lines 1117-1122)."""
 
@@ -165,3 +162,171 @@ class TestPublishDeferrableLoad:
 
         result = await adapter.async_publish_deferrable_load(trip)
         assert result is False
+
+
+# --- Coverage for remaining lines in adapter.py ---
+
+
+class TestGetCachedOptimizationResultsDebug:
+    """Coverage for get_cached_optimization_results debug logging (line 245)."""
+
+    def test_get_cached_returns_per_trip_and_power_profile(self):
+        """Line 245: get_cached_optimization_results logs debug BUG-DEBUG for each trip."""
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+
+        adapter = EMHASSAdapter.__new__(EMHASSAdapter)
+        adapter.hass = MagicMock()
+        adapter.vehicle_id = "test_vehicle"
+        adapter.entry_id = "test_entry"
+        adapter._entry = MagicMock()
+        adapter._index_manager = MagicMock()
+        adapter._load_publisher = MagicMock()
+        adapter._error_handler = MagicMock()
+        adapter._published_trips = set()
+        adapter._cached_per_trip_params = {
+            "trip1": {"def_total_hours": 2.0, "def_start_timestep": 0, "def_end_timestep": 10},
+            "trip2": {"def_total_hours": 3.0, "def_start_timestep": 5, "def_end_timestep": 15},
+        }
+        adapter._cached_power_profile = [0.0, 1.5, 2.0]
+        adapter._cached_deferrables_schedule = []
+        adapter._cached_emhass_status = "ready"
+
+        result = adapter.get_cached_optimization_results()
+
+        assert result["emhass_power_profile"] == [0.0, 1.5, 2.0]
+        assert result["emhass_status"] == "ready"
+        assert len(result["per_trip_emhass_params"]) == 2
+
+
+class TestPopulatePerTripCacheSOCUnavailable:
+    """Coverage for SOC unavailable fallback (lines 415-422)."""
+
+    @pytest.mark.asyncio
+    async def test_soc_unavailable_uses_default_50_percent(self):
+        """Lines 414-422: When SOC sensor unavailable, use default 50.0 for computation.
+
+        Verifies the code path where _get_current_soc returns None
+        (sensor unavailable) and the adapter falls back to 50.0.
+        """
+        from datetime import datetime, timezone
+        from unittest.mock import patch, AsyncMock
+
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.entry_id = "test_vehicle"
+        entry.data = {
+            "battery_capacity_kwh": 62.0,
+            "charging_power_kw": 7.4,
+            "safety_margin_percent": 10.0,
+            "soc_sensor": "sensor.bat_soc",
+        }
+        entry.options = {}
+
+        adapter = EMHASSAdapter(hass, entry)
+
+        # Patch _get_current_soc to return None (sensor unavailable)
+        # and dt_util.now to return a fixed datetime
+        fixed_dt = datetime(2026, 5, 17, 12, 0, 0, tzinfo=timezone.utc)
+        with (
+            patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=None),
+            patch("homeassistant.util.dt.now", return_value=fixed_dt),
+        ):
+            trips = [
+                {
+                    "id": "trip_1",
+                    "km": 50.0,
+                    "datetime": "2026-05-17T18:00:00+00:00",
+                    "tipo": "punctual",
+                }
+            ]
+            result = await adapter._precompute_and_process_trips(trips, 62.0)
+
+            # When SOC unavailable, adapter falls back to 50.0
+            assert result == 50.0
+
+
+class TestApplyDeficitResultsEdgeCases:
+    """Coverage for deficit propagation edge cases (line 1069)."""
+
+    def test_apply_deficit_results_continues_when_trip_id_none(self):
+        """Line 1069: continue when trip_id is None."""
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+        from unittest.mock import MagicMock
+
+        adapter = EMHASSAdapter.__new__(EMHASSAdapter)
+        adapter.hass = MagicMock()
+        adapter._cached_per_trip_params = {}
+
+        param1 = {"activo": True, "def_total_hours": 2.0, "def_start_timestep": 0, "emhass_index": 0, "power_watts": 7400.0, "charging_window": []}
+        active = [param1]
+
+        results = [{"adjusted_def_total_hours": 3.0}]
+
+        # trip_id is None — should continue without crashing (line 1069)
+        adapter._find_trip_id_for_params = MagicMock(return_value=None)
+        adapter._apply_deficit_results(results, active)
+
+
+class TestGetCachedOptimizationResultsEmpty:
+    """Coverage for get_cached_optimization_results with empty cache."""
+
+    def test_get_cached_with_empty_cache(self):
+        """Verify empty cache returns empty structures."""
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+
+        adapter = EMHASSAdapter.__new__(EMHASSAdapter)
+        adapter.hass = MagicMock()
+        adapter._cached_per_trip_params = {}
+        adapter._cached_power_profile = None
+        adapter._cached_deferrables_schedule = None
+        adapter._cached_emhass_status = None
+
+        result = adapter.get_cached_optimization_results()
+        assert result["emhass_power_profile"] is None
+        assert result["emhass_deferrables_schedule"] is None
+
+
+# --- Additional coverage for adapter.py lines 685, 688 ---
+
+
+class TestGetCurrentSocSecondSensorCheck:
+    """Coverage for second SOC sensor check paths (lines 685, 688)."""
+
+    @pytest.mark.asyncio
+    async def test_get_current_soc_second_sensor_returns_none(self):
+        """Lines 685, 688: Second SOC sensor check path when first parse failed.
+        
+        This exercises the path where:
+        - First sensor check at line 652 returns a state (not None)
+        - Float parse fails at line 665 (ValueError)
+        - Lines 679-682 re-read soc_sensor from entry
+        - Second sensor check at line 686 returns None state
+        - Line 688 returns None
+        """
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
+        from unittest.mock import MagicMock
+
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.data = {
+            "battery_capacity_kwh": 62.0,
+            "charging_power_kw": 7.4,
+            "safety_margin_percent": 10.0,
+            "soc_sensor": "sensor.first_soc",
+        }
+        entry.options = {"soc_sensor": "sensor.second_soc"}
+
+        # First states.get returns a state that can't be parsed as float
+        # Second states.get returns None (second sensor unavailable)
+        hass.states.get = MagicMock(side_effect=[
+            MagicMock(state="not_a_number"),  # line 652: parse fails → except path
+            None,                               # line 686: second sensor returns None
+        ])
+
+        adapter = EMHASSAdapter(hass, entry)
+        result = await adapter._get_current_soc()
+
+        # Second sensor check returned None → should return None
+        assert result is None
