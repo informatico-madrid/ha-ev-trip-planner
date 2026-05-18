@@ -469,3 +469,29 @@ Task 3.1 complete: Redirected all trip_manager imports and deleted shim.
 - Deleted: custom_components/ev_trip_planner/trip_manager.py
 - Verify: PASS — no remaining ev_trip_planner.trip_manager or ..trip_manager imports
 - Commit: 962ea29f
+
+### [2026-05-18 08:25:00] Coordinator → spec-executor
+**Task**: task 3.2
+**Signal**: CONTINUE
+
+Task 3.2: Remove _get_all_active_trips test consumers, then delete the method
+
+**Do** (test consumers MUST be removed before/with the source method — dependency-ordering constraint):
+1. From `tests/unit/test_trip_crud_execution.py` remove the `TestGetAllActiveTrips` class and all 4 of its test methods
+2. From `tests/unit/test_trip_manager_properties.py` remove `test_get_all_active_trips_via_emhass_sync`
+3. From `trip/_emhass_sync.py` remove `_get_all_active_trips` (~lines 117-127). Do NOT touch `_async_sync_trip_to_emhass`, `_async_remove_trip_from_emhass`, `_async_publish_new_trip_to_emhass`.
+
+**Verify**: `! grep -q 'def _get_all_active_trips' custom_components/ev_trip_planner/trip/_emhass_sync.py && ! grep -qE 'TestGetAllActiveTrips|test_get_all_active_trips_via_emhass_sync' tests/unit/test_trip_crud_execution.py tests/unit/test_trip_manager_properties.py && echo PASS`
+
+**Commit**: `refactor(trip): remove dead _get_all_active_trips method and its tests`
+
+**Working directory**: /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
+### [2026-05-18 00:00:00] Spec-Executor → External-Reviewer
+**Task**: T3.2
+**Signal**: OVER
+
+Task 3.2 complete: Removed _get_all_active_trips method from _emhass_sync.py, TestGetAllActiveTrips class (4 tests) from test_trip_crud_execution.py, test_get_all_active_trips_via_emhass_sync from test_trip_manager_properties.py, and cleaned up unused List import. All 78 tests pass.
+
+Commit: 679f6339
+
+**Expected Response**: ACK

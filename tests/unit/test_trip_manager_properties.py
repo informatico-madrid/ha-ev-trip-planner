@@ -124,22 +124,6 @@ class TestTripManagerMethods:
         assert len(result) < 2
 
     @pytest.mark.asyncio
-    async def test_get_all_active_trips_via_emhass_sync(self):
-        """_get_all_active_trips combines active recurring + pending punctual."""
-        tm = _make_tm()
-        tm._state.recurring_trips = {
-            "rec_1": {"id": "rec_1", "activo": True, "tipo": "recurring"},
-            "rec_2": {"id": "rec_2", "activo": False, "tipo": "recurring"},
-        }
-        tm._state.punctual_trips = {
-            "pun_1": {"id": "pun_1", "estado": "pendiente"},
-            "pun_2": {"id": "pun_2", "estado": "completado"},
-        }
-
-        result = await tm._state._emhass_sync._get_all_active_trips()
-        assert len(result) == 2  # rec_1 + pun_1
-
-    @pytest.mark.asyncio
     async def test_persistence_async_setup(self):
         """_persistence.async_setup calls vehicle_controller.async_setup + _load_trips."""
         tm = _make_tm()

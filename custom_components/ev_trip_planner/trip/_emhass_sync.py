@@ -7,7 +7,7 @@ All methods are private (prefixed with _).
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from .state import TripManagerState
 
@@ -114,14 +114,3 @@ class EMHASSSync:
         except Exception as err:
             _LOGGER.error("Error publishing trip %s to EMHASS: %s", trip.get("id"), err)
 
-    async def _get_all_active_trips(self) -> List[Dict[str, Any]]:
-        """Get all active trips for EMHASS publishing."""
-        state = self._state
-        all_trips: List[Dict[str, Any]] = []
-        for trip in state.recurring_trips.values():
-            if trip.get("activo", True):
-                all_trips.append(trip)
-        for trip in state.punctual_trips.values():
-            if trip.get("estado") == "pendiente":
-                all_trips.append(trip)
-        return all_trips

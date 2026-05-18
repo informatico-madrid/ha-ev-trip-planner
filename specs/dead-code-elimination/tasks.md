@@ -112,7 +112,7 @@ consumers of `_get_all_active_trips` BEFORE deleting the method.
   - _Requirements: FR-5, US-5, AC-5.1, AC-5.2, AC-5.3_
   - _Design: Component 4, Component 7_
 
-- [ ] 3.2 Remove _get_all_active_trips test consumers, then delete the method
+- [x] 3.2 Remove _get_all_active_trips test consumers, then delete the method
   - **Do** (test consumers MUST be removed before/with the source method — dependency-ordering constraint):
     1. From `tests/unit/test_trip_crud_execution.py` remove the `TestGetAllActiveTrips` class and all 4 of its test methods
     2. From `tests/unit/test_trip_manager_properties.py` remove `test_get_all_active_trips_via_emhass_sync`
