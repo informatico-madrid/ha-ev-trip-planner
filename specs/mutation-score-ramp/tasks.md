@@ -156,7 +156,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify 1:1 mutation key correspondence`
   - _Requirements: US-2, FR-6, AC-2.3, AC-2.4_
 
-- [ ] 1.14 Commit the module-name <-> pyproject-key <-> source-path mapping table (A.2)
+- [x] 1.14 Commit the module-name <-> pyproject-key <-> source-path mapping table (A.2)
   - **Do**: Append the authoritative mapping table (analyzer-emitted module name <-> pyproject key <-> source path, from design.md A.2 reconciled with the A.1 emitted set) to `.progress.md` so future renames stay consistent.
   - **Files**: `specs/mutation-score-ramp/.progress.md`
   - **Done when**: mapping table present in `.progress.md`, reconciled with A.1.
