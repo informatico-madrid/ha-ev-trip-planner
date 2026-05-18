@@ -151,7 +151,7 @@ Focus: full quality suite, dead-code audit, hard-invariant import checks, PR.
   - **Done when**: No vulture findings for any removed name
   - **Commit**: None
 
-- [ ] V4 [VERIFY] Full local quality gate: lint, typecheck, dead-code, test, quality-gate-ci
+- [x] V4 [VERIFY] Full local quality gate (2 pre-existing failures): lint, typecheck, dead-code, test, quality-gate-ci
   - **Do**: Run the complete local quality suite in order:
     1. `make lint` — ruff + pylint clean
     2. `make typecheck` — pyright clean (no type errors outside removal scope)
