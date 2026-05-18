@@ -1,0 +1,17 @@
+{
+  "source": "spec",
+  "name": "trip-card-enhancement",
+  "basePath": "specs/trip-card-enhancement",
+  "phase": "execution",
+  "taskIndex": 5,
+  "totalTasks": 21,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 6,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "quickMode": false,
+  "discoveredSkills": [],
+  "epicName": "emhass-deferrable-integration",
+  "granularity": "fine"
+}

@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
+import re
 from pathlib import Path
 
 TASK_LINE_RE = re.compile(r"^- \[(?P<mark>[ xX])\]\s+")

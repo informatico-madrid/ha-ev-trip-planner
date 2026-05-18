@@ -36,15 +36,10 @@ custom_components/
     │   ├── en.json
     │   └── es.json
     │
-    └── tests/                   # Layered test architecture
-        ├── __init__.py            # Object Mother constants (TEST_CONFIG, TEST_TRIPS)
-        ├── conftest.py            # Shared fixtures (unit/)
-        ├── unit/
-        │   ├── conftest.py        # Unit-specific fixtures
-        │   └── test_*.py          # Unit tests
-        └── integration/
-            ├── conftest.py        # Integration-specific fixtures (HA setup)
-            └── test_*.py          # Integration tests
+    └── tests/                   # Unit tests
+        ├── __init__.py
+        ├── conftest.py
+        └── test_*.py
 ```
 
 ---
@@ -237,29 +232,18 @@ def setup_entry(hass, entry):
 
 ## 🧪 TESTING
 
-### 1. Test Structure — Layered Architecture
-
-The test suite follows a **layered architecture** that mirrors the production code organization:
-
-| Layer | Location | Purpose | HA Integration | Speed |
-|-------|----------|---------|----------------|-------|
-| **Unit** | `tests/unit/` | Test individual components in isolation | Mocked via `MagicMock(spec=...)` | Fast (~seconds) |
-| **Integration** | `tests/integration/` | Test component interactions with real HA | Full HA stack via `MockConfigEntry` | Slower (~minutes) |
-
-**Rule:** Unit tests must NOT require Home Assistant. If a unit test needs `hass`, it belongs in integration tests.
-
-**Shared fixtures:** Unit fixtures live in `tests/conftest.py` and `tests/unit/conftest.py`. Integration fixtures that require HA setup live in `tests/integration/conftest.py`.
+### 1. Test Structure
 
 Home Assistant uses **pytest** and **pytest-homeassistant-custom-component**
 
 ```python
-# tests/integration/conftest.py
+# tests/conftest.py
 import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 @pytest.fixture
-def config_entry():
+def mock_config_entry():
     """Return a mock config entry."""
     return MockConfigEntry(
         domain="ev_trip_planner",
@@ -272,18 +256,18 @@ def config_entry():
 ```
 
 ```python
-# tests/integration/test_sensor.py
+# tests/test_sensor.py
 import pytest
 from homeassistant.core import HomeAssistant
 from custom_components.ev_trip_planner.const import DOMAIN
 
-async def test_sensor_setup(hass: HomeAssistant, config_entry):
+async def test_sensor_setup(hass: HomeAssistant, mock_config_entry):
     """Test sensor setup."""
-    config_entry.add_to_hass(hass)
-
-    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    mock_config_entry.add_to_hass(hass)
+    
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
-
+    
     state = hass.states.get("sensor.test_vehicle_next_trip")
     assert state is not None
 ```
@@ -294,11 +278,11 @@ async def test_sensor_setup(hass: HomeAssistant, config_entry):
 
 We follow the **Layered Test Doubles Strategy** used by reference HACS Platinum/Gold integrations (e.g., [Frigate](https://github.com/blakeblackshear/frigate-hass-integration)). The strategy has **3 mandatory layers**:
 
-#### Layer 1 — Fake of external system (in `tests/unit/conftest.py`)
+#### Layer 1 — Fake of external system (in `tests/__init__.py`)
 Shared data and helpers that simulate external system behavior with **real in-memory implementation**. Not mocks — they have behavior.
 
 ```python
-# tests/unit/conftest.py
+# tests/__init__.py
 from unittest.mock import AsyncMock
 
 TEST_CONFIG = {
@@ -368,7 +352,7 @@ async def setup_mock_config_entry(hass, config_entry=None, trip_manager=None):
 | **Stub** | Fixed response for a concrete method | `mgr.async_get_recurring_trips = AsyncMock(return_value=[])` |
 | **Mock** | Verify an interaction occurred (call count, args) | `mgr.async_add_recurring_trip = AsyncMock()` + `assert_called_once_with(...)` |
 | **Spy** | Wrap real object and verify without changing behavior | `MagicMock(spec=TripManager, wraps=real_manager)` |
-| **Fixture** | Reusable test data and helper objects | `TEST_CONFIG`, `TEST_TRIPS` in `tests/unit/conftest.py` |
+| **Fixture** | Reusable test data and helper objects | `TEST_CONFIG`, `TEST_TRIPS` in `tests/__init__.py` |
 | **Patch** | Replace at external boundary (HA factory) | `patch('custom_components.ev_trip_planner.TripManager', ...)` |
 
 ---
@@ -403,15 +387,11 @@ Home Assistant expects:
 - Integration and unit tests
 
 ```bash
-# Run all tests (unit + integration)
-pytest tests/unit tests/integration --cov=custom_components/ev_trip_planner --cov-report=html
+# Run tests
+pytest tests/ --cov=custom_components/ev_trip_planner --cov-report=html
 
 # View coverage
 open htmlcov/index.html
-
-# Run a specific layer
-pytest tests/unit --cov=custom_components/ev_trip_planner --cov-report=html
-pytest tests/integration --cov=custom_components/ev_trip_planner --cov-report=html
 ```
 
 ---
@@ -459,7 +439,7 @@ pylint custom_components/ev_trip_planner/
 mypy custom_components/ev_trip_planner/
 
 # 4. Run tests
-pytest tests/unit tests/integration -v
+pytest tests/ -v
 
 # 5. Commit
 git add .
@@ -594,7 +574,7 @@ jobs:
       - run: isort --check custom_components/
       - run: pylint custom_components/
       - run: mypy custom_components/
-      - run: pytest tests/unit tests/integration --cov
+      - run: pytest tests/ --cov
 ```
 
 ---

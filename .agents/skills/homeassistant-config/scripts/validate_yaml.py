@@ -6,9 +6,9 @@ Validates YAML files for syntax errors and common Home Assistant issues.
 Usage: python3 validate_yaml.py <file_path> [--strict]
 """
 
-import json
-import re
 import sys
+import re
+import json
 from pathlib import Path
 
 try:
