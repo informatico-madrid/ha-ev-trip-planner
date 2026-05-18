@@ -97,6 +97,7 @@ markers = [
     "unit: unit tests (no external dependencies)",
     "integration: integration tests (require HA framework or external services)",
     "slow: tests that take significantly longer than average",
+    "mutmut_skip: tests incompatible with mutation testing (pattern checks, path deps)",
 ]
 filterwarnings = [
     "ignore:Inheritance class.*:DeprecationWarning",
@@ -127,11 +128,18 @@ exclude_lines = [
 # Their disposition — whether to integrate into tests/unit/ or tests/integration/
 # or remove entirely — is deferred to Spec 5 (Mutation Ramp).
 # Per AC-12.3/AC-12.4: exclusion list update not required since files are not moved.
+#
+# tests/unit/test_solid_metrics_isp.py and test_vehicle_controller_event.py are
+# marked with @pytest.mark.mutmut_skip — they check source patterns that break
+# under mutation (source inspection tests). Fixed in Spec 5.
 paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
 tests_dir = ["tests/unit/", "tests/integration/"]
+pytest_add_cli_args = ["-k", "not test_solid_metrics and not test_vehicle_controller_event"]
+also_copy = [".claude/skills/quality-gate/scripts/"]
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
+environment_setup_command = "export MUTMUT_RUN=1"
 
 [tool.quality-gate.mutation]
 global_kill_threshold = 0.48

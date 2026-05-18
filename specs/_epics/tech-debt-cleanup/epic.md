@@ -162,7 +162,10 @@ main
         ├── spec/tooling-foundation    ← Spec 0 ✅ COMPLETADA (18/18 tasks)
         ├── spec/1-dead-code           ← Spec 1 [✅ COMPLETADO 22/22 tareas, PR #45]
         ├── spec/2-test-reorg          ← Spec 2 [✅ COMPLETADO 63/63 tareas, PR #46]
-        ├── spec/3-solid-refactor      ← Spec 3 (en curso)
+        ├── spec/3-solid-refactor      ← Spec 3 ✅ COMPLETADA (merged)
+        ├── spec/high-arity-refactoring ← Spec 4 ✅ COMPLETADA (PR #48 merged)
+        ├── spec/dead-code-elimination  ← Spec 4b ✅ COMPLETADA (residual dead code post-Spec 3)
+        ├── spec/5-mutation-score       ← Spec 5 — NEXT
         ├── ...
 ```
 
@@ -326,8 +329,28 @@ main
 - **Estimated Size**: **8.0-12.0 story points**
 - **Dependencies**: Spec 2 (test reorganization first, so tests don't break during refactoring)
 
-### Spec 4: High-Arity & Parameter Refactoring
+### Spec 4: High-Arity & Parameter Refactoring ✅ COMPLETADA
 - **Goal**: Eliminate all functions with > 5 parameters. Replace long parameter lists with dataclasses or configuration objects.
+- **Status**: ✅ COMPLETADA — Rama: `feat/high-arity-refactoring`, PR #48 merged to `epic/tech-debt-cleanup`
+- **Results**: All high-arity functions wrapped in dataclasses:
+  - `calculate_multi_trip_charging_windows` (9→5 params via dataclass)
+  - `calculate_deficit_propagation` (9→5 params via dataclass)
+  - `calculate_power_profile_from_trips` (8→5 params via dataclass)
+  - `calculate_power_profile` (8→5 params via dataclass)
+  - `DashboardImportResult.__init__` (8 params → dataclass/builder)
+  - `_populate_per_trip_cache_entry` (12 params → dataclass/builder)
+- **Tests**: All `make test` passing, pyright clean
+- **AC-4.x**: All 9 acceptance criteria verified PASS
+
+### Spec 4b: Dead Code Elimination (Post-Spec 3 continuation) ✅ COMPLETADA
+- **Goal**: Remove residual dead code identified after Spec 3 module splits — dead attributes, dead methods, dead shim files, dead re-exports, and vulture-clean validation.
+- **Branch**: `spec/dead-code-elimination`
+- **Results**:
+  - Phase 1: 4 dead EMHASSAdapter attrs removed, 8 dead methods + 11 tests removed, sensor re-exports cleaned, phase gate PASS
+  - Phase 2: 3 service shim files deleted + test consumers cleaned
+  - Phase 3: Trip manager dead code cleaned
+  - Phase 4: Vulture validation — zero dead code findings
+- **Status**: ✅ COMPLETADA — All phases verified, zero new failures
 - **Acceptance Criteria**:
   - AC-4.1: `calculate_multi_trip_charging_windows` (9 params) → uses dataclass
   - AC-4.2: `calculate_deficit_propagation` (9 params) → uses dataclass
@@ -463,7 +486,9 @@ Each spec must pass ALL quality gate checks before the next spec begins:
 **Why parallel with Phase 1**: Test reorganization is independent of dead code removal. Tests must be organized and reliable before any structural code changes (Spec 3). Also, consolidating coverage-driven tests into behavior-driven tests provides the safety net needed for aggressive refactoring.
 **Status**: ✅ **COMPLETE** — 63/63 tasks done, PR #46 MERGED to `epic/tech-debt-cleanup`
 
-### Phase 3: SOLID Refactoring — God Classes (Spec 3)
+### Phase 3: SOLID Refactoring — God Classes (Spec 3 + dead-code-elimination continuation)
+**What**: Split `EMHASSAdapter` (2,730 LOC), `TripManager` (2,503 LOC), `services.py` (1,635 LOC), `dashboard.py` (1,285 LOC), `vehicle_controller.py` (537 LOC), `calculations.py` (1,690 LOC). Eliminate circular imports.
+**Status**: ✅ **COMPLETE** — Spec 3 completed (SOLID refactoring). Followed by dead-code-elimination spec (residual dead code post-Spec 3: 4 dead attrs, 8 dead methods, 3 service shims, dead re-exports, vulture-clean).
 **What**: Split `EMHASSAdapter` (2,730 LOC), `TripManager` (2,503 LOC), `services.py` (1,635 LOC), `dashboard.py` (1,285 LOC), `vehicle_controller.py` (537 LOC), `calculations.py` (1,690 LOC). Eliminate circular imports.
 **Why fourth**: Requires the strongest test safety net (Spec 2). Splitting god classes is high-risk — the test suite must be comprehensive and well-organized to catch regressions. This is the **critical path** (8-12 SP). Circular import fixes must come after module splits are decided.
 
@@ -607,6 +632,14 @@ Each spec must be developed on its own branch with the following safety measures
   - **Spec 3 task templates MUST include a `chat.md` update step before each verify.** Add to the task-planner agent instructions and to `tasks.md` template.
   - **Gito review tasks MUST invoke `/gito-review-with-spec`** with explicit branches, spec-context paths, and exclude-list verification.
   - Naming convention `tests/unit/test_{module}_{aspect}.py` is now stable — Spec 3 module splits should land their tests in the existing layout without re-organizing.
+
+### Spec 4 (High-Arity): ✅ COMPLETADA
+- **Result**: 6 high-arity functions wrapped in dataclasses, all tests pass, pyright clean. PR #48 merged.
+- **What went well**: Mechanical changes executed cleanly — dataclass pattern was already established in the codebase.
+
+### Spec 4b (Dead Code Elimination): ✅ COMPLETADA
+- **Result**: All residual dead code post-Spec 3 eliminated — 4 dead attrs, 8 dead methods + 11 tests, 3 service shims, dead re-exports, vulture-zero.
+- **What went well**: Atomic commits per task, phase gates verified before proceeding. Vulture validation confirmed zero remaining dead code.
 
 ### Spec {N}: {Name} — Lessons Learned (template for future)
 - **What went well**:

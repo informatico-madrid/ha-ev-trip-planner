@@ -243,7 +243,7 @@ refurb:
 
 mutation:
 	@echo "Running mutation testing..."
-	.venv/bin/mutmut run --until=100
+	.venv/bin/mutmut run --max-children=4
 
 mutation-gate:
 	@echo "Running mutation gate (per-module thresholds)..."
