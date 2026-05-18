@@ -199,7 +199,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify __init__ meets gate threshold`
   - _Requirements: US-3, FR-7, AC-3.1, AC-3.2, NFR-3_
 
-- [ ] 1.19 Log What & Why for the `trip` gate-fix iteration (NFR-7)
+- [x] 1.19 Log What - [ ] 1.19 Log What & Why for the `trip` gate-fix iteration (NFR-7) Why for the `trip` gate-fix iteration (NFR-7)
   - **Do**: Append `chat.md`: one-line What & Why for fixing `trip` to its existing threshold (`trip` 48 — confirm from A.1) via honest tests.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for the `trip` fix.
