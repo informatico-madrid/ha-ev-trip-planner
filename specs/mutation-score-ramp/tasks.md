@@ -108,7 +108,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): collapse calculations.* keys to top-level calculations`
   - _Requirements: US-2, FR-5, AC-2.2_
 
-- [ ] 1.8 Collapse 5 dotted `trip.*` keys -> 1 top-level `trip` key (A.2)
+- [x] 1.8 Collapse 5 dotted `trip.*` keys -> 1 top-level `trip` key (A.2)
   - **Do**: Replace the 5 dotted keys `trip.manager/.crud_mixin/.soc_mixin/.power_profile_mixin/.schedule_mixin` with a single `[tool.quality-gate.mutation.modules.trip]` entry. `kill_threshold` = `trip` A.1 measured rate; keep `increment_step`, `target_final = 1.00`.
   - **Files**: `pyproject.toml`
   - **Done when**: exactly one `trip` key; no `trip.` dotted key remains.
@@ -132,7 +132,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): collapse services.* keys to top-level services`
   - _Requirements: US-2, FR-5, AC-2.2_
 
-- [ ] 1.11 Collapse 3 dotted `vehicle.*` keys -> 1 top-level `vehicle` key (A.2)
+- [x] 1.11 Collapse 3 dotted `vehicle.*` keys -> 1 top-level `vehicle` key (A.2)
   - **Do**: Replace the 3 dotted keys `vehicle.controller/.strategy/.external` with a single `[tool.quality-gate.mutation.modules.vehicle]` entry. `kill_threshold` = `vehicle` A.1 measured rate; keep `increment_step`, `target_final = 1.00`.
   - **Files**: `pyproject.toml`
   - **Done when**: exactly one `vehicle` key; no `vehicle.` dotted key remains.
@@ -140,7 +140,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): collapse vehicle.* keys to top-level vehicle`
   - _Requirements: US-2, FR-5, AC-2.2_
 
-- [ ] 1.12 Add `const`/`frontend` keys if the analyzer emits them (A.2)
+- [x] 1.12 Add `const`/`frontend` keys if the analyzer emits them (A.2)
   - **Do**: From the A.1 emitted-module set (task 1.5): for every analyzer-emitted module lacking a pyproject key (expected `const`, `frontend`), add a `[tool.quality-gate.mutation.modules.<name>]` entry with `kill_threshold` = that module's A.1 measured rate, `increment_step = 0.01`, `target_final = 1.00`. If the analyzer does NOT emit `const`/`frontend`, do not add them — record that in `.progress.md`.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: every A.1-emitted module has exactly one pyproject key.
