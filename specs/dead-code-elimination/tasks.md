@@ -46,7 +46,7 @@ method removals land ATOMICALLY with their 11 test deletions in the same commit.
   - _Requirements: FR-1, FR-3, US-1, US-3, AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6, AC-1.7, AC-3.1, AC-3.2_
   - _Design: Component 1, Component 2_
 
-- [ ] 1.4 Remove dead re-exports from sensor/__init__.py
+- [x] 1.4 Remove dead re-exports from sensor/__init__.py - `61067b8`
   - **Do**:
     1. In `sensor/__init__.py` remove `TRIP_SENSORS` from the import block (line ~14) and from `__all__` (line ~31)
     2. Remove `_async_create_trip_sensors` from the import block (line ~15) — it is not in `__all__`
