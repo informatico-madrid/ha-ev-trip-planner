@@ -217,26 +217,7 @@ status = "passing"
 kill_threshold = 0.37
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.services.handlers]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services._handler_factories]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services.cleanup]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services.dashboard_helpers]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services.presence]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services._lookup]
-kill_threshold = 0.38
-status = "in_progress"
+[tool.quality-gate.mutation.modules.services]
+kill_threshold = 0.482
+increment_step = 0.01
+target_final = 1.00
