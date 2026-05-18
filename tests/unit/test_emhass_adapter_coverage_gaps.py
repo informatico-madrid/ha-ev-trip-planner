@@ -209,7 +209,7 @@ class TestPopulatePerTripCacheSOCUnavailable:
         (sensor unavailable) and the adapter falls back to 50.0.
         """
         from datetime import datetime, timezone
-        from unittest.mock import patch, AsyncMock
+        from unittest.mock import AsyncMock, patch
 
         from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
@@ -252,8 +252,9 @@ class TestApplyDeficitResultsEdgeCases:
 
     def test_apply_deficit_results_continues_when_trip_id_none(self):
         """Line 1069: continue when trip_id is None."""
-        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
         from unittest.mock import MagicMock
+
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
         adapter = EMHASSAdapter.__new__(EMHASSAdapter)
         adapter.hass = MagicMock()
@@ -305,8 +306,9 @@ class TestGetCurrentSocSecondSensorCheck:
         - Second sensor check at line 686 returns None state
         - Line 688 returns None
         """
-        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
         from unittest.mock import MagicMock
+
+        from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
         hass = MagicMock()
         entry = MagicMock()

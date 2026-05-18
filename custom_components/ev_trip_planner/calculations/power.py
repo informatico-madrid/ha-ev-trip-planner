@@ -8,8 +8,8 @@ profile calculations for EMHASS integration.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
@@ -19,10 +19,13 @@ from ._helpers import (
     _ensure_aware,
     resolve_trip_deadline,
 )
-from .windows import ChargingWindowPureParams
 from .core import calculate_trip_time
 from .deficit import determine_charging_need
-from .windows import calculate_charging_window_pure, calculate_energy_needed
+from .windows import (
+    ChargingWindowPureParams,
+    calculate_charging_window_pure,
+    calculate_energy_needed,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

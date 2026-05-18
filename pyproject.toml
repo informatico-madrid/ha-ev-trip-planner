@@ -69,14 +69,13 @@ paths = ["custom_components"]
 [tool.importlinter]
 root_package = "custom_components.ev_trip_planner"
 
-# Contract 1: layered architecture — services may import trip/emhass/dashboard, not vice versa
+# Contract 1: layered architecture — services may import trip/emhass/panel, not vice versa
 [[tool.importlinter.contracts]]
-name = "layered architecture: trip/emhass/dashboard do not import services"
+name = "layered architecture: trip/emhass/panel do not import services"
 type = "forbidden"
 source_modules = [
     "custom_components.ev_trip_planner.trip",
     "custom_components.ev_trip_planner.emhass",
-    "custom_components.ev_trip_planner.dashboard",
 ]
 forbidden_modules = ["custom_components.ev_trip_planner.services"]
 

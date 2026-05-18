@@ -983,7 +983,6 @@ class EMHASSAdapter:
             len(results),
             len(active),
         )
-        n = len(active)
         for i, result in enumerate(results):
             params = active[i]
             trip_id = self._find_trip_id_for_params(params)

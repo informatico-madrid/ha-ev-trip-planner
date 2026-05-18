@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.trip._types import TripManagerConfig
 from custom_components.ev_trip_planner.trip import TripManager
+from custom_components.ev_trip_planner.trip._types import TripManagerConfig
 
 
 @pytest.fixture

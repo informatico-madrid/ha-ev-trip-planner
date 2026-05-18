@@ -164,7 +164,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `docs(mutation-score-ramp): commit module/key/path mapping table`
   - _Requirements: US-2, FR-13, AC-2.5_
 
-- [ ] 1.15 [VERIFY] Quality checkpoint: lint + import-check after config rebase
+- [x] 1.15 [VERIFY] Quality checkpoint: lint + import-check after config rebase
   - **Do**: Run `make lint` and `make import-check`; confirm both clean after the pyproject edits.
   - **Files**: (none — verification only)
   - **Done when**: both commands exit 0.
