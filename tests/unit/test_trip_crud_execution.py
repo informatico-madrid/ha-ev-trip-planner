@@ -643,3 +643,109 @@ class TestPersistenceFallbackStore:
             mock_store.async_save = AsyncMock(side_effect=RuntimeError("disk full"))
             MockStore.return_value = mock_store
             await tm._state._persistence.async_save_trips()
+
+
+# ── Targeted mutation-kill tests for _persistence mutations ──
+
+
+class TestPersistenceSaveMutationKills:
+    """Tests targeting async_save_trips mutations in _persistence.py."""
+
+    @pytest.mark.asyncio
+    async def test_save_captures_data_dict_keys(self):
+        """Captures the exact data dict to kill mutations in dict construction."""
+        tm = _make_tm()
+        tm._state.recurring_trips = {"r1": {"id": "r1"}}
+        tm._state.punctual_trips = {"p1": {"id": "p1"}}
+        tm._state._trips = {"t1": {"id": "t1"}}
+
+        # Mock storage to capture the data dict
+        captured = {}
+
+        async def capture_save(data):
+            captured["data"] = data
+
+        mock_storage = MagicMock()
+        mock_storage.async_save = capture_save
+        mock_storage.async_load = AsyncMock(return_value={})
+        tm._state.storage = mock_storage
+        await tm._state._persistence.async_save_trips()
+
+        assert "trips" in captured["data"]
+        assert "recurring_trips" in captured["data"]
+        assert "punctual_trips" in captured["data"]
+        assert "last_update" in captured["data"]
+        assert captured["data"]["trips"] == {"t1": {"id": "t1"}}
+        assert captured["data"]["recurring_trips"] == {"r1": {"id": "r1"}}
+        assert captured["data"]["punctual_trips"] == {"p1": {"id": "p1"}}
+
+    @pytest.mark.asyncio
+    async def test_save_uses_injected_storage(self):
+        """Uses injected storage, not HA Store fallback — kills boolean mutation."""
+        tm = _make_tm()
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        mock_storage = MagicMock()
+        mock_storage.async_save = AsyncMock()
+        mock_storage.async_load = AsyncMock(return_value={})
+        tm._state.storage = mock_storage
+        await tm._state._persistence.async_save_trips()
+        # Should call injected storage, not HA Store
+        mock_storage.async_save.assert_called_once()
+
+
+class TestLoadTripsMutationKills:
+    """Tests targeting _load_trips mutations in _persistence.py."""
+
+    @pytest.mark.asyncio
+    async def test_load_trips_data_key_default_dict(self):
+        """stored_data['data'] exists but has no trips key → uses {} default."""
+        storage = MagicMock()
+        storage.async_load = AsyncMock(
+            return_value={"data": {"recurring_trips": {}, "punctual_trips": {}}}
+        )
+        tm = _make_tm()
+        tm._state._trips = {}
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state.storage = storage
+        await tm._state._persistence._load_trips()
+        # Should use empty dicts for trips when key missing
+        assert tm._state._trips == {}
+
+    @pytest.mark.asyncio
+    async def test_load_trips_no_data_key_uses_stored_directly(self):
+        """stored_data without 'data' key → uses it directly (line 118)."""
+        storage = MagicMock()
+        storage.async_load = AsyncMock(
+            return_value={
+                "trips": {"t1": {"id": "t1"}},
+                "recurring_trips": {"r1": {"id": "r1", "hora": "14:00"}},
+                "punctual_trips": {},
+            }
+        )
+        tm = _make_tm()
+        tm._state._trips = {}
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        tm._state.storage = storage
+        await tm._state._persistence._load_trips()
+        assert tm._state._trips == {"t1": {"id": "t1"}}
+        assert "r1" in tm._state.recurring_trips
+        assert tm._state.recurring_trips["r1"]["hora"] == "14:00"
+
+    @pytest.mark.asyncio
+    async def test_load_trips_skips_when_data_exists(self):
+        """_load_trips skips when state already has data (line 91 early return)."""
+        tm = _make_tm()
+        tm._state._trips = {"existing": {"id": "e1"}}
+        tm._state.recurring_trips = {}
+        tm._state.punctual_trips = {}
+        # Even with failed storage, should skip loading
+        mock_storage = MagicMock()
+        mock_storage.async_load = AsyncMock(side_effect=RuntimeError("fail"))
+        mock_storage.async_save = AsyncMock()
+        tm._state.storage = mock_storage
+        await tm._state._persistence._load_trips()
+        # Should NOT have been overwritten
+        assert "existing" in tm._state._trips

@@ -207,7 +207,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `docs(mutation-score-ramp): log what&why for trip gate fix`
   - _Requirements: NFR-7_
 
-- [ ] 1.20 Strengthen/add honest tests for `trip` survivors to meet its existing threshold (A.3)
+- [x] 1.20 Strengthen/add honest tests for `trip` survivors to meet its existing threshold (A.3)
   - **Do**:
     1. Targeted run: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.trip.*"`.
     2. Enumerate `trip` survivors; classify; strengthen/add/dedupe/replace honest tests so `trip` measured rate reaches/exceeds its EXISTING threshold. If a survivor's logic is genuinely untestable due to structure, apply a US-5 testability refactor (justify in `chat.md`, naming the mutant). NO threshold lowered; NFR-1 no skip/pragma.
