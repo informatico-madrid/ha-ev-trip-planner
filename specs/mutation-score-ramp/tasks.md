@@ -92,7 +92,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `docs(mutation-score-ramp): record A.1 authoritative baseline + emitted-module list`
   - _Requirements: US-4, FR-11, AC-4.1, AC-2.3_
 
-- [ ] 1.6 Delete 3 stale `dashboard.*` mutation threshold keys from pyproject (A.2)
+- [x] 1.6 Delete 3 stale `dashboard.*` mutation threshold keys from pyproject (A.2)
   - **Do**: In `pyproject.toml`, delete the 3 stale `[tool.quality-gate.mutation.modules.*]` keys `dashboard.importer`, `dashboard.builder`, `dashboard.template_manager` (`dashboard/` was merged into `panel.py`; analyzer never emits `dashboard`).
   - **Files**: `pyproject.toml`
   - **Done when**: no `dashboard.` mutation key remains.
@@ -100,7 +100,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): remove 3 stale dashboard.* mutation keys`
   - _Requirements: US-2, FR-4, AC-2.1_
 
-- [ ] 1.7 Collapse 5 dotted `calculations.*` keys -> 1 top-level `calculations` key (A.2)
+- [x] 1.7 Collapse 5 dotted `calculations.*` keys -> 1 top-level `calculations` key (A.2)
   - **Do**: In `pyproject.toml`, replace the 5 dotted keys `calculations.core/.windows/.power/.schedule/.deficit` with a single `[tool.quality-gate.mutation.modules.calculations]` entry. Set its `kill_threshold` to the `calculations` true measured rate from the A.1 authoritative baseline (task 1.5); carry over `increment_step` and `target_final = 1.00`.
   - **Files**: `pyproject.toml`
   - **Done when**: exactly one `calculations` key exists; no `calculations.` dotted key remains.
