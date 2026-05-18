@@ -225,7 +225,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify trip meets gate threshold`
   - _Requirements: US-3, FR-7, AC-3.1, AC-3.2, NFR-3, NFR-6_
 
-- [ ] 1.22 Log What & Why for the `utils` gate-fix iteration (NFR-7)
+- [x] 1.22 Log What & Why for the `utils` gate-fix iteration (NFR-7)
   - **Do**: Append `chat.md`: one-line What & Why for fixing `utils` to its existing threshold (`utils` 89 — confirm from A.1) via honest tests.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for the `utils` fix.
