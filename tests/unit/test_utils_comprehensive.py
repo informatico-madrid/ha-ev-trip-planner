@@ -531,3 +531,85 @@ class TestGenerateTripIdMutationKills:
 
         result = generate_random_suffix()
         assert len(result) == 6
+
+
+class TestIsTripTodayAdditionalMutationKills:
+    """Additional is_trip_today tests for remaining mutation survivors.
+
+    Kill targets: mutations 3 (== !=), 4 (empty dict), 6, 9 (sanitize),
+    10 (validate len), 17, 18, 20, 25 (validate digit), 33 (validate col),
+    40, 41 (wednesday tuple), 55, 56 (punctual tuple), 85, 86 (fecha).
+    """
+
+    def test_wednesday_trip_today(self):
+        """Recurring Wednesday trip when today is Wednesday returns True.
+        Kills mutations 40, 41: 'wednesday' -> 'XXwednesdayXX' / 'WEDNESDAY' in tuple.
+        These mutations only matter if wednesday is checked and today is Wednesday."""
+        today = date(2025, 5, 14)  # Wednesday
+        trip = {"tipo": "recurrente", "dia_semana": "miercoles"}
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_fecha_date_object(self):
+        """Punctual trip with fecha=date object when fecha is the only key.
+        Kills mutation 86: .get("fecha") replaced with None returns False."""
+        today = date(2025, 5, 12)
+        trip = {"tipo": "puntual", "fecha": today}
+        # .get("datetime") -> None, None or today -> today
+        # isinstance(today, date) -> True, today == today -> True
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_fecha_string_with_dashes(self):
+        """Punctual trip with fecha='2025-05-12' (dash format).
+        Kills mutation 86: replace('-', '') -> replace('XX-', '')."""
+        today = date(2025, 5, 12)
+        trip = {"tipo": "puntual", "fecha": "2025-05-12"}
+        # Normalization: "2025-05-12" -> "20250512"
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_fecha_string_with_slashes(self):
+        """Punctual trip with fecha='2025/05/12' (slash format).
+        Kills mutation 85: replace('/', '') -> replace('XX/', '').
+        The slash replacement is a separate mutation from the dash replacement."""
+        today = date(2025, 5, 12)
+        trip = {"tipo": "puntual", "fecha": "2025/05/12"}
+        # Normalization: "2025/05/12" -> "20250512"
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_fecha_string_no_match(self):
+        """Punctual trip with different date string returns False.
+        Ensures the normalization produces correct comparison."""
+        today = date(2025, 5, 12)
+        trip = {"tipo": "puntual", "fecha": "13/05/2025"}
+        assert is_trip_today(trip, today) is False
+
+    def test_rec_weekend_saturday(self):
+        """Recurring Saturday trip when today is Saturday returns True.
+        Kills mutations 42-45: 'friday', 'saturday', 'sunday', 'thursday' in tuple."""
+        today = date(2025, 5, 10)  # Saturday
+        trip = {"tipo": "recurrente", "dia_semana": "sabado"}
+        assert is_trip_today(trip, today) is True
+
+    def test_rec_weekend_sunday(self):
+        """Recurring Sunday trip when today is Sunday returns True."""
+        today = date(2025, 5, 11)  # Sunday
+        trip = {"tipo": "recurrente", "dia_semana": "domingo"}
+        assert is_trip_today(trip, today) is True
+
+    def test_rec_weekend_friday(self):
+        """Recurring Friday trip when today is Friday returns True."""
+        today = date(2025, 5, 9)  # Friday
+        trip = {"tipo": "recurrente", "dia_semana": "viernes"}
+        assert is_trip_today(trip, today) is True
+
+    def test_rec_thursday_trip(self):
+        """Recurring Thursday trip when today is Thursday returns True.
+        Kills mutations affecting 'thursday' in the tuple."""
+        today = date(2025, 5, 8)  # Thursday
+        trip = {"tipo": "recurrente", "dia_semana": "jueves"}
+        assert is_trip_today(trip, today) is True
+
+    def test_rec_tuesday_trip(self):
+        """Recurring Tuesday trip when today is Tuesday returns True."""
+        today = date(2025, 5, 13)  # Tuesday
+        trip = {"tipo": "recurrente", "dia_semana": "martes"}
+        assert is_trip_today(trip, today) is True

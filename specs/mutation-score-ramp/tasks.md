@@ -243,7 +243,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `test(mutation-score-ramp): strengthen utils tests to meet gate threshold`
   - _Requirements: US-3, FR-7, AC-3.1, NFR-1, NFR-2_
 
-- [ ] 1.24 [VERIFY] Confirm `utils` meets threshold via targeted mutmut + test/cover green (A.3)
+- [x] 1.24 [VERIFY] Confirm `utils` meets threshold via targeted mutmut + test/cover green (A.3)
   - **Do**: Re-run targeted mutmut on `utils`; confirm rate >= existing threshold. Run `make test` and `make test-cover`.
   - **Files**: (none — verification only)
   - **Done when**: `utils` >= threshold; test + test-cover exit 0.
