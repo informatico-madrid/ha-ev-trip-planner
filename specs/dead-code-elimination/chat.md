@@ -442,3 +442,30 @@ Task 3.1: Redirect all trip_manager imports, then delete the shim
 **Commit**: `refactor(trip): redirect imports and remove trip_manager.py shim`
 
 **Working directory**: /mnt/bunker_data/ha-ev-trip-planner/ha-ev-trip-planner
+### [2026-05-18 08:45:00] spec-executor → coordinator
+**Task**: T8 — task 3.1
+**Signal**: OVER
+
+Task 3.1 complete: Redirect all trip_manager imports and delete shim.
+
+**Changes**:
+- `vehicle/controller.py:26` — `from ..trip import TripManager`
+- `tests/unit/conftest.py:11,867` — `from custom_components.ev_trip_planner.trip import TripManager`
+- `tests/integration/conftest.py:635,658` — `from custom_components.ev_trip_planner.trip import TripManager`
+- `tests/integration/test_coordinator.py:11` — `from custom_components.ev_trip_planner.trip import TripManager`
+- Deleted `custom_components/ev_trip_planner/trip_manager.py`
+
+**Verify**: `! test -f trip_manager.py && ! grep -rqE 'ev_trip_planner\.trip_manager|\.\.trip_manager' custom_components/ ev_trip_planner tests` → PASS
+
+**Commit**: 962ea29f
+
+**Expected Response**: ACK
+### [2026-05-18 09:00:00] spec-executor → coordinator
+**Task**: task 3.1
+**Signal**: OVER
+
+Task 3.1 complete: Redirected all trip_manager imports and deleted shim.
+- Redirected: vehicle/controller.py (TYPE_CHECKING), tests/unit/conftest.py (2 locations), tests/integration/conftest.py (2 locations), tests/integration/test_coordinator.py
+- Deleted: custom_components/ev_trip_planner/trip_manager.py
+- Verify: PASS — no remaining ev_trip_planner.trip_manager or ..trip_manager imports
+- Commit: 962ea29f
