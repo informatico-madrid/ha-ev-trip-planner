@@ -175,25 +175,10 @@ kill_threshold = 0.48
 increment_step = 0.01
 target_final = 1.00
 
-[tool.quality-gate.mutation.modules.emhass.adapter]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.index_manager]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.load_publisher]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.error_handler]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.cache_entry_builder]
-kill_threshold = 0.53
-status = "passing"
+[tool.quality-gate.mutation.modules.emhass]
+kill_threshold = 0.64
+increment_step = 0.01
+target_final = 1.00
 
 [tool.quality-gate.mutation.modules.config_flow]
 kill_threshold = 0.31

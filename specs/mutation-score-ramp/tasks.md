@@ -116,7 +116,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): collapse trip.* keys to top-level trip`
   - _Requirements: US-2, FR-5, AC-2.2_
 
-- [ ] 1.9 Collapse 5 dotted `emhass.*` keys -> 1 top-level `emhass` key (A.2)
+- [x] 1.9 Collapse 5 dotted `emhass.*` keys -> 1 top-level `emhass` key (A.2)
   - **Do**: Replace the 5 dotted keys `emhass.adapter/.index_manager/.load_publisher/.error_handler/.cache_entry_builder` with a single `[tool.quality-gate.mutation.modules.emhass]` entry. `kill_threshold` = `emhass` A.1 measured rate; keep `increment_step`, `target_final = 1.00`.
   - **Files**: `pyproject.toml`
   - **Done when**: exactly one `emhass` key; no `emhass.` dotted key remains.
