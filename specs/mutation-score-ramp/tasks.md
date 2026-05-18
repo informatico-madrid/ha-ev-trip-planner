@@ -49,7 +49,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify make mutation clean full run + record baseline runtime`
   - _Requirements: US-1, FR-1, AC-1.1, AC-1.4_
 
-- [ ] 1.2 [VERIFY] Verify 0 timeouts and `_other` bucket == 0 (A.1)
+- [x] 1.2 [VERIFY] Verify 0 timeouts and `_other` bucket == 0 (A.1)
   - **Do**:
     1. Run `mutmut results --all true` and grep for `: timeout` — expect 0 lines (AC-1.4).
     2. Grep `mutmut results --all true` for any result line whose name does NOT match `custom_components.ev_trip_planner.<seg>...` — expect 0 (AC-1.5, `_other` bucket).
