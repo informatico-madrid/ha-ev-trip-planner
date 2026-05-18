@@ -124,7 +124,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): collapse emhass.* keys to top-level emhass`
   - _Requirements: US-2, FR-5, AC-2.2_
 
-- [ ] 1.10 Collapse 6 dotted `services.*` keys -> 1 top-level `services` key (A.2)
+- [x] 1.10 Collapse 6 dotted `services.*` keys -> 1 top-level `services` key (A.2)
   - **Do**: Replace the 6 dotted keys `services.handlers/._handler_factories/.cleanup/.dashboard_helpers/.presence/._lookup` with a single `[tool.quality-gate.mutation.modules.services]` entry. `kill_threshold` = `services` A.1 measured rate; keep `increment_step`, `target_final = 1.00`.
   - **Files**: `pyproject.toml`
   - **Done when**: exactly one `services` key; no `services.` dotted key remains.
