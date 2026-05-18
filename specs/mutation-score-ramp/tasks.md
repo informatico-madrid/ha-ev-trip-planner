@@ -217,7 +217,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `test(mutation-score-ramp): strengthen trip tests to meet gate threshold`
   - _Requirements: US-3, FR-7, AC-3.1, US-5, NFR-1, NFR-2, NFR-6_
 
-- [ ] 1.21 [VERIFY] Confirm `trip` meets threshold via targeted mutmut + test/cover + import-check (A.3)
+- [x] 1.21 [VERIFY] Confirm `trip` meets threshold via targeted mutmut + test/cover + import-check (A.3)
   - **Do**: Re-run targeted mutmut on `trip`; confirm rate >= existing threshold. Run `make test`, `make test-cover`, and `make import-check` (in case a US-5 refactor touched `trip/`).
   - **Files**: (none — verification only)
   - **Done when**: `trip` >= threshold; test, test-cover, import-check all exit 0.
