@@ -69,7 +69,7 @@ method removals land ATOMICALLY with their 11 test deletions in the same commit.
 
 Focus: delete the 3 service shim files and clean their integration test consumers.
 
-- [ ] 2.1 Delete 3 service shim files and clean their test consumers
+- [x] 2.1 Delete 3 service shim files and clean their test consumers - `deb958e9`
   - **Do**:
     1. `rm custom_components/ev_trip_planner/services/handlers.py custom_components/ev_trip_planner/services/_lookup.py custom_components/ev_trip_planner/services/presence.py`
     2. In `tests/integration/test_services_shims.py` remove all 3 test methods for the dead shims (remove the file if it becomes empty)
