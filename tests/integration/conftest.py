@@ -632,7 +632,7 @@ def mock_hass_manager_setup_error():
     The new manager's async_setup raises, exercising the error path in
     _get_manager where the factory catches the exception and logs it.
     """
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     hass = _build_services_hass()
     # Override: set trip_manager to None so _get_manager enters the "create new" path
@@ -655,7 +655,7 @@ def mock_hass_manager_setup_ok():
     _get_manager creates a new manager and calls async_setup successfully,
     covering the log line after async_setup returns.
     """
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     hass = _build_services_hass()
     # Override: set trip_manager to None so _get_manager enters the "create new" path
