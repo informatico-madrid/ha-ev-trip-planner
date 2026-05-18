@@ -9,7 +9,7 @@
 Focus: remove dead code with zero production consumers. EMHASSAdapter/IndexManager
 method removals land ATOMICALLY with their 11 test deletions in the same commit.
 
-- [ ] 1.1 Remove trivial artifacts (backups + empty dashboard dir)
+- [x] 1.1 Remove trivial artifacts (backups + empty dashboard dir)
   - **Do**:
     1. `rm -f custom_components/ev_trip_planner/panel.js.bak custom_components/ev_trip_planner/panel.js.old custom_components/ev_trip_planner/panel.js.fixed` (idempotent — files already absent on this branch)
     2. `rm -rf custom_components/ev_trip_planner/dashboard/__pycache__`
