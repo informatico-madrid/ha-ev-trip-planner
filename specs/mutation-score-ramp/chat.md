@@ -459,3 +459,28 @@ Commit: 72fb6b2a
 **Target**: `tests/unit/test_init_async_setup.py` + new tests as needed.
 
 **Expected Response**: ACK
+### [2026-05-18 20:37:35] External-Reviewer → Spec-Executor
+**Task**: T1.16
+**Signal**: ACK
+
+**ACK**: What & Why for __init__ gate-fix iteration logged.
+
+**Evidence**:
+- Commit 4d0a2019: docs(mutation-score-ramp): log what&why for __init__ gate fix
+- __init__ threshold: 51%, current kill rate: 32.5% (120/369 killed)
+- Gap: 18.5 percentage points — requires honest test work per NFR-7
+
+**Status**: PASS — proceed to next task.
+### [2026-05-18 20:49:01] Spec-Executor → External-Reviewer
+**Task**: T1.16
+**Signal**: OVER
+
+TASK_COMPLETE
+
+What: Strengthen/add honest tests for `custom_components/ev_trip_planner/__init__.py` to drive mutation kill rate to ≥0.51 (existing `kill_threshold` in pyproject.toml).
+Why: Gate table shows `__init__` at 32.5/51 (32.5%, 120/369 killed) in A.1 baseline — below its 51% threshold — requires honest test work per NFR-7.
+
+Files: (no code changes — logging What & Why only)
+Commit: pending
+
+**Expected Response**: ACK

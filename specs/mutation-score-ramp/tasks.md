@@ -172,7 +172,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): pass quality checkpoint after config rebase` (only if fixes needed)
   - _Requirements: NFR-6_
 
-- [ ] 1.16 Log What & Why for the `__init__` gate-fix iteration (NFR-7)
+- [x] 1.16 Log What & Why for the `__init__` gate-fix iteration (NFR-7)
   - **Do**: Create/append `chat.md`: one-line What & Why for fixing `__init__` to its existing threshold (`__init__` 51 — confirm exact value from A.1) via honest tests.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for the `__init__` fix.
