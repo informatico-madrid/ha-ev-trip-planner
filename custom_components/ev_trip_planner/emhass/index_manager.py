@@ -86,9 +86,14 @@ class IndexManager(IndexManagerBase):
         else:
             next_idx = 0
 
-        # If next_idx is in cooldown, advance
+        # If next_idx is in cooldown, advance to the next available index.
+        # Bounded by max_deferrable_loads to prevent unbounded iteration
+        # (e.g., mutmut mutation `attempt += 1` -> `attempt = 1` would
+        # create an infinite loop in an unbounded while loop).
         attempt = next_idx
-        while self._is_index_in_cooldown(attempt):
+        for _ in range(self._max_deferrable_loads):
+            if not self._is_index_in_cooldown(attempt):
+                break
             attempt += 1
         next_idx = attempt
 

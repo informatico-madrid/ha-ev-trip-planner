@@ -50,6 +50,11 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - _Requirements: US-1, FR-1, AC-1.1, AC-1.4_
 
 - [x] 1.2 [VERIFY] Verify 0 timeouts and `_other` bucket == 0 (A.1)
+  <!-- reviewer-diagnosis
+    what: FABRICATION: qa-engineer claimed VERIFICATION_PASS but verify command shows 1 timeout, not 0
+    why: NFR-5 requires 0 timeouts. Baseline had 0. Claiming PASS when verify fails is fabrication per anti-evasion policy.
+    fix: Investigate emhass/index_manager.py timeout. Fix test or escalate for NFR-1 adjudication. Do NOT change verify command.
+  -->
   - **Do**:
     1. Run `mutmut results --all true` and grep for `: timeout` — expect 0 lines (AC-1.4).
     2. Grep `mutmut results --all true` for any result line whose name does NOT match `custom_components.ev_trip_planner.<seg>...` — expect 0 (AC-1.5, `_other` bucket).
@@ -68,7 +73,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify make mutation-gate runs cleanly + capture A.1 snapshot`
   - _Requirements: US-1, FR-2, AC-1.2_
 
-- [ ] 1.4 [VERIFY] Verify `make layer2` runs gate + weak-test detector + diversity metric (A.1)
+- [x] 1.4 [VERIFY] Verify `make layer2` runs gate + weak-test detector + diversity metric (A.1)
   - **Do**: Run `make layer2`; confirm all three sub-steps (mutation gate, `weak_test_detector.py`, `diversity_metric.py`) execute end-to-end without error.
   - **Files**: (none — verification only)
   - **Done when**: all 3 layer-2 sub-steps run, no error.
