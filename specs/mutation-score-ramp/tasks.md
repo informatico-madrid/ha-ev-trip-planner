@@ -148,7 +148,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): add const/frontend mutation keys per A.1 emitted set`
   - _Requirements: US-2, FR-6, AC-2.3_
 
-- [ ] 1.13 [VERIFY] Verify 1:1 module<->key correspondence and no orphan keys (A.2)
+- [x] 1.13 [VERIFY] Verify 1:1 module<->key correspondence and no orphan keys (A.2)
   - **Do**: Cross-check the A.1 emitted-module set against all `[tool.quality-gate.mutation.modules.*]` keys: every emitted module has exactly one key; every key matches an emitted module (no orphans). Run `make mutation-gate` and confirm each module is reported against its own threshold (no silent `global_kill_threshold` fallback).
   - **Files**: (none — verification only)
   - **Done when**: 1:1 correspondence confirmed; gate reports every module against its own threshold.
