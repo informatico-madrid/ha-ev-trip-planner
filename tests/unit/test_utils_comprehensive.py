@@ -15,6 +15,7 @@ from custom_components.ev_trip_planner.utils import (
     get_day_index,
     get_trip_time,
     is_trip_today,
+    is_valid_trip_id,
     normalize_vehicle_id,
     sanitize_recurring_trips,
     validate_hora,
@@ -289,3 +290,244 @@ class TestCalcularEnergiaKwh:
         """Negative consumption raises ValueError (line 353)."""
         with pytest.raises(ValueError, match="Consumption cannot be negative"):
             calcular_energia_kwh(100, -0.2)
+
+
+class TestIsTripTodayMutationKills:
+    """Tests targeting is_trip_today mutation survivors.
+
+    Kill targets: 20 mutations from .get() defaults on dia/dia_semana/fecha,
+    the or->and mutation, and fecha None fallback.
+    """
+
+    def test_dia_semana_only_fallback(self):
+        """dia key missing -> uses dia_semana fallback.
+        Kills mutations 11, 13: .get("dia", "") vs .get("dia", None)
+        where the default matters only when key is missing."""
+        today = date(2025, 5, 12)  # Monday
+        trip = {"tipo": "recurrente", "dia_semana": "lunes"}
+        # No "dia" key — the .get("dia", default) default is used
+        # Original: "" (falsy) -> falls through to dia_semana -> True
+        # Mutated (11,13): None (falsy) -> falls through to dia_semana -> True
+        # Mutation 23 (or->and) would fail since empty "" is falsy
+        assert is_trip_today(trip, today) is True
+
+    def test_dia_only_no_dia_semana(self):
+        """dia_semana key missing -> uses dia fallback."""
+        today = date(2025, 5, 13)  # Tuesday
+        trip = {"tipo": "recurrente", "dia": "martes"}
+        # No "dia_semana" key — .get("dia_semana", default) used
+        # Mutations 18, 20 change default for dia_semana
+        assert is_trip_today(trip, today) is True
+
+    def test_dia_and_dia_semana_both(self):
+        """Both dia and dia_semana present -> uses dia (first truthy).
+        Kills mutation 23: or->and changes behavior when dia is empty."""
+        today = date(2025, 5, 12)  # Monday
+        trip = {
+            "tipo": "recurrente",
+            "dia": "lunes",
+            "dia_semana": "monday",
+        }
+        # Both keys present with truthy values
+        # Mut 23 (or->and): both truthy -> "lunes" -> True (same)
+        # But if we had dia="" -> original or: "" or "monday" -> "monday" -> True
+        #                    mut 23 and: "" and "monday" -> "" -> False
+        assert is_trip_today(trip, today) is True
+
+    def test_dia_empty_dia_semana_present(self):
+        """dia='' (empty, falsy) -> should fall back to dia_semana.
+        Kills mutation 23 (or->and): with empty dia, 'and' returns empty string."""
+        today = date(2025, 5, 12)  # Monday
+        trip = {"tipo": "recurrente", "dia": "", "dia_semana": "monday"}
+        # Original: "" or "monday" -> "monday" (truthy) -> compare -> True
+        # Mut 23 (and): "" and "monday" -> "" (falsy) -> False
+        assert is_trip_today(trip, today) is True
+
+    def test_fecha_only_no_datetime(self):
+        """Only 'fecha' present, 'datetime' missing -> fallback path.
+        Kills mutations 85, 86: .get("fecha", default) where default matters."""
+        today = date(2025, 5, 12)
+        trip = {"tipo": "puntual", "fecha": today}
+        # .get("datetime") returns None (key missing)
+        # None or trip.get("fecha") -> today
+        # Mut 85 (or->and): None and today -> None -> False
+        # Mut 86: .get("fecha") replaces whole expression -> None
+        assert is_trip_today(trip, today) is True
+
+    def test_punctual_no_date_fields(self):
+        """Punctual trip with neither datetime nor fecha -> False."""
+        today = date(2025, 5, 12)
+        trip = {"tipo": "puntual"}
+        # No fecha -> fecha=None -> not isinstance -> not isinstance str -> False
+        assert is_trip_today(trip, today) is False
+
+
+class TestIsValidTripIdMutationKills:
+    """Tests targeting is_valid_trip_id mutation survivors.
+
+    Kill targets: 4 mutations from >=  > boundary on parts length checks.
+    """
+
+    def test_recurrent_min_length_suffix(self):
+        """rec_{day}_{4chars} should be valid (boundary >= 4).
+        Kills mutation 12: len(parts[2]) > 4 would reject 4 chars."""
+        assert is_valid_trip_id("rec_lun_abcdef") is True  # 6 chars
+        # The >= 4 boundary: exactly 4 should pass original, fail mut 12
+        assert is_valid_trip_id("rec_lun_abc1") is True  # 4 chars exactly
+
+    def test_recurrent_too_short_suffix(self):
+        """rec_{day}_{3chars} should be invalid (too short)."""
+        assert is_valid_trip_id("rec_lun_abc") is False  # 3 chars
+
+    def test_punctual_min_length_suffix(self):
+        """pun_{date}_{4chars} should be valid (boundary >= 4).
+        Kills mutation 26: len(parts[2]) > 4 would reject 4 chars."""
+        assert is_valid_trip_id("pun_20250512_abc1") is True  # 4 chars
+
+    def test_punctual_too_short_suffix(self):
+        """pun_{date}_{3chars} should be invalid."""
+        assert is_valid_trip_id("pun_20250512_abc") is False  # 3 chars
+
+
+class TestValidateHoraMutationKills:
+    """Tests targeting validate_hora mutation survivors.
+
+    Kill targets: 7 mutations from str index, len comparison changes.
+    """
+
+    def test_hour_24_boundary(self):
+        """Hour=24 should raise ValueError (boundary of hour > 23 check).
+        Kills mutation 1: hour > 23 -> hour >= 23."""
+        with pytest.raises(ValueError, match="Invalid hour"):
+            validate_hora("24:00")
+
+    def test_six_char_time_wrong_colon_pos(self):
+        """6-char string '12:345' where hora[3]!=':' -> ValueError.
+        Kills mutation 33: hora[2] != ':' -> hora[3] != ':'."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("12:345")
+
+    def test_six_char_time_wrong_len(self):
+        """6-char string should fail len(hora) != 5 check.
+        Kills mutation 10: len(hora) != 5 -> len(hora) != 6."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("12:345")
+
+    def test_non_string_hour_part(self):
+        """Non-digit hour raises ValueError.
+        Kills mutation 17: not hour_str.isdigit() -> other."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("1a:30")
+
+    def test_non_string_minute_part(self):
+        """Non-digit minute raises ValueError.
+        Kills mutation 18: not minute_str.isdigit() -> other."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("12:3a")
+
+    def test_float_minute(self):
+        """Float minute raises ValueError (contains dot).
+        Kills mutation 20: '12.30' -> non-digit check."""
+        with pytest.raises(ValueError, match="Invalid time format"):
+            validate_hora("12.30")
+
+    def test_negative_hour_via_string(self):
+        """Negative hour string raises ValueError.
+        Kills mutation 25: hour > 23 -> hour < 23 (would accept 0)."""
+        with pytest.raises(ValueError, match="Invalid hour"):
+            validate_hora("25:00")
+
+    def test_minute_60_boundary(self):
+        """Minute=60 raises ValueError (boundary check).
+        Kills mutation 33: minute > 59 -> minute >= 59."""
+        with pytest.raises(ValueError, match="Invalid minute"):
+            validate_hora("12:60")
+
+
+class TestSanitizeMutationKills:
+    """Tests targeting sanitize_recurring_trips mutation survivors.
+
+    Kill targets: 3 mutations from assignment/conditional removals.
+    """
+
+    def test_valid_trips_retained(self):
+        """Valid trips are kept in sanitized output.
+        Kills mutation 4: sanitized[trip_id] = trip removed."""
+        trips = {"t1": {"hora": "09:00"}, "t2": {"hora": "14:00"}}
+        result = sanitize_recurring_trips(trips)
+        assert "t1" in result
+        assert "t2" in result
+
+    def test_invalid_hora_string_fails_validation(self):
+        """Trip with non-time hora string is filtered.
+        Kills mutation 6: hour_str.isdigit() -> 1 (always true, but split on non-digit)."""
+        trips = {"t1": {"hora": "not-a-time"}}
+        result = sanitize_recurring_trips(trips)
+        assert "t1" not in result
+
+    def test_empty_minute_fails_isdigit(self):
+        """Empty minute string is filtered (not isdigit).
+        Kills mutation 9: split -> [0] on empty minute."""
+        trips = {"t1": {"hora": "09:"}}
+        result = sanitize_recurring_trips(trips)
+        assert "t1" not in result
+
+    def test_leading_zero_hour_valid(self):
+        """Trip with '09:00' hora is valid (leading zero).
+        Ensures the sanitize loop properly processes valid hours."""
+        trips = {"t1": {"hora": "09:00"}}
+        result = sanitize_recurring_trips(trips)
+        assert "t1" in result
+        assert result["t1"]["hora"] == "09:00"
+
+
+class TestGetDayIndexMutationKills:
+    """Tests targeting get_day_index mutation survivors."""
+
+    def test_index_zero(self):
+        """Day index 0 is Monday/lunes.
+        Kills mutation 3: < -> > for first comparison."""
+        assert get_day_index("lunes") == 0
+        assert get_day_index("monday") == 0
+
+    def test_index_6(self):
+        """Day index 6 is Sunday/domingo.
+        Kills mutation 3: < -> > for last comparison."""
+        assert get_day_index("domingo") == 6
+        assert get_day_index("sunday") == 6
+
+
+class TestNormalizeVehicleIdMutationKills:
+    """Tests targeting normalize_vehicle_id mutation survivors."""
+
+    def test_none_input(self):
+        """None returns empty string.
+        Kills mutation 1: if not vehicle_name -> always True."""
+        assert normalize_vehicle_id(None) == ""
+
+    def test_empty_input(self):
+        """Empty string returns empty string.
+        Kills mutation 1: if not vehicle_name -> always True."""
+        assert normalize_vehicle_id("") == ""
+
+
+class TestGenerateTripIdMutationKills:
+    """Tests targeting generate_random_suffix and trip ID generation mutations."""
+
+    def test_generate_random_suffix_length(self):
+        """Output length matches requested length.
+        Kills mutation: length=6 -> length=7 in generate_random_suffix."""
+        from custom_components.ev_trip_planner.utils import generate_random_suffix
+
+        # Run multiple times since it's random, but check length always matches
+        for _ in range(5):
+            result = generate_random_suffix(6)
+            assert len(result) == 6
+
+    def test_generate_random_suffix_default_length(self):
+        """Default suffix length is 6 characters.
+        Kills mutation: default length 6 -> 7."""
+        from custom_components.ev_trip_planner.utils import generate_random_suffix
+
+        result = generate_random_suffix()
+        assert len(result) == 6

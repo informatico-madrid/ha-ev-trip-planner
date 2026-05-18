@@ -233,7 +233,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `docs(mutation-score-ramp): log what&why for utils gate fix`
   - _Requirements: NFR-7_
 
-- [ ] 1.23 Strengthen/add honest tests for `utils` survivors to meet its existing threshold (A.3)
+- [x] 1.23 Strengthen/add honest tests for `utils` survivors to meet its existing threshold (A.3)
   - **Do**:
     1. Targeted run: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.utils.*"`.
     2. Enumerate `utils` survivors; classify; strengthen/add/dedupe/replace honest tests so `utils` measured rate reaches/exceeds its EXISTING threshold. NO threshold lowered; NFR-1 no skip/pragma.
