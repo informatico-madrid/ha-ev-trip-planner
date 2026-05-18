@@ -21,7 +21,7 @@ method removals land ATOMICALLY with their 11 test deletions in the same commit.
   - _Requirements: FR-8, US-8, AC-8.1, AC-8.2_
   - _Design: Component 8_
 
-- [ ] 1.2 Remove 4 dead attributes from EMHASSAdapter
+- [x] 1.2 Remove 4 dead attributes from EMHASSAdapter — 22e663a
   - **Do**:
     1. In `emhass/adapter.py`, remove line 133 assignment `self._stored_battery_capacity_kwh = battery_capacity_kwh`
     2. Remove line 146 declaration `self._stored_t_base: float | None = None`
