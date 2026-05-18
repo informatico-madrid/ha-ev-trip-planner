@@ -60,7 +60,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify 0 mutmut timeouts and empty _other bucket`
   - _Requirements: US-1, AC-1.4, AC-1.5, NFR-5_
 
-- [ ] 1.3 [VERIFY] Verify `make mutation-gate` runs without traceback (A.1)
+- [x] 1.3 [VERIFY] Verify `make mutation-gate` runs without traceback (A.1)
   - **Do**: Run `make mutation-gate`; confirm it prints the gate table + JSON with no Python traceback. Capture the per-module table into `.progress.md` as the **A.1 authoritative pre-rebase gate snapshot**.
   - **Files**: `specs/mutation-score-ramp/.progress.md`
   - **Done when**: gate table + JSON printed, no traceback (gate verdict may be NOK — expected pre-fix).
