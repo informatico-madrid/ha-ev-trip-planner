@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-05-18T05:44:11Z",
+  "updated": "2026-05-05T06:15:01Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 39,
+      "specsCount": 34,
       "isDefault": true
     }
   ],
@@ -34,7 +34,8 @@
       "name": "009-fix-vehicle-creation-dashboard-notifications",
       "path": "./specs/009-fix-vehicle-creation-dashboard-notifications",
       "phase": "tasks",
-      "taskIndex": 0,
+      "taskIndex": 0
+0,
       "totalTasks": 158
     },
     {
@@ -62,7 +63,8 @@
       "name": "017-native-panel-core",
       "path": "./specs/017-native-panel-core",
       "phase": "tasks",
-      "taskIndex": 0,
+      "taskIndex": 0
+0,
       "totalTasks": 68
     },
     {
@@ -70,7 +72,7 @@
       "path": "./specs/020-fix-panel-trips-sensors",
       "phase": "tasks",
       "taskIndex": 0,
-      "totalTasks": 24
+      "totalTasks": 5
     },
     {
       "name": "trip-creation",
@@ -115,8 +117,8 @@
     {
       "name": "trip-card-enhancement",
       "path": "./specs/trip-card-enhancement",
-      "phase": "completed",
-      "taskIndex": 21,
+      "phase": "execution",
+      "taskIndex": 5,
       "totalTasks": 21
     },
     {
@@ -129,9 +131,10 @@
     {
       "name": "emhass-integration-with-fixes",
       "path": "./specs/emhass-integration-with-fixes",
-      "phase": "completed",
-      "taskIndex": 23,
-      "totalTasks": 23
+      "phase": "execution",
+      "taskIndex": 10,
+      "totalTasks": 23,
+      "awaitingApproval": true
     },
     {
       "name": "013-fix-emhass-attribute-size",
@@ -150,8 +153,8 @@
     {
       "name": "duplicate-emhass-sensor-fix",
       "path": "./specs/duplicate-emhass-sensor-fix",
-      "phase": "completed",
-      "taskIndex": 25,
+      "phase": "tasks",
+      "taskIndex": 19,
       "totalTasks": 25
     },
     {
@@ -178,9 +181,9 @@
     {
       "name": "fix-emhass-sensor-attributes",
       "path": "./specs/fix-emhass-sensor-attributes",
-      "phase": "completed",
-      "taskIndex": 38,
-      "totalTasks": 38
+      "phase": "execution",
+      "taskIndex": 36,
+      "totalTasks": 39
     },
     {
       "name": "m401-emhass-hotfixes",
@@ -206,77 +209,38 @@
     {
       "name": "e2e-ux-tests-fix",
       "path": "./specs/e2e-ux-tests-fix",
-      "phase": "completed",
-      "taskIndex": 98,
-      "totalTasks": 98
+      "phase": "tasks"
     },
     {
       "name": "pr35-review-fixes",
       "path": "./specs/pr35-review-fixes",
-      "phase": "completed",
+      "phase": "execution",
       "taskIndex": 6,
       "totalTasks": 6
     },
     {
       "name": "propagate-charge-deficit-algo",
       "path": "./specs/propagate-charge-deficit-algo",
-      "phase": "tasks",
-      "taskIndex": 2,
-      "totalTasks": 5
+      "phase": "execution",
+      "taskIndex": 0,
+      "totalTasks": 0
     },
     {
       "name": "propagate-charge-wiring",
       "path": "./specs/propagate-charge-wiring",
-      "phase": "new"
+      "phase": "requirements"
+    },
+    {
+      "name": "propagate-charge-test",
+      "path": "./specs/propagate-charge-test",
+      "phase": "requirements"
     },
     {
       "name": "m403-dynamic-soc-capping",
       "path": "./specs/m403-dynamic-soc-capping",
-      "phase": "completed",
-      "taskIndex": 30,
-      "totalTasks": 30
-    },
-    {
-      "name": "tooling-foundation",
-      "path": "./specs/tooling-foundation",
-      "phase": "completed",
-      "taskIndex": 18,
-      "totalTasks": 18
-    },
-    {
-      "name": "spec1-dead-code",
-      "path": "./specs/spec1-dead-code",
-      "phase": "completed",
-      "taskIndex": 22,
-      "totalTasks": 22
-    },
-    {
-      "name": "2-test-reorg",
-      "path": "./specs/2-test-reorg",
-      "phase": "execution",
-      "taskIndex": 53,
-      "totalTasks": 63
-    },
-    {
-      "name": "3-solid-refactor",
-      "path": "./specs/3-solid-refactor",
-      "phase": "tasks",
-      "taskIndex": 163,
-      "totalTasks": 166
-    },
-    {
-      "name": "high-arity-refactoring",
-      "path": "./specs/high-arity-refactoring",
-      "phase": "done",
-      "taskIndex": 23,
-      "totalTasks": 23
-    },
-    {
-      "name": "dead-code-elimination",
-      "path": "./specs/dead-code-elimination",
       "phase": "tasks",
       "taskIndex": 0,
-      "totalTasks": 18,
+      "totalTasks": 200,
       "awaitingApproval": true
     }
   ]

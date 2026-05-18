@@ -1,0 +1,272 @@
+# Dashboard Trip List View for EV Trip Planner
+# This template provides a view to list and manage trips (recurring and punctual)
+# It displays all trips with status and allows navigation to CRUD operations
+
+title: "EV Trip Planner - Lista de Viajes"
+refresh_interval: 10
+javascript:
+  - /local/custom_components/ev_trip_planner/dashboard/dashboard.js
+views:
+  - title: "Viajes - {{ vehicle_name }}"
+    path: "{{ vehicle_id }}-trips"
+    icon: mdi:map-marker-route
+    columns: 1
+    cards:
+      # Header card
+      - type: markdown
+        content: |
+          # Lista de Viajes Programados
+
+          Aquí puedes ver todos tus viajes recurrentes y puntuales.
+
+      # Navigation tabs
+      - type: grid
+        columns: 2
+        cards:
+          - type: custom:button-card
+            name: "🔄 Recurrentes"
+            icon: mdi:calendar-repeat
+            tap_action:
+              action: perform-visual-refresh
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--primary-color);
+                  color: white;
+                }
+            styles:
+              card:
+                - background: var(--primary-color)
+                - color: white
+
+          - type: custom:button-card
+            name: "📅 Puntuales"
+            icon: mdi:calendar
+            tap_action:
+              action: perform-visual-refresh
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--secondary-background-color);
+                  color: var(--primary-text-color);
+                }
+            styles:
+              card:
+                - background: var(--secondary-background-color)
+                - color: var(--primary-text-color)
+
+      # Trip counter card
+      - type: custom:button-card
+        name: "Total Viajes"
+        icon: mdi:map-marker-check
+        color: "#4CAF50"
+        tap_action:
+          action: perform-visual-refresh
+        styles:
+          card:
+            - background: "#4CAF50"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+          name:
+            - font-size: 16px
+            - font-weight: bold
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_icon: true
+        template:
+          - name: "Total Viajes"
+            icon: "mdi:map-marker-check"
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Recurring trips section
+      - type: markdown
+        title: "🔄 Viajes Recurrentes"
+        content: |
+          Viajes que se repiten semanalmente.
+
+      # Recurring trips list
+      - type: custom:button-card
+        name: "Ver Viajes Recurrentes"
+        icon: mdi:calendar-week
+        color: "#2196F3"
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-trips-recurring
+        styles:
+          card:
+            - background: "#2196F3"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+            - margin: 5px 0
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Punctual trips section
+      - type: markdown
+        title: "📅 Viajes Puntuales"
+        content: |
+          Viajes únicos para fechas específicas.
+
+      # Punctual trips list
+      - type: custom:button-card
+        name: "Ver Viajes Puntuales"
+        icon: mdi:calendar-clock
+        color: "#4CAF50"
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-trips-punctual
+        styles:
+          card:
+            - background: "#4CAF50"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+            - margin: 5px 0
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Divider
+      - type: markdown
+        content: "---"
+
+      # Quick actions section
+      - type: markdown
+        title: "⚡ Acciones Rápidas"
+        content: |
+          Acciones rápidas para gestionar tus viajes.
+
+      # Add recurring trip button
+      - type: custom:button-card
+        name: "➕ Crear Viaje Recurrente"
+        icon: mdi:plus-circle
+        color: "#673AB7"
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-create
+        styles:
+          card:
+            - background: "#673AB7"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+            - margin: 5px 0
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Add punctual trip button
+      - type: custom:button-card
+        name: "➕ Crear Viaje Puntual"
+        icon: mdi:plus-circle-outline
+        color: "#03A9F4"
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-create
+        styles:
+          card:
+            - background: "#03A9F4"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+            - margin: 5px 0
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # View all trips button
+      - type: custom:button-card
+        name: "👀 Ver Todos los Viajes"
+        icon: mdi:list-status
+        color: "#FF9800"
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}-trips-all
+        styles:
+          card:
+            - background: "#FF9800"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+            - margin: 5px 0
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Refresh button
+      - type: custom:button-card
+        name: "🔄 Actualizar Lista"
+        icon: mdi:refresh
+        color: "#9C27B0"
+        tap_action:
+          action: perform-visual-refresh
+        styles:
+          card:
+            - background: "#9C27B0"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+            - margin: 5px 0
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Navigation back button
+      - type: custom:button-card
+        name: "⬅️ Volver al Dashboard"
+        icon: mdi:arrow-left
+        color: "#607D8B"
+        size: 100%
+        tap_action:
+          action: navigate
+          navigate_path: /lovelace/{{ vehicle_id }}
+        styles:
+          card:
+            - background: "#607D8B"
+            - color: white
+            - border-radius: 10px
+            - padding: 15px
+            - font-size: 14px
+          icon:
+            - color: white
+        layout: icon_header_name
+        show_name: true
+        show_icon: true
+
+      # Help text
+      - type: markdown
+        content: |
+          ---
+
+          ### 💡 Información
+
+          - Los viajes recurrentes se actualizan automáticamente cada semana
+          - Los viajes puntuales son únicos para una fecha específica
+          - Puedes editar o eliminar viajes desde sus respectivas listas
+          - Los cambios se reflejan inmediatamente en el dashboard
