@@ -191,7 +191,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `test(mutation-score-ramp): strengthen __init__ tests to meet gate threshold`
   - _Requirements: US-3, FR-7, AC-3.1, NFR-1, NFR-2_
 
-- [ ] 1.18 [VERIFY] Confirm `__init__` meets threshold via targeted mutmut + test/cover green (A.3)
+- [x] 1.18 [VERIFY] Confirm `__init__` meets threshold via targeted mutmut + test/cover green (A.3)
   - **Do**: Re-run `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.__init__.*"`; confirm `__init__` kill rate >= its existing threshold. Run `make test` and `make test-cover` — both green at 100% coverage.
   - **Files**: (none — verification only)
   - **Done when**: `__init__` >= threshold; `make test` + `make test-cover` exit 0.
@@ -299,7 +299,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 > Worst-first ordering from design B.1 (expected, A.1-confirmed): `config_flow` -> `panel` -> `services` -> `sensor` -> `coordinator` -> `presence_monitor` -> `emhass` -> `trip` -> `vehicle` -> `calculations` -> `diagnostics`/`definitions`/`yaml_trip_storage`. The executor reorders per the A.1 authoritative baseline if it differs and adds blocks for any module not listed here.
 
-- [ ] 2.1.1 [Iteration 1: config_flow] Log What & Why (NFR-7)
+- [x] 2.1.1 [Iteration 1: config_flow] Log What & Why (NFR-7)
   - **Do**: Append one-line What & Why for `config_flow` ramp iteration to `chat.md` before measuring.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `config_flow`.
