@@ -34,7 +34,7 @@ method removals land ATOMICALLY with their 11 test deletions in the same commit.
   - _Requirements: FR-2, US-2, AC-2.1, AC-2.2, AC-2.3, AC-2.4_
   - _Design: Component 1_
 
-- [ ] 1.3 [ATOMIC] Remove 8 dead methods (7 adapter + IndexManager) AND delete their 11 tests
+- [x] 1.3 [ATOMIC] Remove 8 dead methods (7 adapter + IndexManager) AND delete their 11 tests — 40f0f9b
   - **Do** (source + test removal MUST land together in ONE commit — reviewed-and-fixed defect, do not split):
     1. From `emhass/adapter.py` remove 7 dead methods: `async_notify_error` (~222-230), `calculate_deferrable_parameters` (~610-621, returns `{}`), `get_assigned_index` (~207-209), `get_all_assigned_indices` (~211-213), `async_release_trip_index` (~176-186), `async_save` (~164-166), `async_save_trips` EMHASS version (~606-608). Do NOT touch `get_available_indices` (live, used by diagnostics.py) or `state.async_save_trips` (different scope).
     2. From `emhass/index_manager.py` remove `async_release_index` (~63-69). KEEP `async_load_index` and `async_save_index` — no-op stubs called from adapter.py.

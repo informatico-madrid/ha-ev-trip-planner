@@ -157,10 +157,6 @@ class EMHASSAdapter:
         """Load adapter state from storage."""
         await self._index_manager.async_load_index()
 
-    async def async_save(self) -> None:
-        """Save adapter state to storage."""
-        await self._index_manager.async_save_index()
-
     async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:
         """Assign an index to a trip."""
         try:
@@ -168,18 +164,6 @@ class EMHASSAdapter:
         except Exception as err:
             self._error_handler.handle_error("assign_index", err, {"trip_id": trip_id})
             return None
-
-    async def async_release_trip_index(self, trip_id: str) -> bool:
-        """Release an index for a trip."""
-        try:
-            result = self._index_manager.release_index(trip_id)
-            if not result:
-                self._error_handler.handle_index_error(trip_id, "release")
-                return False
-            return True
-        except Exception as err:
-            self._error_handler.handle_error("release_index", err, {"trip_id": trip_id})
-            return False
 
     async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         """Remove a deferrable load."""
@@ -200,30 +184,12 @@ class EMHASSAdapter:
             self._error_handler.handle_error("update", err, {"trip": trip.get("id")})
             return False
 
-    def get_assigned_index(self, trip_id: str) -> Optional[int]:
-        """Get the assigned index for a trip."""
-        return self._index_manager._index_map.get(trip_id)
-
-    def get_all_assigned_indices(self) -> Dict[str, int]:
-        """Get all assigned indices."""
-        return dict(self._index_manager._index_map)
-
     def get_available_indices(self) -> List[int]:
         """Get list of available indices."""
         if not self._index_manager._index_map:
             return [0]
         max_idx = max(self._index_manager._index_map.values())
         return list(range(max_idx + 1))
-
-    async def async_notify_error(
-        self,
-        error_message: str,
-        trip_id: Optional[str] = None,
-    ) -> None:
-        """Notify about an EMHASS error."""
-        self._error_handler.handle_error(
-            "notify", Exception(error_message), {"trip_id": trip_id}
-        )
 
     def get_cached_optimization_results(self) -> Dict[str, Any]:
         """Return cached optimization results for coordinator retrieval.
@@ -598,23 +564,6 @@ class EMHASSAdapter:
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
         self._cached_emhass_status = "unavailable"
-
-    async def async_save_trips(self) -> None:
-        """Save trips to storage."""
-        await self._index_manager.async_save_index()
-
-    def calculate_deferrable_parameters(
-        self, trips: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Calculate deferrable parameters from trips.
-
-        Args:
-            trips: List of trip dictionaries.
-
-        Returns:
-            Dict with calculated parameters.
-        """
-        return {}
 
     # ------------------------------------------------------------------
     # Backward-compat methods for test compatibility (SOLID refactor)
