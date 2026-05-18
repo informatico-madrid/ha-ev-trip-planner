@@ -19,7 +19,7 @@ updated: 2026-05-18
   - Phase 3 — Final verification & quality gates: final full run, V4/V5/V6, VE0-VE3 E2E regression guard.
   - Phase 4 — PR Lifecycle.
 - **Iteration-milestone task**: `2.0` defines the Phase-B per-iteration task template; the executor instantiates one iteration block per module in worst-first order. The provided iteration blocks (2.1.x .. 2.11.x) are the *planned* set; the count is **unbounded** — the executor MUST add more iteration blocks if any module is still <100% after the planned set.
-- **Total task count**: 96 (see footer for per-phase breakdown).
+- **Total task count**: 110 (see footer for per-phase breakdown).
 
 ### Conventions for every task
 

@@ -3,7 +3,7 @@
 Auto-generated summary of all specs across configured directories.
 See [index-state.json](./index-state.json) for machine-readable data.
 
-**Last updated:** 2026-05-18T05:44:11Z
+**Last updated:** 2026-05-18T14:21:18Z
 
 ## Directories (1)
 
@@ -53,7 +53,7 @@ See [index-state.json](./index-state.json) for machine-readable data.
 | 2-test-reorg | ./specs | execution | 53/63 tasks |
 | 3-solid-refactor | ./specs | tasks | 163/166 tasks |
 | high-arity-refactoring | ./specs | done |  |
-| dead-code-elimination | ./specs | tasks | awaiting approval |
+| dead-code-elimination | ./specs | execution | 20/21 tasks |
 
 ---
 
