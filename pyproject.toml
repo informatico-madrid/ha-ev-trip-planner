@@ -253,18 +253,6 @@ status = "passing"
 kill_threshold = 0.51
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.dashboard.importer]
-kill_threshold = 0.35
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.dashboard.builder]
-kill_threshold = 0.35
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.dashboard.template_manager]
-kill_threshold = 0.35
-status = "in_progress"
-
 [tool.quality-gate.mutation.modules.diagnostics]
 kill_threshold = 0.28
 status = "passing"

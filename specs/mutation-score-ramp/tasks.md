@@ -81,7 +81,7 @@ Focus: make the 3 make targets run clean, capture the authoritative baseline, re
   - **Commit**: `chore(mutation-score-ramp): verify make layer2 end-to-end clean`
   - _Requirements: US-1, FR-3, AC-1.3_
 
-- [ ] 1.5 Capture A.1 authoritative baseline: analyzer-emitted module list + per-module kill rates
+- [x] 1.5 Capture A.1 authoritative baseline: analyzer-emitted module list + per-module kill rates
   - **Do**:
     1. From the completed full run, run `mutmut results --all true` and aggregate by path segment 3 to enumerate the EXACT set of analyzer-emitted modules.
     2. Record per-module killed/survived/total/kill-rate AND overall kill rate into `.progress.md` as the **A.1 authoritative baseline table** (binding for all worst-first ordering and threshold decisions; supersedes the stale `research.md` baseline).
