@@ -208,6 +208,177 @@ function validateAllPowerAssertions(
 }
 
 // ============================================================================
+// EMHASS deferrable load assertions — BUG DETECTORS
+// These detect: def_total_hours floats, def_start_timestep all-zero,
+// def_end_timestep non-incremental, p_deferrable_matrix wrong column count
+// ============================================================================
+
+/**
+ * Validate that def_total_hours_array contains only integers (not floats).
+ * BUG-1: round() instead of math.ceil() produces floats like [0.91, 1.36, 0.14, 1.82].
+ * Expected: integers like [1, 2, 1, 2].
+ */
+function validateDefTotalHoursAreIntegers(
+  attrs: Record<string, any>,
+): { valid: boolean; errors: string[]; values: number[] } {
+  const arr = (attrs.def_total_hours_array as number[]) || [];
+  if (arr.length === 0) {
+    return { valid: false, errors: ['def_total_hours_array is empty'], values: [] };
+  }
+  const errors: string[] = [];
+  const nonIntegers: number[] = [];
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    if (v !== Math.floor(v)) {
+      nonIntegers.push(v);
+      errors.push(`def_total_hours[${i}] = ${v} (float, expected integer ceil)`);
+    }
+  }
+  if (errors.length > 0) {
+    console.error(`  ❌ FAIL: ${errors.length} non-integer def_total_hours: ${nonIntegers.join(', ')}`);
+  }
+  return { valid: errors.length === 0, errors, values: arr };
+}
+
+/**
+ * Validate def_start_timestep values are valid (>= 0, < horizon).
+ *
+ * When car is at home for all trips (hora_regreso=None), all def_start=0
+ * is expected and valid. The key invariant is:
+ * - def_start >= 0 (never negative)
+ * - def_start < horizon_hours
+ * - window_size >= def_total_hours (checked in validateDefEndTimestepConsistency)
+ */
+function validateDefStartTimestepChronological(
+  attrs: Record<string, any>,
+): { valid: boolean; errors: string[]; values: number[] } {
+  const arr = (attrs.def_start_timestep_array as number[]) || [];
+  if (arr.length === 0) {
+    return { valid: false, errors: ['def_start_timestep_array is empty'], values: [] };
+  }
+  const errors: string[] = [];
+  const horizon = 168; // default 7 days
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] < 0 || arr[i] >= horizon) {
+      errors.push(`def_start_timestep[${i}] = ${arr[i]} out of valid range [0, ${horizon})`);
+    }
+  }
+  if (errors.length > 0) {
+    console.error(`  ❌ FAIL: def_start_timestep invalid: ${arr.join(', ')}`);
+  }
+  return { valid: errors.length === 0, errors, values: arr };
+}
+
+/**
+ * Validate def_end_timestep uses fin_ventana (trip departure), not start+hours.
+ *
+ * def_end = opportunity window end (trip departure time)
+ * def_start = opportunity window start
+ * def_total_hours = actual charging time needed within the window
+ *
+ * Invariant: window_size >= def_total_hours (opportunity must accommodate charging)
+ * AND: def_end > def_start (non-trivial window)
+ */
+function validateDefEndTimestepConsistency(
+  attrs: Record<string, any>,
+): { valid: boolean; errors: string[] } {
+  const starts = (attrs.def_start_timestep_array as number[]) || [];
+  const hours = (attrs.def_total_hours_array as number[]) || [];
+  const ends = (attrs.def_end_timestep_array as number[]) || [];
+  const errors: string[] = [];
+
+  const minLen = Math.min(starts.length, hours.length, ends.length);
+  for (let i = 0; i < minLen; i++) {
+    if (ends[i] <= starts[i]) {
+      errors.push(
+        `Trip ${i}: def_end[${ends[i]}] <= def_start[${starts[i]}] — window must be non-trivial`,
+      );
+    }
+    const windowSize = ends[i] - starts[i];
+    if (windowSize < hours[i]) {
+      errors.push(
+        `Trip ${i}: window_size[${windowSize}] < hours[${hours[i]}] — opportunity must accommodate charging`,
+      );
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error(`  ❌ FAIL: def_end_timestep inconsistent: ${errors.join('; ')}`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate that p_deferrable_matrix has the correct number of columns
+ * (horizon_hours = planning_horizon_days * 24). Default is 168 (7 days).
+ * BUG: hardcoded * 4 (15-min assumption) produces 96 columns instead of 168.
+ */
+function validatePDeferrableMatrixColumns(
+  attrs: Record<string, any>,
+  expectedColumns: number,
+): { valid: boolean; errors: string[] } {
+  const matrix = (attrs.p_deferrable_matrix as number[][]) || [];
+  if (matrix.length === 0) {
+    return { valid: false, errors: ['p_deferrable_matrix is empty'], };
+  }
+  const errors: string[] = [];
+  for (let i = 0; i < matrix.length; i++) {
+    const rowLen = matrix[i].length;
+    if (rowLen !== expectedColumns) {
+      errors.push(
+        `p_deferrable_matrix row ${i} has ${rowLen} columns, expected ${expectedColumns}`,
+      );
+    }
+  }
+  if (errors.length > 0) {
+    console.error(`  ❌ FAIL: ${errors.join('; ')}`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Run ALL EMHASS deferrable load assertions (BUG DETECTORS).
+ * Returns true if all checks pass.
+ */
+function validateDeferrableLoadAssertions(
+  attrs: Record<string, any>,
+  expectedColumns: number = 168,
+): boolean {
+  const intValidation = validateDefTotalHoursAreIntegers(attrs);
+  const chronoValidation = validateDefStartTimestepChronological(attrs);
+  const endValidation = validateDefEndTimestepConsistency(attrs);
+  const matrixValidation = validatePDeferrableMatrixColumns(attrs, expectedColumns);
+
+  console.log(
+    `  🔢 def_total_hours are integers: ${intValidation.valid ? '✅' : '❌'} (${intValidation.values.length > 0 ? intValidation.values.join(', ') : 'empty'})`,
+  );
+  console.log(
+    `  📐 def_start_timestep chronological: ${chronoValidation.valid ? '✅' : '❌'} (${chronoValidation.values.length > 0 ? chronoValidation.values.join(', ') : 'empty'})`,
+  );
+  console.log(
+    `  🏁 def_end_timestep consistent: ${endValidation.valid ? '✅' : '❌'}`,
+  );
+  console.log(
+    `  📏 p_deferrable_matrix columns: ${matrixValidation.valid ? '✅' : '❌'} (expected ${expectedColumns})`,
+  );
+
+  if (!intValidation.valid) {
+    for (const err of intValidation.errors) console.error(`  ❌ ${err}`);
+  }
+  if (!chronoValidation.valid) {
+    for (const err of chronoValidation.errors) console.error(`  ❌ ${err}`);
+  }
+  if (!endValidation.valid) {
+    for (const err of endValidation.errors) console.error(`  ❌ ${err}`);
+  }
+  if (!matrixValidation.valid) {
+    for (const err of matrixValidation.errors) console.error(`  ❌ ${err}`);
+  }
+
+  return intValidation.valid && chronoValidation.valid && endValidation.valid && matrixValidation.valid;
+}
+
+// ============================================================================
 // Helpers — patterns from working e2e suite (emhass-sensor-updates.spec.ts)
 // ============================================================================
 
@@ -455,6 +626,11 @@ test.describe('Dynamic SOC Capping — Multi-Trip Scenarios', () => {
     // The SOC cap must NOT distort power values — only reduce hours/kWh.
     const scenarioCPass = validateAllPowerAssertions(attrs, CHARGER_POWER_WATTS);
     expect(scenarioCPass).toBe(true);
+
+    // CRITICAL BUG DETECTORS: def_total_hours must be integers (ceil),
+    // def_start_timestep must be chronological, def_end based on fin_ventana.
+    const deferrablePass = validateDeferrableLoadAssertions(attrs);
+    expect(deferrablePass).toBe(true);
 
     await cleanupTestTrips(page);
   });

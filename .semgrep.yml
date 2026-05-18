@@ -1,0 +1,127 @@
+# Semgrep configuration for Home Assistant custom component security
+# https://semgrep.dev/docs/configuration/
+#
+# Rules target HA-specific anti-patterns and common security issues.
+# Run with: semgrep --config .semgrep.yml
+
+rules:
+  - id: ha-unsafe-yaml-load
+    pattern: yaml.load(...)
+    message: >
+      Unsafe yaml.load() usage detected. Use yaml.safe_load() instead.
+      yaml.load() is vulnerable to arbitrary code execution if the YAML
+      contains malicious directives. Home Assistant components should
+      always use yaml.safe_load() for untrusted input.
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      technology:
+        - python
+        - yaml
+        - home-assistant
+      severity: ERROR
+      confidence: HIGH
+    languages: [python]
+    severity: ERROR
+
+  - id: ha-dangerous-eval
+    pattern: eval(...)
+    message: >
+      Dangerous eval() usage detected. eval() can execute arbitrary code
+      and is a major security risk. In Home Assistant components, use
+      alternative approaches like:
+      - Template rendering (hass.templates.render())
+      - Configuration validation (voluptuous schema)
+      - Safe Python evaluation (ast.literal_eval for literals only)
+    metadata:
+      category: security
+      cwe: "CWE-94: Improper Control of Generation of Code"
+      technology:
+        - python
+        - home-assistant
+      severity: ERROR
+      confidence: HIGH
+    languages: [python]
+    severity: ERROR
+
+  - id: ha-unsafe-pickle-load
+    pattern-either:
+      - pattern: pickle.load(...)
+      - pattern: pickle.loads(...)
+    message: >
+      Unsafe pickle.load() usage detected. Pickle can execute arbitrary
+      code during deserialization. Use JSON, msgpack, or Home Assistant's
+      storage API instead. For HA components, use homeassistant.helpers.storage.
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      technology:
+        - python
+        - home-assistant
+      severity: ERROR
+      confidence: HIGH
+    languages: [python]
+    severity: ERROR
+
+  - id: ha-hardcoded-credentials
+    pattern-either:
+      - pattern: $PASSWORD = "..."
+      - pattern: $PASSWORD = '...'
+      - pattern: $API_KEY = "..."
+      - pattern: $API_KEY = '...'
+      - pattern: $TOKEN = "..."
+      - pattern: $TOKEN = '...'
+    message: >
+      Possible hardcoded credential detected. Secrets should be stored in
+      Home Assistant's configuration (secrets.yaml) or retrieved from
+      the config entry (entry.data). Never hardcode credentials in source.
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      technology:
+        - python
+        - home-assistant
+      severity: WARNING
+      confidence: MEDIUM
+    languages: [python]
+    severity: WARNING
+
+  - id: ha-shell-injection
+    pattern-either:
+      - pattern: os.system($INPUT)
+      - pattern: subprocess.call($CMD, shell=True)
+      - pattern: subprocess.run($CMD, shell=True)
+      - pattern: subprocess.Popen($CMD, shell=True)
+    message: >
+      Shell injection risk detected. Never pass untrusted input to shell
+      commands. In HA components, use Home Assistant's process management
+      or avoid shell commands entirely. If required, use list arguments
+      without shell=True.
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      technology:
+        - python
+        - home-assistant
+      severity: ERROR
+      confidence: HIGH
+    languages: [python]
+    severity: ERROR
+
+  - id: ha-unsafe-ssl-context
+    pattern: ssl._create_unverified_context()
+    message: >
+      Unsafe SSL context detected. Disabling SSL verification exposes
+      connections to man-in-the-middle attacks. In HA components,
+      use proper SSL verification or configure ssl.SSLContext() with
+      appropriate certificate validation.
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+      technology:
+        - python
+        - home-assistant
+      severity: ERROR
+      confidence: HIGH
+    languages: [python]
+    severity: ERROR

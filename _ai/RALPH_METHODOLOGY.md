@@ -144,7 +144,8 @@ covering everything from trip creation to the current SOLID refactor.
 | `trip-card-enhancement` | Dashboard trip card improvements |
 | `regression-orphaned-sensors-ha-core-investigation` | HA core orphaned sensors investigation |
 | `automation-template` | Charging automation templates |
-| `solid-refactor-coverage` | SOLID refactor + test coverage (active spec) |
+| `solid-refactor-coverage` | SOLID refactor — 9 god-classes → 9 packages (COMPLETED 2026-05-14) |
+| `3-solid-refactor` | Harness-driven SOLID decomposition with dual-agent quality (COMPLETED 2026-05-14) |
 | `_epics/` | Triage epics for cross-cutting features |
 
 ### Naming Evolution

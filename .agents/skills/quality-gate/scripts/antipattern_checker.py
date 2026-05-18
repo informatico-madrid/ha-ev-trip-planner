@@ -28,7 +28,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Thresholds (override via config/quality-gate.yaml if loaded)
 # ---------------------------------------------------------------------------

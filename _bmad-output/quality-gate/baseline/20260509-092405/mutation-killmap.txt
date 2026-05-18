@@ -1,0 +1,136 @@
+{
+  "mutation_kill_map": {
+    "__init__": {
+      "killed": 124,
+      "survived": 117,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 241,
+      "rate": 0.515
+    },
+    "calculations": {
+      "killed": 1237,
+      "survived": 489,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 1726,
+      "rate": 0.717
+    },
+    "config_flow": {
+      "killed": 74,
+      "survived": 165,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 239,
+      "rate": 0.31
+    },
+    "coordinator": {
+      "killed": 54,
+      "survived": 89,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 143,
+      "rate": 0.378
+    },
+    "dashboard": {
+      "killed": 644,
+      "survived": 1171,
+      "timeout": 2,
+      "no_tests": 0,
+      "total": 1817,
+      "rate": 0.354
+    },
+    "definitions": {
+      "killed": 18,
+      "survived": 0,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 18,
+      "rate": 1.0
+    },
+    "diagnostics": {
+      "killed": 69,
+      "survived": 5,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 74,
+      "rate": 0.932
+    },
+    "emhass_adapter": {
+      "killed": 1456,
+      "survived": 1293,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 2749,
+      "rate": 0.53
+    },
+    "panel": {
+      "killed": 73,
+      "survived": 120,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 193,
+      "rate": 0.378
+    },
+    "presence_monitor": {
+      "killed": 378,
+      "survived": 348,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 726,
+      "rate": 0.521
+    },
+    "sensor": {
+      "killed": 253,
+      "survived": 401,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 654,
+      "rate": 0.387
+    },
+    "services": {
+      "killed": 1018,
+      "survived": 1640,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 2658,
+      "rate": 0.383
+    },
+    "trip_manager": {
+      "killed": 1421,
+      "survived": 1615,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 3036,
+      "rate": 0.468
+    },
+    "utils": {
+      "killed": 288,
+      "survived": 34,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 322,
+      "rate": 0.894
+    },
+    "vehicle_controller": {
+      "killed": 294,
+      "survived": 239,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 533,
+      "rate": 0.552
+    },
+    "yaml_trip_storage": {
+      "killed": 30,
+      "survived": 29,
+      "timeout": 0,
+      "no_tests": 0,
+      "total": 59,
+      "rate": 0.508
+    }
+  },
+  "overall_kill_rate": 0.489,
+  "overall_killed": 7431,
+  "overall_total": 15188,
+  "found": true
+}

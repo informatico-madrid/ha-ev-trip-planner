@@ -24,7 +24,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 # Tier B pattern definitions (must match antipattern_checker.py)
 TIER_B_PATTERNS: dict[str, dict[str, str]] = {
     "AP14": {

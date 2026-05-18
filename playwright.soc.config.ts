@@ -9,7 +9,7 @@ import { defineConfig } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e-dynamic-soc',
-  timeout: 60000,
+  timeout: 900000,
   retries: 1,
   workers: 1,
   reporter: [

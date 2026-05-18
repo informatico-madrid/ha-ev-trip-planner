@@ -348,7 +348,7 @@ This project is open source and welcomes contributions. See [CONTRIBUTING.md](CO
 
 4. **Run tests**:
    ```bash
-   pytest tests/ -v --cov=custom_components/ev_trip_planner
+   pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
    ```
 
 5. **Restart Home Assistant** and check logs:
@@ -702,33 +702,74 @@ The complete E2E testing guide is at [_ai/TESTING_E2E.md](_ai/TESTING_E2E.md).
 ```
 ha-ev-trip-planner/
 ├── custom_components/ev_trip_planner/
-│   ├── __init__.py          # Entry point and setup
-│   ├── config_flow.py       # UI Configuration (5 steps)
-│   ├── const.py             # Constants
-│   ├── sensor.py            # Sensor entities
-│   ├── trip_manager.py      # Core trip logic
-│   ├── services.py          # Service handlers
-│   ├── services.yaml        # YAML service definition
-│   ├── emhass_adapter.py    # EMHASS integration
-│   ├── vehicle_controller.py # Vehicle control (switch/service/script)
-│   ├── presence_monitor.py   # Presence monitoring
-│   ├── schedule_monitor.py  # EMHASS schedule monitoring
-│   ├── dashboard.py          # Automatic dashboard import
-│   ├── coordinator.py        # Data coordinator
-│   ├── calculations.py      # Charge calculations
-│   ├── utils.py             # Utilities
-│   ├── yaml_trip_storage.py # Optional YAML storage
-│   ├── definitions.py       # Entity definitions
-│   ├── diagnostics.py       # HA diagnostics support
-│   ├── panel.py             # Custom UI panel
-│   └── translations/        # Translations (en.json, es.json)
-├── frontend/                # Native Panel (Lit web components)
+│   ├── __init__.py              # Entry point and setup
+│   ├── const.py                 # Constants
+│   ├── coordinator.py           # Data coordinator
+│   ├── definitions.py            # Entity definitions
+│   ├── diagnostics.py            # HA diagnostics support
+│   ├── panel.py                  # Custom UI panel
+│   ├── yaml_trip_storage.py      # Optional YAML storage
+│   ├── utils.py                  # Utilities
+│   ├── translations/             # Translations (en.json, es.json)
+│   │
+│   ├── emhass/                   # EMHASS adapter package (Facade + Composition)
+│   │   ├── __init__.py           # EMHASSAdapter facade
+│   │   ├── adapter.py            # Main adapter
+│   │   ├── index_manager.py      # Index pool management
+│   │   ├── load_publisher.py      # Deferrable load publishing
+│   │   └── error_handler.py       # Error handling
+│   │
+│   ├── trip/                     # Trip management package (Facade + Mixins)
+│   │   ├── __init__.py           # TripManager facade
+│   │   ├── manager.py            # Main trip manager
+│   │   ├── _crud_mixin.py        # CRUD operations
+│   │   ├── _soc_mixin.py          # SOC calculations
+│   │   ├── _power_profile_mixin.py # Power profile generation
+│   │   └── _schedule_mixin.py     # Deferrable schedule
+│   │
+│   ├── calculations/             # Pure functions package (Functional Decomposition)
+│   │   ├── __init__.py
+│   │   ├── windows.py             # Charging window calculations
+│   │   ├── soc.py                 # SOC calculations
+│   │   ├── deferrable.py          # Deferrable hours logic
+│   │   └── battery.py             # Battery capacity (SOH-aware)
+│   │
+│   ├── services/                 # Service handlers package (Module Facade)
+│   │   ├── __init__.py           # Service registry
+│   │   ├── _handler_factories.py  # Handler factories
+│   │   ├── handlers.py            # Service handlers
+│   │   └── cleanup.py             # Cleanup operations
+│   │
+│   ├── dashboard/               # Dashboard package (Facade + Builder)
+│   │   ├── __init__.py           # Dashboard facade
+│   │   ├── template_manager.py    # Template loading
+│   │   └── _paths.py             # Path resolution
+│   │
+│   ├── vehicle/                  # Vehicle control package (Strategy Pattern)
+│   │   ├── __init__.py           # VehicleController + strategies
+│   │   └── strategies.py          # Switch/Service/Script/External strategies
+│   │
+│   ├── sensor/                   # Sensor platform package
+│   │   ├── __init__.py           # Sensor platform
+│   │   └── entities.py            # Sensor entities
+│   │
+│   ├── config_flow/             # Config flow package (Flow Type Decomposition)
+│   │   ├── __init__.py           # Config flow entry
+│   │   └── steps.py               # Multi-step config flow
+│   │
+│   ├── presence_monitor/        # Presence detection package
+│   │   ├── __init__.py           # PresenceMonitor
+│   │   └── schedule_monitor.py    # Schedule monitoring
+│   │
+│   └── services.yaml             # YAML service definition
+├── frontend/                     # Native Panel (Lit web components)
 │   ├── panel.js
 │   └── panel.css
-├── dashboard/               # DEPRECATED: Legacy Lovelace Dashboard YAMLs (use native panel)
-├── tests/                   # Unit and integration tests
-│ ├── test_*.py # ~90 test files
-│   └── e2e/                  # E2E Tests (Playwright)
+├── dashboard/                    # DEPRECATED: Legacy Lovelace Dashboard YAMLs (use native panel)
+├── tests/                        # Layered test architecture
+│   ├── unit/                # Unit tests (~1,000+ tests, fast, no HA)
+│   ├── integration/         # Integration tests (~30+ tests, HA fixtures)
+│   ├── e2e/                 # E2E Tests (Playwright)
 │       ├── create-trip.spec.ts
 │       ├── delete-trip.spec.ts
 │       └── ...
@@ -761,13 +802,25 @@ ha-ev-trip-planner/
 ```bash
 cd /your/ha-ev-trip-planner/directory
 source venv/bin/activate
-pytest tests/ -v --cov=custom_components/ev_trip_planner
+pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
 ```
 
-**Specific file tests:**
+**Run a specific layer:**
 ```bash
-pytest tests/test_trip_manager.py -v
-pytest tests/test_emhass_adapter.py -v
+pytest tests/unit -v                          # Unit tests only
+pytest tests/integration -v                   # Integration tests only
+```
+
+**Run a specific file:**
+```bash
+pytest tests/unit/test_trip_manager_core.py -v
+pytest tests/integration/test_coordinator.py -v
+```
+
+**Run with coverage report:**
+```bash
+pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner --cov-report=html
+open htmlcov/index.html
 ```
 
 **E2E Tests (requires Playwright):**

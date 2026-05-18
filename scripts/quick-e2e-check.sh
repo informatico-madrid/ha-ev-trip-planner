@@ -28,7 +28,7 @@ sleep 1
 # Clean setup
 rm -rf "${HA_CONFIG_DIR}"
 mkdir -p "${HA_CONFIG_DIR}/custom_components"
-cp tests/ha-manual/configuration.yaml "${HA_CONFIG_DIR}/configuration.yaml"
+cp scripts/e2e-config/configuration.yaml "${HA_CONFIG_DIR}/configuration.yaml"
 ln -sf "$(pwd)/custom_components/ev_trip_planner" \
        "${HA_CONFIG_DIR}/custom_components/ev_trip_planner"
 

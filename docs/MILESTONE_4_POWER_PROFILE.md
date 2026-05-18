@@ -276,7 +276,7 @@ The logic for detecting insufficient charging time EXISTS in [`async_calcular_en
 
 **Required to implement**:
 - Add a sensor or notification that exposes `es_suficiente` or `alerta_tiempo_insuficiente` to the user
-- Create notification service integration in `presence_monitor.py` or `schedule_monitor.py`
+- Create notification service integration in `presence_monitor.py`
 - Add UI indicator in the native panel
 
 ---

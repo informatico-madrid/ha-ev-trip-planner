@@ -5,7 +5,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 
 ## 🏛️ HOME ASSISTANT ARCHITECTURE - STRICT RULES
 
-4. **Async First:** Home Assistant is completely asynchronous. ALWAYS use `async`/`await` for I/O and use non-blocking HTTP clients like `aiohttp`.
+4. **Async First:** Home Assistant is completely asynchronous. ALWAYS use `async`/`await` for I/O and use non-blocking HTTP clients like `aiohttp`. Every `async` call **must** be `await`ed — never fire-and-forget, as unawaited coroutines are silently skipped.
 
 ## 🏠 HOME ASSISTANT INSTANCES - PRODUCTION VS TEST
 
@@ -14,7 +14,7 @@ This is a **Home Assistant custom integration** for managing Electric Vehicle tr
 
 
 ## 📋 PYTHON CODING STANDARDS
-- **Formatting & Linting:** Code must comply with `black` (88 chars), `isort`, `pylint`, and `mypy`.
+- **Formatting & Linting:** Code must comply with `black` (88 chars), `isort`, `pylint`, and `pyright`.
 - **Typing & Docs:** Type hints and Google-style docstrings are REQUIRED for all public functions and classes.
 - **Logging:** ALWAYS use `%s` format for logging (e.g., `_LOGGER.debug("Data: %s", data)`). DO NOT use f-strings or string concatenation in log payloads.
 - **File Naming & Conventions:**
@@ -65,8 +65,6 @@ When asked to generate a commit message, strictly use Conventional Commits forma
 
 ## TOOL USAGE FOR MAKING CHANGES
 
-- Read the entire file before attempting to make changes
-- Ensure the text to replace exactly matches the file content
 - Use read_file to verify content before making changes
 - If you are implementing tasks, always read docs/IMPLEMENTATION_REVIEW.md for any important notes left by the reviewer that may help you in your task.
 
@@ -134,7 +132,7 @@ Los patrones aceptados en home-assistant/core son muy concretos:
 
 Ramas imposibles de alcanzar en test — Por ejemplo, código que solo se ejecuta si falla algo del sistema operativo, o ramas else de un TYPE_CHECKING block (que solo existe en tiempo de análisis estático, no de ejecución)
 
-Overloads de typing — Funciones decoradas con @overload que son solo para type checkers como mypy, nunca se ejecutan realmente
+Overloads de typing — Funciones decoradas con @overload que son solo para type checkers como pyright, nunca se ejecutan realmente
 
 Bloques if TYPE_CHECKING: — Todo lo que está dentro de este bloque se excluye porque no se ejecuta en runtime
 

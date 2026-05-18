@@ -1,0 +1,205 @@
+
+======================================================================
+ MUTATION TESTING QUALITY GATE
+======================================================================
+
+ Module                         Kill Rate  Threshold   Status
+ ------------------------- -------------- ---------- --------
+ __init__                  51.5% (124/241)        51%     PASS
+ calculations              71.7% (1237/1726)        71%     PASS
+ config_flow               31.0% (74/239)        31%     PASS
+ coordinator               37.8% (54/143)        37%     PASS
+ dashboard                 35.4% (644/1817)        35%     PASS
+ definitions               100.0% (18/18)        45%     PASS
+ diagnostics                93.2% (69/74)        28%     PASS
+ emhass_adapter            53.0% (1456/2749)        53%     PASS
+ panel                     37.8% (73/193)        37%     PASS
+ presence_monitor          52.1% (378/726)        52%     PASS
+ sensor                    38.7% (253/654)        38%     PASS
+ services                  38.3% (1018/2658)        38%     PASS
+ trip_manager              46.8% (1421/3036)        46%     PASS
+ utils                     89.4% (288/322)        89%     PASS
+ vehicle_controller        55.2% (294/533)        55%     PASS
+ yaml_trip_storage          50.8% (30/59)        50%     PASS
+
+ Overall: 48.9% (7431/15188 killed)
+ Modules: 16/16 passed
+
+----------------------------------------------------------------------
+ RESULT: ✅ OK — All modules meet their thresholds
+======================================================================
+
+<!-- JSON OUTPUT -->
+{
+  "gate": "OK",
+  "modules": [
+    {
+      "module": "__init__",
+      "killed": 124,
+      "survived": 117,
+      "total": 241,
+      "kill_rate": 0.515,
+      "threshold": 0.51,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "calculations",
+      "killed": 1237,
+      "survived": 489,
+      "total": 1726,
+      "kill_rate": 0.717,
+      "threshold": 0.71,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "config_flow",
+      "killed": 74,
+      "survived": 165,
+      "total": 239,
+      "kill_rate": 0.31,
+      "threshold": 0.31,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "coordinator",
+      "killed": 54,
+      "survived": 89,
+      "total": 143,
+      "kill_rate": 0.378,
+      "threshold": 0.37,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "dashboard",
+      "killed": 644,
+      "survived": 1171,
+      "total": 1817,
+      "kill_rate": 0.354,
+      "threshold": 0.35,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "definitions",
+      "killed": 18,
+      "survived": 0,
+      "total": 18,
+      "kill_rate": 1.0,
+      "threshold": 0.45,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "diagnostics",
+      "killed": 69,
+      "survived": 5,
+      "total": 74,
+      "kill_rate": 0.932,
+      "threshold": 0.28,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "emhass_adapter",
+      "killed": 1456,
+      "survived": 1293,
+      "total": 2749,
+      "kill_rate": 0.53,
+      "threshold": 0.53,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "panel",
+      "killed": 73,
+      "survived": 120,
+      "total": 193,
+      "kill_rate": 0.378,
+      "threshold": 0.37,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "presence_monitor",
+      "killed": 378,
+      "survived": 348,
+      "total": 726,
+      "kill_rate": 0.521,
+      "threshold": 0.52,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "sensor",
+      "killed": 253,
+      "survived": 401,
+      "total": 654,
+      "kill_rate": 0.387,
+      "threshold": 0.38,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "services",
+      "killed": 1018,
+      "survived": 1640,
+      "total": 2658,
+      "kill_rate": 0.383,
+      "threshold": 0.38,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "trip_manager",
+      "killed": 1421,
+      "survived": 1615,
+      "total": 3036,
+      "kill_rate": 0.468,
+      "threshold": 0.46,
+      "passed": true,
+      "status": "in_progress"
+    },
+    {
+      "module": "utils",
+      "killed": 288,
+      "survived": 34,
+      "total": 322,
+      "kill_rate": 0.894,
+      "threshold": 0.89,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "vehicle_controller",
+      "killed": 294,
+      "survived": 239,
+      "total": 533,
+      "kill_rate": 0.552,
+      "threshold": 0.55,
+      "passed": true,
+      "status": "passing"
+    },
+    {
+      "module": "yaml_trip_storage",
+      "killed": 30,
+      "survived": 29,
+      "total": 59,
+      "kill_rate": 0.508,
+      "threshold": 0.5,
+      "passed": true,
+      "status": "passing"
+    }
+  ],
+  "summary": {
+    "modules_checked": 16,
+    "modules_passed": 16,
+    "modules_failed": 0,
+    "overall_kill_rate": 0.489,
+    "overall_killed": 7431,
+    "overall_total": 15188
+  }
+}
