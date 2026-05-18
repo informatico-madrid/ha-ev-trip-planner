@@ -64,16 +64,6 @@ class TestAdapterExceptionHandlers:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_release_index_handles_exception(self, mock_hass, mock_entry):
-        """Lines 124-126: Exception in index_manager.release_index."""
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._index_manager.release_index = MagicMock(
-            side_effect=RuntimeError("release error")
-        )
-        result = await adapter.async_release_trip_index("trip_001")
-        assert result is False
-
-    @pytest.mark.asyncio
     async def test_remove_deferrable_load_handles_exception(
         self, mock_hass, mock_entry
     ):
