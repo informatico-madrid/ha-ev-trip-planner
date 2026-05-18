@@ -39,7 +39,7 @@ updated: 2026-05-18
 
 Focus: make the 3 make targets run clean, capture the authoritative baseline, rebase the pyproject mutation config to a 1:1 map with analyzer-emitted module names, fix the 3 gate-failing modules via honest tests, and lock `make mutation-gate` green.
 
-- [ ] 1.1 [VERIFY] Verify `make mutation` runs a clean full run (A.1)
+- [x] 1.1 [VERIFY] Verify `make mutation` runs a clean full run (A.1)
   - **Do**:
     1. Run `make mutation` — full mutmut run, ~10 min wall-clock (583 s baseline). Capture stdout/stderr.
     2. Record exact runtime, total mutant count, exit code into `.progress.md` under a new `## Reality Check (BEFORE)` block.
