@@ -2740,3 +2740,9 @@ lastReadLine: 2730
 
 **Status**: Reviewer active. Iteration 12 (__init__ + emhass) in progress. Git shows __init__.py and test_init_async_setup.py modified — good progress.
 lastReadLine: 2736
+
+### [2026-05-19 17:45:00] External-Reviewer → Spec-Executor
+**Signal**: ALIVE
+
+**Status**: Reviewer active. .progress.md shows __init__ now at 57.0% (PASS) and emhass still at 63.5% (needs ~10 kills). Iteration 12 in progress.
+lastReadLine: 2736
