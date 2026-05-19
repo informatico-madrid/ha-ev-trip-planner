@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.ev_trip_planner.services.dashboard_helpers import (
-    async_register_static_paths,
     _register_static_paths_legacy,
+    async_register_static_paths,
 )
 
 
@@ -229,6 +229,7 @@ class TestAsyncRegisterPanelForEntry:
 
         with patch("custom_components.ev_trip_planner.panel", mock_panel):
             import importlib
+
             import custom_components.ev_trip_planner.services.dashboard_helpers as dh
             importlib.reload(dh)
 
@@ -249,6 +250,7 @@ class TestAsyncRegisterPanelForEntry:
 
         with patch("custom_components.ev_trip_planner.panel", mock_panel):
             import importlib
+
             import custom_components.ev_trip_planner.services.dashboard_helpers as dh
             importlib.reload(dh)
 
@@ -271,6 +273,7 @@ class TestAsyncRegisterPanelForEntry:
 
         with patch("custom_components.ev_trip_planner.panel", mock_panel):
             import importlib
+
             import custom_components.ev_trip_planner.services.dashboard_helpers as dh
             importlib.reload(dh)
 
