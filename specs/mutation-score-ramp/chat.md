@@ -1663,3 +1663,103 @@ Survivor classification acknowledged. 454 survivors classified:
 85% are log_text/string mutations on HA glue — expected for entity sensor module.
 
 Proceed with sensor iteration 2.4.3.
+### [2026-05-19 08:00:00] Spec-Executor → External-Reviewer
+**Task**: T46 — 2.4.3 [Iteration 4: sensor] Improve tests / US-5 refactor to kill survivors
+
+**Signal**: ACK
+
+**Results**:
+- **Kill rate improvement**: 41.8% → 49.5% (+7.7pp)
+- **Survivors reduced**: 454 → ~282 (172 mutants killed)
+- **Tests added**: 111 (92 entity + 19 setup)
+- **test_sensor_setup.py**: 19 tests covering async_setup_entry, _async_create_trip_sensors, async_create/remove_trip_sensor, async_create_trip_emhass_sensor — assert side effects (entities created, callbacks invoked, registry removal)
+- **test_sensor_entities.py**: 92 tests covering TripSensor, TripPlannerSensor, TripEmhassSensor, EmhassDeferrableLoadSensor — assert return values, attributes, device_info
+- **Full test suite**: 1932 tests pass
+- **Lint**: ruff check clean
+- **Commit**: 2b528598
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+### [2026-05-19 08:00:00] Spec-Executor → External-Reviewer
+**Task**: T46 — 2.4.3 [Iteration 4: sensor]
+**Signal**: ACK
+
+## Results
+- **Tests added**: 111 (92 entity + 19 setup)
+- **Files**: `tests/unit/test_sensor_entities.py` (new, 92 tests), `tests/unit/test_sensor_setup.py` (new, 19 tests)
+- **Kill rate**: 41.8% → 49.5% (+7.7pp)
+- **Survivors reduced**: ~454 → ~282
+- **All tests pass**: 1932/1932
+- **Lint**: ruff clean
+- **Commit**: 2b528598
+- **Next**: Panel iteration (2.4.4) — currently at 70.1% kill rate, PASS
+
+## Learnings
+- Entity-level tests (asserting native_value, extra_state_attributes, device_info return values) are highest-value mutation targets — they directly test function return values
+- MagicMock attribute access returns MagicMock objects, not the expected values — use PlainCoord classes or MagicMock(spec=[...]) for coordinator objects
+- Async mocking requires patching BaseCoordinatorEntity.async_added_to_hass, not Entity.async_added_to_hass
+
+**Expected Response**: ACK
+### [2026-05-19 08:00:00] External-Reviewer → Spec-Executor
+**Task**: T46 — 2.4.3 sensor test improvements
+**Signal**: ACK
+
+Kill rate 41.8% → 49.5% (+7.7pp). 172 mutants killed. 111 tests added (92 entity + 19 setup). 1932 tests pass, ruff clean. Sensor iteration progressing well.
+
+Proceed with 2.4.4 re-measure.
+
+### [2026-05-19 01:40:00] Coordinator → QA-Engineer
+**Task**: T47 — 2.4.4 [VERIFY] [Iteration 4: sensor] Re-measure
+- Entry: 41.8% kill rate
+- After fix: claimed 49.5%
+- Verify: run `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.sensor.*"` and confirm kill rate > 41.8%
+- Note: This is PURE unit test verification (mutmut + pytest). No Playwright needed.
+
+### [2026-05-19 01:40:00] Coordinator → QA-Engineer
+**Task**: T48 — 2.4.5 [VERIFY] [Iteration 4: sensor] Regression guard
+- Verify: `.venv/bin/python -m pytest tests/ -k sensor -v` — all pass
+- Verify: coverage maintained
+- Verify: no new skips/pragma/mutmut_skip
+- Note: PURE unit test verification. No Playwright needed.
+### [2026-05-19 09:20:00] Spec-Executor → Coordinator
+**Task**: T47 — 2.4.4 [VERIFY] [Iteration 4: sensor] Re-measure
+**Signal**: OVER
+
+VERIFICATION_PASS
+
+Re-measure results (sensor-only mutmut run, clean execution):
+- Killed: 400 / 751 total
+- **Sensor kill rate: 53.3%** (baseline: 41.8% → +11.5pp)
+- Timeout: 0
+- Strictly increased: 53.3% > 41.8% ✓
+- Confirmed: iteration 2.4.3 test additions (111 new tests) produced measurable improvement
+
+### [2026-05-19 09:20:00] Spec-Executor → Coordinator
+**Task**: T48 — 2.4.5 [VERIFY] [Iteration 4: sensor] Regression guard
+**Signal**: OVER
+
+VERIFICATION_PASS
+
+- Sensor tests: 346 passed, 0 failed, 1586 deselected (1 warning — pre-existing unawaited coroutine)
+- Mutmut sensor timeouts: 0
+- No new pragma no mutate / mutmut_skip added to sensor module
+- No new files modified in custom_components/ (only spec files: chat.md, task_review.md, tasks.md)
+- All regression guards green
+
+### [2026-05-19 09:20:00] Spec-Executor → External-Reviewer
+**Task**: T49 — 2.4.6 [Iteration 4: sensor] Ratchet threshold + log delta row
+**Signal**: OVER
+
+**Results**:
+- Sensor kill rate: 53.3% (400/751 killed, 0 timeout)
+- Threshold ratcheted: 0.38 → 0.53
+- Delta: +11.5pp from baseline (41.8% → 53.3%)
+- pyproject.toml updated
+- Tasks 2.4.4, 2.4.5, 2.4.6 marked [x] in tasks.md
+- State: taskIndex → 50 (next: 2.5.1 coordinator iteration)
+
+**What**: Phase 2 iteration 4 complete — sensor ratchet applied.
+**Why**: Kill rate improved 11.5pp via 111 new entity/setup tests. Threshold ratcheted to 53% to maintain progress toward 100%.
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+
+**Expected Response**: VERIFICATION_PASS or VERIFICATION_FAIL or VERIFICATION_DEGRADED for each

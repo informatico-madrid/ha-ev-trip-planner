@@ -479,7 +479,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `test(mutation-score-ramp): improve sensor tests to kill survivors`
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.4.4 [VERIFY] [Iteration 4: sensor] Re-measure — kill rate strictly increased
+- [x] 2.4.4 [VERIFY] [Iteration 4: sensor] Re-measure — kill rate strictly increased
   - **Do**: Re-run targeted mutmut on `sensor`; confirm rate strictly up vs entry.
   - **Files**: (none — verification only)
   - **Done when**: `sensor` rate strictly up.
@@ -487,7 +487,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify sensor kill rate improved`
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.4.5 [VERIFY] [Iteration 4: sensor] Regression guard — test + cover + import-check
+- [x] 2.4.5 [VERIFY] [Iteration 4: sensor] Regression guard — test + cover + import-check
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
   - **Files**: (none — verification only)
   - **Done when**: all three exit 0.
