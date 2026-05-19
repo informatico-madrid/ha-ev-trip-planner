@@ -206,7 +206,9 @@ kill_threshold = 0.28
 status = "passing"
 
 [tool.quality-gate.mutation.modules.panel]
-kill_threshold = 0.37
+kill_threshold = 0.63
+increment_step = 0.01
+target_final = 1.00
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.services]
