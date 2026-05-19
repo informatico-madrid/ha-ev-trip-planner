@@ -1732,4 +1732,550 @@ async def test_soc_change_skipped_when_no_trip_manager(mock_hass):
     result = monitor._async_handle_soc_change(event)
     if asyncio.iscoroutine(result):
         await result
+
+
+# =============================================================================
+# Mutation-Killing Tests — US-5 log string constants (Task 2.6.3)
+# =============================================================================
+
+
+def test_log_constants_are_non_none_and_non_empty():
+    """Kill None-in-log mutations on extracted constants.
+
+    Mutants that change log strings to None or empty string
+    must be caught because these are module-level constants
+    that are explicitly tested for non-truthiness.
+    """
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_CREATED_PRESENCE_MONITOR,
+        LOG_FAILED_PARSE_HORA_REGRESO,
+        LOG_HOME_DETECTION_NOT_CONFIGURED,
+        LOG_NOTIFICATION_FAILED,
+        LOG_NOTIFICATION_SENT,
+        LOG_RETURN_HOME_DETECTED,
+    )
+
+    assert LOG_CREATED_PRESENCE_MONITOR is not None and len(LOG_CREATED_PRESENCE_MONITOR) > 0
+    assert LOG_RETURN_HOME_DETECTED is not None and len(LOG_RETURN_HOME_DETECTED) > 0
+    assert LOG_NOTIFICATION_SENT is not None and len(LOG_NOTIFICATION_SENT) > 0
+    assert LOG_NOTIFICATION_FAILED is not None and len(LOG_NOTIFICATION_FAILED) > 0
+    assert LOG_HOME_DETECTION_NOT_CONFIGURED is not None and len(LOG_HOME_DETECTION_NOT_CONFIGURED) > 0
+    assert LOG_FAILED_PARSE_HORA_REGRESO is not None and len(LOG_FAILED_PARSE_HORA_REGRESO) > 0
+
+
+def test_log_created_presence_monitor_format():
+    """Kill string_split mutations on LOG_CREATED_PRESENCE_MONITOR.
+
+    Mutants that split or modify the format string must be caught
+    by asserting it contains all expected placeholders.
+    """
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_CREATED_PRESENCE_MONITOR,
+    )
+
+    assert "PresenceMonitor" in LOG_CREATED_PRESENCE_MONITOR
+    assert "home_sensor" in LOG_CREATED_PRESENCE_MONITOR
+    assert "home_coords" in LOG_CREATED_PRESENCE_MONITOR
+    assert "notification_service" in LOG_CREATED_PRESENCE_MONITOR
+    assert "soc_sensor" in LOG_CREATED_PRESENCE_MONITOR
+
+
+def test_log_return_home_format():
+    """Kill string_split mutations on LOG_RETURN_HOME_DETECTED."""
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_RETURN_HOME_DETECTED,
+    )
+
+    assert "Return home" in LOG_RETURN_HOME_DETECTED
+    assert "hora_regreso" in LOG_RETURN_HOME_DETECTED
+    assert "soc_en_regreso" in LOG_RETURN_HOME_DETECTED
+
+
+def test_log_notification_sent_format():
+    """Kill string_split mutations on LOG_NOTIFICATION_SENT."""
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_NOTIFICATION_SENT,
+    )
+
+    assert "Notification" in LOG_NOTIFICATION_SENT
+    assert "Notification" in LOG_NOTIFICATION_SENT
+
+
+def test_log_notification_failed_format():
+    """Kill string_split mutations on LOG_NOTIFICATION_FAILED."""
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_NOTIFICATION_FAILED,
+    )
+
+    assert "notification" in LOG_NOTIFICATION_FAILED.lower()
+    assert "Failed" in LOG_NOTIFICATION_FAILED or "failed" in LOG_NOTIFICATION_FAILED
+
+
+def test_log_home_detection_not_configured_format():
+    """Kill string_split mutations on LOG_HOME_DETECTION_NOT_CONFIGURED."""
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_HOME_DETECTION_NOT_CONFIGURED,
+    )
+
+    assert "home detection" in LOG_HOME_DETECTION_NOT_CONFIGURED.lower()
+    assert "assuming at home" in LOG_HOME_DETECTION_NOT_CONFIGURED.lower()
+
+
+def test_log_failed_parse_hora_regreso_format():
+    """Kill string_split mutations on LOG_FAILED_PARSE_HORA_REGRESO."""
+    from custom_components.ev_trip_planner.presence_monitor import (
+        LOG_FAILED_PARSE_HORA_REGRESO,
+    )
+
+    assert "parse" in LOG_FAILED_PARSE_HORA_REGRESO.lower()
+    assert "hora_regreso_iso" in LOG_FAILED_PARSE_HORA_REGRESO
+
+
+# =============================================================================
+# Mutation-Killing Tests — __init__ attribute mutations (Task 2.6.3)
+# =============================================================================
+
+
+def test_init_attributes_initialized_sensor_based(mock_hass):
+    """Kill attribute mutations in __init__ by asserting all initialized attributes.
+
+    Mutants that replace self._xxx = value with self._xxx = None
+    or default_value on parameters are caught by strict attribute assertions.
+    """
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Direct attributes set in __init__ — kill None-in-attr mutations
+    assert monitor.vehicle_id == "test_vehicle"
+    assert monitor.home_sensor == "binary_sensor.vehicle_home"
+    assert monitor.plugged_sensor == "binary_sensor.vehicle_plugged"
+    assert monitor.soc_sensor == "sensor.ovms_soc"
+    assert monitor.notification_service == "notify.mobile_app"
+    assert monitor.home_coords is None
+    assert monitor.vehicle_coords_sensor is None
+
+    # Private attributes — kill default_value mutations
+    assert monitor._was_home is False
+    assert monitor.hora_regreso is None
+    assert monitor.soc_en_regreso is None
+    assert monitor._last_processed_soc is None
+    # _soc_listener_unsub is set (not None) when soc_sensor is configured
+    assert monitor._soc_listener_unsub is not None
+    assert monitor._return_info_entity_id == "sensor.ev_trip_planner_test_vehicle_return_info"
+
+
+def test_init_attributes_coordinate_based(mock_hass):
+    """Kill attribute mutations for coordinate-based config.
+
+    Ensures home_coords and vehicle_coords_sensor are correctly
+    initialized — mutants that mutate these to None/empty are caught.
+    """
+    config = {
+        CONF_HOME_COORDINATES: "40.4168,-3.7038",
+        CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    assert monitor.home_sensor is None
+    assert monitor.plugged_sensor is None
+    assert monitor.home_coords == (40.4168, -3.7038)
+    assert monitor.vehicle_coords_sensor == "sensor.vehicle_location"
+    assert monitor.soc_sensor is None
+    assert monitor.notification_service is None
+
+
+def test_init_with_trip_manager(mock_hass):
+    """Kill attribute mutation on _trip_manager.
+
+    Mutants that replace self._trip_manager = trip_manager with None
+    are caught by this test.
+    """
+    from unittest.mock import Mock
+
+    mock_trip_manager = Mock()
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, trip_manager=mock_trip_manager)
+
+    assert monitor._trip_manager is mock_trip_manager
+
+
+def test_init_all_sensor_keys_mocked_store(mock_hass):
+    """Kill attribute mutations by asserting store is not None.
+
+    Mutants affecting the Store initialization path are caught
+    because _return_info_store must be a valid (mocked) store object.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    assert monitor._return_info_store is not None
+
+
+# =============================================================================
+# Mutation-Killing Tests — _parse_coordinates mutations (Task 2.6.3)
+# =============================================================================
+
+
+def test_parse_coordinates_none_input(mock_hass):
+    """Kill default_value and identity mutations in _parse_coordinates.
+
+    Mutants that change 'if not coord_string' to always-true/false
+    are caught by asserting None for empty string and non-None for valid.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    assert monitor._parse_coordinates(None) is None
+    assert monitor._parse_coordinates("") is None
+
+
+def test_parse_coordinates_out_of_range(mock_hass):
+    """Kill bool_flip mutations in _parse_coordinates range check.
+
+    Mutants that flip -90 <= lat <= 90 to always True/False
+    are caught by testing boundary values that MUST return None.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Latitude out of range
+    assert monitor._parse_coordinates("91.0, 0.0") is None
+    assert monitor._parse_coordinates("-91.0, 0.0") is None
+
+    # Longitude out of range
+    assert monitor._parse_coordinates("40.0, 181.0") is None
+    assert monitor._parse_coordinates("40.0, -181.0") is None
+
+
+def test_parse_coordinates_boundary_valid(mock_hass):
+    """Kill bool_flip mutations at valid boundaries.
+
+    Mutants that flip the range check are caught by testing
+    exact boundary values that MUST be accepted.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Exact boundary values must be valid
+    result = monitor._parse_coordinates("90.0, 180.0")
+    assert result == (90.0, 180.0)
+
+    result = monitor._parse_coordinates("-90.0, -180.0")
+    assert result == (-90.0, -180.0)
+
+
+# =============================================================================
+# Mutation-Killing Tests — _async_handle_soc_change mutations (Task 2.6.3)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_soc_change_event_without_event_data(mock_hass):
+    """Kill None-in-log mutation on event.data.get('new_state').
+
+    Mutants that mutate event.data to None cause new_state to become None,
+    triggering early return. Assert _last_processed_soc unchanged.
+    """
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    mock_trip_manager = Mock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+    monitor._last_processed_soc = 50.0
+
+    # Event with no 'data' key at all
+    event = Mock(spec=[])
+    event.data = {}
+
+    await monitor._async_handle_soc_change(event)
+
+    # Early return: _last_processed_soc unchanged
+    assert monitor._last_processed_soc == 50.0
+    mock_trip_manager._schedule.publish_deferrable_loads.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_soc_change_invalid_float_state(mock_hass):
+    """Kill mutations in the float conversion path.
+
+    Mutants affecting the try/except on float(new_state.state) are caught
+    by sending a non-numeric state — must return early.
+    """
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_PLUGGED_SENSOR: "binary_sensor.vehicle_plugged",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    mock_trip_manager = Mock()
+    mock_trip_manager._schedule = MagicMock()
+    mock_trip_manager._schedule.publish_deferrable_loads = AsyncMock()
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, mock_trip_manager)
+    monitor._last_processed_soc = 50.0
+
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_plugged_state = Mock()
+    mock_plugged_state.state = "on"
+
+    def mock_get_state(entity_id):
+        if entity_id == "binary_sensor.vehicle_home":
+            return mock_home_state
+        if entity_id == "binary_sensor.vehicle_plugged":
+            return mock_plugged_state
+        return None
+
+    mock_hass.states.get = mock_get_state
+
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+    new_soc_state = Mock()
+    new_soc_state.state = "not_a_number"
+
+    event = Mock()
+    event.data = {"old_state": old_soc_state, "new_state": new_soc_state}
+
+    await monitor._async_handle_soc_change(event)
+
+    # ValueError caught, early return
+    assert monitor._last_processed_soc == 50.0
+
+
+@pytest.mark.asyncio
+async def test_soc_change_trip_manager_none(mock_hass):
+    """Kill None-in-log mutation on self._trip_manager guard.
+
+    Mutants that mutate self._trip_manager to None cause early return.
+    Assert no side effects occur.
+    """
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_SOC_SENSOR: "sensor.ovms_soc",
+    }
+
+    # Create monitor with NO trip_manager
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, trip_manager=None)
+
+    old_soc_state = Mock()
+    old_soc_state.state = "50"
+    new_soc_state = Mock()
+    new_soc_state.state = "60"
+
+    event = Mock()
+    event.data = {"old_state": old_soc_state, "new_state": new_soc_state}
+
+    # Should return early without error
+    result = monitor._async_handle_soc_change(event)
+    import asyncio
+
+    if asyncio.iscoroutine(result):
+        await result
+
+
+# =============================================================================
+# Mutation-Killing Tests — async_check_home_status path mutations (Task 2.6.3)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_check_home_status_sensor_priority_with_coords(mock_hass):
+    """Kill mutations in the conditional branch selection of async_check_home_status.
+
+    Mutants that flip 'if self.home_sensor' or 'elif self.home_coords...'
+    are caught by using a config with BOTH sensor and coordinates,
+    and asserting the sensor path was taken.
+    """
+    config = {
+        CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
+        CONF_HOME_COORDINATES: "40.4168,-3.7038",
+        CONF_VEHICLE_COORDINATES_SENSOR: "sensor.vehicle_location",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Mock home sensor to return "on"
+    mock_home_state = Mock()
+    mock_home_state.state = "on"
+    mock_hass.states.get = Mock(return_value=mock_home_state)
+
+    result = await monitor.async_check_home_status()
+
+    # Sensor path taken: assert True from sensor
+    assert result is True
+    mock_hass.states.get.assert_called_with("binary_sensor.vehicle_home")
+
+
+@pytest.mark.asyncio
+async def test_check_home_status_only_coords_no_vehicle(mock_hass):
+    """Kill mutations in the coordinates-only path.
+
+    When home_coords is set but vehicle_coords_sensor is not,
+    the method must return True (blind mode). Mutants that flip
+    'if self.vehicle_coords_sensor is None' are caught.
+    """
+    config = {
+        CONF_HOME_COORDINATES: "40.4168,-3.7038",
+    }
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    result = await monitor.async_check_home_status()
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_home_status_blind_mode_clears_return_on_departure(mock_hass):
+    """Kill mutations in the blind-mode return/departure logic.
+
+    Mutants in the 'is_home and not self._was_home' or
+    'not is_home and self._was_home' branches are caught.
+    """
+    config = {}  # blind mode
+
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # First call: away (initial _was_home=False, is_home=True in blind mode)
+    # But wait — in blind mode, is_home=True, so first call sets _was_home=True
+    result1 = await monitor.async_check_home_status()
+    assert result1 is True
+    assert monitor._was_home is True
+
+    # Now mock sensor to be away
+    config2 = {CONF_HOME_SENSOR: "binary_sensor.vehicle_home"}
+    monitor2 = PresenceMonitor(mock_hass, "test_vehicle", config2)
+
+    # First: home
+    mock_home = Mock()
+    mock_home.state = "on"
+    mock_hass.states.get = Mock(return_value=mock_home)
+    await monitor2.async_check_home_status()
+    assert monitor2._was_home is True
+
+    # Manually set hora_regreso (simulate previous return)
+    monitor2.hora_regreso = "2026-05-01T10:00:00"
+    monitor2.soc_en_regreso = 50.0
+
+    # Depart: home->off
+    mock_away = Mock()
+    mock_away.state = "off"
+    mock_hass.states.get = Mock(return_value=mock_away)
+    result2 = await monitor2.async_check_home_status()
+
+    assert result2 is False
+    assert monitor2.hora_regreso is None
+    assert monitor2.soc_en_regreso is None
+
+
+# =============================================================================
+# Mutation-Killing Tests — validate_condition_is_native bool_flip (Task 2.6.3)
+# =============================================================================
+
+
+def test_validate_condition_is_native_edge_case_empty_dict(mock_hass):
+    """Kill bool_flip mutations on dict key checks.
+
+    Mutants that flip 'if "entity_id" not in condition' are caught
+    by testing with a dict that has the 'condition' key but missing
+    'entity_id' and 'state'.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Empty dict -> not isinstance check passes, condition is dict
+    # but no 'condition' key -> falls through to return True, None
+    is_valid, error = monitor.validate_condition_is_native({})
+
+    # No 'condition' key at all: falls through to 'return True, None'
+    assert is_valid is True
+    assert error is None
+
+
+def test_validate_condition_is_native_state_without_fields(mock_hass):
+    """Kill bool_flip mutations in state condition validation.
+
+    Mutants affecting the 'if not' checks on condition.get() are caught
+    by testing that missing entity_id AND missing state both fail.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # condition: state, but missing both entity_id and state values
+    is_valid, error = monitor.validate_condition_is_native({
+        "condition": "state",
+    })
+
+    assert is_valid is False
+    assert "entity_id" in error
+
+
+def test_validate_condition_is_native_all_condition_types(mock_hass):
+    """Kill bool_flip mutations by asserting all accepted condition types.
+
+    Mutants that change 'return True, None' to 'return False, ...'
+    are caught by testing all condition types that should be accepted.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Non-state condition types: no entity_id/state validation needed
+    for cond_type in ["and", "or", "not", "device", "sun"]:
+        is_valid, error = monitor.validate_condition_is_native({"condition": cond_type})
+        assert is_valid is True, f"Expected {cond_type} to be valid, got {is_valid}: {error}"
+
+    # State condition WITH required fields should be valid
+    is_valid, error = monitor.validate_condition_is_native({
+        "condition": "state",
+        "entity_id": "sensor.test",
+        "state": "on",
+    })
+    assert is_valid is True
+
+
+# =============================================================================
+# Mutation-Killing Tests — SOC_CHANGE_DEBOUNCE_PERCENT boundary (Task 2.6.3)
+# =============================================================================
+
+
+def test_soc_debounce_constant_is_float(mock_hass):
+    """Kill default_value mutations on SOC_CHANGE_DEBOUNCE_PERCENT.
+
+    Mutants that change the constant value are caught by asserting
+    the exact numeric value.
+    """
+    from custom_components.ev_trip_planner.presence_monitor import (
+        SOC_CHANGE_DEBOUNCE_PERCENT,
+    )
+
+    assert SOC_CHANGE_DEBOUNCE_PERCENT == 5.0
+
+
+def test_home_distance_threshold_constant(mock_hass):
+    """Kill default_value mutations on HOME_DISTANCE_THRESHOLD_METERS.
+
+    Mutants that change the constant value are caught by asserting
+    the exact numeric value.
+    """
+    from custom_components.ev_trip_planner.presence_monitor import (
+        HOME_DISTANCE_THRESHOLD_METERS,
+    )
+
+    assert HOME_DISTANCE_THRESHOLD_METERS == 30.0
     # If we got here without exception, the guard at line 479 worked

@@ -556,7 +556,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet coordinator threshold + log delta row`
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [ ] 2.6.1 [Iteration 6: presence_monitor] Log What & Why (NFR-7)
+- [x] 2.6.1 [Iteration 6: presence_monitor] Log What - [ ] 2.6.1 [Iteration 6: presence_monitor] Log What & Why Why (NFR-7)
   - **Do**: Append one-line What & Why for `presence_monitor` ramp iteration to `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `presence_monitor`.
@@ -564,7 +564,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `docs(mutation-score-ramp): log what&why for presence_monitor ramp iteration`
   - _Requirements: NFR-7_
 
-- [ ] 2.6.2 [Iteration 6: presence_monitor] Measure + classify survivors
+- [x] 2.6.2 [Iteration 6: presence_monitor] Measure + classify survivors
   - **Do**: Targeted mutmut on `presence_monitor`; enumerate + classify; record in `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: classified survivor list recorded.
@@ -572,7 +572,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): enumerate + classify presence_monitor survivors`
   - _Requirements: US-4, AC-4.3_
 
-- [ ] 2.6.3 [Iteration 6: presence_monitor] Improve tests / US-5 refactor to kill survivors
+- [x] 2.6.3 [Iteration 6: presence_monitor] Improve tests / US-5 refactor to kill survivors
   - **Do**: Strengthen/add honest tests; US-5-refactor where needed (justified in `chat.md`); 2.0-ADJ only for genuine intrinsic mutants. NFR-1: no skip/pragma.
   - **Files**: `tests/unit/**`, `tests/integration/**`, `custom_components/ev_trip_planner/presence_monitor/**` (US-5 only)
   - **Done when**: survivors addressed.

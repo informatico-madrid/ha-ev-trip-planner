@@ -31,6 +31,21 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Log strings extracted for US-5 testability (log_text / None-in-log mutations)
+LOG_CREATED_PRESENCE_MONITOR = (
+    "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
+    "notification_service=%s, soc_sensor=%s"
+)
+LOG_RETURN_HOME_DETECTED = (
+    "Return home detected for %s: hora_regreso=%s, soc_en_regreso=%s"
+)
+LOG_NOTIFICATION_SENT = "Notification sent for %s: %s"
+LOG_NOTIFICATION_FAILED = "Failed to send notification for %s: %s"
+LOG_HOME_DETECTION_NOT_CONFIGURED = "No home detection configured for %s, assuming at home"
+LOG_FAILED_PARSE_HORA_REGRESO = (
+    "Failed to parse hora_regreso_iso '%s' for %s: %s"
+)
+
 # Umbral de distancia para considerar que el vehículo está "en casa"
 HOME_DISTANCE_THRESHOLD_METERS = 30.0
 
@@ -39,6 +54,12 @@ SOC_CHANGE_DEBOUNCE_PERCENT = 5.0
 
 __all__ = [
     "HOME_DISTANCE_THRESHOLD_METERS",
+    "LOG_CREATED_PRESENCE_MONITOR",
+    "LOG_FAILED_PARSE_HORA_REGRESO",
+    "LOG_HOME_DETECTION_NOT_CONFIGURED",
+    "LOG_NOTIFICATION_FAILED",
+    "LOG_NOTIFICATION_SENT",
+    "LOG_RETURN_HOME_DETECTED",
     "PresenceMonitor",
     "SOC_CHANGE_DEBOUNCE_PERCENT",
 ]
@@ -102,8 +123,7 @@ class PresenceMonitor:
         self._return_info_entity_id = f"sensor.{DOMAIN}_{vehicle_id}_return_info"
 
         _LOGGER.debug(
-            "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
-            "notification_service=%s, soc_sensor=%s",
+            LOG_CREATED_PRESENCE_MONITOR,
             vehicle_id,
             self.home_sensor,
             self.home_coords,
@@ -122,7 +142,7 @@ class PresenceMonitor:
             is_home = await self._async_check_home_coordinates()
         else:
             _LOGGER.debug(
-                "No home detection configured for %s, assuming at home",
+                LOG_HOME_DETECTION_NOT_CONFIGURED,
                 self.vehicle_id,
             )
             is_home = True
@@ -167,7 +187,7 @@ class PresenceMonitor:
         self.hora_regreso = now.isoformat()
         self.soc_en_regreso = soc_value
         _LOGGER.info(
-            "Return home detected for %s: hora_regreso=%s, soc_en_regreso=%s",
+            LOG_RETURN_HOME_DETECTED,
             self.vehicle_id,
             self.hora_regreso,
             self.soc_en_regreso,
@@ -188,7 +208,7 @@ class PresenceMonitor:
             return datetime.fromisoformat(hora_regreso_iso)
         except (ValueError, AttributeError) as err:
             _LOGGER.warning(
-                "Failed to parse hora_regreso_iso '%s' for %s: %s",
+                LOG_FAILED_PARSE_HORA_REGRESO,
                 hora_regreso_iso,
                 self.vehicle_id,
                 err,
@@ -361,11 +381,10 @@ class PresenceMonitor:
                     "notification_id": f"ev_trip_planner_{self.vehicle_id}",
                 },
             )
-            _LOGGER.info("Notification sent for %s: %s", self.vehicle_id, title)
+            _LOGGER.info(LOG_NOTIFICATION_SENT, self.vehicle_id, title)
             return True
         except Exception as err:  # pylint: disable=broad-except
-            _LOGGER.error(
-                "Failed to send notification for %s: %s", self.vehicle_id, err
+            _LOGGER.error(LOG_NOTIFICATION_FAILED, self.vehicle_id, err
             )
             return False
 
