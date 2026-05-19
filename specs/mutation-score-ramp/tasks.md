@@ -363,7 +363,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): enumerate + classify panel survivors`
   - _Requirements: US-4, AC-4.3_
 
-- [ ] 2.2.3 [Iteration 2: panel] Improve tests / US-5 refactor to kill survivors
+- [x] 2.2.3 [Iteration 2: panel] Improve tests / US-5 refactor to kill survivors
   - **Do**: Strengthen/add honest tests; US-5-refactor HA-glue logic into directly-callable pure helpers where needed (API-preserving, justified in `chat.md`); 2.0-ADJ for genuine intrinsic mutants only. NFR-1: no skip/pragma.
   - **Files**: `tests/unit/**`, `tests/integration/**`, `custom_components/ev_trip_planner/panel.py` (US-5 only)
   - **Done when**: survivors addressed.
@@ -371,7 +371,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `test(mutation-score-ramp): improve panel tests to kill survivors`
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.2.4 [VERIFY] [Iteration 2: panel] Re-measure — kill rate strictly increased
+- [x] 2.2.4 [VERIFY] [Iteration 2: panel] Re-measure — kill rate strictly increased
   - **Do**: Re-run targeted mutmut on `panel`; confirm rate strictly up vs entry.
   - **Files**: (none — verification only)
   - **Done when**: `panel` rate strictly up.
@@ -379,7 +379,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify panel kill rate improved`
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.2.5 [VERIFY] [Iteration 2: panel] Regression guard — test + cover + import-check
+- [x] 2.2.5 [VERIFY] [Iteration 2: panel] Regression guard — test + cover + import-check
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
   - **Files**: (none — verification only)
   - **Done when**: all three exit 0.
@@ -387,7 +387,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify panel regression guard green`
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.2.6 [Iteration 2: panel] Ratchet threshold + log delta row
+- [x] 2.2.6 [Iteration 2: panel] Ratchet threshold + log delta row
   - **Do**: Ratchet `panel` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: threshold ratcheted; delta row appended.
@@ -395,7 +395,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet panel threshold + log delta row`
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [ ] 2.3.1 [Iteration 3: services] Log What & Why (NFR-7)
+- [x] 2.3.1 [Iteration 3: services] Log What - [ ] 2.3.1 [Iteration 3: services] Log What & Why (NFR-7) Why (NFR-7)
   - **Do**: Append one-line What & Why for `services` ramp iteration to `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `services`.
@@ -403,7 +403,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `docs(mutation-score-ramp): log what&why for services ramp iteration`
   - _Requirements: NFR-7_
 
-- [ ] 2.3.2 [Iteration 3: services] Measure + classify survivors
+- [x] 2.3.2 [Iteration 3: services] Measure + classify survivors
   - **Do**: Targeted mutmut on `services` (largest survivor count — closure-based handler factories, voluptuous schemas); enumerate + classify; record in `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: classified survivor list recorded.
