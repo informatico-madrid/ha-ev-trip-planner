@@ -1768,6 +1768,109 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
+- [x] 2.13.1 [Iteration 13: utils + yaml_trip_storage] Log What & Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `utils + yaml_trip_storage` iteration 13 to `chat.md`. What: 2.0-ADJ adjudication for equivalent/intrinsic mutants. Why: iteration 12 improved diagnostics to 100% but utils 92.1% (26 survivors, 88.5% equivalent/intrinsic) and yaml_trip_storage 96.0% (2 survivors, 100% equivalent/intrinsic) resist tests. NFR-1 adjudication procedure needed.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: one-line log entry appended.
+
+  - **Verify**: `grep -q 'iteration 13' specs/mutation-score-ramp/chat.md && echo WHATWHY_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): log iteration 13 utils+yaml_trip_storage What & Why (NFR-7)`
+
+  - _Requirements: NFR-7_
+
+
+
+- [ ] 2.13.2 [Iteration 13: utils + yaml_trip_storage] Measure + classify survivors
+
+  - **Do**: Run `make mutation`; enumerate survivors via `make mutation-gate`; for utils (26 survivors) and yaml_trip_storage (2 survivors), classify as (a) equivalent/intrinsic (2.0-ADJ candidate) or (b) testable (stronger test / US-5 refactor). Record survivor list + classification in `chat.md`. Include mutmut IDs for all survivors.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: survivor list + classification recorded.
+
+  - **Verify**: `grep -q 'iteration 13.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify iteration 13 survivors`
+
+  - _Requirements: US-4, AC-4.2, NFR-1_
+
+
+
+- [ ] 2.13.3 [Iteration 13: utils + yaml_trip_storage] 2.0-ADJ adjudication + improve tests
+
+  - **Do**:
+    1. For equivalent/intrinsic survivors: invoke 2.0-ADJ adjudication procedure
+       - Confirm US-5 was exhausted (iteration 12.3 already tried)
+       - Capture mutant id, `mutmut show <id>`, `mutmut tests-for-mutant <id>`
+       - Spawn TWO independent expert subagents (blinded — each gets mutant in isolation)
+       - Both must approve -> add `# pragma: no mutate` to source line, log to chat.md + .progress.md
+    2. For testable survivors: strengthen/add honest tests, US-5-refactor where needed
+    3. NFR-1: no skip/pragma without dual-expert adjudication approval
+
+  - **Files**: `tests/unit/**`, `custom_components/ev_trip_planner/{utils,yaml_trip_storage}.py`, `specs/mutation-score-ramp/chat.md`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: equivalent/intrinsic survivors adjudicated; testable survivors addressed.
+
+  - **Verify**: `make test` exits 0.
+
+  - **Commit**: `test(mutation-score-ramp): 2.0-ADJ adjudicate + improve iteration 13 survivors`
+
+  - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
+
+
+
+- [ ] 2.13.4 [VERIFY] [Iteration 13: utils + yaml_trip_storage] Re-measure — every module at 100%
+
+  - **Do**: Re-run full `make mutation`; analyze per-module kill rates via mutation_analyzer.py; confirm each small module at 100% kill rate.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: every small module measured at 100%.
+
+  - **Verify**: `make mutation && python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep -E 'utils|diagnostics|yaml_trip_storage|definitions' && echo SMALL_MODULES_REMEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 13 small modules at 100% kill rate`
+
+  - _Requirements: US-4, AC-4.2_
+
+
+
+- [ ] 2.13.5 [VERIFY] [Iteration 13: utils + yaml_trip_storage] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo SMALL_MODULES_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 13 regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+
+
+- [ ] 2.13.6 [Iteration 13: utils + yaml_trip_storage] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = 1.00` for `utils`, `yaml_trip_storage` (and `diagnostics` if at 100%) in `pyproject.toml`; append delta rows to `.progress.md`.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: thresholds ratcheted; delta rows appended.
+
+  - **Verify**: `grep -E 'utils|diagnostics|yaml_trip_storage' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 13 small-module thresholds + log delta rows`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+
+
 - [ ] 2.11.4 [VERIFY] [Iteration 11: small modules] Re-measure — every small module at 100%
 
   - **Do**: Re-run targeted mutmut on each small module; confirm each at 100% kill rate.
@@ -1843,6 +1946,37 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 ## Phase 3: Final verification & quality gates
+
+## ⚠️ CRITICAL BUG WARNING - READ BEFORE EXECUTING Phase 3 tasks
+
+**Date**: 2026-05-19T22:04:00Z
+**Module**: calculations (deficit.py)
+**Bug**: Lines 480-483 in calculate_hours_deficit_propagation() are WRONG
+
+**INCORRECT CODE (current HEAD)**:
+```python
+if i == deficit_origin:
+    result["adjusted_def_total_hours"] = round(original_def_total, 2)
+```
+
+**CORRECT CODE (from epic/tech-debt-cleanup)**:
+```python
+if i == deficit_origin:
+    result["adjusted_def_total_hours"] = 0.0
+```
+
+**Why**: Origin with ventana_horas=0 CANNOT have charging hours. A window of 0 hours means no time to charge. The deficit must cascade backward.
+
+**Tests affected**: test_deficit_cascade_backwards.py line 379 asserts WRONG value.
+
+**Do NOT proceed with Phase 3 until**:
+1. Fix deficit.py lines 480-483 → set to 0.0
+2. Fix test_deficit_cascade_backwards.py line 379
+3. Run `make test` to confirm tests pass
+4. Re-run `make mutation` for calculations module
+5. Document fix in .progress.md
+
+**Reference**: See task_review.md entry "### [CRITICAL] deficit propagation bug" for full details.
 
 
 

@@ -1008,6 +1008,24 @@ class EMHASSAdapter:
                         adjusted * (power_watts / 1000.0), 2
                     )
 
+                # BUG-FIX: Recalculate p_deferrable_matrix after deficit propagation.
+                # The matrix was built BEFORE cascade with original def_total hours.
+                # After cascade, origin trip with def_total=0 must have all-zeros matrix.
+                horizon = self._get_horizon_hours()
+                from ..calculations.windows import build_deferrable_matrix_row
+
+                new_def_total = math.ceil(adjusted)
+                end_timestep = self._cached_per_trip_params[trip_id].get(
+                    "def_end_timestep", 0
+                )
+                new_row = build_deferrable_matrix_row(
+                    horizon_hours=horizon,
+                    charging_power_kw=power_watts / 1000.0 if power_watts else 0.0,
+                    hours_needed=new_def_total,
+                    end_timestep=end_timestep,
+                )
+                self._cached_per_trip_params[trip_id]["p_deferrable_matrix"] = [new_row]
+
     def _find_trip_id_for_params(self, params: Dict[str, Any]) -> Optional[str]:
         """Find trip_id matching a params dict by identity."""
         for tid, p in self._cached_per_trip_params.items():

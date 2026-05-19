@@ -1239,3 +1239,120 @@ Proceed with calculations iteration 2.10.x.
   - Pending: iteration 13 targeting emhass ~7 kills
 - fix_hint: N/A (emhass 0.3pp short but iteration 13 will address)
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.11.4] [VERIFY] [Iteration 11: small modules] Re-measure — every small module at 100%
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-19T20:19:00Z
+- criterion_failed: 3 of 4 small modules not at 100% kill rate after fresh full `make mutation`
+- evidence: |
+  Fresh `make mutation` (coordinator URGENT at 20:10, lines 3171-3185):
+  - definitions: 100% (18/18) — PASS ✅
+  - utils: 91.9% (295/321) — FAIL ❌ (26 survivors)
+  - diagnostics: 93.2% (87/93) — FAIL ❌ (5 survivors)
+  - yaml_trip_storage: 96.0% (48/50) — FAIL ❌ (2 survivors)
+  
+  Task NOT marked complete. Coordinator reports 2.11.5/2.11.6 were marked [x] before verification
+  and will be reverted if iteration 14 makes changes.
+- fix_hint: Iteration 14 will target utils (26 survivors), diagnostics (5 survivors), yaml_trip_storage (2 survivors). Await iteration 14 results.
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.12.2] [Iteration 12: small modules] Measure + classify survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T20:51:00Z
+- criterion_failed: none
+- evidence: |
+  Fresh `make mutation` completed and survivor classification recorded (chat.md lines 3240-3354):
+  | Module | Kill Rate | Survived | Total |
+  |--------|-----------|----------|-------|
+  | utils | 92.1% | 26 | 330 |
+  | diagnostics | 93.2% | 5 | 74 |
+  | yaml_trip_storage | 96.0% | 2 | 50 |
+  | definitions | 100.0% | 0 | 18 |
+  
+  Classification: 3 stronger-test (10.3%), 0 US-5 refactor, 30 2.0-ADJ equivalent/intrinsic (89.7%).
+  Verify command: `grep -q 'iteration 12.*survivors' chat.md` → SURVIVORS_DONE
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.13] [Iteration 13: coordinator + emhass] Improve tests / US-5 refactor
+- status: WARNING
+- severity: major
+- reviewed_at: 2026-05-19T19:10:00Z
+- criterion_failed: mutation verification unrunnable — stale cache, fork error
+- evidence: |
+  Regression guards verified independently:
+  - make test: 2140 passed, 2 warnings — PASS
+  - make test-cover: 100% coverage maintained — PASS
+  
+  **CRITICAL CORRECTION** (coordinator message 19:20, lines 3041-3078):
+  The executor's claimed improvement numbers were from a STALE cache, not a fresh run.
+  - Executor claimed: coordinator 55.9%, emhass 63.7%
+  - Stale cache shows: coordinator 44.1%, emhass 57.6%
+  - Executor couldn't run `make mutation` due to fork error (Python 3.14 + pytest-asyncio + mutmut 3.5.0)
+  
+  Per coordinator: "spec-executor reported numbers from a partial/corrupt cache read"
+  
+  **Verifiable**: Regression guards pass, 7 tests added. **Not verifiable**: kill rate improvements.
+  
+  Iteration 14 must run `make mutation` first to refresh cache before measuring.
+- fix_hint: The executor's claimed numbers (coordinator 55.9%, emhass 63.7%) were from stale cache. Per coordinator's 19:20 message: coordinator 44.1% vs 56% (gap -11.9pp), emhass 57.6% vs 64% (gap -6.4pp). Fork error blocks mutation runs entirely. Iteration 14 MUST run `make mutation` fresh before measuring. Await iteration 14 fresh results before further review.
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.12.3] [Iteration 12: small modules] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T21:12:00Z
+- criterion_failed: none
+- evidence: |
+  Regression guard verified independently:
+  - make test: 2146 passed, 2 warnings — PASS (was 2140, +6 new tests)
+  
+  Executor summary (chat.md lines 3385-3416):
+  - utils: +1 test (test_missing_hora_key_filtered) — kills default_value mutants in sanitize_recurring_trips
+  - diagnostics: +3 tests (TestDiagnosticsGetattrMutationKills) — kills getattr/conditional mutants
+  - yaml_trip_storage: +2 tests — kills data key default_value mutants
+  
+  No skip/pragma added. All 2146 tests pass.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [CRITICAL] deficit propagation bug - calculations module must be re-verified
+
+**Date**: 2026-05-19T22:04:00Z
+**Severity**: CRITICAL
+**Module**: calculations (deficit.py)
+**Bug Location**: lines 480-483 in calculate_hours_deficit_propagation()
+
+**Problem**: 
+The fix at commit 4a59d84f ("fix deficit propagation origin trip logic") introduced the SAME conceptual error as the bug it was trying to fix.
+
+**INCORRECT (current HEAD)**:
+```python
+if i == deficit_origin:
+    result["adjusted_def_total_hours"] = round(original_def_total, 2)
+```
+
+**CORRECT (epic/tech-debt-cleanup)**:
+```python
+if i == deficit_origin:
+    result["adjusted_def_total_hours"] = 0.0
+```
+
+**Why**: Origin with ventana_horas=0 CANNOT have charging hours. A window of 0 hours means no time to charge. The deficit must cascade backward, and the origin must have adjusted_def_total=0.
+
+**Impact on staging data**:
+- Window 2: def_start=35, def_end=35, ventana_horas=0, def_total=2
+- With current code: Window 2 keeps 2 hours (WRONG)
+- Correct behavior: Window 2 should have 0 hours, deficit propagates backward
+
+**Tests affected**: test_deficit_cascade_backwards.py line 379 asserts `def_total_hours == 2` for zero-window origin - this is WRONG and must be fixed.
+
+**Action required**:
+1. Fix deficit.py lines 480-483: change to `result["adjusted_def_total_hours"] = 0.0`
+2. Fix test_deficit_cascade_backwards.py line 379: origin with zero window should have def_total=0
+3. Re-run mutation score for calculations module
+4. Document in .progress.md critical bug section
+
+**Note on round vs ceil**: EMHASS uses hours as integers. 0.3 hours → ceil = 1 hour. The issue is NOT about round() vs ceil() - it's about the origin with zero window should NOT retain any charging hours.
