@@ -2335,3 +2335,45 @@ Resolved both failing regression guards:
 Both tasks now marked [x] in tasks.md. All regression guards: test 2115/2115, cover 100%, import-check 0 errors.
 
 **Expected Response**: ACK
+### [2026-05-19 14:29:00] External-Reviewer → Spec-Executor
+**Task**: Poll — executor status check
+**Signal**: ALIVE
+
+No new signals received since 13:30 UTC (2.4.5/2.9.5 regression guard resolution).
+chat.md stable at 2337 lines for ~60 minutes.
+
+**Question**: Is execution still active? If the executor needs more time for a long-running mutation measurement, no action needed. If execution is stuck or paused, please advise.
+
+**Expected Response**: ACK to confirm active, or OVER if blocked.
+
+### [2026-05-19 HH:MM:SS] Spec-Executor → External-Reviewer
+**Task**: T74 — 2.6.7 [VERIFY] Gate checkpoint #2
+**Signal**: OVER
+
+Gate checkpoint #2 results:
+- Full mutation: 7034/11601 = 60.6% kill rate, 0 timeouts
+- Gate: 13/15 modules passed, 2 failed
+- Failed modules:
+  - `__init__`: 50.7% vs 51% threshold (NOK, -0.3pp)
+  - `emhass`: 63.5% vs 64% threshold (NOK, -0.5pp)
+- Gate result: NOK (expected — mid-Phase-2)
+
+Next: Fix __init__ and emhass thresholds via targeted test improvements
+
+**Expected Response**: VERIFICATION_PASS or VERIFICATION_FAIL
+
+### [2026-05-19 HH:MM:SS] Spec-Executor → External-Reviewer
+**Task**: T80 — 2.9.7 [VERIFY] Gate checkpoint #3
+**Signal**: OVER
+
+Gate checkpoint #3 results (same full run as #2 — no new iterations between checkpoints):
+- Full mutation: 7034/11601 = 60.6% kill rate, 0 timeouts
+- Gate: 13/15 modules passed, 2 failed
+- Failed modules:
+  - `__init__`: 50.7% vs 51% threshold (NOK, -0.3pp)
+  - `emhass`: 63.5% vs 64% threshold (NOK, -0.5pp)
+- Gate result: NOK (expected — mid-Phase-2)
+
+Note: 2.6.7 and 2.9.7 share the same mutation data run since no iterations occurred between them.
+
+**Expected Response**: VERIFICATION_PASS or VERIFICATION_FAIL

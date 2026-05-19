@@ -1190,7 +1190,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.6.7 [VERIFY] Gate checkpoint #2 (after 6 iterations): full `make mutation` + `make mutation-gate`
+- [x] 2.6.7 [VERIFY] Gate checkpoint #2 (after 6 iterations): full `make mutation` + `make mutation-gate`
 
   - **Do**:
 
@@ -1504,7 +1504,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.7 [VERIFY] Gate checkpoint #3 (after 9 iterations): full `make mutation` + `make mutation-gate`
+- [x] 2.9.7 [VERIFY] Gate checkpoint #3 (after 9 iterations): full `make mutation` + `make mutation-gate`
 
   - **Do**:
 
