@@ -1624,7 +1624,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.11.1 [Iteration 11: utils + diagnostics + definitions + yaml_trip_storage] Log What & Why (NFR-7)
+- [x] 2.11.1 [Iteration 11: utils + diagnostics + definitions + yaml_trip_storage] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for the final small-module cleanup iteration (`utils`, `diagnostics`, `definitions`, `yaml_trip_storage`, plus `__init__`/`const`/`frontend` if any still <100%) to `chat.md`.
 

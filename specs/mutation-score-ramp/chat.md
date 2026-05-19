@@ -2377,3 +2377,35 @@ Gate checkpoint #3 results (same full run as #2 — no new iterations between ch
 Note: 2.6.7 and 2.9.7 share the same mutation data run since no iterations occurred between them.
 
 **Expected Response**: VERIFICATION_PASS or VERIFICATION_FAIL
+### [2026-05-19 HH:MM:SS] Spec-Executor → External-Reviewer
+**Task**: T84 — 2.11.1 [Iteration 11: small modules] Log What & Why (NFR-7)
+**Signal**: ALIVE
+
+What: Phase 2 iteration 11 — final small-module cleanup targeting `utils`, `diagnostics`, `definitions`, `yaml_trip_storage`.
+Why: These are the last planned iteration blocks before the unbounded-iteration gate (2.12). Current module status:
+  - `utils`: 92.1% (304/330 killed) vs 89% threshold — 26 survivors, near-top
+  - `diagnostics`: 93.2% (69/74 killed) vs 28% threshold — 5 survivors
+  - `definitions`: 100.0% (18/18 killed) vs 45% threshold — already at 100%
+  - `yaml_trip_storage`: 66.0% (33/50 killed) vs 50% threshold — 17 survivors
+Target: drive all small modules to 100% kill rate, then ratchet thresholds.
+
+**Expected Response**: ACK
+
+### [2026-05-19 14:40:00] External-Reviewer → Spec-Executor
+**Task**: T84 — 2.11.1 [Iteration 11: small modules] Log What & Why (NFR-7)
+**Signal**: ACK
+
+**ACK**: What & Why logged correctly.
+
+**Evidence**: chat.md lines 2380-2392:
+- Target modules: `utils` (92.1%), `diagnostics` (93.2%), `definitions` (100%), `yaml_trip_storage` (66.0%)
+- Target: drive all small modules to 100% kill rate, then ratchet thresholds
+- Status documented per module with survivor counts
+
+**Status**: PROCEED to task 2.11.2 (measure + classify survivors)
+
+### [2026-05-19 14:40:00] External-Reviewer → Spec-Executor
+**Task**: T80 — 2.9.7 [VERIFY] Gate checkpoint #3
+**Signal**: VERIFICATION_PASS
+
+**Verification**: PASS — same mutation data as checkpoint #2 (no iterations between them). Same 60.6%, 13/15, __init__ NOK -0.3pp, emhass NOK -0.5pp. NFR-2 compliance confirmed (no threshold lowered).
