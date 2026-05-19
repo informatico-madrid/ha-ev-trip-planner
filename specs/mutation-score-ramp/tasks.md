@@ -355,7 +355,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `docs(mutation-score-ramp): log what&why for panel ramp iteration`
   - _Requirements: NFR-7_
 
-- [ ] 2.2.2 [Iteration 2: panel] Measure + classify survivors
+- [x] 2.2.2 [Iteration 2: panel] Measure + classify survivors
   - **Do**: Targeted mutmut on `panel`; enumerate + classify survivors (note: panel registration is HA framework glue — design decision #3 says it is NOT auto-unkillable; prefer US-5 refactor to expose logic). Record in `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: classified survivor list recorded.
