@@ -154,11 +154,11 @@ target_final = 1.00
 status = "passing"
 
 [tool.quality-gate.mutation.modules.utils]
-kill_threshold = 0.89
+kill_threshold = 0.92
 status = "passing"
 
 [tool.quality-gate.mutation.modules.definitions]
-kill_threshold = 0.45
+kill_threshold = 0.95
 status = "passing"
 
 [tool.quality-gate.mutation.modules.sensor]
@@ -193,7 +193,7 @@ kill_threshold = 0.48
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.yaml_trip_storage]
-kill_threshold = 0.50
+kill_threshold = 0.94
 status = "passing"
 
 # Previously untracked modules — baseline thresholds set to current scores
@@ -202,7 +202,7 @@ kill_threshold = 0.51
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.diagnostics]
-kill_threshold = 0.28
+kill_threshold = 0.92
 status = "passing"
 
 [tool.quality-gate.mutation.modules.panel]

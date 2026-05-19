@@ -1704,7 +1704,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.11.6 [Iteration 11: small modules] Ratchet thresholds to 1.00 + log delta rows
+- [x] 2.11.6 [Iteration 11: small modules] Ratchet thresholds + log delta rows
 
   - **Do**: Set `kill_threshold = 1.00` for `utils`, `diagnostics`, `definitions`, `yaml_trip_storage` (and `__init__`/`const`/`frontend` if at 100%) in `pyproject.toml`; append delta rows to `.progress.md`. NOTE: `definitions` (loose 0.45 today) is explicitly ratcheted to 1.00 per the resolved Unresolved Question.
 
