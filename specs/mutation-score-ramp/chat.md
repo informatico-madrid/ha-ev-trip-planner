@@ -2261,3 +2261,36 @@ Status: in_progress
 Approach: add stronger assertions on arithmetic edge cases; US-5 refactor log strings where needed.
 
 Expected Response: ACK
+### [2026-05-19 08:15:00] Spec-Executor → External-Reviewer
+**Task**: T81 — 2.10.2 [Iteration 10: calculations] Measure + classify survivors
+**Signal**: CONTINUE
+
+Classification results (484 survivors / 2028 total = 76.1% kill rate):
+
+All survivors are type `x` (replace with None) mutations — no log_text, no operator replacements.
+This means tests exist but don't assert on return values strongly enough.
+
+Top 15 survivor functions by count:
+  _resolve_trip_deadline: 56 (pure function, multiple code paths with early returns)
+  _calculate_charging_window_pure: 33 (window size calculations)
+  _calculate_multi_trip_charging_windows: 29 (multi-trip chaining logic)
+  _calculate_power_profile_from_trips: 29 (power profile aggregation)
+  _calculate_soc_at_trip_starts: 29 (SOC chain calculation)
+  _calculate_deferrable_parameters: 28 (deferrable hours computation)
+  _calculate_energy_needed: 18 (energy calculation with safety margins)
+  __compute_next_with_tz: 18 (timezone-aware next occurrence)
+  __compute_trip_trip_time: 16 (trip time resolution from various formats)
+  _calculate_hours_deficit_propagation: 16 (backwards deficit cascade)
+  __resolve_energy_for_trip: 15 (energy per trip resolution)
+  _determine_charging_need: 15 (charging decision logic)
+  __build_milestone: 15 (milestone result construction)
+  _calculate_deficit_propagation: 13 (backward deficit propagation)
+  _calculate_trip_time: 13 (trip time calculation)
+
+Key insight: No US-5 refactor needed (no log_text survivors). Focus is on adding
+stronger value/assertion tests for the top survivor functions. Tests need to assert
+on exact return values, types, and structures — not just "not None" or "callable".
+
+Prepared to move to 2.10.3 (improve tests).
+
+Expected Response: ACK to proceed with test improvements

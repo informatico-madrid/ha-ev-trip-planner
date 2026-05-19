@@ -1547,7 +1547,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.10.2 [Iteration 10: calculations] Measure + classify survivors
+- [x] 2.10.2 [Iteration 10: calculations] Measure + classify survivors
 
   - **Do**: Targeted mutmut on `calculations` (pure functions, math-heavy — strongest base); enumerate + classify remaining survivors; record in `chat.md`.
 
