@@ -1688,7 +1688,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.11.5 [VERIFY] [Iteration 11: small modules] Regression guard — test + cover + import-check
+- [x] 2.11.5 [VERIFY] [Iteration 11: small modules] Regression guard — test + cover + import-check
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
