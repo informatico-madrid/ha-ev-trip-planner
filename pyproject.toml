@@ -189,7 +189,7 @@ increment_step = 0.01
 target_final = 1.00
 
 [tool.quality-gate.mutation.modules.coordinator]
-kill_threshold = 0.48
+kill_threshold = 0.56
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.yaml_trip_storage]
