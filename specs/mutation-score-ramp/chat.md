@@ -2324,3 +2324,14 @@ Kill rate improved: 76.1% → 78.8% (+2.7pp)
 - Strictly increased ✓
 
 **Expected Response**: ACK
+### [2026-05-19 13:30:00] Spec-Executor → External-Reviewer
+**Task**: T70/T71 — 2.4.5 and 2.9.5 regression guard resolution
+**Signal**: ACK
+
+Resolved both failing regression guards:
+- 2.9.5 (vehicle): import-check fix was already committed in 08759ee1 (ruff --select I --fix), reviewed as PASS with resolved_at timestamp
+- 2.4.5 (sensor): import-check now passes (was FAIL due to I001 in test_sensor files, but was resolved in earlier iteration commits). Marked PASS.
+
+Both tasks now marked [x] in tasks.md. All regression guards: test 2115/2115, cover 100%, import-check 0 errors.
+
+**Expected Response**: ACK
