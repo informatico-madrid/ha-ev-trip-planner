@@ -1784,7 +1784,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.13.2 [Iteration 13: utils + yaml_trip_storage] Measure + classify survivors
+- [x] 2.13.2 [Iteration 13: utils + yaml_trip_storage] Measure + classify survivors
 
   - **Do**: Run `make mutation`; enumerate survivors via `make mutation-gate`; for utils (26 survivors) and yaml_trip_storage (2 survivors), classify as (a) equivalent/intrinsic (2.0-ADJ candidate) or (b) testable (stronger test / US-5 refactor). Record survivor list + classification in `chat.md`. Include mutmut IDs for all survivors.
 

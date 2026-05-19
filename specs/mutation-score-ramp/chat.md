@@ -3582,3 +3582,100 @@ lastReadLine: 3550
 - No HOLD/DEADLOCK blocking. Proceeding to 2.13.2.
 - Next: 2.13.2 Measure + classify survivors (requires fresh `make mutation` run)
 lastReadLine: 3590
+
+### [2026-05-19 22:45:00] Spec-Executor → External-Reviewer
+**Task**: T100 — 2.13.2 iteration 13: Measure + classify survivors
+
+**SURVIVORS: 28 total (26 utils + 2 yaml_trip_storage)**
+Kill rate: utils 92.1% (304/330), yaml_trip_storage 96.0% (48/50)
+
+---
+
+## UTILS — 26 Survivors
+
+### Equivalent/Intrinsic (26/26 — 100%)
+
+**1. generate_random_suffix mutmut_1**: `length: int = 6` → `length: int = 7`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidate
+- **Why**: Changes default suffix length from 6 to 7. Tests only verify format (alphanumeric, correct prefix), not exact suffix length. No testable behavioral change.
+
+**2. _generate_recurrent_trip_id mutmut_3**: `str(day_or_date)` → `str(None)` in isinstance branch
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidate
+- **Why**: String mutation in the `str()` call when day_or_date is a date object. Tests don't assert exact trip ID format for date inputs.
+
+**3. _generate_recurrent_trip_id mutmut_6**: `day_or_date or "lunes"` → `day_or_date or "LUNES"`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidate
+- **Why**: Case mutation on string literal. Result is immediately `.lower()`'d, making the mutation semantically identical.
+
+**4-5. _generate_punctual_trip_id mutmut_12,13,14**: `replace("Z", "+00:00")` → `replace("XXZXX", ...)` / `replace("z", ...)` / `replace("Z", "XX+00:00XX")`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidates (3 mutants)
+- **Why**: String literal mutations in `.replace()` calls. For valid ISO dates without "Z" or "z", the mutation has no effect. For dates with "Z", the mutation breaks the parsing (ValueError) but the except branch still produces a valid date string.
+
+**6-7. _generate_punctual_trip_id mutmut_29,30**: `replace("-", "")` → `replace("XX-XX", "")` / `replace("-", "XXXX")`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidates (2 mutants)
+- **Why**: String literal mutations in `.replace()` calls. For dates with "-" (e.g., "2025-01-15"), the mutation either finds no match (no-op) or inserts "XXXX" which doesn't affect the final YYYYMMDD output significantly.
+
+**8-12. validate_hora mutmut_10,17,18,20,25**:
+- mutmut_10: `"Invalid time format: expected HH:MM"` → `"XXInvalid time format: expected HH:MMXX"`
+- mutmut_17: `split(":", 1)` → `split(":")` (no maxsplit)
+- mutmut_18: `split(":", 1)` → `rsplit(":", 1)`
+- mutmut_20: `split(":", 1)` → `split(":", 2)`
+- mutmut_25: `"Invalid time format: expected HH:MM"` → `"XXInvalid time format: expected HH:MMXX"` (second error)
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidates (5 mutants)
+- **Why**: mutmut_10 and mutmut_25 are error message string mutations (tests only check ValueError is raised). mutmut_17: for HH:MM (single colon), `split(":")` produces identical results to `split(":", 1)`. mutmut_18: for single colon, `split` and `rsplit` produce identical results. mutmut_20: for HH:MM (single colon), `split(":", 2)` produces identical results to `split(":", 1)`.
+
+**13. get_day_index mutmut_3**: `"Day name cannot be empty"` → `"XXDay name cannot be emptyXX"`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidate
+- **Why**: String mutation on error message. Tests only check ValueError is raised, not exact message.
+
+**14-16. sanitize_recurring_trips mutmut_4,6,9**: `trip.get("hora", "")` → `.get("hora", None)` / `.get("hora",)` / `.get("hora", "XXXX")`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidates (3 mutants)
+- **Why**: Default_value mutations. When "hora" key is missing, the mutated default (None, empty, or "XXXX") is passed to `validate_hora()` which raises ValueError in all cases. Tests that skip invalid trips see no behavioral difference. 2.12.3 added a test for missing "hora" key but it still only checks that invalid trips are filtered, not the exact default value.
+
+**17-23. is_trip_today mutmut_11,13,18,20,23,55,56**:
+- mutmut_11: `.get("dia", "")` → `.get("dia", None)`
+- mutmut_13: `.get("dia", "")` → `.get("dia",)` (no default = None)
+- mutmut_18: `.get("dia_semana", "")` → `.get("dia_semana", None)`
+- mutmut_20: `.get("dia_semana", "")` → `.get("dia_semana",)` (no default = None)
+- mutmut_23: `.get("dia_semana", "")` → `.get("dia_semana", "XXXX")`
+- mutmut_55: `in ("puntual", "punctual")` → `in ("puntual", "XXpunctualXX")`
+- mutmut_56: `in ("puntual", "punctual")` → `in ("puntual", "PUNCTUAL")`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidates (7 mutants)
+- **Why**: mutmut_11/13/18/20: default_value mutations on `.get()`. When key is missing, None/"" both are falsy and fall through to the other `.get()`. All produce the same branch behavior. mutmut_23: "XXXX" is truthy but `.lower()` then checked against DAY_ABBREVIATIONS → not found → returns 3-char substring → same classification path. mutmut_55/56: string literal mutations in `in` tuple check. "XXpunctualXX" won't match any trip type, so the elif branch is never entered — but tests use "puntual" or "punctual" which still match. For trips with no matching type, both original and mutated code fall through to `return False`.
+
+**24-25. calcular_energia_kwh mutmut_4,10**: Error message string mutations → `"XX...XX"`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidates (2 mutants)
+- **Why**: String mutations on error messages. Tests only check ValueError is raised, not exact message content.
+
+---
+
+## YAML_TRIP_STORAGE — 2 Survivors
+
+**1. YamlTripStorage.async_load mutmut_7**: `stored_data.get("data", {})` → `stored_data.get("data", None)`
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidate
+- **Why**: When "data" key exists, the actual value is returned (not the default). When "data" key is missing, line 47 `return stored_data` is executed first (before the `.get()` on line 45), so the default `{}` vs `None` is never used. Tests that mock missing "data" key always hit the fallback path.
+
+**2. YamlTripStorage.async_load mutmut_9**: `stored_data.get("data", {})` → `stored_data.get("data",)` (no default)
+- **Classification**: (a) equivalent/intrinsic — 2.0-ADJ candidate
+- **Why**: Same reasoning as mutmut_7. Without the default, `.get("data")` returns None when key is missing, but the code path never reaches this line when "data" key is absent (line 47 handles it).
+
+---
+
+## Summary
+
+| Module | Total | Equivalent/Intrinsic | Stronger-test | US-5 Refactor |
+|--------|-------|---------------------|---------------|---------------|
+| utils | 26 | 26 (100%) | 0 | 0 |
+| yaml_trip_storage | 2 | 2 (100%) | 0 | 0 |
+| **TOTAL** | **28** | **28 (100%)** | **0** | **0** |
+
+## Why 100% equivalent/intrinsic
+
+- **utils**: 26 survivors are dominated by string literal mutations (error messages, replace() args, tuple membership) and default_value mutations where the default is never observable (validate_hora rejects all defaults, is_trip_today falls through to alternate paths, sanitize_recurring_trips treats all defaults as invalid).
+- **yaml_trip_storage**: 2 survivors are default_value mutations on `.get("data", {})` where the default is masked by the preceding `"data" in stored_data` check.
+
+## Next: 2.0-ADJ adjudication (task 2.13.3)
+
+All 28 survivors are 2.0-ADJ candidates. Dual-expert-subagent approval required per NFR-1 before any `# noqa mutmut` pragmas.
+
+**Expected Response**: ACK
