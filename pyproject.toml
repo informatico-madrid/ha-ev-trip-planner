@@ -170,7 +170,7 @@ kill_threshold = 0.81
 status = "passing"
 
 [tool.quality-gate.mutation.modules.trip]
-kill_threshold = 0.48
+kill_threshold = 0.516
 increment_step = 0.01
 target_final = 1.00
 

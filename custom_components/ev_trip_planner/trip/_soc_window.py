@@ -71,8 +71,10 @@ def _parse_hora_regreso(value: Optional[datetime | str]) -> Optional[datetime]:
             parsed = datetime.fromisoformat(value)
         except (ValueError, TypeError):
             return None
-    else:
+    elif isinstance(value, datetime):
         parsed = value
+    else:
+        return None
     if parsed is not None and parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed

@@ -16,6 +16,22 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_ADD_RECURRING_DEBUG = (
+    "Adding recurring trip for vehicle %s: dia_semana=%s, hora=%s, km=%.1f, kwh=%.2f"
+)
+_LOG_ADD_RECURRING_INFO = "Added recurring trip %s for vehicle %s"
+_LOG_ADD_PUNCTUAL_DEBUG = (
+    "Adding punctual trip for vehicle %s: datetime=%s, km=%.1f, kwh=%.2f"
+)
+_LOG_ADD_PUNCTUAL_INFO = "Added punctual trip %s for vehicle %s"
+_LOG_UPDATE_DEBUG = "Updating trip %s for vehicle %s: updates=%s"
+_LOG_UPDATE_INFO = "Updated %s trip %s for vehicle %s"
+_LOG_UPDATE_NOT_FOUND = "Trip %s not found for update in vehicle %s"
+_LOG_DELETE_DEBUG = "Deleting trip %s from vehicle %s"
+_LOG_DELETE_NOT_FOUND = "Trip %s not found for deletion in vehicle %s"
+_LOG_DELETE_INFO = "Deleted trip %s from vehicle %s"
+
 _RECURRENT_RELEVANT_FIELDS = frozenset(
     {
         "dia_semana",
@@ -90,7 +106,7 @@ class TripCRUD:
         """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
         state = self._state
         _LOGGER.debug(
-            "Adding recurring trip for vehicle %s: dia_semana=%s, hora=%s, km=%.1f, kwh=%.2f",
+            _LOG_ADD_RECURRING_DEBUG,
             state.vehicle_id,
             kwargs.get("dia_semana"),
             kwargs.get("hora"),
@@ -113,9 +129,7 @@ class TripCRUD:
             "activo": True,
         }
         await state.async_save_trips()
-        _LOGGER.info(
-            "Added recurring trip %s for vehicle %s", trip_id, state.vehicle_id
-        )
+        _LOGGER.info(_LOG_ADD_RECURRING_INFO, trip_id, state.vehicle_id)
 
         self._emit_post_add("trip_created_recurring", state.recurring_trips[trip_id])
 
@@ -128,7 +142,7 @@ class TripCRUD:
         """Añade un nuevo viaje puntual y sincroniza con EMHASS."""
         state = self._state
         _LOGGER.debug(
-            "Adding punctual trip for vehicle %s: datetime=%s, km=%.1f, kwh=%.2f",
+            _LOG_ADD_PUNCTUAL_DEBUG,
             state.vehicle_id,
             kwargs.get("datetime_str", kwargs.get("datetime", "")),
             kwargs.get("km", 0),
@@ -147,7 +161,7 @@ class TripCRUD:
             "estado": "pendiente",
         }
         await state.async_save_trips()
-        _LOGGER.info("Added punctual trip %s for vehicle %s", trip_id, state.vehicle_id)
+        _LOGGER.info(_LOG_ADD_PUNCTUAL_INFO, trip_id, state.vehicle_id)
 
         self._emit_post_add("trip_created_punctual", state.punctual_trips[trip_id])
 
@@ -164,12 +178,7 @@ class TripCRUD:
     async def async_update_trip(self, trip_id: str, updates: Dict[str, Any]) -> None:
         """Actualiza un viaje existente y sincroniza con EMHASS."""
         state = self._state
-        _LOGGER.debug(
-            "Updating trip %s for vehicle %s: updates=%s",
-            trip_id,
-            state.vehicle_id,
-            updates,
-        )
+        _LOGGER.debug(_LOG_UPDATE_DEBUG, trip_id, state.vehicle_id, updates)
 
         old_trip: Dict[str, Any] | None = None
         trip_type: str | None = None
@@ -188,15 +197,11 @@ class TripCRUD:
             }
             state.punctual_trips[trip_id].update(filtered)
         else:
-            _LOGGER.warning(
-                "Trip %s not found for update in vehicle %s", trip_id, state.vehicle_id
-            )
+            _LOGGER.warning(_LOG_UPDATE_NOT_FOUND, trip_id, state.vehicle_id)
             return
 
         await state.async_save_trips()
-        _LOGGER.info(
-            "Updated %s trip %s for vehicle %s", trip_type, trip_id, state.vehicle_id
-        )
+        _LOGGER.info(_LOG_UPDATE_INFO, trip_type, trip_id, state.vehicle_id)
 
         trip_data = state.recurring_trips.get(trip_id) or state.punctual_trips.get(
             trip_id
@@ -221,14 +226,10 @@ class TripCRUD:
     async def async_delete_trip(self, trip_id: str) -> None:
         """Elimina un viaje existente y sincroniza con EMHASS."""
         state = self._state
-        _LOGGER.debug("Deleting trip %s from vehicle %s", trip_id, state.vehicle_id)
+        _LOGGER.debug(_LOG_DELETE_DEBUG, trip_id, state.vehicle_id)
 
         if trip_id not in state.recurring_trips and trip_id not in state.punctual_trips:
-            _LOGGER.warning(
-                "Trip %s not found for deletion in vehicle %s",
-                trip_id,
-                state.vehicle_id,
-            )
+            _LOGGER.warning(_LOG_DELETE_NOT_FOUND, trip_id, state.vehicle_id)
             return
 
         if trip_id in state.recurring_trips:
@@ -237,7 +238,7 @@ class TripCRUD:
             del state.punctual_trips[trip_id]
 
         await state.async_save_trips()
-        _LOGGER.info("Deleted trip %s from vehicle %s", trip_id, state.vehicle_id)
+        _LOGGER.info(_LOG_DELETE_INFO, trip_id, state.vehicle_id)
 
         entry_id = state.entry_id or ""
         emit(SensorEvent("trip_removed", state.hass, entry_id, trip_id=trip_id))

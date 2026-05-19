@@ -29,7 +29,6 @@ from custom_components.ev_trip_planner.sensor.entity_trip_planner import (
     TripPlannerSensor,
 )
 
-
 # =============================================================================
 # TripSensor — entity_trip.py
 # =============================================================================
