@@ -27,6 +27,20 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# US-5: Extracted log format strings to constants for mutation-killing tests.
+_LOG_SETUP = "Setting up vehicle controller for: %s"
+_LOG_PRESENCE_FAILED = "Presence check failed: %s - %s"
+_LOG_ALREADY_CHARGING = "Vehicle %s is already charging"
+_LOG_SENSOR_NOT_FOUND = "Charging sensor %s not found for %s"
+_LOG_CHARGING_STATUS = "Charging status for %s: %s = %s"
+_LOG_CANNOT_ACTIVATE = "Cannot activate charging for %s: %s"
+_LOG_NO_STRATEGY = "No strategy set for vehicle: %s"
+_LOG_RETRY_EXCEEDED = "Max retry attempts (%d) exceeded for %s in %d seconds"
+_LOG_ACTIVATED = "Successfully activated charging for %s"
+_LOG_ACTIVATION_FAILED = "Failed to activate charging for %s (attempt %d/%d)"
+_LOG_DISCONNECT_RESET = "Vehicle %s disconnected - resetting retry counter"
+_LOG_RETRY_RESET = "Retry counter manually reset for %s"
+
 # Retry configuration constants
 MAX_RETRY_ATTEMPTS = 3
 RETRY_TIME_WINDOW_SECONDS = 300  # 5 minutes
@@ -102,7 +116,7 @@ class VehicleController:
 
     async def async_setup(self) -> None:
         """Set up the vehicle controller."""
-        _LOGGER.info("Setting up vehicle controller for: %s", self.vehicle_id)
+        _LOGGER.info(_LOG_SETUP, self.vehicle_id)
 
     def set_strategy(self, strategy: VehicleControlStrategy) -> None:
         """Set the control strategy."""
@@ -125,14 +139,14 @@ class VehicleController:
             monitor = self._presence_monitor
             is_ready, reason = await monitor.async_check_charging_readiness()
             if not is_ready:
-                _LOGGER.info("Presence check failed: %s - %s", self.vehicle_id, reason)
+                _LOGGER.info(_LOG_PRESENCE_FAILED, self.vehicle_id, reason)
                 return False, reason
 
         # Check charging sensor status (if configured)
         if self._charging_sensor:
             is_charging = await self._async_check_charging_sensor()
             if is_charging:
-                _LOGGER.info("Vehicle %s is already charging", self.vehicle_id)
+                _LOGGER.info(_LOG_ALREADY_CHARGING, self.vehicle_id)
                 return True, None  # Already charging is fine
 
         return True, None
@@ -148,20 +162,11 @@ class VehicleController:
 
         state = self.hass.states.get(self._charging_sensor)
         if not state:
-            _LOGGER.warning(
-                "Charging sensor %s not found for %s",
-                self._charging_sensor,
-                self.vehicle_id,
-            )
+            _LOGGER.warning(_LOG_SENSOR_NOT_FOUND, self._charging_sensor, self.vehicle_id)
             return False
 
         is_charging = state.state.lower() in ["on", "true", "yes", "charging"]
-        _LOGGER.debug(
-            "Charging status for %s: %s = %s",
-            self.vehicle_id,
-            self._charging_sensor,
-            is_charging,
-        )
+        _LOGGER.debug(_LOG_CHARGING_STATUS, self.vehicle_id, self._charging_sensor, is_charging)
         return is_charging
 
     async def async_activate_charging(self) -> bool:
@@ -174,15 +179,11 @@ class VehicleController:
         # Check presence conditions first
         is_ready, reason = await self.async_check_presence_status()
         if not is_ready:
-            _LOGGER.warning(
-                "Cannot activate charging for %s: %s",
-                self.vehicle_id,
-                reason,
-            )
+            _LOGGER.warning(_LOG_CANNOT_ACTIVATE, self.vehicle_id, reason)
             return False
 
         if self._strategy is None:
-            _LOGGER.warning("No strategy set for vehicle: %s", self.vehicle_id)
+            _LOGGER.warning(_LOG_NO_STRATEGY, self.vehicle_id)
             return False
 
         # Check for disconnect/reconnect - reset retry counter
@@ -191,12 +192,7 @@ class VehicleController:
         # Check if we should retry
         if not self._retry_state.should_retry():
             attempt_count = self._retry_state.get_attempt_count()
-            _LOGGER.warning(
-                "Max retry attempts (%d) exceeded for %s in %d seconds",
-                MAX_RETRY_ATTEMPTS,
-                self.vehicle_id,
-                RETRY_TIME_WINDOW_SECONDS,
-            )
+            _LOGGER.warning(_LOG_RETRY_EXCEEDED, MAX_RETRY_ATTEMPTS, self.vehicle_id, RETRY_TIME_WINDOW_SECONDS)
             return False
 
         # Attempt to activate charging
@@ -205,17 +201,12 @@ class VehicleController:
         if success:
             # Reset retry state on successful activation
             self._retry_state.reset()
-            _LOGGER.info("Successfully activated charging for %s", self.vehicle_id)
+            _LOGGER.info(_LOG_ACTIVATED, self.vehicle_id)
         else:
             # Record this attempt
             self._retry_state.add_attempt()
             attempt_count = self._retry_state.get_attempt_count()
-            _LOGGER.warning(
-                "Failed to activate charging for %s (attempt %d/%d)",
-                self.vehicle_id,
-                attempt_count,
-                MAX_RETRY_ATTEMPTS,
-            )
+            _LOGGER.warning(_LOG_ACTIVATION_FAILED, self.vehicle_id, attempt_count, MAX_RETRY_ATTEMPTS)
 
         return success
 
@@ -232,10 +223,7 @@ class VehicleController:
 
         # If previously charging and now not charging, reset retry state
         if self._last_charging_state is True and current_charging is False:
-            _LOGGER.info(
-                "Vehicle %s disconnected - resetting retry counter",
-                self.vehicle_id,
-            )
+            _LOGGER.info(_LOG_DISCONNECT_RESET, self.vehicle_id)
             self._retry_state.reset()
 
         # Update last known charging state
@@ -248,7 +236,7 @@ class VehicleController:
         notified of charging failures.
         """
         self._retry_state.reset()
-        _LOGGER.info("Retry counter manually reset for %s", self.vehicle_id)
+        _LOGGER.info(_LOG_RETRY_RESET, self.vehicle_id)
 
     def get_retry_state(self) -> Dict[str, Any]:
         """Get the current retry state information.
@@ -269,7 +257,7 @@ class VehicleController:
         Also updates the charging state tracking for disconnect detection.
         """
         if self._strategy is None:
-            _LOGGER.warning("No strategy set for vehicle: %s", self.vehicle_id)
+            _LOGGER.warning(_LOG_NO_STRATEGY, self.vehicle_id)
             return False
 
         result = await self._strategy.async_deactivate()

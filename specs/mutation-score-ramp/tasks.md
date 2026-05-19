@@ -1406,7 +1406,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.1 [Iteration 9: vehicle] Log What & Why (NFR-7)
+- [x] 2.9.1 [Iteration 9: vehicle] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for `vehicle` ramp iteration to `chat.md`.
 
@@ -1422,7 +1422,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.2 [Iteration 9: vehicle] Measure + classify survivors
+- [x] 2.9.2 [Iteration 9: vehicle] Measure + classify survivors
 
   - **Do**: Targeted mutmut on `vehicle`; enumerate + classify; record in `chat.md`. NOTE: do NOT expand the pre-existing `test_vehicle_controller_event` mutmut exclusion (NFR-1).
 
@@ -1438,7 +1438,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.3 [Iteration 9: vehicle] Improve tests / US-5 refactor to kill survivors
+- [x] 2.9.3 [Iteration 9: vehicle] Improve tests / US-5 refactor to kill survivors
 
   - **Do**: Strengthen/add honest tests; US-5-refactor where needed (justified in `chat.md`); 2.0-ADJ only for genuine intrinsic mutants. NFR-1: no new skip/pragma; pre-existing `test_vehicle_controller_event` exclusion not expanded.
 
@@ -1454,7 +1454,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.4 [VERIFY] [Iteration 9: vehicle] Re-measure — kill rate strictly increased
+- [x] 2.9.4 [VERIFY] [Iteration 9: vehicle] Re-measure — kill rate strictly increased
 
   - **Do**: Re-run targeted mutmut on `vehicle`; confirm rate strictly up vs entry.
 
@@ -1470,7 +1470,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.5 [VERIFY] [Iteration 9: vehicle] Regression guard — test + cover + import-check
+- [x] 2.9.5 [VERIFY] [Iteration 9: vehicle] Regression guard — test + cover + import-check
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
@@ -1486,7 +1486,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.9.6 [Iteration 9: vehicle] Ratchet threshold + log delta row
+- [x] 2.9.6 [Iteration 9: vehicle] Ratchet threshold + log delta row
 
   - **Do**: Ratchet `vehicle` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
 

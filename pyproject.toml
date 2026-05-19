@@ -184,7 +184,7 @@ kill_threshold = 0.39
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.vehicle]
-kill_threshold = 0.55
+kill_threshold = 0.59
 increment_step = 0.01
 target_final = 1.00
 

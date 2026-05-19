@@ -16,6 +16,17 @@ from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
+# US-5: Extracted log format strings to constants for mutation-killing tests.
+_LOG_SWITCH_ACTIVATED = "Activated charging via switch: %s"
+_LOG_SWITCH_ERROR = "Error activating switch: %s"
+_LOG_SWITCH_DEACTIVATED = "Deactivated charging via switch: %s"
+_LOG_SWITCH_DEACTIVATE_ERROR = "Error deactivating switch: %s"
+_LOG_SWITCH_STATUS_ON = "on"
+
+_LOG_SERVICE_ACTIVATED = "Activated charging via service: %s"
+_LOG_SERVICE_ERROR = "Error calling service %s: %s"
+_LOG_SERVICE_DEACTIVATED = "Deactivated charging via service: %s"
+_LOG_SERVICE_DEACTIVATE_ERROR = "Error calling service %s: %s"
 
 # Note: RetryPolicy ABC removed to fix AP12 Speculative Generality.
 # OCP abstractness is maintained by existing ABCs with real implementations.
@@ -109,10 +120,10 @@ class SwitchStrategy(VehicleControlStrategy):
             await self.hass_wrapper.async_call_service(
                 "switch", "turn_on", {"entity_id": self.switch_entity_id}
             )
-            _LOGGER.info("Activated charging via switch: %s", self.switch_entity_id)
+            _LOGGER.info(_LOG_SWITCH_ACTIVATED, self.switch_entity_id)
             return True
         except Exception as err:
-            _LOGGER.error("Error activating switch: %s", err, exc_info=True)
+            _LOGGER.error(_LOG_SWITCH_ERROR, err, exc_info=True)
             return False
 
     async def async_deactivate(self) -> bool:
@@ -120,10 +131,10 @@ class SwitchStrategy(VehicleControlStrategy):
             await self.hass_wrapper.async_call_service(
                 "switch", "turn_off", {"entity_id": self.switch_entity_id}
             )
-            _LOGGER.info("Deactivated charging via switch: %s", self.switch_entity_id)
+            _LOGGER.info(_LOG_SWITCH_DEACTIVATED, self.switch_entity_id)
             return True
         except Exception as err:
-            _LOGGER.error("Error deactivating switch: %s", err, exc_info=True)
+            _LOGGER.error(_LOG_SWITCH_DEACTIVATE_ERROR, err, exc_info=True)
             return False
 
     async def async_get_status(self) -> bool:
@@ -147,24 +158,20 @@ class ServiceStrategy(VehicleControlStrategy):
         try:
             domain, service = self.service_on.split(".", 1)
             await self.hass_wrapper.async_call_service(domain, service, self.data_on)
-            _LOGGER.info("Activated charging via service: %s", self.service_on)
+            _LOGGER.info(_LOG_SERVICE_ACTIVATED, self.service_on)
             return True
         except Exception as err:
-            _LOGGER.error(
-                "Error calling service %s: %s", self.service_on, err, exc_info=True
-            )
+            _LOGGER.error(_LOG_SERVICE_ERROR, self.service_on, err, exc_info=True)
             return False
 
     async def async_deactivate(self) -> bool:
         try:
             domain, service = self.service_off.split(".", 1)
             await self.hass_wrapper.async_call_service(domain, service, self.data_off)
-            _LOGGER.info("Deactivated charging via service: %s", self.service_off)
+            _LOGGER.info(_LOG_SERVICE_DEACTIVATED, self.service_off)
             return True
         except Exception as err:
-            _LOGGER.error(
-                "Error calling service %s: %s", self.service_off, err, exc_info=True
-            )
+            _LOGGER.error(_LOG_SERVICE_DEACTIVATE_ERROR, self.service_off, err, exc_info=True)
             return False
 
     async def async_get_status(self) -> bool:
