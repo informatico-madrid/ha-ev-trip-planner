@@ -435,7 +435,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify services regression guard green`
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.3.6 [Iteration 3: services] Ratchet threshold + log delta row
+- [x] 2.3.6 [Iteration 3: services] Ratchet threshold + log delta row
   - **Do**: Ratchet `services` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: threshold ratcheted; delta row appended.

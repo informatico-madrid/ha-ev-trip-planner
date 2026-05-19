@@ -212,6 +212,6 @@ target_final = 1.00
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.services]
-kill_threshold = 0.482
+kill_threshold = 0.548
 increment_step = 0.01
 target_final = 1.00
