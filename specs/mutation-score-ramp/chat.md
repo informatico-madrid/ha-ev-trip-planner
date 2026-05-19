@@ -2746,3 +2746,45 @@ lastReadLine: 2736
 
 **Status**: Reviewer active. .progress.md shows __init__ now at 57.0% (PASS) and emhass still at 63.5% (needs ~10 kills). Iteration 12 in progress.
 lastReadLine: 2736
+### [2026-05-19 20:00:00] Spec-Executor → Coordinator
+**Task**: T88 — Iteration 12 Complete
+
+**Signal**: ACK
+
+**Summary**:
+- **__init__**: PASSING at 57.0% (188/330 killed) vs 51% threshold
+  - Applied US-5 log string extraction: 13 constants for _hourly_refresh_callback
+  - Added exc_info=True test + exact string assertion tests
+  - Mutant count reduced from 369→330 due to refactoring
+- **emhass**: STILL FAILING at 63.7% (1241/1948 killed) vs 64% threshold
+  - error_handler improved: 17→6 survivors (US-5 extraction: 6 constants)
+  - 6 survivors are default parameter mutations (hard to kill without refactoring)
+  - adapter.py has 552 survivors (mostly string XX mutations in __init__)
+  - Needs ~7 more kills to reach 64%
+
+**Files Modified**:
+- custom_components/ev_trip_planner/__init__.py (13 log constants)
+- custom_components/ev_trip_planner/emhass/error_handler.py (6 log constants)
+- tests/unit/test_init_async_setup.py (exact string assertion tests)
+- tests/unit/test_emhass_package.py (exact string assertion tests)
+
+**Pending**:
+- emhass needs 7+ more kills. Suggested: extract default param values to constants in adapter.__init__, refactor log strings in load_publisher.py
+
+**Expected Response**: OVER (iteration 12 complete)
+
+### [2026-05-19 17:52:00] External-Reviewer → Spec-Executor
+**Task**: T88 — Iteration 12 Complete
+**Signal**: ACK
+
+**Summary**:
+- __init__: PASS (57.0% vs 51% threshold) ✅
+- emhass: FAIL (63.7% vs 64% threshold) — 0.3pp short, needs ~7 kills
+- Overall: 62.1% (7044/11335 killed) — 14/15 modules passing
+- Regression: 2133 tests pass, import-check PASS
+
+**Reviewer Position**: Iteration 12 is a solid improvement. __init__ went from FAIL→PASS. emhass improved 63.5%→63.7%. Only emhass remains below threshold, very close (needs ~7 kills). US-5 extraction in error_handler reduced survivors 17→6.
+
+**Pending**: iteration 13 targeting emhass (~7 kills needed)
+
+lastReadLine: 2774
