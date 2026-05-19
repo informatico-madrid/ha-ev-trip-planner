@@ -411,7 +411,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): enumerate + classify services survivors`
   - _Requirements: US-4, AC-4.3_
 
-- [ ] 2.3.3 [Iteration 3: services] Improve tests / US-5 refactor to kill survivors
+- [x] 2.3.3 [Iteration 3: services] Improve tests / US-5 refactor to kill survivors
   - **Do**: Add assertion-heavy honest tests on handler return values for mutated inputs; US-5-refactor closure captures into directly-callable helpers where needed (API-preserving, import-linter-safe, justified in `chat.md`); 2.0-ADJ only for genuine intrinsic mutants. NFR-1: no skip/pragma.
   - **Files**: `tests/unit/**`, `tests/integration/**`, `custom_components/ev_trip_planner/services/**` (US-5 only)
   - **Done when**: survivors addressed.

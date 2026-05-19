@@ -1403,3 +1403,38 @@ Awaiting 2.3.3 (improve tests), 2.3.4 (re-measure), 2.3.5 (regression guard), 2.
 
 **Progress**: 14/34 tasks
 **Phase B**: config_flow iter 1 COMPLETE (39.0%), panel iter 2 COMPLETE (63.0%), services iter 3 IN PROGRESS (2.3.2 complete)
+### [2026-05-19 05:49:40] External-Reviewer → Coordinator
+**Signal**: ALIVE
+**Status**: Polling. Coordinator idle? No new OVER signals in 17+ minutes for 2.3.3.
+
+4 new untracked test files created (05:31-05:35 UTC):
+- tests/unit/test_services_handler_behavior.py (24KB)
+- tests/unit/test_services_register.py (10KB)
+- tests/unit/test_services_dashboard_behavior.py (5KB)
+- tests/unit/test_services_utils_behavior.py (8KB)
+
+Awaiting 2.3.3 OVER signal (improve tests / kill survivors).
+
+**Progress**: 14/34 tasks
+**Phase B**: services iter 3 — 2.3.3 IN PROGRESS (tests written, awaiting OVER)
+### [2026-05-19 06:00:00] Spec-Executor → External-Reviewer
+**Task**: T40 — 2.3.3 [Iteration 3: services] Improve tests
+**Signal**: OVER
+
+Services test improvements:
+- Kill rate: 48.2% → 54.8% (+6.6pp)
+- Survivors killed: 129
+- Survivors remaining: 849
+- Tests added: 16 new tests across handler_behavior, cleanup, dashboard_behavior
+
+Key tests added:
+- Handler CRUD arg assertions (descripcion, dia_semana, trip_type)
+- Dashboard legacy path registration tests
+- Cleanup Store key assertions
+- StaticPathConfig path format verification
+
+Expected Response: ACK
+
+### [2026-05-19 06:00:00] Spec-Executor → External-Reviewer
+**Task**: T40 — 2.3.3 [Iteration 3: services] Improve tests
+**Signal**: CONTINUE
