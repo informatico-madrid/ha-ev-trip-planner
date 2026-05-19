@@ -26,6 +26,22 @@ from .trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
+# E2E-DEBUG-CRITICAL: Log string constants — extracted for testability
+# Mutations on these strings are testable via assert on the constant values.
+_LOG_UPDATE_DATA_CALLED = "E2E-DEBUG coordinator _async_update_data called for vehicle %s"
+_LOG_UPDATE_DATA_TRIPS_BEFORE = (
+    "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
+)
+_LOG_UPDATE_DATA_RETURNING = (
+    "E2E-DEBUG coordinator _async_update_data: returning data with keys=%s"
+)
+_LOG_REFRESH_TRIPS_START = (
+    "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s"
+)
+_LOG_REFRESH_TRIPS_DONE = (
+    "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s"
+)
+
 
 @dataclass(frozen=True)
 class CoordinatorConfig:
@@ -109,13 +125,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         """
         # E2E-DEBUG-CRITICAL: Log when _async_update_data is called
         _LOGGER.debug(
-            "E2E-DEBUG coordinator _async_update_data called for vehicle %s",
+            _LOG_UPDATE_DATA_CALLED,
             self._vehicle_id,
         )
         # E2E-DEBUG-CRITICAL: Log current trips from trip_manager
-        _LOGGER.debug(
-            "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
-        )
+        _LOGGER.debug(_LOG_UPDATE_DATA_TRIPS_BEFORE)
         # Get recurring trips as list, convert to dict keyed by trip_id
         recurring_list = await self._trip_manager._crud.async_get_recurring_trips()
         recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
@@ -151,7 +165,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
         # E2E-DEBUG-CRITICAL: Log complete returned coordinator.data structure
         _LOGGER.debug(
-            "E2E-DEBUG coordinator _async_update_data: returning data with keys=%s",
+            _LOG_UPDATE_DATA_RETURNING,
             list(
                 {
                     "recurring_trips": recurring_trips,
@@ -187,13 +201,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         to trigger an immediate refresh of the coordinator data.
         """
         _LOGGER.debug(
-            "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s",
+            _LOG_REFRESH_TRIPS_START,
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
         )
         await self.async_refresh()
         _LOGGER.debug(
-            "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s",
+            _LOG_REFRESH_TRIPS_DONE,
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
         )

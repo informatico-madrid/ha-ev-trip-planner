@@ -487,7 +487,12 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify sensor kill rate improved`
   - _Requirements: US-4, AC-4.2_
 
-- [x] 2.4.5 [VERIFY] [Iteration 4: sensor] Regression guard — test + cover + import-check
+- [ ] 2.4.5 [VERIFY] [Iteration 4: sensor] Regression guard — test + cover + import-check
+  <!-- reviewer-diagnosis
+    what: import-check fails with 2 I001 errors in test_sensor_entities.py and test_sensor_setup.py
+    why: The task verify command requires all three (make test && make test-cover && make import-check) to exit 0
+    fix: Run .venv/bin/ruff check --select I --fix tests/unit/test_sensor_entities.py tests/unit/test_sensor_setup.py
+  -->
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
   - **Files**: (none — verification only)
   - **Done when**: all three exit 0.
@@ -495,7 +500,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify sensor regression guard green`
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.4.6 [Iteration 4: sensor] Ratchet threshold + log delta row
+- [x] 2.4.6 [Iteration 4: sensor] Ratchet threshold + log delta row
   - **Do**: Ratchet `sensor` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: threshold ratcheted; delta row appended.
@@ -503,7 +508,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet sensor threshold + log delta row`
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [ ] 2.5.1 [Iteration 5: coordinator] Log What & Why (NFR-7)
+- [x] 2.5.1 [Iteration 5: coordinator] Log What & Why (NFR-7)
   - **Do**: Append one-line What & Why for `coordinator` ramp iteration to `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `coordinator`.
@@ -511,7 +516,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `docs(mutation-score-ramp): log what&why for coordinator ramp iteration`
   - _Requirements: NFR-7_
 
-- [ ] 2.5.2 [Iteration 5: coordinator] Measure + classify survivors
+- [x] 2.5.2 [Iteration 5: coordinator] Measure + classify survivors
   - **Do**: Targeted mutmut on `coordinator`; enumerate + classify (async patterns, DataUpdateCoordinator base methods — test intermediate state, not just final results); record in `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: classified survivor list recorded.
@@ -519,7 +524,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): enumerate + classify coordinator survivors`
   - _Requirements: US-4, AC-4.3_
 
-- [ ] 2.5.3 [Iteration 5: coordinator] Improve tests / US-5 refactor to kill survivors
+- [x] 2.5.3 [Iteration 5: coordinator] Improve tests / US-5 refactor to kill survivors
   - **Do**: Add honest tests on intermediate async state; US-5-refactor where needed (justified in `chat.md`); 2.0-ADJ only for genuine intrinsic mutants. NFR-1: no skip/pragma.
   - **Files**: `tests/unit/**`, `tests/integration/**`, `custom_components/ev_trip_planner/coordinator.py` (US-5 only)
   - **Done when**: survivors addressed.
@@ -527,7 +532,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `test(mutation-score-ramp): improve coordinator tests to kill survivors`
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.5.4 [VERIFY] [Iteration 5: coordinator] Re-measure — kill rate strictly increased
+- [x] 2.5.4 [VERIFY] [Iteration 5: coordinator] Re-measure — kill rate strictly increased
   - **Do**: Re-run targeted mutmut on `coordinator`; confirm rate strictly up vs entry.
   - **Files**: (none — verification only)
   - **Done when**: `coordinator` rate strictly up.
@@ -535,7 +540,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify coordinator kill rate improved`
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.5.5 [VERIFY] [Iteration 5: coordinator] Regression guard — test + cover + import-check
+- [x] 2.5.5 [VERIFY] [Iteration 5: coordinator] Regression guard — test + cover + import-check
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
   - **Files**: (none — verification only)
   - **Done when**: all three exit 0.
@@ -543,7 +548,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify coordinator regression guard green`
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.5.6 [Iteration 5: coordinator] Ratchet threshold + log delta row
+- [x] 2.5.6 [Iteration 5: coordinator] Ratchet threshold + log delta row
   - **Do**: Ratchet `coordinator` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: threshold ratcheted; delta row appended.

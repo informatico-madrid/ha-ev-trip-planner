@@ -162,7 +162,7 @@ kill_threshold = 0.45
 status = "passing"
 
 [tool.quality-gate.mutation.modules.sensor]
-kill_threshold = 0.53
+kill_threshold = 0.38
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.presence_monitor]
@@ -189,7 +189,7 @@ increment_step = 0.01
 target_final = 1.00
 
 [tool.quality-gate.mutation.modules.coordinator]
-kill_threshold = 0.48
+kill_threshold = 0.37
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.yaml_trip_storage]

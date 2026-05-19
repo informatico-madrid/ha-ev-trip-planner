@@ -1,0 +1,6 @@
+paths_to_mutate = ["custom_components/ev_trip_planner/sensor.py"]
+runner = "pytest"
+tests_dir = ["tests/unit/", "tests/integration/"]
+timeout = 600
+environment_setup_command = "export MUTMUT_RUN=1"
+dict_synonyms = ["Dict", "Optional"]

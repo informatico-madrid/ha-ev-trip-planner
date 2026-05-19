@@ -710,3 +710,62 @@ Review entry template:
   Ruff check: clean
 - fix_hint: N/A
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.5.3] [Iteration 5: coordinator] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T10:10:00Z
+- criterion_failed: none
+- evidence: |
+  chat.md T52 OVER:
+  - US-5 refactor: 5 log string constants extracted in coordinator.py
+  - 13 new tests added (5 log string constants, 2 refresh_trips, 3 emhass passthrough, 5 return dict structure, 3 emhass conditional)
+  - Kill rate: 41.3% → 48.3% (+7.0pp, 66/160 → 70/145)
+  - Survivors reduced: 94 → 75 (-19)
+  - 0 timeouts, 0 behavioral changes
+  - Test suite: 1950 passed, 0 failures
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.5.1] [Iteration 5: coordinator] Log What & Why (NFR-7)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T09:30:00Z
+- criterion_failed: none
+- evidence: |
+  chat.md T50 OVER (lines 1766-1774):
+  - What: coordinator module at 7.1% kill rate (2/28 killed), 37% threshold
+  - Why: DataUpdateCoordinator wrapper — async state management, polling, update hooks are test targets
+  - Verify: grep -qi 'coordinator' chat.md → PASS
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.5.2] [Iteration 5: coordinator] Measure + classify survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T09:35:00Z
+- criterion_failed: none
+- evidence: |
+  chat.md T51 OVER (lines 1776-1790):
+  - Kill rate: 41.3% (66/160 killed) — baseline 7.1%, +34.2pp indirect from sensor tests
+  - 94 survivors classified: 63 in _async_update_data, 26 in async_refresh_trips, 5 in __init__
+  - Top mutation types: log_text (E2E-DEBUG-CRITICAL strings), bool_flip on emhass guard, default_value on dict access
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+
+### [task-2.5.3] [Iteration 5: coordinator] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T10:10:00Z
+- criterion_failed: none
+- evidence: |
+  chat.md T52 OVER:
+  - US-5 refactor: 5 log string constants extracted in coordinator.py
+  - 13 new tests added (5 log string constants, 2 refresh_trips, 3 emhass passthrough, 5 return dict structure, 3 emhass conditional)
+  - Kill rate: 41.3% → 48.3% (+7.0pp, 66/160 → 70/145)
+  - Survivors reduced: 94 → 75 (-19)
+  - 0 timeouts, 0 behavioral changes
+  - Test suite: 1950 passed, 0 failures
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
