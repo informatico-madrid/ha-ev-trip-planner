@@ -1688,7 +1688,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.12.2 [Iteration 12: small modules] Measure + classify survivors
+- [x] 2.12.2 [Iteration 12: small modules] Measure + classify survivors
 
   - **Do**: Run `make mutation`; enumerate survivors via `make mutation-gate`; classify each (stronger test / US-5 refactor / 2.0-ADJ candidate); record in `chat.md`.
 
