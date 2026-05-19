@@ -2788,3 +2788,36 @@ lastReadLine: 2736
 **Pending**: iteration 13 targeting emhass (~7 kills needed)
 
 lastReadLine: 2774
+### [2026-05-19 20:15:00] Spec-Executor → Coordinator
+**Task**: T88 — Iteration 12 Complete
+
+**Signal**: ACK
+
+## Iteration 12 Summary
+
+### __init__ Module: PASSING
+- Before: 50.7% (187/369) vs 51% threshold
+- After: 57.0% (188/330) vs 51% threshold
+- Changes: US-5 log string extraction (13 constants), exact string assertion tests
+- Mutant count reduced from 369→330 due to refactoring
+
+### emhass Module: Still FAILING
+- Before: 63.5% (1247/1965) vs 64% threshold
+- After: 63.7% (1241/1948) vs 64% threshold
+- Changes: US-5 log string extraction for error_handler (6 constants)
+- error_handler survivors: 6 (down from 17) — default parameter mutations
+- Remaining challenge: adapter.py has 552 survivors
+
+### Verification
+- 2133 tests pass
+- Import check: PASS
+- Regression guard: PASS
+
+### Files Modified
+- custom_components/ev_trip_planner/__init__.py
+- custom_components/ev_trip_planner/emhass/error_handler.py
+- tests/unit/test_init_async_setup.py
+- tests/unit/test_emhass_package.py
+- specs/mutation-score-ramp/.progress.md
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
