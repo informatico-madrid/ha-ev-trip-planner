@@ -447,7 +447,8 @@ class TestValidateHoraMutationKills:
 class TestSanitizeMutationKills:
     """Tests targeting sanitize_recurring_trips mutation survivors.
 
-    Kill targets: 3 mutations from assignment/conditional removals.
+    Kill targets: 3 mutations from assignment/conditional removals
+    and default_value mutations on trip.get("hora", "").
     """
 
     def test_valid_trips_retained(self):
@@ -479,6 +480,25 @@ class TestSanitizeMutationKills:
         result = sanitize_recurring_trips(trips)
         assert "t1" in result
         assert result["t1"]["hora"] == "09:00"
+
+    def test_missing_hora_key_filtered(self):
+        """Trip dict without 'hora' key is filtered — kills default_value mutants.
+
+        Kills mutations 4, 6, 9:
+        - mutmut_4: trip.get("hora", "") -> trip.get("hora", None)
+          None -> validate_hora(None) raises ValueError -> trip filtered
+        - mutmut_6: trip.get("hora", "") -> trip.get("hora", )
+          Missing default -> KeyError if "hora" absent -> trip filtered
+        - mutmut_9: trip.get("hora", "") -> trip.get("hora", "XXXX")
+          "XXXX" -> validate_hora raises -> trip filtered
+        """
+        trips = {
+            "t1": {"hora": "09:00"},  # valid
+            "t2": {},  # missing hora key entirely
+        }
+        result = sanitize_recurring_trips(trips)
+        assert "t1" in result
+        assert "t2" not in result  # filtered because missing hora
 
 
 class TestGetDayIndexMutationKills:

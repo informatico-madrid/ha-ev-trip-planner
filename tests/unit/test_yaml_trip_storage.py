@@ -310,6 +310,65 @@ class TestYamlTripStorageAsyncLoadEdgeCases:
         assert result == {"trips": {"x": 1}, "other": 2}
 
     @pytest.mark.asyncio
+    async def test_async_load_data_key_missing_returns_full_dict(self, mock_hass):
+        """Test async_load when stored_data has no 'data' key.
+
+        This targets mutations 7 and 9 in yaml_trip_storage.async_load:
+        - mutmut_7: stored_data.get("data", {}) -> stored_data.get("data", None)
+        - mutmut_9: stored_data.get("data", {}) -> stored_data.get("data", )
+
+        When "data" key is missing from a dict stored_data:
+        - Line 44 check fails (no "data" in stored_data)
+        - Falls to line 46: return stored_data
+        - The .get("data", {}) on line 45 is never reached for this path
+
+        This test asserts the correct path is taken.
+        """
+        mock_store = MagicMock()
+        # Dict without 'data' key
+        stored_dict = {"trips": {"t1": {}}, "recurring": {}}
+        mock_store.async_load = AsyncMock(return_value=stored_dict)
+
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            return_value=mock_store,
+        ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
+            result = await storage.async_load()
+
+        # Should return the full stored dict (not filtered through .get("data", {}))
+        assert result == stored_dict
+        assert result["trips"] == {"t1": {}}
+
+    @pytest.mark.asyncio
+    async def test_async_load_wrapped_data_returns_inner_data(self, mock_hass):
+        """Test async_load when stored_data has 'data' key with dict value.
+
+        Targets mutation where .get("data", {}) default changes.
+        When 'data' key exists with dict value:
+        - Line 44: isinstance(stored_data["data"], dict) is True
+        - Returns stored_data.get("data", {}) = stored_data["data"]
+        - Mutation to get("data", None) would still return the dict value
+          (default only used when key missing)
+        - Mutation to get("data", ) would still return the dict value
+        """
+        mock_store = MagicMock()
+        inner_data = {"trips": {"t1": {}}}
+        mock_store.async_load = AsyncMock(
+            return_value={"data": inner_data}
+        )
+
+        with patch(
+            "homeassistant.helpers.storage.Store",
+            return_value=mock_store,
+        ):
+            storage = YamlTripStorage(mock_hass, "test_vehicle")
+            result = await storage.async_load()
+
+        assert result == inner_data
+        assert result is inner_data
+
+    @pytest.mark.asyncio
     async def test_async_load_returns_exact_stored_data(self, mock_hass):
         """Test async_load returns the exact 'data' value, not a copy."""
         mock_store = MagicMock()

@@ -1704,7 +1704,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.12.3 [Iteration 12: small modules] Improve tests / US-5 refactor to kill survivors
+- [x] 2.12.3 [Iteration 12: small modules] Improve tests / US-5 refactor to kill survivors
 
   - **Do**: Strengthen/add honest tests for remaining small-module survivors (utils, diagnostics, yaml_trip_storage); US-5-refactor where needed; NFR-1: no skip/pragma. Target: drive all 3 modules to 100%.
 
