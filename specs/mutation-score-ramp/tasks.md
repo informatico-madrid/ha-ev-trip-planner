@@ -419,7 +419,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `test(mutation-score-ramp): improve services tests to kill survivors`
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.3.4 [VERIFY] [Iteration 3: services] Re-measure — kill rate strictly increased
+- [x] 2.3.4 [VERIFY] [Iteration 3: services] Re-measure — kill rate strictly increased
   - **Do**: Re-run targeted mutmut on `services`; confirm rate strictly up vs entry.
   - **Files**: (none — verification only)
   - **Done when**: `services` rate strictly up.
