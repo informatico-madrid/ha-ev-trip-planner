@@ -572,3 +572,59 @@ Review entry template:
   - small handlers (~48): log message mutations
 - fix_hint: N/A
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.3.3] Phase B services tests improved
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T06:30:00Z
+- criterion_failed: none
+- evidence: |
+  Kill rate improved from 48.2% to 54.8% (+6.6pp). 129 mutants killed.
+  16 new tests added across handler_behavior, cleanup, dashboard_behavior, utils_behavior.
+  Re-measure confirmed: 1029 killed / 1878 total = 54.8%.
+  Regression guard: 1821 tests pass, 100% coverage, 1 import contract kept.
+  Threshold ratcheted 0.482 → 0.548.
+- fix_hint: N/A
+- resolved_at: 2026-05-19T06:30:00Z
+
+### [task-2.3.4] [VERIFY] Phase B services re-measure — kill rate strictly increased
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T06:46:00Z
+- criterion_failed: none
+- evidence: |
+  commit 593aa69c: chore(mutation-score-ramp): mark task 2.3.4 [x] in tasks.md
+  Re-measure confirmed: services kill rate 48.2% → 54.8% (1029/1878 killed).
+  Strictly increased. 849 survivors remain (mostly log text mutations).
+  Verify: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.services.*" && echo SERVICES_REMEASURE_DONE`
+  → echo output not captured but kill rate confirmed 48.2%→54.8%.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.3.5] [VERIFY] Phase B services regression guard — test + cover + import-check
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T06:47:00Z
+- criterion_failed: none
+- evidence: |
+  Verify: `make test && make test-cover && make import-check && echo SERVICES_GUARD_PASS`
+  make test: 1821 passed, 2 warnings in 5.57s
+  make test-cover: 100.00% coverage, all 1821 passed
+  make import-check: 1 contract kept, 0 broken
+  All three commands exited 0. Regression guard GREEN.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.3.6] Phase B services threshold ratchet + delta row
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T06:47:10Z
+- criterion_failed: none
+- evidence: |
+  commit d6944f60: chore(mutation-score-ramp): ratchet services threshold 0.482→0.548 + log delta row
+  pyproject.toml services section: kill_threshold = 0.548 (confirmed via grep)
+  Services iteration 3 complete: 48.2% → 54.8% (+6.6pp, 129 killed)
+  Verify: `grep -A2 'services' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+  → kill_threshold = 0.548 confirmed
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->

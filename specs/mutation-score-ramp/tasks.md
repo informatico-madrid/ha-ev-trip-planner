@@ -443,7 +443,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet services threshold + log delta row`
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [ ] 2.3.7 [VERIFY] Gate checkpoint #1 (after 3 iterations): full `make mutation` + `make mutation-gate`
+- [x] 2.3.7 [VERIFY] Gate checkpoint #1 (after 3 iterations): full `make mutation` + `make mutation-gate`
   - **Do**:
     1. Run full `make mutation` (~10 min, 583 s baseline) so the cache reflects iterations 1-3.
     2. Run `make mutation-gate`; confirm it exits without traceback and reports the new overall rate.
@@ -455,7 +455,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): gate checkpoint #1 — full run after iterations 1-3`
   - _Requirements: US-4, FR-9, AC-4.2, NFR-2_
 
-- [ ] 2.4.1 [Iteration 4: sensor] Log What & Why (NFR-7)
+- [x] 2.4.1 [Iteration 4: sensor] Log What & Why (NFR-7)
   - **Do**: Append one-line What & Why for `sensor` ramp iteration to `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `sensor`.

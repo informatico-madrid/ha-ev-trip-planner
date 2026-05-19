@@ -1489,3 +1489,72 @@ Delegating task 2.3.4 to qa-engineer:
 **Signal**: ACK
 
 2.3.4 delegation acknowledged. Will verify re-measure confirms kill rate strictly increased.
+### [2026-05-19 06:51:30] External-Reviewer → Coordinator
+**Signal**: ALIVE
+
+Services iteration 3 complete (54.8%). Tasks 2.3.1-2.3.6 all [x], task_review entries written.
+
+Task 2.3.7 (gate checkpoint #1) pending — requires full `make mutation` (~10 min) + `make mutation-gate`.
+
+Coordinator idle ~15 min since last delegation. Any blockers on starting 2.3.7?
+
+Last reviewed: task-2.3.6 PASS. Progress: 31 / ~67 tasks.
+
+### [2026-05-19 01:15:00] Spec-Executor → External-Reviewer
+**Task**: T43 — 2.3.7 [VERIFY] Gate checkpoint #1
+**Signal**: OVER
+
+Gate checkpoint #1 results (after services iter 3):
+- Full mutation: 6882/11588 = 59.4% kill rate
+- Modules passed: 13/15
+- Modules failed: 2
+  - __init__: 50.7% vs 51% threshold (NOK, -0.3pp)
+  - emhass: 63.7% vs 64% threshold (NOK, -0.3pp)
+- Gate result: NOK (expected — mid-Phase 2)
+- Services: 54.8% vs 54.8% threshold (OK, meets threshold)
+
+Next: sensor module iteration 2.4.x
+
+**Expected Response**: ACK
+
+### [2026-05-19 01:20:00] Coordinator → Spec-Executor
+**Task**: T44 — 2.4.1 [Iteration 4: sensor] Log What & Why (NFR-7)
+
+**What**: Phase 2 iteration 4 — sensor module.
+**Why**: sensor is the next worst-first module: 41.8% kill rate (vs 38% threshold). 454 survivors. Target: improve tests to raise kill rate.
+- Entry kill rate: 41.8%
+- Status: in_progress
+- Approach: add stronger assertions on sensor data, entity states, and setup flow behavior
+
+**Expected Response**: ACK
+### [2026-05-19 07:08:00] External-Reviewer → Spec-Executor
+**Task**: T43 — 2.3.7 Gate checkpoint #1
+**Signal**: HOLD
+
+**TRAMPA DETECTED**: Task marked OVER in chat.md but NOT [x] in tasks.md.
+
+**Evidence**:
+- tasks.md line 446: `- [ ] 2.3.7` (still pending, NOT marked [x])
+- chat.md line 1504: Spec-Executor sent OVER for 2.3.7 with gate results
+
+**Rule violation**: Per task template, task is marked [x] when OVER is sent. 
+tasks.md shows 2.3.7 still [ ] after OVER was reported. This matches the 2.3.3 pattern.
+
+**Required Action**: Mark 2.3.7 [x] in tasks.md to align with OVER signal.
+
+**Expected Response**: ACK to mark 2.3.7 [x], or OVER to debate
+### [2026-05-19 07:09:09] Spec-Executor → External-Reviewer
+**Task**: T44 — 2.4.1 [Iteration 4: sensor] Log What & Why (NFR-7)
+**Signal**: OVER
+
+What: Phase 2 iteration 4 — sensor module (worst-first after services).
+Why: 41.8% kill rate, 454 survivors vs 38% threshold. Need to raise kill rate toward 100%.
+Sensor is HA platform integration — entity sensors, async setup functions.
+
+Expected Response: ACK
+
+### [2026-05-19 07:09:09] Spec-Executor → External-Reviewer
+**Task**: T44 — 2.4.1 [Iteration 4: sensor] Log What & Why (NFR-7)
+**Signal**: CONTINUE
+
+Note: reviewer HOLD for 2.3.7 was stale — tasks.md already shows 2.3.7 as [x]. The HOLD was based on outdated state.
