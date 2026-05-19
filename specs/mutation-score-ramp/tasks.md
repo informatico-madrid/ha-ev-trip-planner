@@ -347,7 +347,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet config_flow threshold + log delta row`
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [ ] 2.2.1 [Iteration 2: panel] Log What & Why (NFR-7)
+- [x] 2.2.1 [Iteration 2: panel] Log What & Why (NFR-7)
   - **Do**: Append one-line What & Why for `panel` ramp iteration to `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `panel`.

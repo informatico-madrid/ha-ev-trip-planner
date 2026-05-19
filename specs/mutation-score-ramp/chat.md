@@ -965,3 +965,103 @@ T2.1.3 OVER acknowledged: 3 new tests added (boundary value + boolean flip), 9 m
 **Note**: 294 remaining survivors are all classified as equivalent/intrinsic (log text, string literals, encoding args) — ADJ candidates per NFR-1. ACK on test improvement work.
 
 **Awaiting**: T2.1.4 OVER (re-measure kill rate strictly increased)
+
+### [2026-05-19 00:25:20] External-Reviewer → Coordinator
+**Signal**: ACK
+
+Commit 7c7ac153 confirms config_flow iteration 1 complete:
+- Kill rate: 37.1% → 39.0% (9 mutants killed via boundary tests)
+- Threshold ratcheted: 0.31 → 0.39 (honest)
+- Phase B iteration 1 PASS
+
+**Next**: Phase B iteration 2 — next worst module per worst-first order.
+
+**Awaiting**: Coordinator delegation + spec-executor OVER for iteration 2.
+
+### [2026-05-19 02:37:49] External-Reviewer → Human
+**Signal**: DEADLOCK
+
+**COORDINATOR IDLE — HUMAN ESCALATION REQUIRED**
+
+**Observation**: Coordinator/scheduler is idle. No new commits since 01:05 UTC (commit 7c7ac153). No new chat signals. No OVER or ALIVE signals for over 1.5 hours.
+
+**Current State**:
+- Phase B iteration 1: config_flow complete (39.0% kill rate, threshold 0.39)
+- Phase B iteration 2: NOT STARTED (next worst module not delegated)
+- External-reviewer last ACK sent at 00:25 UTC
+- .ralph-state.json lastReadLine not updated since 00:25
+
+**Evidence**:
+```
+$ git log --oneline -3
+7c7ac153 ramp(mutation-score-ramp): config_flow iteration 1 complete — 37.1%→39.0%, threshold ratcheted 0.31→0.39
+
+$ wc -l specs/mutation-score-ramp/chat.md
+979  (static for >90 minutes)
+```
+
+**What should be happening**:
+1. Coordinator should delegate next Phase B iteration (sensor or emhass module)
+2. Spec-executor should start What&Why for iteration 2
+3. Chat.md should have new OVER/ALIVE signals
+
+**Decision**: Human must either:
+1. Resume the coordinator/scheduler manually
+2. Resume spec-executor for Phase B iteration 2
+3. Confirm the session is paused/stopped
+
+**Awaiting**: Human intervention to resume Phase B or confirm stop.
+
+### [2026-05-19 04:23:31] External-Reviewer → Human
+**Signal**: DEADLOCK (2nd escalation)
+
+**COORDINATOR IDLE — 3+ HOURS — HUMAN ESCALATION REQUIRED**
+
+**Current time**: 2026-05-19 04:23 UTC
+**Last activity**: 2026-05-19 01:05 UTC (commit 7c7ac153)
+**Idle duration**: >3 hours
+
+**State unchanged since last DEADLOCK**:
+- chat.md: line 1013 (no new signals)
+- git: commit 7c7ac153 (no new commits)
+- No coordinator, spec-executor, or ralph processes running
+- Phase B iteration 2: NOT STARTED
+
+**Required action**: Human must start coordinator/scheduler for Phase B iteration 2, or explicitly pause/abort the spec.
+
+### [2026-05-19 04:26:45] External-Reviewer → Coordinator
+**Signal**: CONTINUE
+
+**Reviewer activo de nuevo — Estado verificado**:
+
+- chat.md: 1030 líneas (DEADLOCK signals en 981, 1015-1030)
+- Fase: Phase B — config_flow iteration 1 COMPLETO
+- Coordinator idle desde ~01:05 UTC — DEADLOCK registrado
+- Awaiting coordinator restart para Phase B iteration 2
+
+**Estado verificado en disco**:
+```
+$ git log --oneline -1
+7c7ac153 ramp(mutation-score-ramp): config_flow iteration 1 complete — 37.1%→39.0%, threshold ratcheted 0.31→0.39
+
+$ wc -l specs/mutation-score-ramp/chat.md
+1030
+```
+
+**Lo que ha pasado**:
+- Phase A: COMPLETO (25 tareas, gate honesto NOK — __init__ 50.7%, emhass 63.7%)
+- Phase B iter 1 (config_flow): COMPLETO — 37.1%→39.0%, threshold 0.31→0.39
+- Phase B iter 2 (sensor o emhass): PENDIENTE — coordinator parado desde 01:05 UTC
+
+**Último commit verificado**: 7c7ac153 (01:05 UTC)
+
+**Awaiting**: Coordinator restart + Phase B iteration 2 delegation.
+### [2026-05-19 00:10:00] Spec-Executor → External-Reviewer
+**Task**: T32 — 2.2.1 [Iteration 2: panel] Log What & Why (NFR-7)
+**Signal**: ALIVE
+
+**What**: Ramp `panel` module from 37.8% to 100% mutation kill rate via honest test improvement and US-5 testability refactors.
+**Why**: Phase B iteration 2 — panel at 37.8% (193 mutants, 73 killed), second-worst-first target in Phase B after config_flow (39.0% after iteration 1). Panel registration is HA framework glue — mutations to `panel_custom.async_register_panel()` have no test-visible effect, so expect heavy equivalent/intrinsic mutant count requiring US-5 refactors to extract testable logic.
+**Target**: `tests/unit/**`, `tests/integration/**` covering panel module survivors.
+
+**Expected Response**: ACK
