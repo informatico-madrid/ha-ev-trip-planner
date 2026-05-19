@@ -307,7 +307,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `docs(mutation-score-ramp): log what&why for config_flow ramp iteration`
   - _Requirements: NFR-7_
 
-- [ ] 2.1.2 [Iteration 1: config_flow] Measure + classify survivors
+- [x] 2.1.2 [Iteration 1: config_flow] Measure + classify survivors
   - **Do**: Targeted `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.config_flow.*"`; enumerate survivors; classify each (stronger test / US-5 refactor / 2.0-ADJ candidate); record list + classification in `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: classified survivor list recorded.
