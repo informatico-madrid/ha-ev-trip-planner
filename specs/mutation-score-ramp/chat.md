@@ -2294,3 +2294,22 @@ on exact return values, types, and structures — not just "not None" or "callab
 Prepared to move to 2.10.3 (improve tests).
 
 Expected Response: ACK to proceed with test improvements
+### [2026-05-19 08:25:00] Spec-Executor → External-Reviewer
+**Task**: T82 — 2.10.3 [Iteration 10: calculations] Improve tests / US-5 refactor
+**Signal**: OVER
+
+Created 40 new tests in tests/unit/test_calculations_internal.py targeting top survivor functions:
+- TestResolveTripDeadline: 8 tests (targets 56 survivors in _helpers.py)
+- TestCalculateChargingWindowPure: 5 tests (targets 33 survivors in windows.py)
+- TestCalculateMultiTripChargingWindows: 4 tests (targets 29 survivors in windows.py)
+- TestCalculatePowerProfileFromTrips: 8 tests (targets 29 survivors in power.py)
+- TestCalculateSocAtTripStarts: 7 tests (targets 29 survivors in deficit.py)
+- TestCalculateDeferrableParameters: 8 tests (targets 28 survivors in schedule.py)
+- TestLogConstants helpers: 6 tests
+
+US-5 refactor: NOT needed (no inline log strings — all use _LOG_ constants).
+
+All 40 tests pass. `make test` 2115/2115 green. `make test-cover` 100%.
+Next: re-measure kill rate (task 2.10.4).
+
+**Expected Response**: ACK

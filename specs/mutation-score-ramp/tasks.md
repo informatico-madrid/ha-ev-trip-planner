@@ -1563,7 +1563,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.10.3 [Iteration 10: calculations] Improve tests / US-5 refactor to kill survivors
+- [x] 2.10.3 [Iteration 10: calculations] Improve tests / US-5 refactor to kill survivors
 
   - **Do**: Add assertion-heavy honest tests on arithmetic edge cases; US-5-refactor where needed (justified in `chat.md`); 2.0-ADJ only for genuine intrinsic mutants. NFR-1: no skip/pragma.
 
