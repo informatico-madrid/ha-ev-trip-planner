@@ -1672,6 +1672,102 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
+- [x] 2.12.1 [Iteration 12: small modules] Log What & Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `small modules` (utils, diagnostics, yaml_trip_storage) ramp iteration to `chat.md`. What: iteration 12 to address remaining survivors from iteration 11. Why: re-measure showed definitions at 100% but utils 91.9%, diagnostics 93.2%, yaml_trip_storage 96.0% still below threshold.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: one-line log entry appended.
+
+  - **Verify**: `grep -q 'iteration 12' specs/mutation-score-ramp/chat.md && echo WHATWHY_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): log iteration 12 small modules What & Why (NFR-7)`
+
+  - _Requirements: US-4, NFR-7_
+
+
+
+- [ ] 2.12.2 [Iteration 12: small modules] Measure + classify survivors
+
+  - **Do**: Run `make mutation`; enumerate survivors via `make mutation-gate`; classify each (stronger test / US-5 refactor / 2.0-ADJ candidate); record in `chat.md`.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: survivor list + classification recorded.
+
+  - **Verify**: `grep -q 'iteration 12.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify iteration 12 small-module survivors`
+
+  - _Requirements: US-4, AC-4.2, NFR-1_
+
+
+
+- [ ] 2.12.3 [Iteration 12: small modules] Improve tests / US-5 refactor to kill survivors
+
+  - **Do**: Strengthen/add honest tests for remaining small-module survivors (utils, diagnostics, yaml_trip_storage); US-5-refactor where needed; NFR-1: no skip/pragma. Target: drive all 3 modules to 100%.
+
+  - **Files**: `tests/unit/**`, `tests/integration/**`, `custom_components/ev_trip_planner/{utils,diagnostics,yaml_trip_storage}.py` (US-5 only)
+
+  - **Done when**: survivors addressed.
+
+  - **Verify**: `make test` exits 0.
+
+  - **Commit**: `test(mutation-score-ramp): improve iteration 12 small-module tests to kill survivors`
+
+  - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
+
+
+
+- [ ] 2.12.4 [VERIFY] [Iteration 12: small modules] Re-measure — every small module at 100%
+
+  - **Do**: Re-run full `make mutation`; analyze per-module kill rates via mutation_analyzer.py; confirm each small module at 100% kill rate.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: every small module measured at 100%.
+
+  - **Verify**: `make mutation && python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep -E 'utils|diagnostics|yaml_trip_storage' && echo SMALL_MODULES_REMEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 12 small modules at 100% kill rate`
+
+  - _Requirements: US-4, AC-4.2_
+
+
+
+- [ ] 2.12.5 [VERIFY] [Iteration 12: small modules] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo SMALL_MODULES_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 12 regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+
+
+- [ ] 2.12.6 [Iteration 12: small modules] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = 1.00` for `utils`, `diagnostics`, `yaml_trip_storage` (and `definitions` if at 100%) in `pyproject.toml`; append delta rows to `.progress.md`. NOTE: per resolved Unresolved Question, all small modules ratchet to 1.00.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: thresholds ratcheted; delta rows appended.
+
+  - **Verify**: `grep -E 'utils|diagnostics|yaml_trip_storage|definitions' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 12 small-module thresholds + log delta rows`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+
+
 - [ ] 2.11.4 [VERIFY] [Iteration 11: small modules] Re-measure — every small module at 100%
 
   - **Do**: Re-run targeted mutmut on each small module; confirm each at 100% kill rate.
@@ -1688,7 +1784,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [x] 2.11.5 [VERIFY] [Iteration 11: small modules] Regression guard — test + cover + import-check
+- [ ] 2.11.5 [VERIFY] [Iteration 11: small modules] Regression guard — test + cover + import-check
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
@@ -1704,7 +1800,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [x] 2.11.6 [Iteration 11: small modules] Ratchet thresholds + log delta rows
+- [ ] 2.11.6 [Iteration 11: small modules] Ratchet thresholds + log delta rows
 
   - **Do**: Set `kill_threshold = 1.00` for `utils`, `diagnostics`, `definitions`, `yaml_trip_storage` (and `__init__`/`const`/`frontend` if at 100%) in `pyproject.toml`; append delta rows to `.progress.md`. NOTE: `definitions` (loose 0.45 today) is explicitly ratcheted to 1.00 per the resolved Unresolved Question.
 
