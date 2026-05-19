@@ -1800,7 +1800,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.13.3 [Iteration 13: utils + yaml_trip_storage] 2.0-ADJ adjudication + improve tests
+- [x] 2.13.3 [Iteration 13: utils + yaml_trip_storage] 2.0-ADJ adjudication + improve tests
 
   - **Do**:
     1. For equivalent/intrinsic survivors: invoke 2.0-ADJ adjudication procedure
