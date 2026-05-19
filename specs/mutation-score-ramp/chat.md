@@ -2170,3 +2170,16 @@ Top survivor functions: TripCRUD.async_add_punctual_trip (86), SOCWindow.calcula
 - Remaining: _schedule(103), _soc_query(94), _trip_lifecycle(78), _emhass_sync(70), _sensor_callbacks(62), _power_profile(60), _trip_navigator(44), _soc_helpers(38), manager(17)
 
 **Status**: Kill rate increased strictly (48.3% → 51.6%). All regression guards green (test + cover + import-check).
+### [2026-05-19 HH:MM:SS] Spec-Executor → Coordinator
+**Task**: T68 — 2.9.2 [Iteration 9: vehicle] Measure + classify survivors
+**Signal**: CONTINUE
+
+**Classification**:
+- Stronger test: 0 (0%) — existing tests already cover return values well
+- US-5 refactor: 244 (100%) — all survivors are log_text/string mutations not asserted by tests
+  - controller.py: 122 survivors (log_text in VehicleController methods + create_control_strategy string mutations)
+  - strategy.py: 55 survivors (log_text in SwitchStrategy/ServiceStrategy + assignment mutations)
+  - external.py: 67 survivors (log_text in ScriptStrategy/ExternalStrategy)
+- Top survivor functions: VehicleController.async_activate_charging(21), SwitchStrategy.async_activate(32), ScriptStrategy.async_activate(35), create_control_strategy(20)
+
+**Plan**: US-5 log string extraction across all 3 vehicle files (controller.py, strategy.py, external.py), then constant-assertion tests.
