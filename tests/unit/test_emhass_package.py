@@ -285,8 +285,8 @@ class TestErrorHandlerExactLogStrings:
         import logging
 
         from custom_components.ev_trip_planner.emhass.error_handler import (
-            ErrorHandler,
             _LOG_ERROR_HANDLER_CALLBACK_FAILED,
+            ErrorHandler,
         )
 
         caplog.set_level(logging.ERROR)
@@ -309,8 +309,8 @@ class TestErrorHandlerExactLogStrings:
         import logging
 
         from custom_components.ev_trip_planner.emhass.error_handler import (
-            ErrorHandler,
             _LOG_MISSING_ID,
+            ErrorHandler,
         )
 
         caplog.set_level(logging.ERROR)
@@ -331,8 +331,8 @@ class TestErrorHandlerExactLogStrings:
         import logging
 
         from custom_components.ev_trip_planner.emhass.error_handler import (
-            ErrorHandler,
             _LOG_DEADLINE_ERROR,
+            ErrorHandler,
         )
 
         caplog.set_level(logging.ERROR)
@@ -352,8 +352,8 @@ class TestErrorHandlerExactLogStrings:
         import logging
 
         from custom_components.ev_trip_planner.emhass.error_handler import (
-            ErrorHandler,
             _LOG_INDEX_ERROR,
+            ErrorHandler,
         )
 
         caplog.set_level(logging.WARNING)

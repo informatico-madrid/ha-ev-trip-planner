@@ -296,8 +296,8 @@ class TestHourlyRefreshCallbackExactLogStrings:
         Catches mutants that change the log string literal (XX mutations, case mutations).
         """
         from custom_components.ev_trip_planner import (
-            _LOG_HOURLY_CALLBACK_START,
             _LOG_HOURLY_CALLBACK_REFRESH_DONE,
+            _LOG_HOURLY_CALLBACK_START,
         )
 
         mgr = MagicMock()
