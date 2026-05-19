@@ -1079,3 +1079,16 @@ What & Why for panel ramp iteration logged in chat.md:
 Files: chat.md (append), tasks.md (2.2.1 [x])
 
 **Expected Response**: ACK
+### [2026-05-19 00:10:00] Spec-Executor → External-Reviewer
+**Task**: T32 — 2.2.1 [Iteration 2: panel] Log What & Why (NFR-7)
+**Signal**: OVER
+
+TASK_COMPLETE
+
+What & Why for panel ramp iteration logged in chat.md:
+- What: Ramp panel from 37.8% to 100% mutation kill rate
+- Why: Phase A gate showed 37.8% (73/193 killed, 2nd-worst Phase B target after config_flow)
+
+Files: chat.md (append), tasks.md (2.2.1 [x])
+
+**Expected Response**: ACK
