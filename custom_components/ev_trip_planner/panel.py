@@ -34,6 +34,72 @@ DEFAULT_SIDEBAR_ICON = "mdi:car-electric"
 VEHICLE_PANEL_MAPPING_KEY = f"{DOMAIN}_vehicle_panel_mapping"
 
 
+def build_frontend_url_path(vehicle_id: str) -> str:
+    """Build the frontend URL path for a vehicle panel.
+
+    Args:
+        vehicle_id: Unique vehicle identifier
+
+    Returns:
+        The frontend URL path string
+    """
+    return f"{PANEL_URL_PREFIX}-{vehicle_id}"
+
+
+def build_panel_config(vehicle_id: str) -> dict[str, str]:
+    """Build the panel configuration dict for a vehicle.
+
+    Args:
+        vehicle_id: Unique vehicle identifier
+
+    Returns:
+        Dict with vehicle_id key for panel registration
+    """
+    return {"vehicle_id": vehicle_id}
+
+
+def build_module_url(vehicle_id: str) -> str:
+    """Build the cache-busted module URL for the panel JS.
+
+    Args:
+        vehicle_id: Unique vehicle identifier
+
+    Returns:
+        The module URL string with cache-busting query param
+    """
+    cache_bust = "3.0.11-" + str(int(time.time())) + "-" + str(hash(vehicle_id))
+    return f"/{DOMAIN.replace('_', '-')}/panel.js?t={cache_bust}"
+
+
+def build_panel_kwargs(
+    frontend_url_path: str,
+    vehicle_name: str,
+    module_url: str,
+    panel_config: dict[str, str],
+) -> dict[str, Any]:
+    """Build the keyword arguments dict for panel_custom.async_register_panel.
+
+    Args:
+        frontend_url_path: The URL path for the panel
+        vehicle_name: Display name for the vehicle in sidebar
+        module_url: The cache-busted module URL
+        panel_config: Configuration dict for the panel
+
+    Returns:
+        Dict of kwargs for panel registration
+    """
+    return {
+        "frontend_url_path": frontend_url_path,
+        "webcomponent_name": PANEL_COMPONENT_NAME,
+        "module_url": module_url,
+        "sidebar_title": vehicle_name,
+        "sidebar_icon": DEFAULT_SIDEBAR_ICON,
+        "config": panel_config,
+        "require_admin": False,
+        "embed_iframe": False,
+    }
+
+
 async def async_register_panel(
     hass: HomeAssistant,
     vehicle_id: str,
@@ -50,7 +116,7 @@ async def async_register_panel(
     Returns:
         True if panel was registered successfully, False otherwise
     """
-    frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"
+    frontend_url_path = build_frontend_url_path(vehicle_id)
 
     try:
         # First, try to unregister any existing panel to avoid "Overwriting panel" error
@@ -68,20 +134,12 @@ async def async_register_panel(
         # Note: module_url loads the script as an ES module (<script type="module">)
         # Using absolute path to avoid URL resolution issues in HA
         # Add timestamp to force JS reload (bypass HA cache)
-        # VERSION=3.0.11 UNIQUE_ID=TRIP_GET_EDIT_FIX_FINAL_2026-03-28-13-35
-        cache_bust = "3.0.11-" + str(int(time.time())) + "-" + str(hash(vehicle_id))
-        module_url = f"/{DOMAIN.replace('_', '-')}/panel.js?t={cache_bust}"
-        await panel_custom.async_register_panel(
-            hass=hass,
-            frontend_url_path=frontend_url_path,
-            webcomponent_name=PANEL_COMPONENT_NAME,
-            module_url=module_url,
-            sidebar_title=vehicle_name,
-            sidebar_icon=DEFAULT_SIDEBAR_ICON,
-            config={"vehicle_id": vehicle_id},
-            require_admin=False,
-            embed_iframe=False,
+        module_url = build_module_url(vehicle_id)
+        panel_config = build_panel_config(vehicle_id)
+        kwargs = build_panel_kwargs(
+            frontend_url_path, vehicle_name, module_url, panel_config
         )
+        await panel_custom.async_register_panel(hass=hass, **kwargs)
         _LOGGER.info("Registered panel with cache-busting URL: %s", module_url)
 
         # Static files (panel.js, lit-bundle.js, panel.css) are registered in
@@ -123,7 +181,7 @@ async def async_unregister_panel(
     Returns:
         True if panel was unregistered successfully, False otherwise
     """
-    frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"
+    frontend_url_path = build_frontend_url_path(vehicle_id)
 
     try:
         # Remove the panel from frontend
