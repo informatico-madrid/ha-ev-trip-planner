@@ -41,15 +41,15 @@ class TestDeficitCascadeBackwards:
     """Verify cascading deficit propagates backwards through ALL windows in chain."""
 
     def test_two_trips_cascade_to_first(self):
-        """T3 deficit origin is zeroed out, cascades through T2 → T1 absorbs it.
+        """T3 deficit origin keeps its def_total, cascades through T2 → T1 absorbs it.
 
         New algorithm: only the FIRST trip with own deficit is the origin.
-        Origin is zeroed out (adjusted=0), deficit cascades backwards.
+        Origin keeps its original def_total, deficit cascades backwards.
         Trips after origin are unchanged.
 
         T1: window=10h, needs=2h → spare=8h
         T2: window=4h, needs=4h → spare=0h (passes through)
-        T3: window=4h, needs=6h → deficit=2h (ORIGIN, zeroed out)
+        T3: window=4h, needs=6h → deficit=2h (ORIGIN, keeps original def_total=6)
         """
         windows = [
             {"ventana_horas": 10, "horas_carga_necesarias": 2},
@@ -58,10 +58,10 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T3: deficit origin — zeroed out
+        # T3: deficit origin — keeps its original def_total
         assert results[2]["deficit_hours_propagated"] == 0.0
         assert results[2]["deficit_hours_to_propagate"] == 2.0
-        assert results[2]["adjusted_def_total_hours"] == 0.0
+        assert results[2]["adjusted_def_total_hours"] == 6.0
 
         # T2: zero spare, passes deficit through unchanged
         assert results[1]["deficit_hours_propagated"] == 0.0
@@ -74,10 +74,10 @@ class TestDeficitCascadeBackwards:
         assert results[0]["adjusted_def_total_hours"] == 4.0
 
     def test_four_trips_chain_cascade(self):
-        """4-trip chain: first deficit trip is origin, zeroed out, cascades backwards.
+        """4-trip chain: first deficit trip is origin, keeps its original def_total, cascades backwards.
 
         T1: window=10h, needs=2h → spare=8h
-        T2: window=4h, needs=5h → deficit=1h (ORIGIN, zeroed out)
+        T2: window=4h, needs=5h → deficit=1h (ORIGIN, keeps original def_total)
         T3: window=4h, needs=4h → spare=0h (unchanged, after origin)
         T4: window=4h, needs=6h → deficit=2h (unchanged, after origin)
 
@@ -92,10 +92,10 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T2: deficit origin — zeroed out, deficit cascades backwards
+        # T2: deficit origin — keeps its original def_total=5, deficit cascades backwards
         assert results[1]["deficit_hours_propagated"] == 0.0
         assert results[1]["deficit_hours_to_propagate"] == 1.0
-        assert results[1]["adjusted_def_total_hours"] == 0.0
+        assert results[1]["adjusted_def_total_hours"] == 5.0
 
         # T3: after origin, unchanged
         assert results[2]["deficit_hours_propagated"] == 0.0
@@ -113,9 +113,9 @@ class TestDeficitCascadeBackwards:
         assert results[0]["adjusted_def_total_hours"] == 3.0
 
     def test_first_trip_also_has_deficit(self):
-        """T1 is deficit origin, zeroed out, no trip before it to absorb.
+        """T1 is deficit origin — keeps its def_total, no trip before it to absorb.
 
-        T1: window=2h, needs=3h → deficit=1h (ORIGIN, zeroed out)
+        T1: window=2h, needs=3h → deficit=1h (ORIGIN, keeps original def_total=3)
         T2: window=4h, needs=5h → deficit=1h (after origin, unchanged)
         T3: window=4h, needs=6h → deficit=2h (after origin, unchanged)
 
@@ -128,10 +128,10 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T1: deficit origin — zeroed out, cascades 1h backwards (nowhere)
+        # T1: deficit origin — keeps its original def_total, cascades 1h backwards (nowhere)
         assert results[0]["deficit_hours_propagated"] == 0.0
         assert results[0]["deficit_hours_to_propagate"] == 1.0
-        assert results[0]["adjusted_def_total_hours"] == 0.0
+        assert results[0]["adjusted_def_total_hours"] == 3.0
 
         # T2: after origin, unchanged
         assert results[1]["deficit_hours_propagated"] == 0.0
@@ -260,12 +260,12 @@ class TestAdapterDeficitCascadeIntegration:
 
         adapter._apply_deficit_propagation()
 
-        # Trip C: origin zeroed out
-        assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 0.0
+        # Trip C: origin keeps its original def_total
+        assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 2
         # Trip B: absorbs 2h from trip C
-        assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4.0
+        assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4
         # Trip A: unaffected
-        assert adapter._cached_per_trip_params["trip_a"]["def_total_hours"] == 2.0
+        assert adapter._cached_per_trip_params["trip_a"]["def_total_hours"] == 2
 
         # Window order preserved (start times must be ordered; end times can share boundary)
         assert (
@@ -375,8 +375,8 @@ class TestAdapterDeficitCascadeIntegration:
 
         # Trip_b absorbed 2h: int=4
         assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4
-        # Trip_c is zeroed: int=0
-        assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 0
+        # Trip_c keeps its original: int=2
+        assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 2
 
     @pytest.mark.asyncio
     async def test_no_cascade_all_windows_sufficient(self):

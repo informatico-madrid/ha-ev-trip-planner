@@ -478,8 +478,9 @@ def calculate_hours_deficit_propagation(
         result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
 
         if i == deficit_origin:
-            # Origin trip is zeroed out — no window capacity to charge.
-            result["adjusted_def_total_hours"] = 0.0
+            # Origin trip keeps its original def_total_hours (it needs that
+            # charging time), while earlier trips absorb the deficit carrier.
+            result["adjusted_def_total_hours"] = round(original_def_total, 2)
         else:
             # Earlier trips absorb deficit → def_total INCREASES.
             result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)
