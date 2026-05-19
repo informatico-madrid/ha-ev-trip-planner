@@ -1579,7 +1579,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.10.4 [VERIFY] [Iteration 10: calculations] Re-measure — kill rate strictly increased
+- [x] 2.10.4 [VERIFY] [Iteration 10: calculations] Re-measure — kill rate strictly increased
 
   - **Do**: Re-run targeted mutmut on `calculations`; confirm rate strictly up vs entry.
 

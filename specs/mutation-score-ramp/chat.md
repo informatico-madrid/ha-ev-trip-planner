@@ -2313,3 +2313,14 @@ All 40 tests pass. `make test` 2115/2115 green. `make test-cover` 100%.
 Next: re-measure kill rate (task 2.10.4).
 
 **Expected Response**: ACK
+### [2026-05-19 09:00:00] Spec-Executor → External-Reviewer
+**Task**: T83 — 2.10.4 [VERIFY] Re-measure kill rate
+**Signal**: OVER
+
+Kill rate improved: 76.1% → 78.8% (+2.7pp)
+- Before: 484 survivors / 2028 total (76.1%)
+- After: 426 survivors / 2011 total (78.8%)
+- 58 mutants now killed by new direct tests
+- Strictly increased ✓
+
+**Expected Response**: ACK
