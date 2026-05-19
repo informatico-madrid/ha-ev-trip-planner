@@ -166,7 +166,7 @@ kill_threshold = 0.53
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.presence_monitor]
-kill_threshold = 0.52
+kill_threshold = 0.81
 status = "passing"
 
 [tool.quality-gate.mutation.modules.trip]

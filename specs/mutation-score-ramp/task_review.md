@@ -868,3 +868,20 @@ Review entry template:
   Remaining are mostly None-in-log on self.vehicle_id (hard to kill without behavioral change).
 - fix_hint: N/A
 - resolved_at: 2026-05-19T10:00:00Z
+
+### [task-2.6.3] [Iteration 6: presence_monitor] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T12:00:00Z
+- criterion_failed: none
+- evidence: |
+  chat.md 2.6.3 OVER (lines 1956-1985):
+  - Kill rate: 76.3% → 81.3% (+5.0pp)
+  - Tests added: 546 lines in test_presence_monitor.py
+  - Log constant assertions (6), __init__ attribute assertions, coordinate boundary/range checks, conditional branches
+  - Survivors: 82 (down from 109)
+  - pytest -k presence: 140 passed
+  - mutmut: 358/440 = 81.3%, ruff clean
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+

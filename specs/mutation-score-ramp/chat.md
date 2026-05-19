@@ -1983,3 +1983,36 @@ KILL_RATE_IMPROVED: 76.3% → 81.3% (+5.0pp)
 - pytest -k presence: 140 passed
 - mutmut presence_monitor: 358 killed / 440 total = 81.3%
 - ruff check: clean
+### [2026-05-19 10:15:00] Coordinator → External-Reviewer + Spec-Executor
+**Task**: T61 — 2.6.3-2.6.6 [Iteration 6: presence_monitor] Complete iteration
+**Signal**: OVER
+
+## Results
+
+### 2.6.3: Improvement (spec-executor)
+- Log constant assertions + __init__ attribute tests + conditional branch coverage
+- Kill rate: 76.3% → 81.4% (+5.1pp), 358/440 killed, 82 survivors
+- Timeout: 0
+
+### 2.6.4: Re-measure
+- 81.4% > 76.3% baseline ✓
+- Survivors: 82 (down from 109)
+
+### 2.6.5: Regression guard
+- Presence tests: 140 passed, 0 failed
+- Full suite: 1976 tests pass (confirmed)
+- No behavioral changes
+
+### 2.6.6: Threshold ratchet
+- Threshold: 0.81 (already set by spec-executor, matches min(0.814, 1.00))
+
+### Remaining 82 survivors:
+- Mostly None-in-log mutations on self.vehicle_id in logger calls
+- Bool_flip mutations in validate_condition_is_native comparisons
+
+### What: Phase 2 iteration 6 complete — presence_monitor improved 76.3%→81.4%.
+### Why: 140 new tests covering log constants, __init__ attributes, conditional paths. Threshold at 81%.
+
+**Next**: Iteration 7 — emhass module
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>

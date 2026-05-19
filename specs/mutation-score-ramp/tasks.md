@@ -556,7 +556,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet coordinator threshold + log delta row`
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [x] 2.6.1 [Iteration 6: presence_monitor] Log What - [ ] 2.6.1 [Iteration 6: presence_monitor] Log What & Why Why (NFR-7)
+- [x] 2.6.1 [Iteration 6: presence_monitor] Log What & Why (NFR-7)
   - **Do**: Append one-line What & Why for `presence_monitor` ramp iteration to `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: What & Why line present for `presence_monitor`.
@@ -580,7 +580,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `test(mutation-score-ramp): improve presence_monitor tests to kill survivors`
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.6.4 [VERIFY] [Iteration 6: presence_monitor] Re-measure — kill rate strictly increased
+- [x] 2.6.4 [VERIFY] [Iteration 6: presence_monitor] Re-measure — kill rate strictly increased
   - **Do**: Re-run targeted mutmut on `presence_monitor`; confirm rate strictly up vs entry.
   - **Files**: (none — verification only)
   - **Done when**: `presence_monitor` rate strictly up.
@@ -588,7 +588,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify presence_monitor kill rate improved`
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.6.5 [VERIFY] [Iteration 6: presence_monitor] Regression guard — test + cover + import-check
+- [x] 2.6.5 [VERIFY] [Iteration 6: presence_monitor] Regression guard — test + cover + import-check
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
   - **Files**: (none — verification only)
   - **Done when**: all three exit 0.
@@ -596,7 +596,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify presence_monitor regression guard green`
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.6.6 [Iteration 6: presence_monitor] Ratchet threshold + log delta row
+- [x] 2.6.6 [Iteration 6: presence_monitor] Ratchet threshold + log delta row
   - **Do**: Ratchet `presence_monitor` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: threshold ratcheted; delta row appended.
