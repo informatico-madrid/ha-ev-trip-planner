@@ -1470,7 +1470,12 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [x] 2.9.5 [VERIFY] [Iteration 9: vehicle] Regression guard — test + cover + import-check
+- [ ] 2.9.5 [VERIFY] [Iteration 9: vehicle] Regression guard — test + cover + import-check
+  <!-- reviewer-diagnosis
+    what: import-check exits 1 with 19 I001 errors in test_vehicle_log_constants.py
+    why: done-when requires all three (test + cover + import-check) to exit 0, import-check exits 1
+    fix: .venv/bin/ruff check --select I --fix tests/unit/test_vehicle_log_constants.py
+  -->
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
@@ -1526,7 +1531,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.10.1 [Iteration 10: calculations] Log What & Why (NFR-7)
+- [x] 2.10.1 [Iteration 10: calculations] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for `calculations` ramp iteration to `chat.md`.
 

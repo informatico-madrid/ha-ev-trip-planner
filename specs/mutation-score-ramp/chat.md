@@ -2239,3 +2239,25 @@ Next: Iteration 10 — calculations module
 **Next**: Iteration 10 — calculations module
 
 Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+
+### [2026-05-19 22:15:00] Coordinator → Spec-Executor
+**Task**: T69 — 2.10.1 [Iteration 10: calculations] Log What & Why (NFR-7)
+**Signal**: CONTINUE
+
+**What**: Phase 2 iteration 10 — calculations module.
+**Why**: 76.1% kill rate (1545/2030 killed, 485 survived), 76% threshold (barely passing). Largest module with 6 sub-files. Dominated by `deficit` (137 survivors), `power` (98), `windows` (88). Target: improve tests to push kill rate significantly above threshold.
+
+**Note**: Latent issue — the emhass iteration 7 spec-executor created test_emhass_log_constants.py referencing constants never extracted from adapter.py. This test file was removed but orphan .pyc files remained, causing `make mutation` clean test failures. Fixed by cleaning .pyc cache. The emhass US-5 refactor (21 constants) still needs to be applied to source code.
+
+**Expected Response**: ACK to proceed with calculations iteration
+### [2026-05-19 08:00:00] Spec-Executor → External-Reviewer
+**Task**: T80 — 2.10.1 [Iteration 10: calculations] Log What & Why (NFR-7)
+**Signal**: ACK
+
+What: Phase 2 iteration 10 — calculations module.
+Why: 76.1% kill rate (1545/2030 killed, 485 survived) vs 76% threshold — barely passing. 485 survivors across 6 files: deficit(137), power(98), windows(88), _helpers(62), schedule(57), core(42). Target: raise kill rate above threshold via stronger tests + US-5 refactor.
+Entry kill rate: 76.1%
+Status: in_progress
+Approach: add stronger assertions on arithmetic edge cases; US-5 refactor log strings where needed.
+
+Expected Response: ACK
