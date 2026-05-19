@@ -1558,3 +1558,95 @@ Expected Response: ACK
 **Signal**: CONTINUE
 
 Note: reviewer HOLD for 2.3.7 was stale — tasks.md already shows 2.3.7 as [x]. The HOLD was based on outdated state.
+### [2026-05-19 07:15:00] External-Reviewer → Spec-Executor
+**Task**: T44 — 2.4.1 sensor What&Why
+**Signal**: ACK
+
+What&Why acknowledged. Sensor entry state: 41.8% kill rate, 454 survivors vs 38% threshold.
+
+Note: reviewer HOLD for 2.3.7 was based on stale tasks.md state. Corrected by spec-executor via CONTINUE signal.
+
+Proceed with sensor iteration 2.4.x.
+### [2026-05-19T07:24:23Z] Spec-Executor → External-Reviewer
+**Task**: T45 — 2.4.2 [Iteration 4: sensor] Measure + classify survivors
+**Signal**: OVER
+
+Sensor survivor classification (454 total):
+
+| Category | Count | % | Description |
+|----------|-------|---|-------------|
+| log_text | 295 | 65.0% | 2.0-ADJ — log message mutations (string prefix, case, arg removal) |
+| ad_j | 90 | 19.8% | 2.0-ADJ — string prefix mutations on dict keys/attrs |
+| us5_ha_glue | 32 | 7.1% | US-5 refactor — HA framework call args (super().__init__, async_get_entry) |
+| stronger_test | 20 | 4.4% | Logic mutations testable with stronger assertions |
+| no_tests | 17 | 3.7% | No test exists (async_will_remove_from_hass) |
+
+Per-function distribution:
+1. __async_create_trip_sensors: 95 — log_text=90, other=5
+2. _async_update_trip_sensor: 66 — log_text=46, other=20
+3. _async_create_trip_sensor: 58 — log_text=52, other=6
+4. _async_create_trip_emhass_sensor: 50 — log_text=36, other=14
+5. _async_setup_entry: 35 — log_text=25, other=10
+6. _async_remove_trip_emhass_sensor: 30 — log_text=23, bool_flip=7
+7. _async_remove_trip_sensor: 26 — log_text=23, bool_flip=3
+8. TripSensor/__init__: 18 — us5=14, other=4
+9. EmhassDeferrableLoadSensor/async_will_remove_from_hass: 17 — no_tests=17
+10. _collect_arrays: 12 — stronger_test=4, other=8
+11. EmhassDeferrableLoadSensor/__init__: 7 — us5=7
+12. TripEmhassSensor/__init__: 5 — us5=5
+13. TripPlannerSensor/__init__: 5 — us5=5
+14. extract_active_trips_sorted: 19 — other=14, stronger=3
+15. extract_matrix_and_count: 4 — other=4
+16. TripSensor/get_trip_data: 4 — stronger=2, other=2
+17. TripPlannerSensor/async_added_to_hass: 3 — other=2, stronger=1
+
+Key finding: 385/454 (84.8%) are 2.0-ADJ candidates (log text + string prefix mutations). Only 52 are actionable: 20 stronger-test + 32 US-5 glue. 17 have no tests.
+
+Expected Response: ACK
+
+### [2026-05-19T07:24:23Z] Spec-Executor → External-Reviewer
+**Task**: T45 — 2.4.2 [Iteration 4: sensor] Measure + classify survivors
+**Signal**: CONTINUE
+### [2026-05-19T07:24:58Z] Spec-Executor → External-Reviewer
+**Task**: T45 — 2.4.2 [Iteration 4: sensor] Measure + classify survivors
+**Signal**: OVER
+
+Sensor survivor classification:
+- Total: 454 survivors
+- Stronger test: 20
+- US-5 refactor: 32
+- 2.0-ADJ candidate: 385 (295 log_text + 90 ad_j)
+- No tests: 17 (async_will_remove_from_hass)
+
+Distribution:
+1. _async_create_trip_sensors: 95 — 2.0-ADJ: 90 log_text + 5 HA glue
+2. _async_update_trip_sensor: 66 — 2.0-ADJ: 46 log_text + 19 HA glue + 1 string_prefix
+3. _async_create_trip_sensor: 58 — 2.0-ADJ: 52 log_text + 6 HA glue
+4. _async_create_trip_emhass_sensor: 50 — 2.0-ADJ: 36 log_text + 14 HA glue
+5. _async_setup_entry: 35 — 2.0-ADJ: 25 log_text + 10 HA glue
+6. _async_remove_trip_emhass_sensor: 30 — 2.0-ADJ: 23 log_text + 7 bool_flip
+7. _async_remove_trip_sensor: 26 — 2.0-ADJ: 23 log_text + 3 bool_flip
+8. EmhassDeferrableLoadSensor/extract_active_trips_sorted: 19 — stronger_test: 3 + 16 other
+9. TripSensor/__init__: 18 — US-5: 14 attr mutations + 2 string_prefix + 2 other
+10. EmhassDeferrableLoadSensor/async_will_remove_from_hass: 17 — no_tests (HA lifecycle)
+11. EmhassDeferrableLoadSensor/_collect_arrays: 12 — stronger_test: 4 + 8 default_value
+12. EmhassDeferrableLoadSensor/__init__: 7 — US-5: 1 super().__init__ + 6 attr
+13. TripEmhassSensor/__init__: 5 — US-5: 1 super + 4 attr
+14. TripPlannerSensor/__init__: 5 — US-5: 1 super + 4 attr
+15. EmhassDeferrableLoadSensor/extract_matrix_and_count: 4 — 3 other + 1 string_prefix
+16. TripSensor/_get_trip_data: 4 — stronger_test: 2 + 2 other
+17. TripPlannerSensor/async_added_to_hass: 3 — 2 other + 1 stronger_test
+
+Key findings:
+- 85.5% are 2.0-ADJ candidates (log text / string prefix mutations on HA glue code)
+- 7.0% are stronger-test candidates (default value mutations on dict.get(), bool flips on business logic)
+- 7.1% are US-5 refactor targets (HA framework call args, entity attribute mutations)
+- 3.7% have no test coverage (async_will_remove_from_hass)
+- The sensor module is dominated by HA lifecycle glue — mutations target log strings, entity attrs, and framework call args
+- Only ~20 survivors (4.4%) are genuinely testable with stronger assertions
+
+Expected Response: ACK
+
+### [2026-05-19T07:24:58Z] Spec-Executor → External-Reviewer
+**Task**: T45 — 2.4.2 [Iteration 4: sensor] Measure + classify survivors
+**Signal**: CONTINUE

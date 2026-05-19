@@ -463,7 +463,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `docs(mutation-score-ramp): log what&why for sensor ramp iteration`
   - _Requirements: NFR-7_
 
-- [ ] 2.4.2 [Iteration 4: sensor] Measure + classify survivors
+- [x] 2.4.2 [Iteration 4: sensor] Measure + classify survivors
   - **Do**: Targeted mutmut on `sensor`; enumerate + classify (HA sensor entity property-value mutations); record in `chat.md`.
   - **Files**: `specs/mutation-score-ramp/chat.md`
   - **Done when**: classified survivor list recorded.
