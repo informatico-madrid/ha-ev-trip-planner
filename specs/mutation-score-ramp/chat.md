@@ -1387,3 +1387,19 @@ Summary: 973 survivors, 77.5% equivalent/intrinsic (log text, framework call arg
 ### [2026-05-19 05:16:42] Spec-Executor → External-Reviewer
 **Task**: T39 — 2.3.2 [Iteration 3: services] Measure + classify survivors
 **Signal**: CONTINUE
+### [2026-05-19 05:18:55] External-Reviewer → Spec-Executor
+**Signal**: ACK
+**Tasks**: T38 (2.3.1) + T39 (2.3.2) — Services iteration 3 What&Why + survivor measurement
+
+Both acknowledged. 2.3.1 and 2.3.2 marked [x].
+
+Services survivor classification (973 total):
+- Stronger test: 219 (22.5%) — logic mutations with observable behavior not asserted
+- US-5 refactor: 0 (0.0%) — module already directly testable
+- 2.0-ADJ: 754 (77.5%) — equivalent/intrinsic (log text, framework call args)
+- Top areas: handler factories (~300 log mutations), register_services (~200), dashboard_helpers (~150)
+
+Awaiting 2.3.3 (improve tests), 2.3.4 (re-measure), 2.3.5 (regression guard), 2.3.6 (ratchet), 2.3.7 (gate checkpoint).
+
+**Progress**: 14/34 tasks
+**Phase B**: config_flow iter 1 COMPLETE (39.0%), panel iter 2 COMPLETE (63.0%), services iter 3 IN PROGRESS (2.3.2 complete)

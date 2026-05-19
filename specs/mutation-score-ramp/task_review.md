@@ -535,3 +535,40 @@ Review entry template:
   Next module: services (task 2.3.1)
 - fix_hint: N/A
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.3.1] Phase B services What&Why logged (NFR-7)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T05:19:10Z
+- criterion_failed: none
+- evidence: |
+  commit de013e39: chore(mutation-score-ramp): enumerate + classify services survivors (partial)
+  grep -qi 'services' chat.md → PASS
+  
+  What&Why: Ramp services module toward 100% mutation kill rate.
+  Why: services has high survivor count (973), module structure already testable.
+  
+  2.3.1 and 2.3.2 both [x] in tasks.md.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.3.2] Phase B services survivors measured + classified
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T05:19:10Z
+- criterion_failed: none
+- evidence: |
+  commit de013e39: chore(mutation-score-ramp): enumerate + classify services survivors
+  chat.md lines ~1335-1388: Services survivor classification (973 total):
+  - Stronger test: 219 (22.5%) — mutation-observable logic paths not asserted
+  - US-5 refactor: 0 (0.0%) — module already directly testable
+  - 2.0-ADJ: 754 (77.5%) — equivalent/intrinsic (log text, framework call args)
+  
+  Top mutation areas:
+  - Handler factories (~300): log text mutations, data.get() key changes
+  - register_services (~200): string domain mutations, schema mutations
+  - dashboard_helpers (~150): framework call arg mutations, HAS_STATIC_PATH_CONFIG mutations
+  - cleanup (~150): None-in-log, Path(None), er.async_get(None) mutations
+  - small handlers (~48): log message mutations
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
