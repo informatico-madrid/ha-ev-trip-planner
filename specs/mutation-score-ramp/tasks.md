@@ -1640,7 +1640,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.11.2 [Iteration 11: small modules] Measure + classify survivors
+- [x] 2.11.2 [Iteration 11: small modules] Measure + classify survivors
 
   - **Do**: Targeted mutmut on each of `utils`, `diagnostics`, `definitions`, `yaml_trip_storage` (and `__init__`/`const`/`frontend` if <100%); enumerate + classify all remaining survivors; record in `chat.md`.
 
@@ -1656,7 +1656,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.11.3 [Iteration 11: small modules] Improve tests / US-5 refactor to kill survivors
+- [x] 2.11.3 [Iteration 11: small modules] Improve tests / US-5 refactor to kill survivors
 
   - **Do**: Strengthen/add honest tests for all remaining small-module survivors; US-5-refactor where needed (justified in `chat.md`); 2.0-ADJ only for genuine intrinsic mutants. NFR-1: no skip/pragma. Goal: every small module reaches 100%.
 
