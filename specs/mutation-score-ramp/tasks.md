@@ -1611,7 +1611,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [ ] 2.10.6 [Iteration 10: calculations] Ratchet threshold + log delta row
+- [x] 2.10.6 [Iteration 10: calculations] Ratchet threshold + log delta
 
   - **Do**: Ratchet `calculations` `kill_threshold` up to `min(measured_rate, 1.00)`; append delta row to `.progress.md`.
 

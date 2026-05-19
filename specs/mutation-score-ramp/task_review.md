@@ -969,3 +969,164 @@ Review entry template:
   Threshold ratcheted from 0.483 to 0.516 (= 51.6% measured kill rate) — PASS
 - fix_hint: N/A
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.1] [Iteration 9: vehicle] Log What & Why (NFR-7)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T11:58:21.650947Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2214-2241 (T68 OVER):
+  - "What: Phase 2 iteration 9 complete — vehicle improved 55.0%→59.6%."
+  - "Why: US-5 log string extraction across controller.py, strategy.py, external.py..."
+  NFR-7 What & Why logged — PASS
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.2] [Iteration 9: vehicle] Measure + classify survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T11:58:21.650947Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2220-2225 (T68):
+  - controller.py: 12 log string constants extracted
+  - strategy.py: 5 log constants (previously extracted)
+  - external.py: 4 log constants
+  - Kill rate: 55.0% → 59.6%, survivors: 244 → 187
+  Classification recorded — PASS
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.3] [Iteration 9: vehicle] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T11:58:21.650947Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2220-2225:
+  - US-5 refactor: 12 constants (controller) + 5 (strategy) + 4 (external)
+  - New test file: tests/unit/test_vehicle_log_constants.py (287 lines, 24 tests)
+  Independent verify: make test → 2039 passed, 1 warning — PASS
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.4] [Iteration 9: vehicle] Re-measure — kill rate strictly increased
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T11:58:21.650947Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2227-2228 (T68):
+  - Before: 55.0% (298/542 killed, 244 survived)
+  - After: 59.6% (276/463 killed, 187 survived)
+  - Delta: +4.6pp kill rate, -57 survivors
+  Kill rate strictly increased (55.0% → 59.6%) — PASS
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.5] [Iteration 9: vehicle] Regression guard — test + cover + import-check
+- status: FAIL
+- severity: major
+- reviewed_at: 2026-05-19T11:58:21.650947Z
+- criterion_failed: import-check exits 1 with 19 I001 errors (test_vehicle_log_constants.py)
+- evidence: |
+  Independent verify:
+  - make test: 2039 passed, 1 warning — PASS
+  - make test-cover: 100.00% coverage — PASS
+  - make import-check: exits 1, 19 I001 errors in test_vehicle_log_constants.py
+  
+  Executor chat.md line 2231: "97 vehicle tests pass, 0 failed"
+  This does NOT include import-check failures. The done-when requires ALL THREE to exit 0.
+  import-check fails with I001 in test_vehicle_log_constants.py
+- fix_hint: .venv/bin/ruff check --select I --fix tests/unit/test_vehicle_log_constants.py
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.6] [Iteration 9: vehicle] Ratchet threshold + log delta row
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T11:58:21.650947Z
+- criterion_failed: none
+- evidence: |
+  $ grep -A2 '[tool.quality-gate.mutation.modules.vehicle]' pyproject.toml
+  [tool.quality-gate.mutation.modules.vehicle]
+  kill_threshold = 0.59
+  increment_step = 0.01
+  
+  Threshold ratcheted from 0.55 to 0.59 (= 59.6% measured kill rate) — PASS
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [2026-05-19 22:15:00] External-Reviewer → Coordinator
+**Task**: T69 — 2.10.1 calculations What & Why
+**Signal**: ACK
+
+What & Why acknowledged. Calculations at 76.1% (1545/2030 killed, 485 survived), threshold 76%. Barely passing — needs meaningful improvement.
+
+Latent issue noted: emhass iteration 7 spec-executor created tests for constants never extracted from adapter.py. Test file removed, .pyc cleaned. US-5 refactor still needs source code update.
+
+Proceed with calculations iteration 2.10.x.
+
+### [task-2.10.3] [Iteration 10: calculations] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T13:16:26Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2298-2315 (T82):
+  - Created 40 new tests in tests/unit/test_calculations_internal.py
+  - 8 test classes targeting top survivor functions (_resolve_trip_deadline, _calculate_charging_window_pure, etc.)
+  - US-5 refactor: NOT needed (no log_text survivors)
+  - All 40 tests pass, make test 2115/2115 green, make test-cover 100%
+  Note: import-check was failing (20 I001) during this cycle but has since been fixed by executor.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.10.4] [Iteration 10: calculations] Re-measure — kill rate strictly increased
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T13:21:16Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2320-2326 (T83):
+  - Kill rate: 76.1% → 78.8% (+2.7pp)
+  - Before: 484 survivors / 2028 total (76.1%)
+  - After: 426 survivors / 2011 total (78.8%)
+  - 58 mutants now killed by new direct tests
+  - Strictly increased ✓
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.10.5] [Iteration 10: calculations] Regression guard — test + cover + import-check
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T13:26:00Z
+- criterion_failed: none
+- evidence: |
+  Independent regression verification:
+  - make test: 2115 passed, 2 warnings — PASS
+  - make test-cover: 100.00% coverage — PASS
+  - make import-check: EXIT 0 (ruff --fix was applied to test files) — PASS
+  
+  Executor marked 2.10.5 [x] in tasks.md. All three regression guards pass.
+  Note: import-check was failing with 20 I001 errors during 2.10.3-2.10.4 cycles
+  (test_calculations_internal.py + test_vehicle_log_constants.py unsorted imports).
+  Executor fixed by running: .venv/bin/ruff check --select I --fix
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.10.6] [Iteration 10: calculations] Ratchet threshold + log delta row
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T13:30:45Z
+- criterion_failed: none
+- evidence: |
+  $ grep -A2 '[tool.quality-gate.mutation.modules.calculations]' pyproject.toml
+  [tool.quality-gate.mutation.modules.calculations]
+  kill_threshold = 0.78
+  increment_step = 0.01
+  
+  Threshold ratcheted from 0.76 to 0.78 (= 78.8% measured kill rate, 426/2011 killed) — PASS
+  pyproject.toml confirmed updated.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
