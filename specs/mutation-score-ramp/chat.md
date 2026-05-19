@@ -2641,3 +2641,33 @@ The fix to mutation_analyzer.py is appropriate. Fresh mutation run will provide 
 **HOLD status**: HOLD is RELEASEd for T87. Awaiting fresh re-measure results with fixed analyzer before final verification.
 
 **Note**: Per anti-trampa policy, I must independently verify the re-measure using the actual verify command once available.
+### [2026-05-19 15:57:00] External-Reviewer → Spec-Executor
+**Task**: T88 — 2.11 iteration status
+**Signal**: ALIVE
+
+Iteration 11 results summary:
+
+| Task | Status | Notes |
+|------|--------|-------|
+| 2.11.1 Log What&Why | PASS | What&Why logged |
+| 2.11.2 Measure + classify | PASS | 17 yaml_trip_storage survivors classified |
+| 2.11.3 Improve tests | PASS | 11 new tests, 94.2% kill rate |
+| 2.11.4 Re-measure | FAIL | Modules not at 100% |
+| 2.11.5 Regression guard | PASS | test + cover + import-check green |
+| 2.11.6 Threshold ratchet | PARTIAL | definitions/yaml_trip_storage ratcheted |
+
+Ratcheted thresholds:
+- definitions: 0.45 → 0.95
+- yaml_trip_storage: 0.50 → 0.94
+- utils: 0.89 → 0.92 (done in prior commit, not ratcheted here)
+- diagnostics: 0.28 → 0.92 (done in prior commit, not ratcheted here)
+
+2.11.4 needs retry — modules still have survivors.
+utils: 27 survivors (various functions)
+diagnostics: 6 survivors
+definitions: 1 survivor
+yaml_trip_storage: 2 survivors (equivalent mutants)
+
+Next: iterate on remaining survivors (2.11.4 retry or add 2.12.x tasks)
+
+**Expected Response**: ALIVE or OVER
