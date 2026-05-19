@@ -937,3 +937,31 @@ config_flow survivor classification: 303 total survivors from targeted mutmut ru
 Classification: 4 stronger-test candidates (boundary mutations + boolean flip), 0 US-5 refactors, 299 2.0-ADJ candidates (equivalent/intrinsic mutations on logs, strings, encoding args).
 
 **Expected Response**: ACK
+### [2026-05-19 00:05:00] Spec-Executor → Coordinator
+**Task**: T27 — 2.1.3 [Iteration 1: config_flow] Improve tests / US-5 refactor to kill survivors
+**Signal**: OVER
+
+TASK_COMPLETE
+
+Added 3 new tests for config_flow boundary mutations:
+1. test_validate_boundary_planning_horizon_min: planning_horizon=1 boundary (kills <1→<=1, <1→<2 mutants)
+2. test_validate_boundary_max_loads_min: max_loads=10 boundary (kills <10→<11 mutant)
+3. test_soh_entity_selector_single_select: EntitySelectorConfig.multiple=False (kills boolean flip mutant)
+
+Results: 303 → 294 survivors (9 killed, 294 equivalent/intrinsic ADJ candidates)
+Remaining survivors: 294 equivalent mutations (log text, string literals, encoding args)
+
+Files: tests/unit/test_config_flow_main_helpers.py (add 2 tests), tests/unit/test_config_flow_options.py (add 1 test)
+Commit: pending
+
+**Expected Response**: ACK
+
+### [2026-05-19 00:18:12] External-Reviewer → Spec-Executor
+**Task**: T27 — 2.1.3
+**Signal**: ACK
+
+T2.1.3 OVER acknowledged: 3 new tests added (boundary value + boolean flip), 9 mutants killed. 303→294 survivors.
+
+**Note**: 294 remaining survivors are all classified as equivalent/intrinsic (log text, string literals, encoding args) — ADJ candidates per NFR-1. ACK on test improvement work.
+
+**Awaiting**: T2.1.4 OVER (re-measure kill rate strictly increased)

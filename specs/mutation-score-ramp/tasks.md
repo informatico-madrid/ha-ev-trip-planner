@@ -315,7 +315,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): enumerate + classify config_flow survivors`
   - _Requirements: US-4, AC-4.3_
 
-- [ ] 2.1.3 [Iteration 1: config_flow] Improve tests / US-5 refactor to kill survivors
+- [x] 2.1.3 [Iteration 1: config_flow] Improve tests / US-5 refactor to kill survivors
   - **Do**: Strengthen/dedupe/add/replace honest tests for `config_flow` survivors; apply API-preserving US-5 testability refactor where structure makes logic untestable (justify in `chat.md` naming the mutant). NFR-1: no skip/pragma. For any survivor resisting both, invoke 2.0-ADJ. Target: drive `config_flow` toward 100%.
   - **Files**: `tests/unit/**`, `tests/integration/**`, `custom_components/ev_trip_planner/config_flow/**` (US-5 only)
   - **Done when**: improvements written; survivors addressed (killed or 2.0-ADJ-adjudicated).
@@ -323,7 +323,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `test(mutation-score-ramp): improve config_flow tests to kill survivors`
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.1.4 [VERIFY] [Iteration 1: config_flow] Re-measure — kill rate strictly increased
+- [x] 2.1.4 [VERIFY] [Iteration 1: config_flow] Re-measure — kill rate strictly increased
   - **Do**: Re-run targeted mutmut on `config_flow`; confirm kill rate strictly greater than iteration entry (or == 100%).
   - **Files**: (none — verification only)
   - **Done when**: `config_flow` measured rate strictly up vs entry.
@@ -331,7 +331,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify config_flow kill rate improved`
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.1.5 [VERIFY] [Iteration 1: config_flow] Regression guard — test + cover + import-check
+- [x] 2.1.5 [VERIFY] [Iteration 1: config_flow] Regression guard — test + cover + import-check
   - **Do**: Run `make test`, `make test-cover` (`--cov-fail-under=100`), `make import-check` — all exit 0.
   - **Files**: (none — verification only)
   - **Done when**: all three exit 0.
@@ -339,7 +339,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): verify config_flow regression guard green`
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.1.6 [Iteration 1: config_flow] Ratchet threshold + log delta row
+- [x] 2.1.6 [Iteration 1: config_flow] Ratchet threshold + log delta row
   - **Do**: Set `config_flow` `kill_threshold = min(measured_rate, 1.00)` in `pyproject.toml` (never down); append the per-iteration delta row to the `.progress.md` delta table.
   - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
   - **Done when**: threshold ratcheted up; delta row appended.

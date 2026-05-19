@@ -180,7 +180,7 @@ increment_step = 0.01
 target_final = 1.00
 
 [tool.quality-gate.mutation.modules.config_flow]
-kill_threshold = 0.31
+kill_threshold = 0.39
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.vehicle]
