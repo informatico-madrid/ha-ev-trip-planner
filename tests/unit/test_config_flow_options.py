@@ -141,3 +141,21 @@ class TestAsyncGetOptionsFlow:
         handler = async_get_options_flow(entry)
         assert isinstance(handler, EVTripPlannerOptionsFlowHandler)
         assert handler._config_entry is entry
+
+    @pytest.mark.asyncio
+    async def test_soh_entity_selector_single_select(self):
+        """EntitySelectorConfig for SOH sensor has multiple=False.
+        Kills mutant: multiple=False→True which would make it multi-select."""
+        entry = MagicMock()
+        entry.data = {}
+        entry.options = {}
+        handler = EVTripPlannerOptionsFlowHandler(entry)
+
+        result = await handler.async_step_init()
+        assert result["type"] is FlowResultType.FORM
+        schema = result["data_schema"].schema
+        soh_field = schema.get("soh_sensor")
+        assert soh_field is not None
+        # EntitySelector.config is a dict with 'multiple' key
+        config = soh_field.config  # type: ignore[union-attr]
+        assert config["multiple"] is False  # NOT multi-select (kills boolean flip mutant)

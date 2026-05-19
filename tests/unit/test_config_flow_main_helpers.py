@@ -517,3 +517,31 @@ class TestValidateEmhassInput:
         ctx.user_input["emhass_config_path"] = str(config_file)
         result = validate(ctx, str(config_file))
         assert result is None  # Should reach line 182 return None
+
+    def test_validate_boundary_planning_horizon_min(self, tmp_path):
+        """Lines 111-112: planning_horizon=1 is valid (boundary).
+        Kills mutants: <1→<=1, <1→<2 which would reject horizon=1."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 1, "max_deferrable_loads": 20},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # horizon=1 is at lower bound, should be valid
+
+    def test_validate_boundary_max_loads_min(self, tmp_path):
+        """Lines 160-161: max_loads=10 is valid (boundary).
+        Kills mutant: <10→<11 which would reject loads=10."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(
+            json.dumps({"number_of_deferrable_loads": 5, "end_timesteps_of_each_deferrable_load": [168]})
+        )
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 5, "max_deferrable_loads": 10},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # max_loads=10 is at lower bound, should be valid
