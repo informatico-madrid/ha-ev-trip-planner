@@ -60,14 +60,6 @@ class IndexManager(IndexManagerBase):
         """Assign an available index to a trip (delegates to sync impl)."""
         return self.assign_index(trip_id)
 
-    async def async_release_index(self, trip_id: str) -> Optional[int]:
-        """Release an index for a trip (delegates to sync impl)."""
-        if trip_id not in self._index_map:
-            return None
-        idx = self._index_map[trip_id]
-        self.release_index(trip_id)
-        return idx
-
     async def async_load_index(self) -> None:
         """Load index map from storage. Called during EMHASSAdapter initialization."""
         pass

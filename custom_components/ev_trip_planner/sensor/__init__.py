@@ -11,8 +11,6 @@ from __future__ import annotations
 
 # Platform entry point and helpers from _async_setup.
 from ._async_setup import (
-    TRIP_SENSORS,
-    _async_create_trip_sensors,  # noqa: F401  # Used internally by HA entity platform
     async_create_trip_emhass_sensor,
     async_create_trip_sensor,
     async_remove_trip_emhass_sensor,
@@ -28,7 +26,6 @@ from .entity_trip_emhass import TRIP_EMHASS_ATTR_KEYS, TripEmhassSensor
 from .entity_trip_planner import TripPlannerSensor
 
 __all__ = [
-    "TRIP_SENSORS",
     "TRIP_EMHASS_ATTR_KEYS",
     "async_setup_entry",
     "TripPlannerSensor",

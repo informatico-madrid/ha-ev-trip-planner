@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-05-17T18:39:13Z",
+  "updated": "2026-05-18T05:44:11Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 38,
+      "specsCount": 39,
       "isDefault": true
     }
   ],
@@ -270,6 +270,14 @@
       "phase": "done",
       "taskIndex": 23,
       "totalTasks": 23
+    },
+    {
+      "name": "dead-code-elimination",
+      "path": "./specs/dead-code-elimination",
+      "phase": "tasks",
+      "taskIndex": 0,
+      "totalTasks": 18,
+      "awaitingApproval": true
     }
   ]
 }

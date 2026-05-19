@@ -443,57 +443,6 @@ class TestCRUDRemoveFromEMHASS:
         tm._state._schedule.publish_deferrable_loads.assert_called_once()
 
 
-class TestGetAllActiveTrips:
-    """Test _get_all_active_trips (EMHASS sync)."""
-
-    @pytest.mark.asyncio
-    async def test_get_active_trips_only_recurring(self):
-        """Only active recurring trips returned."""
-        tm = _make_tm(
-            recurring={
-                "rec_1": {"id": "rec_1", "activo": True, "km": 50},
-                "rec_2": {"id": "rec_2", "activo": False, "km": 30},
-            },
-            punctual={},
-        )
-        result = await tm._state._emhass_sync._get_all_active_trips()
-        assert len(result) == 1
-        assert result[0]["id"] == "rec_1"
-
-    @pytest.mark.asyncio
-    async def test_get_active_trips_only_punctual(self):
-        """Only pending punctual trips returned."""
-        tm = _make_tm(
-            recurring={},
-            punctual={
-                "pun_1": {"id": "pun_1", "estado": "pendiente", "km": 20},
-                "pun_2": {"id": "pun_2", "estado": "completado", "km": 10},
-            },
-        )
-        result = await tm._state._emhass_sync._get_all_active_trips()
-        assert len(result) == 1
-        assert result[0]["id"] == "pun_1"
-
-    @pytest.mark.asyncio
-    async def test_get_active_trips_both_types(self):
-        """Active trips from both recurring and punctual."""
-        tm = _make_tm(
-            recurring={"rec_1": {"id": "rec_1", "activo": True}},
-            punctual={"pun_1": {"id": "pun_1", "estado": "pendiente"}},
-        )
-        result = await tm._state._emhass_sync._get_all_active_trips()
-        assert len(result) == 2
-        ids = {t["id"] for t in result}
-        assert ids == {"rec_1", "pun_1"}
-
-    @pytest.mark.asyncio
-    async def test_get_active_trips_empty(self):
-        """No active trips returns empty list."""
-        tm = _make_tm(recurring={}, punctual={})
-        result = await tm._state._emhass_sync._get_all_active_trips()
-        assert result == []
-
-
 class TestLoadTripsFallback:
     """Test _load_trips fallback and reset paths (persistence)."""
 

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 
 from custom_components.ev_trip_planner.trip._types import TripManagerConfig
-from custom_components.ev_trip_planner.trip_manager import TripManager
+from custom_components.ev_trip_planner.trip import TripManager
 
 
 @pytest.fixture
@@ -864,7 +864,7 @@ mock_datetime_2026_05_04_monday_0800_utc = _make_mock_datetime_fixture(
 @pytest.fixture
 def trip_manager_with_entry_id(mock_hass, mock_store):
     """Return a TripManager instance with entry_id for EMHASS-dependent tests."""
-    from custom_components.ev_trip_planner.trip_manager import TripManager
+    from custom_components.ev_trip_planner.trip import TripManager
 
     return TripManager(
         mock_hass,

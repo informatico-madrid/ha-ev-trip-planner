@@ -131,14 +131,9 @@ async def _hourly_refresh_callback(
             tp.get("def_total_hours_array"),
         )
 
-    if runtime_data.coordinator:
-        _LOGGER.warning("FLOW2-DEBUG: calling async_refresh_trips")
-        await runtime_data.coordinator.async_refresh_trips()
-        _LOGGER.warning("FLOW2-DEBUG: async_refresh_trips DONE")
-    else:
-        _LOGGER.warning(
-            "FLOW2-DEBUG: coordinator is None after publish, skipping refresh"
-        )
+    _LOGGER.warning("FLOW2-DEBUG: calling async_refresh_trips")
+    await runtime_data.coordinator.async_refresh_trips()
+    _LOGGER.warning("FLOW2-DEBUG: async_refresh_trips DONE")
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

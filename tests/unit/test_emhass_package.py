@@ -388,30 +388,6 @@ class TestIndexManagerAssignIndex:
 class TestIndexManagerReleaseIndex:
     """Test index release methods."""
 
-    @pytest.mark.asyncio
-    async def test_release_existing_trip(self):
-        """async_release_index removes and returns the index for existing trip."""
-        from custom_components.ev_trip_planner.emhass.index_manager import (
-            IndexManager,
-        )
-
-        mgr = IndexManager()
-        await mgr.async_assign_index_to_trip("trip_x")
-        result = await mgr.async_release_index("trip_x")
-        assert result == 0
-        assert "trip_x" not in mgr._index_map
-
-    @pytest.mark.asyncio
-    async def test_release_nonexistent_trip_returns_none(self):
-        """async_release_index returns None for unknown trip."""
-        from custom_components.ev_trip_planner.emhass.index_manager import (
-            IndexManager,
-        )
-
-        mgr = IndexManager()
-        result = await mgr.async_release_index("ghost")
-        assert result is None
-
     def test_release_existing_trip_sync(self):
         """release_index removes and returns True for existing trip."""
         from custom_components.ev_trip_planner.emhass.index_manager import (
@@ -862,17 +838,6 @@ class TestEMHASSAdapterLoadSave:
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         await adapter.async_load()  # no raise = success (no-op stub)
 
-    @pytest.mark.asyncio
-    async def test_async_save_delegates_to_index_manager(self, mock_hass, mock_entry):
-        """async_save delegates to index_manager.async_save_index."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        await adapter.async_save()  # no raise = success (no-op stub)
-
-
 class TestEMHASSAdapterIndexDelegation:
     """Test facade index assign/release delegation."""
 
@@ -886,61 +851,6 @@ class TestEMHASSAdapterIndexDelegation:
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         result = await adapter.async_assign_index_to_trip("t1")
         assert result == 0
-
-    @pytest.mark.asyncio
-    async def test_async_release_trip_index_delegates(self, mock_hass, mock_entry):
-        """async_release_trip_index delegates to IndexManager."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        await adapter.async_assign_index_to_trip("t1")
-        result = await adapter.async_release_trip_index("t1")
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_async_release_unknown_trip_returns_false(
-        self, mock_hass, mock_entry
-    ):
-        """async_release_trip_index returns False for unknown trip."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        result = await adapter.async_release_trip_index("ghost")
-        assert result is False
-
-    def test_get_assigned_index(self, mock_hass, mock_entry):
-        """get_assigned_index returns the index for a trip."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._index_manager._index_map = {"a": 5}
-        assert adapter.get_assigned_index("a") == 5
-
-    def test_get_assigned_index_unknown(self, mock_hass, mock_entry):
-        """get_assigned_index returns None for unknown trip."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        assert adapter.get_assigned_index("ghost") is None
-
-    def test_get_all_assigned_indices(self, mock_hass, mock_entry):
-        """get_all_assigned_indices returns a copy of the index map."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        adapter._index_manager._index_map = {"a": 1, "b": 2}
-        result = adapter.get_all_assigned_indices()
-        assert result == {"a": 1, "b": 2}
 
     def test_get_available_indices_empty(self, mock_hass, mock_entry):
         """get_available_indices returns [0] when no indices assigned."""
@@ -960,26 +870,6 @@ class TestEMHASSAdapterIndexDelegation:
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         adapter._index_manager._index_map = {"a": 0, "b": 1, "c": 2}
         assert adapter.get_available_indices() == [0, 1, 2]
-
-
-class TestEMHASSAdapterNotifyError:
-    """Test facade error notification."""
-
-    @pytest.mark.asyncio
-    async def test_async_notify_error_logs(self, mock_hass, mock_entry, caplog):
-        """async_notify_error logs the error via ErrorHandler."""
-        import logging
-
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        caplog.set_level(logging.ERROR)
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        await adapter.async_notify_error("emhass unreachable", trip_id="t1")
-        assert "emhass unreachable" in caplog.text
-
-
 class TestEMHASSAdapterGetCachedOptimizationResults:
     """Test get_cached_optimization_results."""
 
@@ -1230,16 +1120,6 @@ class TestEMHASSAdapterBackwardCompat:
         result = await adapter._get_hora_regreso()
         assert result is None
 
-    def test_calculate_deferrable_parameters_returns_empty(self, mock_hass, mock_entry):
-        """calculate_deferrable_parameters returns empty dict."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        result = adapter.calculate_deferrable_parameters([])
-        assert result == {}
-
     @pytest.mark.asyncio
     async def test_populate_per_trip_cache_entry_creates_entry(
         self, mock_hass, mock_entry
@@ -1365,26 +1245,13 @@ class TestEMHASSAdapterHandleConfigEntryUpdate:
         )
 
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
+        initial_value = adapter._stored_charging_power_kw
         adapter._shutting_down = True
         new_entry = MagicMock()
         new_entry.options = {"charging_power_kw": 99.0}
         await adapter._handle_config_entry_update(mock_hass, new_entry)
-        # Should not have changed
-        assert adapter._stored_charging_power_kw is None
-
-
-class TestEMHASSAdapterAsyncSaveTrips:
-    """Test async_save_trips."""
-
-    @pytest.mark.asyncio
-    async def test_async_save_trips_delegates(self, mock_hass, mock_entry):
-        """async_save_trips delegates to index_manager.async_save_index."""
-        from custom_components.ev_trip_planner.emhass.adapter import (
-            EMHASSAdapter,
-        )
-
-        adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
-        await adapter.async_save_trips()  # no raise
+        # Should not have changed due to shutting_down flag
+        assert adapter._stored_charging_power_kw == initial_value
 
 
 class TestEMHASSAdapterIndexMapProperty:

@@ -23,7 +23,7 @@ from .strategy import (
 )
 
 if TYPE_CHECKING:
-    from ..trip_manager import TripManager
+    from ..trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
