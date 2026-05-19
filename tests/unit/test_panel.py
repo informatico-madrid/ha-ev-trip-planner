@@ -12,7 +12,6 @@ from custom_components.ev_trip_planner.panel import (
     build_panel_kwargs,
 )
 
-
 # --- Pure function tests ---
 
 
@@ -277,6 +276,30 @@ class TestAsyncRegisterPanel:
         assert len(mapping) == 2
         assert "vehicle_1" in mapping
         assert "vehicle_2" in mapping
+
+    @pytest.mark.asyncio
+    async def test_register_panel_remove_existing_raises(
+        self, mock_hass_panel, mock_panel_module, mock_frontend_module
+    ):
+        """Test that exception in removing existing panel is caught and registration continues.
+
+        Covers the inner except Exception: pass block (lines 129-131).
+        """
+        mock_hass_panel.config.components = {"panel_custom"}
+
+        mock_frontend_module.async_remove_panel.side_effect = Exception(
+            "remove failed"
+        )
+
+        result = await panel.async_register_panel(
+            mock_hass_panel,
+            "test_vehicle",
+            "Test Vehicle",
+        )
+
+        # Should succeed despite remove_existing raising
+        assert result is True
+        mock_panel_module.async_register_panel.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_register_panel_exception(
