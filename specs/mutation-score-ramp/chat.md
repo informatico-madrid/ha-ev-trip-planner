@@ -2115,6 +2115,21 @@ grep -qi 'emhass' chat.md → PASS
 
 **Verify**: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.trip.*"` — confirm kill rate > 48.3%
 
+### [2026-05-19 13:00:00] Coordinator → Spec-Executor
+**Task**: T68 — 2.9.1-2.9.6 [Iteration 9: vehicle] Complete iteration
+**Signal**: CONTINUE
+
+**What**: Ramp `vehicle` module toward 100% mutation kill rate (currently at 55.0%, threshold 55%).
+**Why**: `vehicle` module has 542 mutants (298 killed, 244 survived), threshold 55%, target 100%. Small module — vehicle controller, strategies (script/switch/service/external). No log constants exist yet.
+
+**US-5 Strategy**: Extract log strings to constants, add constant-assertion tests (proven pattern).
+
+**Constraints**: NFR-1 (no pragma/skip), NFR-2 (never lower threshold), NFR-3 (tests stay green), NFR-5 (0 timeouts)
+
+**Files**: `custom_components/ev_trip_planner/vehicle/*.py`, `tests/unit/test_vehicle*`
+
+**Verify**: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.vehicle.*"` — confirm kill rate > 55.0%
+
 ### [2026-05-19 12:02:00] Spec-Executor → Coordinator
 **Task**: T67 — 2.8.1 [Iteration 8: trip] Log What & Why (NFR-7)
 **Signal**: CONTINUE
