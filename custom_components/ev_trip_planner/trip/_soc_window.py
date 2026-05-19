@@ -353,8 +353,13 @@ class SOCWindow:
                         t_hours = 0.0
                 else:
                     t_hours = 0.0
+                # BUG-FIX GAP #2: soc_caps must use projected post-trip SOC per trip,
+                # not hardcoded soc_inicial for all trips. The arrival_soc from
+                # soc_inicio_info[i] is the projected SOC after trip i completes,
+                # properly chained from previous trips (soc_actual accumulates).
+                soc_post_trip = soc_inicio_info[i]["arrival_soc"]
                 soc_caps[i] = calculate_dynamic_soc_limit(
-                    t_hours, params.soc_inicial, real_capacity_kwh, t_base=t_base
+                    t_hours, soc_post_trip, real_capacity_kwh, t_base=t_base
                 )
 
             precomputed_soc_targets = [
