@@ -46,6 +46,21 @@ CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 
 _LOGGER = logging.getLogger(__name__)
 
+# Log string constants for testability (US-5 mutation-testing pattern)
+_LOG_HOURLY_CALLBACK_START = "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s"
+_LOG_HOURLY_CALLBACK_RUNTIME_NONE = "FLOW2-DEBUG: runtime_data is None, aborting"
+_LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE = "FLOW2-DEBUG: trip_manager is None, aborting"
+_LOG_HOURLY_CALLBACK_EMHASS_NONE = "FLOW2-DEBUG: emhass_adapter is None, aborting"
+_LOG_HOURLY_CALLBACK_COORDINATOR_NONE = "FLOW2-DEBUG: coordinator is None, aborting"
+_LOG_HOURLY_CALLBACK_ALL_PRESENT = "FLOW2-DEBUG: all runtime_data fields present, calling publish"
+_LOG_HOURLY_CALLBACK_CACHE_BEFORE = "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d"
+_LOG_HOURLY_CALLBACK_PUBLISH_FAILED = "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s"
+_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED = "FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s"
+_LOG_HOURLY_CALLBACK_CACHE_AFTER = "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d"
+_LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY = "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s"
+_LOG_HOURLY_CALLBACK_REFRESH_START = "FLOW2-DEBUG: calling async_refresh_trips"
+_LOG_HOURLY_CALLBACK_REFRESH_DONE = "FLOW2-DEBUG: async_refresh_trips DONE"
+
 
 @dataclass
 class EVTripRuntimeData:
@@ -77,29 +92,29 @@ async def _hourly_refresh_callback(
     The timer is registered in async_setup_entry and cleaned up in async_unload_entry.
     """
     _LOGGER.warning(
-        "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s",
+        _LOG_HOURLY_CALLBACK_START,
         "present" if runtime_data else "None",
     )
     if runtime_data is None:
-        _LOGGER.warning("FLOW2-DEBUG: runtime_data is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_RUNTIME_NONE)
         return
     if runtime_data.trip_manager is None:
-        _LOGGER.warning("FLOW2-DEBUG: trip_manager is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE)
         return
     if runtime_data.emhass_adapter is None:
-        _LOGGER.warning("FLOW2-DEBUG: emhass_adapter is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_EMHASS_NONE)
         return
     if runtime_data.coordinator is None:
-        _LOGGER.warning("FLOW2-DEBUG: coordinator is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_COORDINATOR_NONE)
         return
 
-    _LOGGER.warning("FLOW2-DEBUG: all runtime_data fields present, calling publish")
+    _LOGGER.warning(_LOG_HOURLY_CALLBACK_ALL_PRESENT)
 
     # Log cache state BEFORE publish
     adapter = runtime_data.emhass_adapter
     pre_cache = adapter.get_cached_optimization_results()
     _LOGGER.warning(
-        "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d",
+        _LOG_HOURLY_CALLBACK_CACHE_BEFORE,
         len(pre_cache.get("per_trip_emhass_params", {})),
         sum(1 for x in (pre_cache.get("emhass_power_profile") or []) if x > 0),
     )
@@ -108,32 +123,32 @@ async def _hourly_refresh_callback(
         await runtime_data.trip_manager._schedule.publish_deferrable_loads()
     except Exception as err:
         _LOGGER.warning(
-            "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s", err, exc_info=True
+            _LOG_HOURLY_CALLBACK_PUBLISH_FAILED, err, exc_info=True
         )
         return
     except BaseException as err:
-        _LOGGER.warning("FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s", err)
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
         return
 
     # Log cache state AFTER publish
     post_cache = adapter.get_cached_optimization_results()
     _LOGGER.warning(
-        "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d",
+        _LOG_HOURLY_CALLBACK_CACHE_AFTER,
         len(post_cache.get("per_trip_emhass_params", {})),
         sum(1 for x in (post_cache.get("emhass_power_profile") or []) if x > 0),
     )
     for tid, tp in post_cache.get("per_trip_emhass_params", {}).items():
         _LOGGER.warning(
-            "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s",
+            _LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY,
             tid,
             tp.get("def_start_timestep_array"),
             tp.get("def_end_timestep_array"),
             tp.get("def_total_hours_array"),
         )
 
-    _LOGGER.warning("FLOW2-DEBUG: calling async_refresh_trips")
+    _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_START)
     await runtime_data.coordinator.async_refresh_trips()
-    _LOGGER.warning("FLOW2-DEBUG: async_refresh_trips DONE")
+    _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_DONE)
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

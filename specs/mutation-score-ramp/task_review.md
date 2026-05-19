@@ -1141,3 +1141,74 @@ Proceed with calculations iteration 2.10.x.
   pyproject.toml confirmed updated.
 - fix_hint: N/A
 - resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.6.7] [VERIFY] Gate checkpoint #2 (after 6 iterations)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T14:33:10Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2340-2362 (T74):
+  - Full mutation: 7034/11601 = 60.6% kill rate, 0 timeouts — improved from 56.9% baseline
+  - Gate: 13/15 modules passed, 2 failed
+    - __init__: 50.7% vs 51% threshold (NOK, -0.3pp)
+    - emhass: 63.5% vs 64% threshold (NOK, -0.5pp)
+  - Gate result: NOK (expected — mid-Phase-2)
+  
+  Note: 2 module failures are expected mid-ramp. The spec anticipates NOK status during Phase B
+  before all modules reach their thresholds. Executor correctly noted these as expected.
+  No threshold was lowered (NFR-2 compliance).
+  
+  Next action per executor: Fix __init__ and emhass thresholds via targeted test improvements.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.9.7] [VERIFY] Gate checkpoint #3 (after 9 iterations)
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T14:39:00Z
+- criterion_failed: none
+- evidence: |
+  chat.md lines 2365-2379 (T80):
+  - Full mutation: 7034/11601 = 60.6% kill rate, 0 timeouts — same as checkpoint #2 (no iterations between)
+  - Gate: 13/15 modules passed, 2 failed
+    - __init__: 50.7% vs 51% threshold (NOK, -0.3pp)
+    - emhass: 63.5% vs 64% threshold (NOK, -0.5pp)
+  - Gate result: NOK (expected — mid-Phase-2)
+
+  Note: Executor explicitly states this is the same mutation data as 2.6.7 since no iterations occurred between checkpoints.
+  Two module failures are expected mid-ramp. No threshold was lowered (NFR-2 compliance).
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.11.3] [Iteration 11: small modules] Improve tests / US-5 refactor to kill survivors
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-19T15:17:00Z
+- criterion_failed: none
+- evidence: |
+  Regression guards verified independently:
+  - make test: 2126 passed, 2 warnings — PASS
+  - make test-cover: 100.00% — PASS
+  - make import-check: 0 errors, contracts OK — PASS
+  
+  Executor reported (chat.md lines 2512-2538):
+  - yaml_trip_storage: 66.0% → 96.0% (+30pp), 2 survivors remain (equivalent mutants)
+  - utils: 92.1% → 100% (prior test additions already killed them)
+  - diagnostics: 93.2% → 100% (prior test additions already killed them)
+  - definitions: 100% → 100% (no change)
+  - Test count: 2115 → 2126 (+11 new tests)
+  
+  2 equivalent mutants in yaml_trip_storage async_load. Per NFR-1 adjudication, dual-expert-subagent approval required for pragma.
+  Proceeding with threshold ratchet at 96.0%.
+- fix_hint: N/A
+- resolved_at: <!-- spec-executor fills this -->
+
+### [2026-05-19 16:30:00] Coordinator → External-Executor Communication
+- **Gate checkpoint**: 13/15 modules passing, 2 failing
+  - `__init__`: 50.7% vs 51% (needs +1 kill)
+  - `emhass`: 63.5% vs 64% (needs ~10 kills)
+- **Iteration 12 delegated**: targeting __init__ + emhass
+- **Analyzer fixed**: mutation_analyzer.py now correctly classifies modules including __init__.py
+- **HOLD released**: T87 re-measure discrepancy resolved (cache inconsistency explanation)
+- **Next verify**: Full `make mutation` + `make mutation-gate` after iteration 12

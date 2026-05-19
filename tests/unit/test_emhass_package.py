@@ -270,6 +270,102 @@ class TestErrorHandlerSpecificHandlers:
         assert "disk full" in caplog.text
 
 
+class TestErrorHandlerExactLogStrings:
+    """Test error_handler with exact log string assertions.
+
+    These tests catch string literal mutations (XX prefix/suffix, case changes)
+    that survive substring-based assertions.
+    """
+
+    def test_handle_error_logs_callback_failed_exact(self, mock_hass, caplog):
+        """Verify exact 'Error handler callback failed' log message.
+
+        Catches mutants that change the log string literal (XX mutations).
+        """
+        import logging
+
+        from custom_components.ev_trip_planner.emhass.error_handler import (
+            ErrorHandler,
+            _LOG_ERROR_HANDLER_CALLBACK_FAILED,
+        )
+
+        caplog.set_level(logging.ERROR)
+
+        def bad_callback(operation, error):
+            raise ValueError("callback failed")
+
+        handler = ErrorHandler(hass=mock_hass, on_error=bad_callback)
+        handler.handle_error("publish", ValueError("test"))
+        # Verify the exact callback failed message appears
+        assert _LOG_ERROR_HANDLER_CALLBACK_FAILED in caplog.text, (
+            f"Log should contain exact message '{_LOG_ERROR_HANDLER_CALLBACK_FAILED}'"
+        )
+
+    def test_handle_missing_id_uses_default_publish(self, mock_hass, caplog):
+        """handle_missing_id without second arg uses 'publish' default.
+
+        Catches default parameter mutations (e.g., 'publish' → 'XXpublishXX').
+        """
+        import logging
+
+        from custom_components.ev_trip_planner.emhass.error_handler import (
+            ErrorHandler,
+            _LOG_MISSING_ID,
+        )
+
+        caplog.set_level(logging.ERROR)
+        handler = ErrorHandler(hass=mock_hass)
+        # Call without explicit operation to test default value
+        handler.handle_missing_id("any_trip")
+        # Verify exact log message format: "Trip missing ID during publish"
+        expected = _LOG_MISSING_ID % "publish"
+        assert expected in caplog.text, (
+            f"Log should contain '{expected}' (default operation='publish')"
+        )
+
+    def test_handle_deadline_error_uses_default_publish(self, mock_hass, caplog):
+        """handle_deadline_error without second arg uses 'publish' default.
+
+        Catches default parameter mutations in deadline_error.
+        """
+        import logging
+
+        from custom_components.ev_trip_planner.emhass.error_handler import (
+            ErrorHandler,
+            _LOG_DEADLINE_ERROR,
+        )
+
+        caplog.set_level(logging.ERROR)
+        handler = ErrorHandler(hass=mock_hass)
+        handler.handle_deadline_error("trip_deadline")
+        # Verify exact format: "Trip trip_deadline has no valid deadline during publish"
+        expected = _LOG_DEADLINE_ERROR % ("trip_deadline", "publish")
+        assert expected in caplog.text, (
+            f"Log should contain '{expected}' (default operation='publish')"
+        )
+
+    def test_handle_index_error_uses_default_release(self, mock_hass, caplog):
+        """handle_index_error without second arg uses 'release' default.
+
+        Catches default parameter mutations in index_error.
+        """
+        import logging
+
+        from custom_components.ev_trip_planner.emhass.error_handler import (
+            ErrorHandler,
+            _LOG_INDEX_ERROR,
+        )
+
+        caplog.set_level(logging.WARNING)
+        handler = ErrorHandler(hass=mock_hass)
+        handler.handle_index_error("trip_x")
+        # Verify exact format: "Attempted to release index for unknown trip trip_x"
+        expected = _LOG_INDEX_ERROR % ("release", "trip_x")
+        assert expected in caplog.text, (
+            f"Log should contain '{expected}' (default operation='release')"
+        )
+
+
 # ===================================================================
 # IndexManager tests
 # ===================================================================

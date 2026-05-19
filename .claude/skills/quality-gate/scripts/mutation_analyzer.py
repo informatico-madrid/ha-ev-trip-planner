@@ -45,15 +45,9 @@ except ImportError:
 
 PYPROJECT_TOML = "pyproject.toml"
 
-# Pattern to extract module from mutmut 3.x mutant names:
-# With module: "custom_components.ev_trip_planner.calculations.x_func__mutmut_42: killed"
-# Without module (__init__.py): "custom_components.ev_trip_planner.x_async_setup__mutmut_1: killed"
-MUTMUT_NAME_WITH_MODULE = re.compile(
-    r"^custom_components\.ev_trip_planner\.(\w+)\.\w+__mutmut_\d+: (\w+)$"
-)
-MUTMUT_NAME_NO_MODULE = re.compile(
-    r"^custom_components\.ev_trip_planner\.\w+__mutmut_\d+: (\w+)$"
-)
+# Module name extraction is done via dotted path splitting below.
+# Regex removed: function names can contain unicode/special chars (e.g. │)
+# that \w+ doesn't match.
 
 
 def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
@@ -99,7 +93,8 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
 
     # Parse output: "module.submodule.func__mutmut_N: status"
     module_stats: dict[str, dict[str, int]] = defaultdict(
-        lambda: {"killed": 0, "survived": 0, "timeout": 0, "no_tests": 0, "skipped": 0, "suspicious": 0}
+        lambda: {"killed": 0, "survived": 0, "timeout": 0, "no_tests": 0,
+                 "skipped": 0, "suspicious": 0, "runtime_error": 0, "abandoned": 0}
     )
     other_count = 0
 
@@ -111,22 +106,20 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
         name, status = line.rsplit(": ", 1)
         status = status.strip().lower()
 
-        # Try to extract module name from mutmut 3.x naming convention
-        # Pattern 1: custom_components.ev_trip_planner.<module>.<func>__mutmut_N
-        match = MUTMUT_NAME_WITH_MODULE.match(line)
-        if match:
-            module_name = match.group(1)
-        # Pattern 2: custom_components.ev_trip_planner.<func>__mutmut_N (package-level, __init__.py)
-        elif MUTMUT_NAME_NO_MODULE.match(line):
+        # Extract module name from mutmut 3.x naming convention.
+        # Format: "custom_components.ev_trip_planner.<module>.<func>__mutmut_N: <status>"
+        # For __init__.py: "custom_components.ev_trip_planner.<func>__mutmut_N: <status>" (3 parts)
+        # For regular modules: at least 4 parts (module + dotted func parts)
+        # Function names may contain unicode/special chars (e.g. │), so \w+ is insufficient.
+        parts = name.split(".")
+        if len(parts) >= 4 and parts[0] == "custom_components" and parts[1] == "ev_trip_planner":
+            module_name = parts[2]
+        elif len(parts) == 3 and parts[0] == "custom_components" and parts[1] == "ev_trip_planner":
+            # __init__.py: 3 parts — treat as "__init__" module
             module_name = "__init__"
         else:
-            # Fallback: try to extract from dotted path
-            parts = name.split(".")
-            if len(parts) >= 4 and parts[0] == "custom_components" and parts[1] == "ev_trip_planner":
-                module_name = parts[2]
-            else:
-                module_name = "_other"
-                other_count += 1
+            module_name = "_other"
+            other_count += 1
 
         if status in module_stats[module_name]:
             module_stats[module_name][status] += 1
@@ -137,7 +130,9 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
     overall_total = 0
 
     for module_name, stats in sorted(module_stats.items()):
-        total = stats["killed"] + stats["survived"] + stats["timeout"] + stats["no_tests"]
+        total = (stats["killed"] + stats["survived"] + stats["timeout"]
+                 + stats["no_tests"] + stats["runtime_error"]
+                 + stats["abandoned"])
         if total == 0:
             continue
         rate = round(stats["killed"] / total, 3)

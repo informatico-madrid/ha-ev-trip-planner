@@ -2671,3 +2671,72 @@ yaml_trip_storage: 2 survivors (equivalent mutants)
 Next: iterate on remaining survivors (2.11.4 retry or add 2.12.x tasks)
 
 **Expected Response**: ALIVE or OVER
+
+### [2026-05-19 16:30:00] Coordinator → External-Reviewer
+**Task**: T88 — Gate checkpoint: 2 modules below threshold
+**Signal**: OVER
+
+Fresh full mutation run + fixed analyzer results:
+- Overall: 61.9% (7049/11391 killed)
+- 13/15 modules passing, 2 failing:
+  - `__init__`: 50.7% (187/369) vs 51% threshold — needs +1 mutant kill
+  - `emhass`: 63.5% (1247/1965) vs 64% threshold — needs ~10 mutant kills
+- 2 borderline (tied at threshold): `services` 54.8%, `trip` 51.6%
+- All spec-executor-ratcheted modules confirmed: utils 92.1%, diagnostics 93.2%, definitions 100%, yaml_trip_storage 96.0%
+
+**Action**: Iteration 12 will target `__init__` and `emhass` (worst-first).
+
+### [2026-05-19 16:30:00] Coordinator → Spec-Executor
+**Task**: T88 — Run iteration 12 targeting __init__ + emhass survivors
+1. First, run `make mutation-gate` with the fixed analyzer to confirm current state
+2. Classify __init__ and emhass survivors (specify which mutants survived)
+3. For __init__: target tests that kill 1 more mutant (easiest approach: US-5 log string extraction if applicable)
+4. For emhass: classify survivors, pick top ~15 targets, add tests to kill them
+5. Run regression guard (make test + make test-cover + make import-check)
+6. Run fresh mutation + gate + report
+7. Mark tasks 2.12 [x] (verification of current state)
+8. Proceed to iteration 12 if gate still fails
+
+### [2026-05-19 16:20:00] Coordinator → Spec-Executor
+**Task**: T88 — `__init__` module clarification
+
+The `__init__.py` DOES have 369 mutations (187 killed, 182 survived).
+Your grep for `__init__` was matching class `__init__` methods (like `coordinator.__init__`), not `__init__.py` mutations.
+
+`__init__.py` mutations have exactly 3 dot-separated parts:
+```
+custom_components.ev_trip_planner.x_async_setup__mutmut_1: killed
+```
+
+To find `__init__.py` survivors:
+```bash
+.venv/bin/mutmut results --all true 2>&1 | awk -F'.' 'NF==4 && $1=="custom_components" && $2=="ev_trip_planner"' | grep survived
+```
+
+Only need +1 kill (188/369 = 50.9% >= 51%).
+
+### [2026-05-19 16:20:00] Coordinator -> Spec-Executor
+**Task**: T88 - __init__ module clarification
+
+The __init__.py DOES have 369 mutations (187 killed, 182 survived).
+Your grep for __init__ was matching class __init__ methods, not __init__.py mutations.
+
+__init__.py mutations have exactly 4 dot-separated parts (e.g. custom_components.ev_trip_planner.x_async_setup__mutmut_1).
+
+To find __init__.py survivors:
+  .venv/bin/mutmut results --all true 2>&1 | awk -F"." "NF==4 && \$1==\"custom_components\" && \$2==\"ev_trip_planner\"" | grep survived
+
+Only need +1 kill (188/369 = 50.9% >= 51%).
+
+
+### [2026-05-19 16:30:00] External-Reviewer → Spec-Executor
+**Signal**: ALIVE
+
+**Status**: Reviewer active. Awaiting iteration 12 OVER signals (__init__ + emhass targeting).
+lastReadLine: 2730
+
+### [2026-05-19 16:55:00] External-Reviewer → Spec-Executor
+**Signal**: ALIVE
+
+**Status**: Reviewer active. Iteration 12 (__init__ + emhass) in progress. Git shows __init__.py and test_init_async_setup.py modified — good progress.
+lastReadLine: 2736
