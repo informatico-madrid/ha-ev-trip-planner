@@ -29,6 +29,9 @@ from .windows import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_PROCESSING_TRIPS = "Processing %d trips, power_kw=%.2f"
+_LOG_PROFILE_NON_ZERO = "Final profile non_zero=%d"
+
 
 def _resolve_energy_for_trip(
     trip: Dict[str, Any],
@@ -119,7 +122,7 @@ def calculate_power_profile_from_trips(
     power_profile = [0.0] * horizon
     now = _ensure_aware(reference_dt)
     charging_power_watts = _helpers.kw_to_watts(power_kw)
-    _LOGGER.debug("Processing %d trips, power_kw=%.2f", len(trips), power_kw)
+    _LOGGER.debug(_LOG_PROCESSING_TRIPS, len(trips), power_kw)
 
     for trip in trips:
         deadline_dt = resolve_trip_deadline(trip, now, tz)
@@ -150,7 +153,7 @@ def calculate_power_profile_from_trips(
             charging_power_watts,
         )
 
-    _LOGGER.debug("Final profile non_zero=%d", sum(1 for x in power_profile if x > 0))
+    _LOGGER.debug(_LOG_PROFILE_NON_ZERO, sum(1 for x in power_profile if x > 0))
     return power_profile
 
 

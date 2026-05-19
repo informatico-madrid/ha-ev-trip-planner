@@ -15,6 +15,8 @@ from . import _helpers
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_CALC_ERROR = "Error calculating deferrable parameters: %s"
+
 
 def generate_deferrable_schedule_from_trips(
     trips: List[Dict[str, Any]],
@@ -227,5 +229,5 @@ def calculate_deferrable_parameters(
         }
 
     except Exception as err:
-        _LOGGER.error("Error calculating deferrable parameters: %s", err)
+        _LOGGER.error(_LOG_CALC_ERROR, err)
         return {}

@@ -15,6 +15,20 @@ from .core import calculate_trip_time
 
 _LOGGER = logging.getLogger(__name__)
 
+# US-5 log string constants — mutation-observable, killed by log-constant tests
+_LOG_INVALID_DATETIME = (
+    "resolve_trip_deadline: trip %s has invalid datetime, skipping"
+)
+_LOG_NO_DATETIME_OR_DAY_TIME = (
+    "resolve_trip_deadline: trip %s has no datetime or day/time fields, skipping"
+)
+_LOG_INVALID_DAY = (
+    "resolve_trip_deadline: trip %s has invalid day value '%s', skipping"
+)
+_LOG_INVALID_DAY_TIME = (
+    "resolve_trip_deadline: trip %s has invalid day/time, skipping"
+)
+
 
 def _ensure_aware(dt: datetime) -> datetime:
     """Convert naive datetime to aware (UTC) if needed."""
@@ -146,29 +160,19 @@ def resolve_trip_deadline(
             try:
                 return _ensure_aware(datetime.fromisoformat(deadline))
             except ValueError:
-                _LOGGER.debug(
-                    "resolve_trip_deadline: trip %s has invalid datetime, skipping",
-                    trip.get("id"),
-                )
+                _LOGGER.debug(_LOG_INVALID_DATETIME, trip.get("id"))
                 return None
         return _ensure_aware(deadline)
 
     canon = normalize_trip_fields(trip)
     if canon is None:
-        _LOGGER.debug(
-            "resolve_trip_deadline: trip %s has no datetime or day/time fields, skipping",
-            trip.get("id"),
-        )
+        _LOGGER.debug(_LOG_NO_DATETIME_OR_DAY_TIME, trip.get("id"))
         return None
 
     # Validate day value — reject invalid days silently (no defaulting to Monday)
     day_raw = canon["day"]
     if not _is_valid_day(day_raw):
-        _LOGGER.warning(
-            "resolve_trip_deadline: trip %s has invalid day value '%s', skipping",
-            trip.get("id"),
-            day_raw,
-        )
+        _LOGGER.warning(_LOG_INVALID_DAY, trip.get("id"), day_raw)
         return None
 
     # Normalize day to string for calculate_trip_time (handles int→str)
@@ -196,10 +200,7 @@ def resolve_trip_deadline(
         )
 
     if result is None:
-        _LOGGER.debug(
-            "resolve_trip_deadline: trip %s has invalid day/time, skipping",
-            trip.get("id"),
-        )
+        _LOGGER.debug(_LOG_INVALID_DAY_TIME, trip.get("id"))
         return None
 
     return _ensure_aware(result)
