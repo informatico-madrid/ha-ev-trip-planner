@@ -40,7 +40,7 @@ class PowerProfile:
         planning_horizon_days: int = 7,
         vehicle_config: Optional[Dict[str, Any]] = None,
         hora_regreso: Optional[datetime] = None,
-    ) -> List[float]:  # pragma: no mutate  # pragma: no mutate
+    ) -> List[float]:  # pragma: no mutate
         """Genera el perfil de potencia para EMHASS."""
         from ..calculations import calculate_power_profile
 

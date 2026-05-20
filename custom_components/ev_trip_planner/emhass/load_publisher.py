@@ -21,6 +21,9 @@ from .index_manager import IndexManager
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_TRIP_MISSING_ID = "Trip missing ID"
+
 
 # Note: ChargingConfigBase ABC removed to fix AP12 Speculative Generality.
 # OCP abstractness is maintained by existing ABCs with real implementations.
@@ -112,7 +115,7 @@ class LoadPublisher(LoadPublisherBase):
         """
         trip_id = trip.get("id")
         if not trip_id:
-            _LOGGER.error("Trip missing ID")
+            _LOGGER.error(_LOG_TRIP_MISSING_ID)
             return False
 
         # Assign index to trip

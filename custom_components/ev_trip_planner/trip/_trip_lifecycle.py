@@ -22,7 +22,7 @@ class TripLifecycle:
 
     # ── Public API ───────────────────────────────────────────────
 
-    async def async_delete_all_trips(self) -> None:  # pragma: no mutate  # pragma: no mutate
+    async def async_delete_all_trips(self) -> None:  # pragma: no mutate
         """Deletes all recurring and punctual trips for cascade deletion."""
         state = self._state
 
@@ -58,7 +58,7 @@ class TripLifecycle:
 
         _LOGGER.info("Deleted all trips for vehicle %s", state.vehicle_id)
 
-    async def async_pause_recurring_trip(self, trip_id: str) -> None:  # pragma: no mutate  # pragma: no mutate
+    async def async_pause_recurring_trip(self, trip_id: str) -> None:  # pragma: no mutate
         """Pausa un viaje recurrente."""
         state = self._state
         if trip_id in state.recurring_trips:
@@ -74,7 +74,7 @@ class TripLifecycle:
                 state.vehicle_id,
             )
 
-    async def async_resume_recurring_trip(self, trip_id: str) -> None:  # pragma: no mutate  # pragma: no mutate
+    async def async_resume_recurring_trip(self, trip_id: str) -> None:  # pragma: no mutate
         """Reanuda un viaje recurrente."""
         state = self._state
         if trip_id in state.recurring_trips:
@@ -90,7 +90,7 @@ class TripLifecycle:
                 state.vehicle_id,
             )
 
-    async def async_complete_punctual_trip(self, trip_id: str) -> None:  # pragma: no mutate  # pragma: no mutate
+    async def async_complete_punctual_trip(self, trip_id: str) -> None:  # pragma: no mutate
         """Marca un viaje puntual como completado."""
         state = self._state
         if trip_id in state.punctual_trips:
@@ -106,7 +106,7 @@ class TripLifecycle:
                 state.vehicle_id,
             )
 
-    async def async_cancel_punctual_trip(self, trip_id: str) -> None:  # pragma: no mutate  # pragma: no mutate
+    async def async_cancel_punctual_trip(self, trip_id: str) -> None:  # pragma: no mutate
         """Cancela un viaje puntual."""
         state = self._state
         if trip_id in state.punctual_trips:

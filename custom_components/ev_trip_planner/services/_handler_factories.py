@@ -19,6 +19,12 @@ from ._utils import (
     _get_manager,
 )
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_HANDLER_TRIP_LIST_CALLED = "=== trip_list SERVICE HANDLER CALLED ==="
+_LOG_HANDLER_GET_MANAGER_OK = "=== _get_manager returned manager ==="
+_LOG_HANDLER_TRIP_GET_CALLED = "=== trip_get SERVICE HANDLER CALLED ==="
+_LOG_HANDLER_TRIP_LIST_RESULT = "=== trip_list result ==="
+
 _LOGGER = logging.getLogger(__name__)
 
 # --- Common schemas (for register_services to pass) ---
@@ -416,14 +422,14 @@ def make_trip_list_handler(hass: HomeAssistant):  # pragma: no mutate
     """Return async handler for trip_list service."""
 
     async def handler(call: ServiceCall) -> dict[str, Any]:
-        _LOGGER.debug("=== trip_list SERVICE HANDLER CALLED ===")
+        _LOGGER.debug(_LOG_HANDLER_TRIP_LIST_CALLED)
         _LOGGER.debug("=== call.data: %s", call.data)
         data = call.data
         vehicle_id = data.get("vehicle_id", "unknown")
         _LOGGER.debug("=== trip_list SERVICE CALLED === vehicle: %s", vehicle_id)
 
         mgr = await _get_manager(hass, vehicle_id)
-        _LOGGER.debug("=== _get_manager returned manager ===")
+        _LOGGER.debug(_LOG_HANDLER_GET_MANAGER_OK)
         _LOGGER.debug(
             "=== Before async_get_recurring_trips - mgr._state.recurring_trips: %d",
             len(mgr._state.recurring_trips),
@@ -473,7 +479,7 @@ def make_trip_list_handler(hass: HomeAssistant):  # pragma: no mutate
                 "punctual_trips": punctual_trips,
                 "total_trips": len(recurring_trips) + len(punctual_trips),
             }
-            _LOGGER.debug("=== trip_list result ===")
+            _LOGGER.debug(_LOG_HANDLER_TRIP_LIST_RESULT)
             _LOGGER.warning("recurring_trips count: %d", len(recurring_trips))
             _LOGGER.warning("punctual_trips count: %d", len(punctual_trips))
             _LOGGER.warning("total_trips: %d", result["total_trips"])
@@ -505,7 +511,7 @@ def make_trip_get_handler(hass: HomeAssistant):  # pragma: no mutate
     """Return async handler for trip_get service."""
 
     async def handler(call: ServiceCall) -> dict[str, Any]:
-        _LOGGER.debug("=== trip_get SERVICE HANDLER CALLED ===")
+        _LOGGER.debug(_LOG_HANDLER_TRIP_GET_CALLED)
         _LOGGER.debug("=== call.data: %s", call.data)
         data = call.data
         vehicle_id = data.get("vehicle_id", "unknown")
@@ -517,7 +523,7 @@ def make_trip_get_handler(hass: HomeAssistant):  # pragma: no mutate
         )
 
         mgr = await _get_manager(hass, vehicle_id)
-        _LOGGER.debug("=== _get_manager returned manager ===")
+        _LOGGER.debug(_LOG_HANDLER_GET_MANAGER_OK)
 
         try:
             _LOGGER.warning("Getting all trips to find trip_id: %s", trip_id)

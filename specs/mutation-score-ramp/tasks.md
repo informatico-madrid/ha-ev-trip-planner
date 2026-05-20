@@ -2348,7 +2348,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
-- [ ] 2.18.7 [Iteration 18 post-review] Pragma audit — US-5 compliance + categorization correctness
+- [x] 2.18.7 [Iteration 18 post-review] Pragma audit — US-5 compliance + categorization correctness
 
   - **Do**: Audit all pragmas added in iterations 13-17 (services, trip, vehicle, emhass) for two issues found during external review:
 
