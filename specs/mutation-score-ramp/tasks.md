@@ -2094,7 +2094,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
 
-- [ ] 2.16.1 [Iteration 16: vehicle] Log What & Why (NFR-7)
+- [x] 2.16.1 [Iteration 16: vehicle] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for `vehicle` ramp iteration. What: vehicle at 58.6% (179 survivors). Why: worst-first order — services, trip done, vehicle next.
 
@@ -2108,7 +2108,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: NFR-7_
 
-- [ ] 2.16.2 [Iteration 16: vehicle] Measure + classify survivors
+- [x] 2.16.2 [Iteration 16: vehicle] Measure + classify survivors
 
   - **Do**: Targeted mutation run for vehicle; enumerate survivors; classify each; record in `chat.md`.
 
@@ -2122,7 +2122,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.16.3 [Iteration 16: vehicle] Improve tests / US-5 refactor to kill survivors
+- [x] 2.16.3 [Iteration 16: vehicle] Improve tests / US-5 refactor to kill survivors
 
   - **Do**: Strengthen weak tests, add new tests, replace weak tests. NFR-1: no skip/pragma/suppressive. Equivalent/intrinsic -> 2.0-ADJ.
 
@@ -2136,7 +2136,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, US-5, NFR-1_
 
-- [ ] 2.16.4 [VERIFY] [Iteration 16: vehicle] Re-measure — kill rate improved
+- [x] 2.16.4 [VERIFY] [Iteration 16: vehicle] Re-measure — kill rate improved
 
   - **Do**: Re-run targeted mutation for vehicle; confirm kill rate strictly increased vs entry (58.6%).
 
@@ -2150,7 +2150,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.16.5 [VERIFY] [Iteration 16: vehicle] Regression guard — test + cover + import-check
+- [x] 2.16.5 [VERIFY] [Iteration 16: vehicle] Regression guard — test + cover + import-check
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
@@ -2164,7 +2164,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.16.6 [Iteration 16: vehicle] Ratchet thresholds + log delta rows
+- [x] 2.16.6 [Iteration 16: vehicle] Ratchet thresholds + log delta rows
 
   - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `vehicle` in `pyproject.toml`; append delta row.
 

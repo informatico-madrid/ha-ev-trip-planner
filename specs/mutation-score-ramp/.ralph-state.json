@@ -1,0 +1,64 @@
+{
+  "source": "spec",
+  "name": "mutation-score-ramp",
+  "basePath": "specs/mutation-score-ramp",
+  "phase": "execution",
+  "taskIndex": 113,
+  "totalTasks": 153,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 38,
+  "maxGlobalIterations": 100,
+  "awaitingApproval": false,
+  "granularity": "fine",
+  "executionPhase": "refactor",
+  "repairIteration": 0,
+  "failedStory": null,
+  "originTaskIndex": null,
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "fixTaskMap": {},
+  "modificationMap": {},
+  "maxModificationsPerTask": 3,
+  "maxModificationDepth": 2,
+  "nativeTaskMap": {},
+  "nativeSyncEnabled": true,
+  "nativeSyncFailureCount": 0,
+  "circuitBreaker": {
+    "state": "closed",
+    "consecutiveFailures": 0,
+    "maxConsecutiveFailures": 5,
+    "maxSessionSeconds": 172800
+  },
+  "checkpoint": {
+    "sha": "dffa349119346b7f3d39b8c072f1f59b565b3c7c",
+    "timestamp": "2026-05-18T17:31:32Z",
+    "branch": "mutation-score-ramp",
+    "message": "[ralphharness] checkpoint mutation-score-ramp (110 tasks)"
+  },
+  "ciCommands": [],
+  "ciSnapshot": {
+    "lint": null,
+    "typecheck": null,
+    "test": null,
+    "build": null,
+    "other": null
+  },
+  "chat": {
+    "reviewer": {
+      "lastReadLine": 4341
+    },
+    "executor": {
+      "lastReadLine": 4230
+    }
+  },
+  "external_unmarks": {
+    "2.4.5": 1,
+    "2.7.5": 1,
+    "2.9.5": 1
+  },
+  "executor": {
+    "lastReadLine": 3590
+  }
+}

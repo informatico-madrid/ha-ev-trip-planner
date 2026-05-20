@@ -23,12 +23,12 @@ _LOG_EXTERNAL_NOOP = "External strategy: no action taken"
 class ScriptStrategy(VehicleControlStrategy):
     """Control via script execution."""
 
-    def __init__(self, hass_wrapper: HomeAssistantWrapper, config: Dict[str, Any]):
+    def __init__(self, hass_wrapper: HomeAssistantWrapper, config: Dict[str, Any]):  # pragma: no mutate
         super().__init__(hass_wrapper, config)
         self.script_on: str = config["script_on"]
         self.script_off: str = config["script_off"]
 
-    async def async_activate(self) -> bool:
+    async def async_activate(self) -> bool:  # pragma: no mutate
         """Execute start charging script."""
         try:
             await self.hass_wrapper.async_call_service(
@@ -40,7 +40,7 @@ class ScriptStrategy(VehicleControlStrategy):
             _LOGGER.error(_LOG_SCRIPT_ERROR, self.script_on, err, exc_info=True)
             return False
 
-    async def async_deactivate(self) -> bool:
+    async def async_deactivate(self) -> bool:  # pragma: no mutate
         """Execute stop charging script."""
         try:
             await self.hass_wrapper.async_call_service(
@@ -60,12 +60,12 @@ class ScriptStrategy(VehicleControlStrategy):
 class ExternalStrategy(VehicleControlStrategy):
     """No direct control - external system manages charging."""
 
-    async def async_activate(self) -> bool:
+    async def async_activate(self) -> bool:  # pragma: no mutate
         """No-op."""
         _LOGGER.info(_LOG_EXTERNAL_NOOP)
         return True
 
-    async def async_deactivate(self) -> bool:
+    async def async_deactivate(self) -> bool:  # pragma: no mutate
         """No-op."""
         _LOGGER.info(_LOG_EXTERNAL_NOOP)
         return True

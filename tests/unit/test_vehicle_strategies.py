@@ -545,6 +545,109 @@ class TestVehicleController:
         controller.set_strategy(strategy)
         result = await controller.async_activate_charging()
         assert result is False
+        assert controller._retry_state.get_attempt_count() == 1
+
+    @pytest.mark.asyncio
+    async def test_strategy_activate_arguments_switch(self):
+        """SwitchStrategy.async_activate calls service with correct domain/service."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.charger"})
+
+        await strategy.async_activate()
+        hass.services.async_call.assert_called_once_with(
+            "switch", "turn_on", {"entity_id": "switch.charger"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_strategy_activate_arguments_script(self):
+        """ScriptStrategy.async_activate calls service with correct domain/service."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = ScriptStrategy(
+            wrapper,
+            {
+                "script_on": "script.start_charging",
+                "script_off": "script.stop_charging",
+            },
+        )
+
+        await strategy.async_activate()
+        hass.services.async_call.assert_called_once_with(
+            "script", "start_charging", {}
+        )
+
+    @pytest.mark.asyncio
+    async def test_strategy_activate_arguments_service(self):
+        """ServiceStrategy.async_activate calls service with correct domain/service."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = ServiceStrategy(
+            wrapper,
+            {
+                "service_on": "input_boolean.turn_on",
+                "service_off": "input_boolean.turn_off",
+            },
+        )
+
+        await strategy.async_activate()
+        hass.services.async_call.assert_called_once_with(
+            "input_boolean", "turn_on", {}
+        )
+
+    @pytest.mark.asyncio
+    async def test_strategy_deactivate_arguments_switch(self):
+        """SwitchStrategy.async_deactivate calls service with correct domain/service."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = SwitchStrategy(wrapper, {"entity_id": "switch.charger"})
+
+        await strategy.async_deactivate()
+        hass.services.async_call.assert_called_once_with(
+            "switch", "turn_off", {"entity_id": "switch.charger"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_strategy_deactivate_arguments_script(self):
+        """ScriptStrategy.async_deactivate calls service with correct domain/service."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = ScriptStrategy(
+            wrapper,
+            {
+                "script_on": "script.start_charging",
+                "script_off": "script.stop_charging",
+            },
+        )
+
+        await strategy.async_deactivate()
+        hass.services.async_call.assert_called_once_with(
+            "script", "stop_charging", {}
+        )
+
+    @pytest.mark.asyncio
+    async def test_strategy_deactivate_arguments_service(self):
+        """ServiceStrategy.async_deactivate calls service with correct domain/service."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = ServiceStrategy(
+            wrapper,
+            {
+                "service_on": "input_boolean.turn_on",
+                "service_off": "input_boolean.turn_off",
+            },
+        )
+
+        await strategy.async_deactivate()
+        hass.services.async_call.assert_called_once_with(
+            "input_boolean", "turn_off", {}
+        )
 
     def test_reset_retry_state(self):
         """reset_retry_state clears retry counter."""
