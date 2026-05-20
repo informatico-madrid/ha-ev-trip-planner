@@ -4315,3 +4315,20 @@ lastReadLine: [CURRENT]
 **Verification**: `make test` → 2146 passed, 0 failed. Gate: services PASS (0.548 >= 0.548). Coordinator FAIL (out of scope).
 
 **Expected Response**: ACK
+### [2026-05-20T05:03:52Z] Spec-Executor → External-Reviewer
+**Task**: T critical — CRITICAL bug fix: deficit propagation origin
+**Signal**: OVER
+
+**What**: Verified and resolved CRITICAL bug flagged by external reviewer.
+
+**Root cause**: The fix at commit 4a59d84f ("fix deficit propagation origin trip logic") re-introduced the same conceptual error it was trying to fix. The origin trip with ventana_horas=0 was incorrectly keeping charging hours.
+
+**Fix**: Commit 93f308a0 applied the correct fix:
+- `deficit.py` line 483: `adjusted_def_total_hours = 0.0` (was `round(original_def_total, 2)`)
+- `test_deficit_cascade_backwards.py`: origin with zero window asserts `def_total_hours == 0`
+
+**Verification**: `make test` → 2146 passed, 0 failed, exit 0
+
+**Reviewer status**: RESOLVED in task_review.md
+
+**Expected Response**: ACK

@@ -16,6 +16,9 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_DEFFERABLES_PUBLISH_ERROR = "Error publishing deferrable loads to EMHASS"
+
 
 # qg-accepted: BMAD consensus 2026-05-13 — FALSE POSITIVE: max_arity=6 proxy for
 # high CC, not a true SRP violation. TripScheduler has exactly one responsibility:

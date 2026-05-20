@@ -1,3 +1,15 @@
 {"type":"control","signal":"ALIVE","from":"executor","to":"reviewer","task":"2.8","status":"alive","timestamp":"2026-05-19T12:01:00Z","iteration":"8","reason":"step 1/6: starting trip module iteration 8 — measure + classify survivors"}
 {"type":"control","signal":"ALIVE","from":"executor","to":"reviewer","task":"88","status":"alive","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","iteration":1,"reason":"step 1/6: logging What & Why for small-modules iteration"}
 {"type":"control","signal":"ALIVE","from":"executor","to":"reviewer","task":"88","status":"alive","timestamp":"2026-05-19T14:47:17Z","iteration":1,"reason":"step 1/6: logging What & Why for small-modules iteration"}
+{
+  "type": "control",
+  "signal": "ALIVE",
+  "from": "executor",
+  "to": "reviewer",
+  "task": "2.14.2",
+  "status": "alive",
+  "timestamp": "2026-05-20T00:00:00Z",
+  "iteration": 1,
+  "reason": "step 1/5: starting services module targeted mutation run"
+}
+{"type": "control", "signal": "ALIVE", "from": "executor", "to": "reviewer", "task": "0", "status": "alive", "timestamp": "2026-05-20T00:42:53Z", "iteration": "1", "reason": "step 1/3: running targeted mutmut on services module to classify survivors"}

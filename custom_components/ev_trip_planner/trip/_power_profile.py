@@ -15,6 +15,12 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_MISSING_BATTERY_CONFIG = "Missing 'battery_capacity_kwh' in vehicle_config"
+_LOG_MISSING_SAFETY_MARGIN_CONFIG = "Missing 'safety_margin_percent' in vehicle_config"
+_LOG_MISSING_BATTERY_ENTRY = "Missing 'battery_capacity_kwh' in config entry"
+_LOG_MISSING_SAFETY_MARGIN_ENTRY = "Missing 'safety_margin_percent' in config entry"
+
 
 class PowerProfile:
     """Power profile generation for TripManager."""
@@ -47,10 +53,10 @@ class PowerProfile:
 
         if vehicle_config:
             if "battery_capacity_kwh" not in vehicle_config:
-                _LOGGER.error("Missing 'battery_capacity_kwh' in vehicle_config")
+                _LOGGER.error(_LOG_MISSING_BATTERY_CONFIG)
                 return []
             if "safety_margin_percent" not in vehicle_config:
-                _LOGGER.error("Missing 'safety_margin_percent' in vehicle_config")
+                _LOGGER.error(_LOG_MISSING_SAFETY_MARGIN_CONFIG)
                 return []
             battery_capacity = vehicle_config["battery_capacity_kwh"]
             safety_margin_percent = vehicle_config["safety_margin_percent"]
@@ -71,10 +77,10 @@ class PowerProfile:
                 if config_entry is not None and config_entry.data is not None:
                     data = config_entry.data
                     if "battery_capacity_kwh" not in data:
-                        _LOGGER.error("Missing 'battery_capacity_kwh' in config entry")
+                        _LOGGER.error(_LOG_MISSING_BATTERY_ENTRY)
                         return []
                     if "safety_margin_percent" not in data:
-                        _LOGGER.error("Missing 'safety_margin_percent' in config entry")
+                        _LOGGER.error(_LOG_MISSING_SAFETY_MARGIN_ENTRY)
                         return []
                     battery_capacity = data["battery_capacity_kwh"]
                     safety_margin_percent = data["safety_margin_percent"]
