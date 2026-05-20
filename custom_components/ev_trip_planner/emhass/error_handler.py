@@ -66,6 +66,7 @@ class ErrorHandler:
             except Exception:
                 _LOGGER.exception(_LOG_ERROR_HANDLER_CALLBACK_FAILED)
 
+    # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
     def handle_missing_id(self, trip_id: str, operation: str = "publish") -> bool:
         """Handle missing trip ID error.
 
@@ -79,6 +80,7 @@ class ErrorHandler:
         _LOGGER.error(_LOG_MISSING_ID, operation)
         return False
 
+    # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
     def handle_deadline_error(self, trip_id: str, operation: str = "publish") -> bool:
         """Handle deadline calculation error.
 
@@ -92,6 +94,7 @@ class ErrorHandler:
         _LOGGER.error(_LOG_DEADLINE_ERROR, trip_id, operation)
         return False
 
+    # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
     def handle_index_error(
         self, trip_id: str, operation: str = "release"
     ) -> Optional[str]:
