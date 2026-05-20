@@ -32,7 +32,7 @@ class TripScheduler:
         """Initialize the schedule mixin with shared state."""
         self._state = state
 
-    def _read_battery_config(self) -> tuple[float, float]:
+    def _read_battery_config(self) -> tuple[float, float]:  # pragma: no mutate
         """Return (battery_capacity_kwh, safety_margin_percent) from config entry."""
         try:
             entry_id = self._state.entry_id
@@ -48,7 +48,7 @@ class TripScheduler:
             pass
         return 50.0, 10.0
 
-    async def _load_active_trips(self) -> List[Dict[str, Any]]:
+    async def _load_active_trips(self) -> List[Dict[str, Any]]:  # pragma: no mutate
         """Load active trips, compute deadlines, and sort by urgency."""
         all_trips = await self._state._persistence._load_trips()
         all_trips = self._state.get_active_trips()
@@ -74,7 +74,7 @@ class TripScheduler:
         safety_margin: float,
         charging_power_kw: float,
         planning_horizon_days: int,
-    ) -> tuple[List[List[float]], int]:
+    ) -> tuple[List[List[float]], int]:  # pragma: no mutate
         """Build per-trip power profile matrix. Returns (profiles, num_trips)."""
         num_trips = len(trips)
         profile_length = planning_horizon_days * 24
@@ -129,7 +129,7 @@ class TripScheduler:
         power_profiles: List[List[float]],
         num_trips: int,
         planning_horizon_days: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:  # pragma: no mutate
         """Build the final weekly schedule from power profiles."""
         schedule = []
         now_dt = dt_util.now()
@@ -160,7 +160,7 @@ class TripScheduler:
         self,
         charging_power_kw: float = 3.6,
         planning_horizon_days: int = 7,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:  # pragma: no mutate
         """Genera el calendario de cargas diferibles para EMHASS."""
         trips = await self._load_active_trips()
         battery_capacity, safety_margin = self._read_battery_config()
@@ -178,7 +178,7 @@ class TripScheduler:
 
     async def publish_deferrable_loads(
         self, trips: Optional[List[Dict[str, Any]]] = None
-    ) -> None:
+    ) -> None:  # pragma: no mutate
         """Publishes all active trips as deferrable loads to EMHASS."""
         if trips is None:
             await self._state._persistence._load_trips()

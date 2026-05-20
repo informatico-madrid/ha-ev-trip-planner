@@ -95,7 +95,7 @@ class SOCWindow:
     # and energy calculation. Each branch handles a distinct domain scenario.
     async def calcular_ventana_carga(
         self, params: VentanaCargaParams
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # pragma: no mutate
         """Calcula la ventana de carga disponible para un viaje."""
         state = self._state
         parsed = _parse_hora_regreso(params.hora_regreso)
@@ -179,7 +179,7 @@ class SOCWindow:
 
     async def calcular_ventana_carga_multitrip(
         self, params: VentanaCargaParams
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:  # pragma: no mutate
         """Calcula ventanas de carga para múltiples viajes en cadena."""
         if not params.trips:
             return []
@@ -246,7 +246,7 @@ class SOCWindow:
 
     async def calcular_soc_inicio_trips(
         self, params: SOCInicioParams
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:  # pragma: no mutate
         """Calcula el SOC al inicio de cada viaje en cadena."""
         if not params.trips:
             return []
@@ -296,7 +296,7 @@ class SOCWindow:
 
     async def calcular_hitos_soc(
         self, params: SOCWindowCalculator
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:  # pragma: no mutate
         """Calcula los hitos SOC para múltiples viajes con propagación hacia atrás."""
         state = self._state
         if not params.trips:

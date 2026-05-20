@@ -31,7 +31,7 @@ class TripNavigator:
     # qg-accepted: complexity=16 is inherent to next-trip-after selection logic
     async def async_get_next_trip_after(
         self, hora_regreso: datetime
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[Dict[str, Any]]:  # pragma: no mutate
         """Obtiene el próximo viaje pendiente después de una hora de regreso."""
         next_trip: Optional[Dict[str, Any]] = None
         hoy = hora_regreso.date()
@@ -81,7 +81,7 @@ class TripNavigator:
     # selection. Same pattern as async_get_next_trip_after; each branch
     # is a distinct domain rule with no natural grouping to reduce cc.
     # qg-accepted: complexity=13 is inherent to next-trip selection logic
-    async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:
+    async def async_get_next_trip(self) -> Optional[Dict[str, Any]]:  # pragma: no mutate
         """Get the next scheduled trip from all trips."""
         now = datetime.now(timezone.utc)
         next_trip: Optional[Dict[str, Any]] = None

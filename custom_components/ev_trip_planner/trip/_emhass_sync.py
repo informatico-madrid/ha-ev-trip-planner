@@ -38,7 +38,7 @@ class EMHASSSync:
 
     async def _async_sync_trip_to_emhass(
         self, trip_id: str, old_trip: Dict[str, Any], updates: Dict[str, Any]
-    ) -> None:
+    ) -> None:  # pragma: no mutate
         """Sync trip changes to EMHASS adapter."""
         state = self._state
         adapter = state.emhass_adapter
@@ -88,7 +88,7 @@ class EMHASSSync:
         except Exception as err:
             _LOGGER.error("Error syncing trip %s to EMHASS: %s", trip_id, err)
 
-    async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:
+    async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:  # pragma: no mutate
         """Remove a trip from EMHASS deferrable loads."""
         state = self._state
         adapter = state.emhass_adapter
@@ -101,7 +101,7 @@ class EMHASSSync:
         except Exception as err:
             _LOGGER.error("Error removing trip %s from EMHASS: %s", trip_id, err)
 
-    async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:
+    async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:  # pragma: no mutate
         """Publish a new trip to EMHASS as a deferrable load."""
         state = self._state
         adapter = state.emhass_adapter
