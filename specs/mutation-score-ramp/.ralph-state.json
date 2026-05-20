@@ -3,11 +3,11 @@
   "name": "mutation-score-ramp",
   "basePath": "specs/mutation-score-ramp",
   "phase": "execution",
-  "taskIndex": 126,
-  "totalTasks": 153,
+  "taskIndex": 143,
+  "totalTasks": 159,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 41,
+  "globalIteration": 43,
   "maxGlobalIterations": 100,
   "awaitingApproval": false,
   "granularity": "fine",
@@ -47,7 +47,7 @@
   },
   "chat": {
     "reviewer": {
-      "lastReadLine": 4404
+      "lastReadLine": 4850
     },
     "executor": {
       "lastReadLine": 4230
@@ -56,7 +56,8 @@
   "external_unmarks": {
     "2.4.5": 1,
     "2.7.5": 1,
-    "2.9.5": 1
+    "2.9.5": 1,
+    "2.18.7": 1
   },
   "executor": {
     "lastReadLine": 3590
