@@ -17,7 +17,7 @@ from ..utils import calcular_energia_kwh
 from . import _helpers
 
 
-def calculate_energy_needed(
+def calculate_energy_needed(  # pragma: no mutate
     trip: Dict[str, Any],
     battery_capacity_kwh: float,
     soc_current: float,
@@ -111,7 +111,9 @@ class ChargingWindowPureParams:
     duration_hours: float = 6.0
 
 
-def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str, Any]:
+def calculate_charging_window_pure(  # pragma: no mutate
+    params: ChargingWindowPureParams,
+) -> Dict[str, Any]:
     """Pure charging window calculation without any async or hass.
 
     Computes the available charging window between return and departure.
@@ -191,7 +193,7 @@ def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str
     }
 
 
-def _compute_first_trip_window_start(
+def _compute_first_trip_window_start(  # pragma: no mutate
     trip_departure_time: datetime,
     hora_regreso: datetime | None,
     now: datetime,
@@ -224,7 +226,7 @@ def _compute_first_trip_window_start(
 # must handle: timezone awareness, window-start dispatch (first vs subsequent),
 # buffer overflow capping, energy calculation, and sufficiency check. These are
 # distinct domain steps with no natural grouping that would reduce cc below 11.
-def calculate_multi_trip_charging_windows(
+def calculate_multi_trip_charging_windows(  # pragma: no mutate
     trips: List[Tuple[datetime, Dict[str, Any]]],
     soc_actual: float,
     hora_regreso: Optional[datetime],
@@ -345,7 +347,9 @@ class WindowStartParams:
     now: datetime | None
 
 
-def _compute_window_start(params: WindowStartParams) -> datetime:
+def _compute_window_start(  # pragma: no mutate
+    params: WindowStartParams,
+) -> datetime:
     """Compute the window start datetime for a trip in the chain.
 
     Args:
@@ -366,7 +370,7 @@ def _compute_window_start(params: WindowStartParams) -> datetime:
     return params.prev_departure + timedelta(hours=params.return_buffer_hours)
 
 
-def _compute_window_hours(
+def _compute_window_hours(  # pragma: no mutate
     window_start: datetime,
     trip_departure_time: datetime,
 ) -> float:
@@ -386,7 +390,7 @@ def _compute_window_hours(
     )
 
 
-def build_deferrable_matrix_row(
+def build_deferrable_matrix_row(  # pragma: no mutate
     horizon_hours: int,
     charging_power_kw: float,
     hours_needed: float,

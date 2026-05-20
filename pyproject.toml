@@ -148,7 +148,7 @@ target_final = 1.00
 modules_per_sprint = 2
 
 [tool.quality-gate.mutation.modules.calculations]
-kill_threshold = 0.78
+kill_threshold = 0.789
 increment_step = 0.01
 target_final = 1.00
 status = "passing"

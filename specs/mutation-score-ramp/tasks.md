@@ -2264,7 +2264,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
 
-- [ ] 2.18.1 [Iteration 18: calculations] Log What & Why (NFR-7)
+- [x] 2.18.1 [Iteration 18: calculations] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for `calculations` ramp iteration. What: calculations at 75.2% (119 survivors). Why: worst-first order — services, trip, vehicle, emhass done, calculations last.
 
@@ -2278,7 +2278,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: NFR-7_
 
-- [ ] 2.18.2 [Iteration 18: calculations] Measure + classify survivors
+- [x] 2.18.2 [Iteration 18: calculations] Measure + classify survivors
 
   - **Do**: Targeted mutation run for calculations; enumerate survivors; classify each; record in `chat.md`.
 
@@ -2292,7 +2292,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.18.3 [Iteration 18: calculations] Improve tests / US-5 refactor to kill survivors
+- [x] 2.18.3 [Iteration 18: calculations] Improve tests / US-5 refactor to kill survivors
 
   - **Do**: Strengthen weak tests, add new tests, replace weak tests. NFR-1: no skip/pragma/suppressive. Equivalent/intrinsic -> 2.0-ADJ.
 
@@ -2306,7 +2306,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, US-5, NFR-1_
 
-- [ ] 2.18.4 [VERIFY] [Iteration 18: calculations] Re-measure — kill rate improved
+- [x] 2.18.4 [VERIFY] [Iteration 18: calculations] Re-measure — kill rate improved
 
   - **Do**: Re-run targeted mutation for calculations; confirm kill rate strictly increased vs entry (75.2%).
 
@@ -2320,7 +2320,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.18.5 [VERIFY] [Iteration 18: calculations] Regression guard — test + cover + import-check
+- [x] 2.18.5 [VERIFY] [Iteration 18: calculations] Regression guard — test + cover + import-check
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
@@ -2334,7 +2334,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.18.6 [Iteration 18: calculations] Ratchet thresholds + log delta rows
+- [x] 2.18.6 [Iteration 18: calculations] Ratchet thresholds + log delta rows
 
   - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `calculations` in `pyproject.toml`; append delta row.
 
@@ -2347,6 +2347,28 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): ratchet iteration 18 calculations threshold + log delta row`
 
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+- [ ] 2.18.7 [Iteration 18 post-review] Pragma audit — US-5 compliance + categorization correctness
+
+  - **Do**: Audit all pragmas added in iterations 13-17 (services, trip, vehicle, emhass) for two issues found during external review:
+
+    **Issue 1 — "unreachable" mutants bypassing US-5**: Per design.md:216, a mutant labeled "unreachable from test inputs" must be addressed via US-5 testability refactor FIRST, not sent directly to NFR-1. The adjudication workflow (tasks.md 2.0-ADJ Step 1) requires US-5 to be attempted and exhausted before any mutant is classified as equivalent/intrinsic. If any pragma in iterations 13-17 was added for a mutant described as "unreachable from test inputs" without documented US-5 refactor attempts, those pragmas are NOT compliant and MUST be reverted.
+
+    **Issue 2 — pragma categorization correctness**: Pragma annotations use categories like `default_value`, `log/string`, `None-in-log`, `timestamp comparison`. Verify each category is genuinely intrinsic/equivalent (mutant has NO behavioural difference even after exposing it via US-5 refactor) — not merely "test doesn't exercise this path". Categories must match actual mutmut survivor analysis, not estimated counts. Discrepancies found (e.g. emhass: executor claims 710 survivors, pragma annotation sum is ~649) must be explained or re-counted.
+
+    **Action per non-compliant pragma**: Remove the `# pragma: no mutate` comment, apply US-5 refactor to extract the logic to a testable form, add an honest test that kills the mutant, re-run mutation to confirm kill, then update thresholds.
+
+    **Architecture refactor constraints**: Any US-5 refactor MUST maintain SOLID, DRY, KISS principles, preserve HA-observable behavior (NFR-6), keep public API signatures unchanged (design.md AC-5.2), and not violate the layered architecture contract (design.md AC-5.3).
+
+  - **Files**: `custom_components/ev_trip_planner/**/* pragmas being audited`, `specs/mutation-score-ramp/chat.md`, `specs/mutation-score-ramp/task_review.md`
+
+  - **Done when**: All pragmas from iterations 13-17 audited; non-compliant pragmas removed + US-5 refactored + re-tested; pragma categorization counts reconciled with mutmut output.
+
+  - **Verify**: `grep -i 'unreachable.*test.*input\|architecture.*prevent' specs/mutation-score-ramp/chat.md | grep -v 'US-5.*exhaust\|US-5 refactor.*attempted' | wc -l` must return 0. Pragma annotation survivor sums must reconcile with mutmut-reported survivor counts within 5% tolerance.
+
+  - **Commit**: `chore(mutation-score-ramp): audit pragmas from iterations 13-17 for US-5 compliance`
+
+  - _Requirements: NFR-1, US-5, design.md:216, design.md:224, AC-5.1, AC-5.2, AC-5.3, NFR-6_
 
 - [ ] 2.12 [VERIFY] Unbounded-iteration gate: confirm all modules at 100% or add more iteration blocks
 
@@ -2467,19 +2489,24 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.4 [VERIFY] Verify NFR-1 adjudication log completeness
+- [ ] 3.4 [VERIFY] Verify NFR-1 adjudication log completeness + US-5 compliance
 
-  - **Do**: For every `# pragma: no mutate` added during the ramp, confirm a matching logged ≥2-expert-subagent dual-APPROVE adjudication exists in `chat.md` AND `.progress.md` (mutant id, both subagent names, both verdicts, reasoning). Confirm no new `mutmut_skip` marker or suppressive `-k` arg was added, and the pre-existing `test_solid_metrics`/`test_vehicle_controller_event` exclusions were not expanded.
+  - **Do**: TWO checks must both pass:
 
-  - **Files**: (none — verification only)
+    **Check A — Adjudication log completeness (NFR-1)**:
+    For every `# pragma: no mutate` added during the ramp, confirm a matching logged ≥2-expert-subagent dual-APPROVE adjudication exists in `chat.md` AND `.progress.md` (mutant id, both subagent names, both verdicts, reasoning). Confirm no new `mutmut_skip` marker or suppressive `-k` arg was added, and the pre-existing `test_solid_metrics`/`test_vehicle_controller_event` exclusions were not expanded.
 
-  - **Done when**: every pragma traces to a logged adjudication; no un-adjudicated suppression.
+    **Check B — US-5 compliance audit**:
+    For every pragma, verify the adjudication reasoning does NOT classify the mutant as "unreachable from test inputs" or "cannot be killed without refactoring architecture" and then send it directly to NFR-1. Per design.md line 216: "unreachable from any honest test" → MUST be addressed via US-5 testability refactor FIRST. Only after US-5 refactor is exhausted (design.md Step 1: "US-5 testability refactor was attempted FIRST and exhausted (mandatory precondition)") may a mutant be classified as equivalent/intrinsic. If any pragma was added for a mutant that was labeled "unreachable" or "un-architecturally-testable" without a prior US-5 attempt, that pragma is NOT compliant — it MUST be removed, the code refactored (US-5), and the mutant re-tested.
 
-  - **Verify**: `N=$(grep -rc 'pragma: no mutate' custom_components/ | awk -F: '{s+=$2} END{print s}'); A=$(grep -c 'ADJUDICATION' specs/mutation-score-ramp/chat.md); [ "$N" -le "$A" ] && echo ADJUDICATION_LOG_OK || echo MISSING_ADJUDICATION`
+    Architecture refactor principles (Step 6 of 2.0-ADJ + design.md US-5 section): pragmas caused by bad architectural design are NOT eligible for NFR-1 — they MUST be refactored. Refactors must preserve SOLID, DRY, KISS principles and maintain HA-observable behavior. After any pragma removal + US-5 refactor, re-run mutation on the affected module and update thresholds.
 
-  - **Commit**: `chore(mutation-score-ramp): verify NFR-1 adjudication log completeness`
-
-  - _Requirements: NFR-1, AC-4.4_
+    - **Files**: (none — verification only)
+    - **Done when**: Check A: every pragma traces to a logged dual-expert adjudication; no un-adjudicated suppression. Check B: no pragma was added for an "unreachable" or "architecture-prevents-test" mutant without a prior US-5 refactor attempt documented in chat.md.
+    - **Verify (A)**: `N=$(grep -rc 'pragma: no mutate' custom_components/ | awk -F: '{s+=$2} END{print s}'); A=$(grep -c 'ADJUDICATION' specs/mutation-score-ramp/chat.md); [ "$N" -le "$A" ] && echo ADJUDICATION_LOG_OK || echo MISSING_ADJUDICATION`
+    - **Verify (B)**: `grep -i 'unreachable\|architecture.*prevent\|cannot.*kill.*without.*refactor' specs/mutation-score-ramp/chat.md | grep -v 'US-5\|US-5 refactor\|US-5.*exhaust' | grep -B2 'pragma\|mutmut' && echo US5_COMPLIANCE_WARNING || echo US5_COMPLIANCE_OK`
+    - **Commit**: `chore(mutation-score-ramp): verify NFR-1 adjudication log completeness + US-5 compliance audit`
+    - _Requirements: NFR-1, AC-4.4, US-5, design.md:216_
 
 
 

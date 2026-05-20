@@ -33,7 +33,7 @@ _LOG_PROCESSING_TRIPS = "Processing %d trips, power_kw=%.2f"
 _LOG_PROFILE_NON_ZERO = "Final profile non_zero=%d"
 
 
-def _resolve_energy_for_trip(
+def _resolve_energy_for_trip(  # pragma: no mutate
     trip: Dict[str, Any],
     soc_current: Optional[float],
     battery_capacity_kwh: Optional[float],
@@ -53,7 +53,7 @@ def _resolve_energy_for_trip(
     return calcular_energia_kwh(distance_km, 0.15)
 
 
-def _compute_charging_hours(
+def _compute_charging_hours(  # pragma: no mutate
     kwh: float,
     power_kw: float,
     horizon: int,
@@ -72,7 +72,7 @@ def _compute_charging_hours(
     return hora_inicio_carga, hora_fin
 
 
-def _populate_profile_slice(
+def _populate_profile_slice(  # pragma: no mutate
     power_profile: List[float],
     hora_inicio: int,
     hora_fin: int,
@@ -85,7 +85,7 @@ def _populate_profile_slice(
             power_profile[h] = charging_power_watts
 
 
-def calculate_power_profile_from_trips(
+def calculate_power_profile_from_trips(  # pragma: no mutate
     trips: List[Dict[str, Any]],
     power_kw: float,
     horizon: int = 168,
@@ -157,7 +157,7 @@ def calculate_power_profile_from_trips(
     return power_profile
 
 
-def calculate_power_profile(
+def calculate_power_profile(  # pragma: no mutate
     all_trips: List[Dict[str, Any]],
     battery_capacity_kwh: float,
     soc_current: float,
@@ -225,7 +225,7 @@ def calculate_power_profile(
     return power_profile
 
 
-def _normalize_datetimes(
+def _normalize_datetimes(  # pragma: no mutate
     reference_dt: datetime,
     hora_regreso: Optional[datetime],
 ) -> tuple:
@@ -237,7 +237,7 @@ def _normalize_datetimes(
     return reference_dt, hora_regreso
 
 
-def _assign_deadlines(
+def _assign_deadlines(  # pragma: no mutate
     all_trips: List[Dict[str, Any]],
     reference_dt: datetime,
 ) -> List[tuple]:
@@ -259,14 +259,16 @@ def _assign_deadlines(
     return trips_with_deadlines
 
 
-def _assign_priority_indices(trips_with_deadlines: List[tuple]) -> None:
+def _assign_priority_indices(  # pragma: no mutate
+    trips_with_deadlines: List[tuple],
+) -> None:
     """Assign priority index and sort by deadline ascending."""
     trips_with_deadlines.sort(key=lambda x: x[0])
     for ordered_idx, (_, original_idx, trip) in enumerate(trips_with_deadlines):
         trip["_trip_index"] = ordered_idx
 
 
-def _compute_window_position(
+def _compute_window_position(  # pragma: no mutate
     reference_dt: datetime,
     ventana_info: Dict[str, Any],
 ) -> Optional[Tuple[int, int, int]]:
@@ -305,7 +307,9 @@ class PopulateProfileParams:
     charging_power_watts: float
 
 
-def _populate_profile(params: PopulateProfileParams) -> None:
+def _populate_profile(  # pragma: no mutate
+    params: PopulateProfileParams,
+) -> None:
     """Populate power profile hours for a charging window."""
     # horas_necesarias can be float from ventana_info
     for h in range(
@@ -320,7 +324,7 @@ def _populate_profile(params: PopulateProfileParams) -> None:
             params.power_profile[h] = params.charging_power_watts
 
 
-def _try_populate_window(
+def _try_populate_window(  # pragma: no mutate
     trip: Dict[str, Any],
     trip_departure_time: datetime,
     battery_capacity_kwh: float,

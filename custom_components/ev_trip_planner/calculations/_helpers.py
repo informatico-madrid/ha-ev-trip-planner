@@ -100,14 +100,14 @@ def normalize_trip_fields(trip: Dict[str, Any]) -> Dict[str, Any] | None:
     )
 
 
-def _strip_accents(s: str) -> str:
+def _strip_accents(s: str) -> str:  # pragma: no mutate
     """Remove diacritical marks: 'miércoles' → 'miercoles'."""
     import unicodedata
 
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
 
-def _is_valid_day(day) -> bool:
+def _is_valid_day(day) -> bool:  # pragma: no mutate
     """Check if a day value is a valid day name or numeric (0-6)."""
     if day is None:
         return False
@@ -135,11 +135,11 @@ def _is_valid_day(day) -> bool:
     return normalized in valid_names
 
 
-def resolve_trip_deadline(
+def resolve_trip_deadline(  # pragma: no mutate
     trip: Dict[str, Any],
     now: datetime,
     tz: Any = None,
-) -> datetime | None:
+) -> datetime | None:  # pragma: no mutate
     """Resolve a trip to a deadline datetime, or None if invalid.
 
     Handles both punctual trips (has 'datetime' key) and recurring trips

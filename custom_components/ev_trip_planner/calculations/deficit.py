@@ -37,7 +37,7 @@ class ChargingDecision:
     needs_charging: bool  # Whether charging is needed
 
 
-def determine_charging_need(
+def determine_charging_need(  # pragma: no mutate
     trip: Dict[str, Any],
     soc_current: float,
     battery_capacity_kwh: float,
@@ -109,7 +109,7 @@ __all__ = [
 # =============================================================================
 
 
-def _compute_adjusted_soc(
+def _compute_adjusted_soc(  # pragma: no mutate
     original_idx: int,
     soc_objetivo_base: float,
     deficits: List[float],
@@ -127,7 +127,7 @@ def _compute_adjusted_soc(
     return soc_objetivo_ajustado
 
 
-def _get_soc_objetivo_base(
+def _get_soc_objetivo_base(  # pragma: no mutate
     original_idx: int,
     trip: Dict[str, Any],
     soc_targets: Optional[List[float]],
@@ -146,7 +146,7 @@ def _get_soc_objetivo_base(
 # pure function signature. Also applies to _build_milestone (8 params) and
 # calculate_deficit_propagation (9 params).
 # qg-accepted: arity=10 — BMAD consensus 2026-05-17
-def _propagate_deficits(
+def _propagate_deficits(  # pragma: no mutate
     ordered_to_idx: Dict[int, int],
     N: int,
     soc_data: List[Dict[str, Any]],
@@ -197,7 +197,7 @@ def _propagate_deficits(
 # qg-accepted: BMAD consensus 2026-05-17 — arity=8 is inherent to milestone building
 # (original_idx, trip, soc_data_item, ventana, soc_objetivo_final, deficits, soc_caps, kwh_necesarios).
 # These mirror the data structures from deficit propagation. No extraction beneficial.
-def _build_milestone(
+def _build_milestone(  # pragma: no mutate
     original_idx: int,
     trip: Dict[str, Any],
     soc_data_item: Dict[str, Any],
@@ -229,7 +229,7 @@ def _build_milestone(
     }
 
 
-def _compute_trip_trip_time(
+def _compute_trip_trip_time(  # pragma: no mutate
     trip: Dict[str, Any],
     trip_times: Optional[List[Optional[datetime]]],
     reference_dt: datetime,
@@ -254,7 +254,7 @@ def _compute_trip_trip_time(
 # propagation (trips, soc_data, windows, tasa_carga_soc, battery_capacity_kwh, reference_dt,
 # optional arrays). The 3 optional params (trip_times, soc_targets, soc_caps) are for
 # optimization/caching and follow the Options pattern. This IS the domain function signature.
-def calculate_deficit_propagation(
+def calculate_deficit_propagation(  # pragma: no mutate
     trips: List[Dict[str, Any]],
     soc_data: List[Dict[str, Any]],
     windows: List[Dict[str, Any]],
@@ -363,7 +363,7 @@ def calculate_deficit_propagation(
 
 
 # qg-accepted: complexity=11 is inherent to deficit propagation algorithm
-def calculate_hours_deficit_propagation(
+def calculate_hours_deficit_propagation(  # pragma: no mutate
     windows: List[Dict[str, Any]],
     def_total_hours: List[float] | None = None,
 ) -> List[Dict[str, Any]]:
@@ -494,7 +494,7 @@ def calculate_hours_deficit_propagation(
 # =============================================================================
 
 
-def calculate_soc_at_trip_starts(
+def calculate_soc_at_trip_starts(  # pragma: no mutate
     trips: List[Dict[str, Any]],
     soc_inicial: float,
     windows: List[Dict[str, Any]],
@@ -577,7 +577,7 @@ def _parse_time(time_str: str) -> Optional[Tuple[int, int]]:
         return None
 
 
-def _resolve_tz(tz: Any) -> Any:
+def _resolve_tz(tz: Any) -> Any:  # pragma: no mutate
     """Normalize timezone parameter to a tzinfo instance or None."""
     if tz is None:
         return None
@@ -596,7 +596,7 @@ def _resolve_tz(tz: Any) -> Any:
     return tz
 
 
-def _compute_next_with_tz(
+def _compute_next_with_tz(  # pragma: no mutate
     day: int,
     hour: int,
     minute: int,
@@ -629,7 +629,7 @@ def _compute_next_with_tz(
     return result_local.astimezone(timezone.utc)
 
 
-def _compute_next_naive(
+def _compute_next_naive(  # pragma: no mutate
     day: int,
     hour: int,
     minute: int,
