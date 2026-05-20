@@ -3,11 +3,11 @@
   "name": "mutation-score-ramp",
   "basePath": "specs/mutation-score-ramp",
   "phase": "execution",
-  "taskIndex": 149,
+  "taskIndex": 150,
   "totalTasks": 159,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 47,
+  "globalIteration": 48,
   "maxGlobalIterations": 100,
   "awaitingApproval": false,
   "granularity": "fine",
@@ -62,7 +62,7 @@
   "executor": {
     "lastReadLine": 3590
   },
-  "lastMutationRun": "2026-05-20T14:30:00Z",
+  "lastMutationRun": "2026-05-20T15:00:00Z",
   "mutationStats": {
     "total": 11046,
     "killed": 7015,
