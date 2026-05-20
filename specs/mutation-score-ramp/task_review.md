@@ -1324,35 +1324,21 @@ Proceed with calculations iteration 2.10.x.
 **Severity**: CRITICAL
 **Module**: calculations (deficit.py)
 **Bug Location**: lines 480-483 in calculate_hours_deficit_propagation()
+**Status**: RESOLVED
+**Resolved at**: 2026-05-20T01:00:00Z
 
-**Problem**: 
+**Problem**:
 The fix at commit 4a59d84f ("fix deficit propagation origin trip logic") introduced the SAME conceptual error as the bug it was trying to fix.
 
-**INCORRECT (current HEAD)**:
-```python
-if i == deficit_origin:
-    result["adjusted_def_total_hours"] = round(original_def_total, 2)
-```
+**Root cause**:
+- INCORRECT (commit 4a59d84f): `result["adjusted_def_total_hours"] = round(original_def_total, 2)`
+- CORRECT (commit 93f308a0): `result["adjusted_def_total_hours"] = 0.0`
 
-**CORRECT (epic/tech-debt-cleanup)**:
-```python
-if i == deficit_origin:
-    result["adjusted_def_total_hours"] = 0.0
-```
+**Fix applied**:
+- Commit 93f308a0: "fix(calculations): correct deficit propagation logic and update tests"
+- deficit.py line 483: changed to `result["adjusted_def_total_hours"] = 0.0`
+- test_deficit_cascade_backwards.py: origin with zero window asserts `def_total_hours == 0`
 
 **Why**: Origin with ventana_horas=0 CANNOT have charging hours. A window of 0 hours means no time to charge. The deficit must cascade backward, and the origin must have adjusted_def_total=0.
 
-**Impact on staging data**:
-- Window 2: def_start=35, def_end=35, ventana_horas=0, def_total=2
-- With current code: Window 2 keeps 2 hours (WRONG)
-- Correct behavior: Window 2 should have 0 hours, deficit propagates backward
-
-**Tests affected**: test_deficit_cascade_backwards.py line 379 asserts `def_total_hours == 2` for zero-window origin - this is WRONG and must be fixed.
-
-**Action required**:
-1. Fix deficit.py lines 480-483: change to `result["adjusted_def_total_hours"] = 0.0`
-2. Fix test_deficit_cascade_backwards.py line 379: origin with zero window should have def_total=0
-3. Re-run mutation score for calculations module
-4. Document in .progress.md critical bug section
-
-**Note on round vs ceil**: EMHASS uses hours as integers. 0.3 hours → ceil = 1 hour. The issue is NOT about round() vs ceil() - it's about the origin with zero window should NOT retain any charging hours.
+**Verification**: `make test` → 2146 passed, 0 failed. All tests green.
