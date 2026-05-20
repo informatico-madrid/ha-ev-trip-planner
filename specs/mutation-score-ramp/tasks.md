@@ -8,6 +8,7 @@ epic: tech-debt-cleanup
 
 phase: tasks
 
+
 updated: 2026-05-18
 
 ---
@@ -2009,7 +2010,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
 
 
-- [x] - [ ] 2.15.1 [Iteration 15: trip] Log What & Why (NFR-7)
+- [x] 2.15.1 [Iteration 15: trip] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for `trip` ramp iteration. What: trip at 51.5% (361 survivors). Why: worst-first order — services done, trip next.
 
@@ -2474,6 +2475,32 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 ---
+
+- [ ] 2.15 [Phase 2 iteration 15: all-modules-ramp] Kill survivors to reach per-module thresholds and push toward 1.00
+
+  - **Do**:
+    1. Run: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.*"` to get fresh numbers.
+    2. Enumerate survivors by module: `.venv/bin/mutmut results --all true | grep ": survived" | awk -F. '{print $4}' | cut -d'x' -f1 | sort | uniq -c | sort -rn`
+    3. For each module below its `kill_threshold` in pyproject.toml (all except definitions/diagnostics/utils/yaml_trip_storage):
+       a. Classify survivors: stronger test vs US-5 refactor vs equivalent/intrinsic
+       b. Write honest tests to kill each killable survivor (NFR-1: no skip/pragma to dodge mutants)
+       c. For US-5 refactor candidates: extract log string constants to module-level, add string-assertion tests
+       d. For stronger-test candidates: add direct tests targeting mutation-observable logic
+    4. For modules with target_final=1.00: continue iterations until 100% kill rate
+    5. Re-measure per-module: run mutmut per module for all in_progress modules
+    6. Ratchet pyproject.toml kill_thresholds to match measured rates (never lower)
+    7. Update delta table in .progress.md
+    8. Regression: `make test && make test-cover && make import-check` must pass (exit 0)
+
+  - **Files**: `custom_components/ev_trip_planner/**`, `tests/**` (as needed per survivor classification)
+
+  - **Done when**: every module reaches/exceeds its kill_threshold; modules with target_final=1.00 reach 1.00
+
+  - **Verify**: `.venv/bin/mutmut results --all true 2>&1 | grep -c ": killed" && echo KILLED_COUNT_OK`
+
+  - **Commit**: `chore(mutation-score-ramp): iteration 15 — all-modules ramp toward 100%`
+
+  - _Requirements: NFR-1, NFR-2, US-1, US-5_
 
 
 

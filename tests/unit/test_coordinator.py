@@ -144,6 +144,17 @@ class TestCoordinatorInit:
         coord = _make_coordinator(vehicle_name="")
         assert coord._vehicle_id == ""
 
+    def test_init_update_interval_is_30_seconds(self):
+        """__init__ sets update_interval to timedelta(seconds=30).
+
+        This test kills mutations on the timedelta(seconds=30) value
+        that survive because tests don't assert on the update interval.
+        """
+        from datetime import timedelta
+
+        coord = _make_coordinator()
+        assert coord.update_interval == timedelta(seconds=30)
+
 
 class TestCoordinatorVehicleId:
     """Test TripPlannerCoordinator.vehicle_id property."""

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-05-20T13:11:52Z",
+  "updated": "2026-05-20T23:03:24Z",
   "directories": [
     {
       "path": "./specs",
@@ -282,9 +282,8 @@
     {
       "name": "mutation-score-ramp",
       "path": "./specs/mutation-score-ramp",
-      "phase": "execution",
-      "taskIndex": 143,
-      "totalTasks": 159
+      "phase": "execution
+execution"
     }
   ]
 }

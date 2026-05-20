@@ -12,6 +12,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 
+from ._helpers import get_bool, get_str, get_str_fallback, get_str_nested, get_vehicle_id
 from ._utils import (
     _ensure_setup,
     _find_entry_by_vehicle,
@@ -119,7 +120,7 @@ def make_add_recurring_handler(hass: HomeAssistant):
             hora=data["hora"],
             km=float(data["km"]),
             kwh=float(data["kwh"]),
-            descripcion=str(data.get("descripcion", "")),
+            descripcion=get_str(data, "descripcion"),
         )
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
@@ -143,7 +144,7 @@ def make_add_punctual_handler(hass: HomeAssistant):
             datetime_str=data["datetime"],
             km=float(data["km"]),
             kwh=float(data["kwh"]),
-            descripcion=str(data.get("descripcion", "")),
+            descripcion=get_str(data, "descripcion"),
         )
         coordinator = _get_coordinator(hass, vehicle_id)
         if coordinator:
@@ -164,7 +165,7 @@ def make_trip_update_handler(hass: HomeAssistant):
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_id = str(data["trip_id"])
-        _ = data.get("type", "recurrente")
+        _ = get_str(data, "type", "recurrente")
 
         if "updates" in data:
             updates = dict(data["updates"])
@@ -355,13 +356,13 @@ def make_trip_create_handler(hass: HomeAssistant):
     async def handler(call: ServiceCall) -> None:
         data = call.data
         vehicle_id = data["vehicle_id"]
-        trip_type = data.get("type", data.get("trip_type", "recurrente"))
+        trip_type = get_str_nested(data, "type", "trip_type", "recurrente")
         mgr = await _get_manager(hass, vehicle_id)
 
         if trip_type == "recurrente":
             dia_semana = data.get("dia_semana") or data.get("day_of_week")
             hora = data.get("hora") or data.get("time")
-            descripcion = data.get("descripcion") or data.get("description", "")
+            descripcion = get_str_fallback(data, "descripcion", "description")
             await mgr._crud.async_add_recurring_trip(
                 dia_semana=dia_semana,
                 hora=hora,
@@ -372,7 +373,7 @@ def make_trip_create_handler(hass: HomeAssistant):
             _LOGGER.info(_LOG_CREATED_RECURRING, vehicle_id, dia_semana, hora, data["km"])
         elif trip_type == "puntual":
             datetime_str = data.get("datetime")
-            descripcion = data.get("descripcion") or data.get("description", "")
+            descripcion = get_str_fallback(data, "descripcion", "description")
             await mgr._crud.async_add_punctual_trip(
                 datetime_str=datetime_str,
                 km=float(data["km"]),
@@ -403,7 +404,7 @@ def make_import_weekly_pattern_handler(hass: HomeAssistant):
         mgr = await _get_manager(hass, data["vehicle_id"])
         await _ensure_setup(mgr)
 
-        clear_existing = bool(data.get("clear_existing", True))
+        clear_existing = get_bool(data, "clear_existing", True)
         pattern: dict[str, Any] = dict(data["pattern"])
 
         if clear_existing:
@@ -423,7 +424,7 @@ def make_import_weekly_pattern_handler(hass: HomeAssistant):
                     hora=str(item["hora"]),
                     km=float(item["km"]),
                     kwh=float(item["kwh"]),
-                    descripcion=str(item.get("descripcion", "")),
+                    descripcion=get_str(item, "descripcion"),
                 )
 
     return handler
@@ -439,7 +440,7 @@ def make_trip_list_handler(hass: HomeAssistant):
         _LOGGER.debug(_LOG_HANDLER_TRIP_LIST_CALLED)
         _LOGGER.debug(_LOG_CALL_DATA, call.data)
         data = call.data
-        vehicle_id = data.get("vehicle_id", "unknown")
+        vehicle_id = get_vehicle_id(data)
         _LOGGER.debug(_LOG_TRIP_LIST_SERVICE_CALLED, vehicle_id)
 
         mgr = await _get_manager(hass, vehicle_id)
@@ -526,8 +527,8 @@ def make_trip_get_handler(hass: HomeAssistant):
         _LOGGER.debug(_LOG_HANDLER_TRIP_GET_CALLED)
         _LOGGER.debug(_LOG_CALL_DATA_TRIP_GET, call.data)
         data = call.data
-        vehicle_id = data.get("vehicle_id", "unknown")
-        trip_id = data.get("trip_id", "unknown")
+        vehicle_id = get_vehicle_id(data)
+        trip_id = get_str(data, "trip_id", "unknown")
         _LOGGER.warning(_LOG_TRIP_GET_SERVICE_CALLED, vehicle_id, trip_id)
 
         mgr = await _get_manager(hass, vehicle_id)
@@ -578,6 +579,11 @@ def make_trip_get_handler(hass: HomeAssistant):
 
 
 __all__: list[str] = [
+    "get_bool",
+    "get_str",
+    "get_str_fallback",
+    "get_str_nested",
+    "get_vehicle_id",
     "trip_id_schema",
     "trip_update_schema",
     "trip_create_schema",

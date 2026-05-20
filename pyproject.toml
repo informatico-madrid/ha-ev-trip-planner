@@ -135,7 +135,7 @@ paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
 tests_dir = ["tests/unit/", "tests/integration/"]
 pytest_add_cli_args = ["-k", "not test_solid_metrics and not test_vehicle_controller_event"]
-also_copy = [".claude/skills/quality-gate/scripts/"]
+also_copy = []
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
 environment_setup_command = "export MUTMUT_RUN=1"
@@ -214,4 +214,9 @@ status = "in_progress"
 [tool.quality-gate.mutation.modules.services]
 kill_threshold = 0.548
 increment_step = 0.01
+target_final = 1.00
+
+[tool.quality-gate.mutation.modules.helpers]
+kill_threshold = 0.30
+increment_step = 0.05
 target_final = 1.00
