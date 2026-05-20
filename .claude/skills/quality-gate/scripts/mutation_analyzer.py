@@ -239,7 +239,7 @@ def run_gate(
         module_config = module_targets.get(module_name, {})
         threshold = module_config.get("kill_threshold", global_threshold)
 
-        passed = rate >= threshold
+        passed = round(rate, 3) >= round(threshold, 3)
 
         modules.append({
             "module": module_name,

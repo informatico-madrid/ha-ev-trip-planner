@@ -1966,7 +1966,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
 
-- [ ] 2.14.4 [VERIFY] [Iteration 14: services] Re-measure — kill rate improved
+- [x] 2.14.4 [VERIFY] [Iteration 14: services] Re-measure — kill rate improved
 
   - **Do**: Re-run targeted mutation for services; confirm kill rate strictly increased vs entry (~40%).
 
@@ -1980,7 +1980,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.14.5 [VERIFY] [Iteration 14: services] Regression guard — test + cover + import-check
+- [x] 2.14.5 [VERIFY] [Iteration 14: services] Regression guard — test + cover + import-check
 
   - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
 
@@ -1994,7 +1994,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
 
-- [ ] 2.14.6 [Iteration 14: services] Ratchet thresholds + log delta rows
+- [x] 2.14.6 [Iteration 14: services] Ratchet thresholds + log delta rows
 
   - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `services` in `pyproject.toml`; append delta row.
 
