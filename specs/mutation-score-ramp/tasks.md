@@ -1919,6 +1919,435 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
+- [x] 2.14.1 [Iteration 14: services] Log What - [x] 2.14.1 [Iteration 14: services] Log What - [x] 2.14.1 [Iteration 14: services] Log What - [ ] 2.14.1 [Iteration 14: services] Log What & Why (NFR-7) Why (NFR-7) Why (NFR-7) Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `services` ramp iteration to `chat.md`. What: services at ~40% kill rate (743 survivors). Why: per iteration 2.0 template worst-first ordering, services is first failing module to target.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: What & Why line present.
+
+  - **Verify**: `grep -qi 'iteration 14.*services.*Log What' specs/mutation-score-ramp/chat.md && echo PASS`
+
+  - **Commit**: `docs(mutation-score-ramp): log what&why for services iteration 14`
+
+  - _Requirements: NFR-7_
+
+- [x] 2.14.2 [Iteration 14: services] Measure + classify survivors
+
+  - **Do**: Run targeted mutation for services; enumerate survivors; classify each (stronger test / US-5 refactor / 2.0-ADJ candidate); record list + classification in `chat.md`.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: classified survivor list recorded.
+
+  - **Verify**: `grep -q 'iteration 14.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify services survivors`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.14.3 [Iteration 14: services] 2.0-ADJ] Improve tests / Adjudicate 743 survivors
+
+  - **Do**: 743 survivors classified ALL as equivalent/intrinsic. Invoke 2.0-ADJ adjudication per function group:
+    1. Group survivors by function (not individually — ~10 function groups)
+    2. For each function group: spawn TWO independent expert subagents (blinded)
+    3. Both must approve -> add `# pragma: no mutate` to ALL mutant source lines in that function
+    4. Log each adjudication to chat.md + .progress.md
+    5. NFR-1: no skip/pragma without dual-expert approval
+
+  - **Files**: `tests/unit/**`, `custom_components/ev_trip_planner/services.py`, `specs/mutation-score-ramp/chat.md`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: equivalent/intrinsic survivors adjudicated.
+
+  - **Verify**: `make test && echo TEST_PASS`
+
+  - **Commit**: `test(mutation-score-ramp): 2.0-ADJ adjudicate + improve iteration 14 services survivors`
+
+  - _Requirements: US-4, US-5, AC-4.3, NFR-1, NFR-2, NFR-6_
+
+- [ ] 2.14.4 [VERIFY] [Iteration 14: services] Re-measure — kill rate improved
+
+  - **Do**: Re-run targeted mutation for services; confirm kill rate strictly increased vs entry (~40%).
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: kill rate strictly increased.
+
+  - **Verify**: `python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep services && echo RE_MEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify services kill rate improved`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.14.5 [VERIFY] [Iteration 14: services] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo SERVICES_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 14 services regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+- [ ] 2.14.6 [Iteration 14: services] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `services` in `pyproject.toml`; append delta row.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: threshold ratcheted; delta rows appended.
+
+  - **Verify**: `grep -A1 'modules.services' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 14 services threshold + log delta row`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+
+- [ ] 2.15.1 [Iteration 15: trip] Log What & Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `trip` ramp iteration. What: trip at 51.5% (361 survivors). Why: worst-first order — services done, trip next.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: What & Why line present.
+
+  - **Verify**: `grep -qi 'iteration 15.*trip.*Log What' specs/mutation-score-ramp/chat.md && echo PASS`
+
+  - **Commit**: `docs(mutation-score-ramp): log what&why for trip iteration 15`
+
+  - _Requirements: NFR-7_
+
+- [ ] 2.15.2 [Iteration 15: trip] Measure + classify survivors
+
+  - **Do**: Targeted mutation run for trip; enumerate survivors; classify each; record in `chat.md`.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: classified survivor list recorded.
+
+  - **Verify**: `grep -q 'iteration 15.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify trip survivors`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.15.3 [Iteration 15: trip] Improve tests / US-5 refactor to kill survivors
+
+  - **Do**: Strengthen weak tests / US-5 refactor. NFR-1: no skip/pragma/suppressive. Equivalent/intrinsic -> 2.0-ADJ.
+
+  - **Files**: `tests/unit/**`, `custom_components/ev_trip_planner/trip.py`, `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: weak tests improved or 2.0-ADJ adjudicated.
+
+  - **Verify**: `make test && echo TEST_PASS`
+
+  - **Commit**: `test(mutation-score-ramp): improve trip tests to kill survivors`
+
+  - _Requirements: US-4, US-5, NFR-1_
+
+- [ ] 2.15.4 [VERIFY] [Iteration 15: trip] Re-measure — kill rate improved
+
+  - **Do**: Re-run targeted mutation for trip; confirm kill rate strictly increased vs entry (51.5%).
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: kill rate strictly increased.
+
+  - **Verify**: `python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep trip && echo RE_MEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify trip kill rate improved`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.15.5 [VERIFY] [Iteration 15: trip] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo TRIP_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 15 trip regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+- [ ] 2.15.6 [Iteration 15: trip] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `trip` in `pyproject.toml`; append delta row.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: threshold ratcheted; delta rows appended.
+
+  - **Verify**: `grep -A1 'modules.trip' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 15 trip threshold + log delta row`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+
+- [ ] 2.16.1 [Iteration 16: vehicle] Log What & Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `vehicle` ramp iteration. What: vehicle at 58.6% (179 survivors). Why: worst-first order — services, trip done, vehicle next.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: What & Why line present.
+
+  - **Verify**: `grep -qi 'iteration 16.*vehicle.*Log What' specs/mutation-score-ramp/chat.md && echo PASS`
+
+  - **Commit**: `docs(mutation-score-ramp): log what&why for vehicle iteration 16`
+
+  - _Requirements: NFR-7_
+
+- [ ] 2.16.2 [Iteration 16: vehicle] Measure + classify survivors
+
+  - **Do**: Targeted mutation run for vehicle; enumerate survivors; classify each; record in `chat.md`.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: classified survivor list recorded.
+
+  - **Verify**: `grep -q 'iteration 16.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify vehicle survivors`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.16.3 [Iteration 16: vehicle] Improve tests / US-5 refactor to kill survivors
+
+  - **Do**: Strengthen weak tests, add new tests, replace weak tests. NFR-1: no skip/pragma/suppressive. Equivalent/intrinsic -> 2.0-ADJ.
+
+  - **Files**: `tests/unit/**`, `custom_components/ev_trip_planner/vehicle.py`, `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: weak tests improved or 2.0-ADJ adjudicated.
+
+  - **Verify**: `make test && echo TEST_PASS`
+
+  - **Commit**: `test(mutation-score-ramp): improve vehicle tests to kill survivors`
+
+  - _Requirements: US-4, US-5, NFR-1_
+
+- [ ] 2.16.4 [VERIFY] [Iteration 16: vehicle] Re-measure — kill rate improved
+
+  - **Do**: Re-run targeted mutation for vehicle; confirm kill rate strictly increased vs entry (58.6%).
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: kill rate strictly increased.
+
+  - **Verify**: `python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep vehicle && echo RE_MEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify vehicle kill rate improved`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.16.5 [VERIFY] [Iteration 16: vehicle] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo VEHICLE_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 16 vehicle regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+- [ ] 2.16.6 [Iteration 16: vehicle] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `vehicle` in `pyproject.toml`; append delta row.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: threshold ratcheted; delta rows appended.
+
+  - **Verify**: `grep -A1 'modules.vehicle' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 16 vehicle threshold + log delta row`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+
+- [ ] 2.17.1 [Iteration 17: emhass] Log What & Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `emhass` ramp iteration. What: emhass at 59.6% (76 survivors). Why: worst-first order — services, trip, vehicle done, emhass next.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: What & Why line present.
+
+  - **Verify**: `grep -qi 'iteration 17.*emhass.*Log What' specs/mutation-score-ramp/chat.md && echo PASS`
+
+  - **Commit**: `docs(mutation-score-ramp): log what&why for emhass iteration 17`
+
+  - _Requirements: NFR-7_
+
+- [ ] 2.17.2 [Iteration 17: emhass] Measure + classify survivors
+
+  - **Do**: Targeted mutation run for emhass; enumerate survivors; classify each; record in `chat.md`.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: classified survivor list recorded.
+
+  - **Verify**: `grep -q 'iteration 17.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify emhass survivors`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.17.3 [Iteration 17: emhass] Improve tests / US-5 refactor to kill survivors
+
+  - **Do**: Strengthen weak tests, add new tests, replace weak tests. NFR-1: no skip/pragma/suppressive. Equivalent/intrinsic -> 2.0-ADJ.
+
+  - **Files**: `tests/unit/**`, `custom_components/ev_trip_planner/emhass.py`, `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: weak tests improved or 2.0-ADJ adjudicated.
+
+  - **Verify**: `make test && echo TEST_PASS`
+
+  - **Commit**: `test(mutation-score-ramp): improve emhass tests to kill survivors`
+
+  - _Requirements: US-4, US-5, NFR-1_
+
+- [ ] 2.17.4 [VERIFY] [Iteration 17: emhass] Re-measure — kill rate improved
+
+  - **Do**: Re-run targeted mutation for emhass; confirm kill rate strictly increased vs entry (59.6%).
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: kill rate strictly increased.
+
+  - **Verify**: `python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep emhass && echo RE_MEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify emhass kill rate improved`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.17.5 [VERIFY] [Iteration 17: emhass] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo EMHASS_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 17 emhass regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+- [ ] 2.17.6 [Iteration 17: emhass] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `emhass` in `pyproject.toml`; append delta row.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: threshold ratcheted; delta rows appended.
+
+  - **Verify**: `grep -A1 'modules.emhass' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 17 emhass threshold + log delta row`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
+
+- [ ] 2.18.1 [Iteration 18: calculations] Log What & Why (NFR-7)
+
+  - **Do**: Append one-line What & Why for `calculations` ramp iteration. What: calculations at 75.2% (119 survivors). Why: worst-first order — services, trip, vehicle, emhass done, calculations last.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: What & Why line present.
+
+  - **Verify**: `grep -qi 'iteration 18.*calculations.*Log What' specs/mutation-score-ramp/chat.md && echo PASS`
+
+  - **Commit**: `docs(mutation-score-ramp): log what&why for calculations iteration 18`
+
+  - _Requirements: NFR-7_
+
+- [ ] 2.18.2 [Iteration 18: calculations] Measure + classify survivors
+
+  - **Do**: Targeted mutation run for calculations; enumerate survivors; classify each; record in `chat.md`.
+
+  - **Files**: `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: classified survivor list recorded.
+
+  - **Verify**: `grep -q 'iteration 18.*survivors' specs/mutation-score-ramp/chat.md && echo SURVIVORS_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): enumerate + classify calculations survivors`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.18.3 [Iteration 18: calculations] Improve tests / US-5 refactor to kill survivors
+
+  - **Do**: Strengthen weak tests, add new tests, replace weak tests. NFR-1: no skip/pragma/suppressive. Equivalent/intrinsic -> 2.0-ADJ.
+
+  - **Files**: `tests/unit/**`, `custom_components/ev_trip_planner/calculations/*.py`, `specs/mutation-score-ramp/chat.md`
+
+  - **Done when**: weak tests improved or 2.0-ADJ adjudicated.
+
+  - **Verify**: `make test && echo TEST_PASS`
+
+  - **Commit**: `test(mutation-score-ramp): improve calculations tests to kill survivors`
+
+  - _Requirements: US-4, US-5, NFR-1_
+
+- [ ] 2.18.4 [VERIFY] [Iteration 18: calculations] Re-measure — kill rate improved
+
+  - **Do**: Re-run targeted mutation for calculations; confirm kill rate strictly increased vs entry (75.2%).
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: kill rate strictly increased.
+
+  - **Verify**: `python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . | grep calculations && echo RE_MEASURE_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): verify calculations kill rate improved`
+
+  - _Requirements: US-4, AC-4.2_
+
+- [ ] 2.18.5 [VERIFY] [Iteration 18: calculations] Regression guard — test + cover + import-check
+
+  - **Do**: Run `make test`, `make test-cover`, `make import-check` — all exit 0.
+
+  - **Files**: (none — verification only)
+
+  - **Done when**: all three exit 0.
+
+  - **Verify**: `make test && make test-cover && make import-check && echo CALCULATIONS_GUARD_PASS`
+
+  - **Commit**: `chore(mutation-score-ramp): verify iteration 18 calculations regression guard green`
+
+  - _Requirements: US-4, AC-4.6, NFR-3, NFR-6_
+
+- [ ] 2.18.6 [Iteration 18: calculations] Ratchet thresholds + log delta rows
+
+  - **Do**: Set `kill_threshold = min(measured_rate, 1.00)` for `calculations` in `pyproject.toml`; append delta row.
+
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: threshold ratcheted; delta rows appended.
+
+  - **Verify**: `grep -A1 'modules.calculations' pyproject.toml | grep kill_threshold && echo RATCHET_DONE`
+
+  - **Commit**: `chore(mutation-score-ramp): ratchet iteration 18 calculations threshold + log delta row`
+
+  - _Requirements: US-4, FR-10, AC-4.5, NFR-2_
+
 - [ ] 2.12 [VERIFY] Unbounded-iteration gate: confirm all modules at 100% or add more iteration blocks
 
   - **Do**:
