@@ -28,13 +28,30 @@ CoordinatorType = TripPlannerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_FIND_ENTRY_NONE = "Entry %s has None data, skipping"
+_LOG_MANAGER_START = "=== _get_manager START - vehicle_id: %s ==="
+_LOG_MANAGER_ERR_NOT_FOUND = "=== _get_manager ERROR - Vehicle %s not found in config entries ==="
+_LOG_MANAGER_FOUND_ENTRY = "=== _get_manager - Found entry: %s, entry_id: %s ==="
+_LOG_MANAGER_RUNTIME_DATA = "=== _get_manager - runtime_data: %s ==="
+_LOG_MANAGER_TRIP_MGR = "=== _get_manager - trip_manager from runtime_data: %s ==="
+_LOG_MANAGER_CREATING = "=== _get_manager - Creating new TripManager for vehicle %s ==="
+_LOG_MANAGER_BEFORE_SETUP = "=== _get_manager - Before async_setup - trips: recurring=%d, punctual=%d ==="
+_LOG_MANAGER_SETUP_CALL = "=== _get_manager - Calling trip_manager._persistence.async_setup() ==="
+_LOG_MANAGER_AFTER_SETUP = "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ==="
+_LOG_MANAGER_SETUP_ERR = "=== _get_manager - Error setting up manager for %s: %s ==="
+_LOG_MANAGER_CREATED = "=== _get_manager - Manager created and set up for %s ==="
+_LOG_MANAGER_LOADED = "=== _get_manager - Trips loaded: %d recurring, %d punctual ==="
+_LOG_MANAGER_EXISTS = "=== _get_manager - Manager already exists for %s, trips: %d recurring, %d punctual ==="
+_LOG_MANAGER_END = "=== _get_manager END - returning manager for vehicle %s ==="
 
-def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str) -> ConfigEntry | None:  # pragma: no mutate
+
+def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str) -> ConfigEntry | None:
     """Find config entry by vehicle name (case-insensitive)."""
     normalized_vehicle_id = vehicle_id.lower()
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.data is None:
-            _LOGGER.warning("Entry %s has None data, skipping", entry.entry_id)
+            _LOGGER.warning(_LOG_FIND_ENTRY_NONE, entry.entry_id)
             continue
         entry_vehicle_name = entry.data.get("vehicle_name", "")
         normalized_entry_name = normalize_vehicle_id(entry_vehicle_name)
@@ -55,82 +72,43 @@ def _get_coordinator(
     return entry.runtime_data.coordinator if entry.runtime_data else None
 
 
-async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:  # pragma: no mutate
+async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
     """Get or create TripManager for vehicle."""
-    _LOGGER.info("=== _get_manager START - vehicle_id: %s ===", vehicle_id)
+    _LOGGER.info(_LOG_MANAGER_START, vehicle_id)
     entry = _find_entry_by_vehicle(hass, vehicle_id)
     if not entry:
-        _LOGGER.error(
-            "=== _get_manager ERROR - Vehicle %s not found in config entries ===",
-            vehicle_id,
-        )
+        _LOGGER.error(_LOG_MANAGER_ERR_NOT_FOUND, vehicle_id)
         raise ValueError(f"Vehicle {vehicle_id} not found in config entries")
-    _LOGGER.info(
-        "=== _get_manager - Found entry: %s, entry_id: %s ===",
-        entry.unique_id,
-        entry.entry_id,
-    )
+    _LOGGER.info(_LOG_MANAGER_FOUND_ENTRY, entry.unique_id, entry.entry_id)
 
     # Use entry.runtime_data set by __init__.py::async_setup_entry
     runtime_data = entry.runtime_data
-    _LOGGER.debug("=== _get_manager - runtime_data: %s ===", runtime_data)
+    _LOGGER.debug(_LOG_MANAGER_RUNTIME_DATA, runtime_data)
 
     # Retrieve trip_manager from entry.runtime_data
     trip_manager = runtime_data.trip_manager if runtime_data else None
-    _LOGGER.debug(
-        "=== _get_manager - trip_manager from runtime_data: %s ===", trip_manager
-    )
+    _LOGGER.debug(_LOG_MANAGER_TRIP_MGR, trip_manager)
 
     # If manager not found in runtime storage, create new one and load from HA storage
     if not trip_manager:
-        _LOGGER.info(
-            "=== _get_manager - Creating new TripManager for vehicle %s ===", vehicle_id
-        )
+        _LOGGER.info(_LOG_MANAGER_CREATING, vehicle_id)
         trip_manager = TripManager(hass, vehicle_id)
-        _LOGGER.info(
-            "=== _get_manager - Before async_setup - trips: recurring=%d, punctual=%d ===",
-            len(trip_manager._state.recurring_trips),
-            len(trip_manager._state.punctual_trips),
-        )
+        _LOGGER.info(_LOG_MANAGER_BEFORE_SETUP, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
 
         # Load trips from HA storage
         try:
-            _LOGGER.info(
-                "=== _get_manager - Calling trip_manager._persistence.async_setup() ==="
-            )
+            _LOGGER.info(_LOG_MANAGER_SETUP_CALL)
             await trip_manager._persistence.async_setup()
-            _LOGGER.info(
-                "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ===",
-                len(trip_manager._state.recurring_trips),
-                len(trip_manager._state.punctual_trips),
-            )
+            _LOGGER.info(_LOG_MANAGER_AFTER_SETUP, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
         except Exception as setup_err:  # pragma: no cover reason=requires async_setup failure which needs HA runtime
-            _LOGGER.error(
-                "=== _get_manager - Error setting up manager for %s: %s ===",
-                vehicle_id,
-                setup_err,
-                exc_info=True,
-            )
+            _LOGGER.error(_LOG_MANAGER_SETUP_ERR, vehicle_id, setup_err, exc_info=True)
 
-        _LOGGER.info(
-            "=== _get_manager - Manager created and set up for %s ===", vehicle_id
-        )
-        _LOGGER.info(
-            "=== _get_manager - Trips loaded: %d recurring, %d punctual ===",
-            len(trip_manager._state.recurring_trips),
-            len(trip_manager._state.punctual_trips),
-        )
+        _LOGGER.info(_LOG_MANAGER_CREATED, vehicle_id)
+        _LOGGER.info(_LOG_MANAGER_LOADED, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
     else:
-        _LOGGER.info(
-            "=== _get_manager - Manager already exists for %s, trips: %d recurring, %d punctual ===",
-            vehicle_id,
-            len(trip_manager._state.recurring_trips),
-            len(trip_manager._state.punctual_trips),
-        )
+        _LOGGER.info(_LOG_MANAGER_EXISTS, vehicle_id, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
 
-    _LOGGER.info(
-        "=== _get_manager END - returning manager for vehicle %s ===", vehicle_id
-    )
+    _LOGGER.info(_LOG_MANAGER_END, vehicle_id)
     return trip_manager
 
 

@@ -3062,10 +3062,10 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["deficit_hours_propagated"] == 1.0
         assert results[1]["deficit_hours_to_propagate"] == 0.0
         assert results[1]["adjusted_def_total_hours"] == 3.0
-        # trip#2 (index 2) is deficit origin — zeroed out, cascades 1h backwards
+        # trip#2 (index 2) is deficit origin — charges ceil(2.0)=2h, cascades 1h backwards
         assert results[2]["deficit_hours_propagated"] == 0
         assert results[2]["deficit_hours_to_propagate"] == 1.0
-        assert results[2]["adjusted_def_total_hours"] == 0.0
+        assert results[2]["adjusted_def_total_hours"] == 2.0
 
     def test_chain_propagation(self):
         """Trip #3 is deficit origin — keeps original def_total, cascades 3h backwards through #2 to #1."""
@@ -3104,13 +3104,13 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["deficit_hours_to_propagate"] == 1.0
         assert results[1]["adjusted_def_total_hours"] == 4.0
 
-        # trip#2 (index 2): deficit origin — zeroed out, cascades 3h backwards
+        # trip#2 (index 2): deficit origin — charges ceil(2.0)=2h, cascades 3h backwards
         assert results[2]["deficit_hours_propagated"] == 0
         assert results[2]["deficit_hours_to_propagate"] == 3.0
-        assert results[2]["adjusted_def_total_hours"] == 0.0
+        assert results[2]["adjusted_def_total_hours"] == 2.0
 
     def test_single_trip_deficit(self):
-        """1 trip is deficit origin — zeroed out, 3h deficit has nowhere to cascade."""
+        """1 trip is deficit origin — charges ceil(2.0)=2h, 3h deficit has nowhere to cascade."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3126,7 +3126,7 @@ class TestCalculateHoursDeficitPropagation:
         results = calculate_hours_deficit_propagation(windows, [5.0])
         assert results[0]["deficit_hours_propagated"] == 0
         assert results[0]["deficit_hours_to_propagate"] == 3.0
-        assert results[0]["adjusted_def_total_hours"] == 0.0
+        assert results[0]["adjusted_def_total_hours"] == 2.0
 
     def test_deficit_hours_propagated_is_not_cumulative(self):
         """deficit_hours_propagated is absorbed from NEXT trip only, not cumulative."""
@@ -3190,7 +3190,7 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["fin_ventana"] == "end2"
 
     def test_adjusted_def_total_hours_correct(self):
-        """adjusted = original def_total_hours + absorbed (origin trip keeps its original value)."""
+        """adjusted = original def_total_hours + absorbed (origin charges ceil(window))."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3211,9 +3211,9 @@ class TestCalculateHoursDeficitPropagation:
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 5.0])
         # trip#0 absorbs 3h from deficit origin trip#1: adjusted = 2+3 = 5
-        # trip#1 is deficit origin — zeroed out
+        # trip#1 is deficit origin — charges ceil(2.0)=2h
         assert results[0]["adjusted_def_total_hours"] == 5.0
-        assert results[1]["adjusted_def_total_hours"] == 0.0
+        assert results[1]["adjusted_def_total_hours"] == 2.0
 
     def test_no_spare_capacity(self):
         """Trip has no spare capacity (fully used) → absorbs 0."""
@@ -3265,10 +3265,10 @@ class TestCalculateHoursDeficitPropagation:
         # trip#0 (index 0): spare=5-2=3h, absorbs all 3h from trip#1
         assert results[0]["deficit_hours_propagated"] == 3.0
         assert results[0]["adjusted_def_total_hours"] == 5.0
-        # trip#1 (index 1): deficit origin — zeroed out, deficit cascades 3h backwards
+        # trip#1 (index 1): deficit origin — charges ceil(2.0)=2h, deficit cascades 3h backwards
         assert results[1]["deficit_hours_propagated"] == 0
         assert results[1]["deficit_hours_to_propagate"] == 3.0
-        assert results[1]["adjusted_def_total_hours"] == 0.0
+        assert results[1]["adjusted_def_total_hours"] == 2.0
 
     def test_values_rounded_to_2dp(self):
         """All propagation values are rounded to 2 decimal places."""

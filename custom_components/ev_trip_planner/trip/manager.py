@@ -31,6 +31,13 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_EMHASS_ADAPTER_SET_DEBUG = "EMHASS adapter set for vehicle %s"
+_LOG_SANITIZE_RECURRING_WARNING = (
+    "%d recurring trip(s) ignored due to invalid hora format. "
+    "Fix or remove invalid entries from storage."
+)
+
 
 class TripManager:
     """Gestión central de viajes — composed sub-component facade."""
@@ -96,7 +103,7 @@ class TripManager:
     def emhass_adapter(self, value: Optional[EMHASSAdapter]) -> None:
         """Set the EMHASS adapter."""
         self._state.emhass_adapter = value
-        _LOGGER.debug("EMHASS adapter set for vehicle %s", self._state.vehicle_id)
+        _LOGGER.debug(_LOG_EMHASS_ADAPTER_SET_DEBUG, self._state.vehicle_id)
 
     # ── Static helpers ───────────────────────────────────────────
 
@@ -111,9 +118,5 @@ class TripManager:
         sanitized = pure_sanitize_recurring_trips(trips)
         removed_count = original_count - len(sanitized)
         if removed_count > 0:
-            _LOGGER.warning(
-                "%d recurring trip(s) ignored due to invalid hora format. "
-                "Fix or remove invalid entries from storage.",
-                removed_count,
-            )
+            _LOGGER.warning(_LOG_SANITIZE_RECURRING_WARNING, removed_count)
         return sanitized

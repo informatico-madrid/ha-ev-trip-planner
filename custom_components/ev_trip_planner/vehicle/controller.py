@@ -114,7 +114,7 @@ class VehicleController:
                 hass, vehicle_id, presence_config, trip_manager
             )
 
-    async def async_setup(self) -> None:  # pragma: no mutate
+    async def async_setup(self) -> None:
         """Set up the vehicle controller."""
         _LOGGER.info(_LOG_SETUP, self.vehicle_id)
 
@@ -122,7 +122,7 @@ class VehicleController:
         """Set the control strategy."""
         self._strategy = strategy
 
-    def update_config(self, config: Dict[str, Any]) -> None:  # pragma: no mutate
+    def update_config(self, config: Dict[str, Any]) -> None:
         """Update the configuration and recreate strategy if needed."""
         self._config = config
         if self._strategy is not None:

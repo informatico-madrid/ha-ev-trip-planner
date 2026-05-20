@@ -25,6 +25,11 @@ _MODULE_PATH = os.path.dirname(__file__)
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_REMOVED_EXISTING_PANEL = "Removed existing panel at path %s"
+_LOG_REGISTERED_PANEL = "Registered panel with cache-busting URL: %s"
+_LOG_REMOVED_PANEL_MAPPING = "Removed panel mapping for vehicle_id=%s"
+
 # Panel configuration constants
 PANEL_COMPONENT_NAME = "ev-trip-planner-panel"
 PANEL_URL_PREFIX = "ev-trip-planner"
@@ -125,7 +130,7 @@ async def async_register_panel(
             remove_fn = getattr(frontend, "async_remove_panel", None)
             if remove_fn is not None and callable(remove_fn):
                 await remove_fn(hass, frontend_url_path)  # pyright: ignore[reportGeneralTypeIssues]
-                _LOGGER.debug("Removed existing panel at path %s", frontend_url_path)
+                _LOGGER.debug(_LOG_REMOVED_EXISTING_PANEL, frontend_url_path)
         except Exception:
             # It's OK if there's no existing panel to remove
             pass
@@ -140,7 +145,7 @@ async def async_register_panel(
             frontend_url_path, vehicle_name, module_url, panel_config
         )
         await panel_custom.async_register_panel(hass=hass, **kwargs)
-        _LOGGER.info("Registered panel with cache-busting URL: %s", module_url)
+        _LOGGER.info(_LOG_REGISTERED_PANEL, module_url)
 
         # Static files (panel.js, lit-bundle.js, panel.css) are registered in
         # async_setup_entry via async_register_static_paths (HA 2024.7+ API).
@@ -245,7 +250,7 @@ def _remove_vehicle_panel_mapping(
     """
     if VEHICLE_PANEL_MAPPING_KEY in hass.data:
         hass.data[VEHICLE_PANEL_MAPPING_KEY].pop(vehicle_id, None)
-        _LOGGER.debug("Removed panel mapping for vehicle_id=%s", vehicle_id)
+        _LOGGER.debug(_LOG_REMOVED_PANEL_MAPPING, vehicle_id)
 
 
 def get_vehicle_panel_url_path(

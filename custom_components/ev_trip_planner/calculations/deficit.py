@@ -478,9 +478,13 @@ def calculate_hours_deficit_propagation(  # pragma: no mutate
         result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
 
         if i == deficit_origin:
-            # Origin trip is zeroed out — no window capacity to charge.
+            # Origin trip may have a partial window — charge what's possible.
             # ventana_horas=0 means no time to charge, so adjusted=0.
-            result["adjusted_def_total_hours"] = 0.0
+            # Any positive window ceils to at least 1h.
+            ventana = windows[i]["ventana_horas"]
+            result["adjusted_def_total_hours"] = (
+                math.ceil(ventana) if ventana > 0 else 0.0
+            )
         else:
             # Earlier trips absorb deficit → def_total INCREASES.
             result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)

@@ -11,7 +11,9 @@ El bug ocurre cuando:
 Este es un bug diferente al de SOC 100%.
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch, patch
 
 import pytest
 
@@ -47,159 +49,82 @@ class TestDeferrableHoursCalculation:
         )
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
-    async def test_def_total_hours_must_match_power_profile(self):
+    async def test_def_total_hours_origin_must_be_ceil_of_window(self):
         """
-        Test que reproduce el bug reportado por el usuario.
+        Origin trip with tight window → ceil(window) > 0, NOT 0.
 
-        Escenario:
-        - SOC inicial: 50% (25 kWh disponibles)
-        - 5 viajes recurrentes que consumen energía progresivamente
-        - Los primeros viajes pueden no necesitar carga
-        - Los últimos viajes SÍ necesitan carga (SOC bajo después de viajes anteriores)
-        - PERO def_total_hours marca 0 para todos (incorrecto)
+        Scenario:
+        - SOC 50% (25 kWh), 2 trips each needing 10 kWh (3h charging)
+        - First trip departs in ~30 min → ventana ~0.5h → ceil = 1h
+        - Second trip departs later → ample window → 3h
+        - After deficit propagation: origin gets ceil(0.5)=1h, not 0
 
-        Lo que debería pasar:
-        - def_total_hours debería reflejar las horas de carga que SÍ están en P_deferrable
-        - P_deferrable_nom debería coincidir con P_deferrable (si hay 3400.0 en perfil, nominal debe ser 3400.0)
+        Business rule (REGLAS_DE_NEGOCIO.md §6):
+        "se carga lo máximo posible" — a partial window still charges.
+        Internal calcs use float, but final def_total_hours is always ceil.
+        ceil(0.01..1.0) = 1. So origin with any positive window → def_total_hours == 1.
         """
-        # Crear 5 viajes recurrentes
+        # Fixed reference time: Thursday 17:30 UTC
+        ref_now = datetime(2026, 5, 21, 17, 30, 0, tzinfo=timezone.utc)
+
+        # 2 trips: first has a tight window (~30 min from ref_now)
         trips = [
             {
-                "id": "viaje_1",
+                "id": "trip_a",
                 "tipo": "recurring",
-                "dia_semana": "1",  # Martes
-                "hora": "09:00",
-                "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 1",
-            },
-            {
-                "id": "viaje_2",
-                "tipo": "recurring",
-                "dia_semana": "2",  # Miércoles
-                "hora": "14:00",
-                "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 2",
-            },
-            {
-                "id": "viaje_3",
-                "tipo": "recurring",
-                "dia_semana": "3",  # Jueves
+                "dia_semana": "4",  # Friday
                 "hora": "18:00",
-                "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 3",
+                "kwh": 10.0,
             },
             {
-                "id": "viaje_4",
+                "id": "trip_b",
                 "tipo": "recurring",
-                "dia_semana": "4",  # Viernes
+                "dia_semana": "5",  # Saturday
                 "hora": "08:00",
-                "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 4",
-            },
-            {
-                "id": "viaje_5",
-                "tipo": "recurring",
-                "dia_semana": "5",  # Sábado
-                "hora": "10:00",
-                "kwh": 10.0,  # Viaje pequeño
-                "descripcion": "Viaje 5",
+                "kwh": 10.0,
             },
         ]
 
-        # Configuración con SOC 50% (no 100%)
         battery_capacity = 50.0
-        soc_current = 50.0  # 50% SOC = 25 kWh disponibles
+        soc_current = 50.0
         charging_power_kw = 3.4
         safety_margin = 10.0
 
-        print("=== ESCENARIO: SOC 50% con múltiples viajes ===")
-        print(
-            f"SOC inicial: {soc_current}% ({battery_capacity * soc_current / 100} kWh)"
-        )
-        print(f"Consumo total de todos los viajes: {sum(t['kwh'] for t in trips)} kWh")
-        print(
-            f"Energía disponible sin cargar: {battery_capacity * soc_current / 100} kWh"
-        )
-        print("")
-
-        # Verificar cálculos individuales
-        print("=== CÁLCULOS INDIVIDUALES (sin propagación SOC) ===")
-        for i, trip in enumerate(trips):
-            energy_info = calculate_energy_needed(
-                trip=trip,
-                battery_capacity_kwh=battery_capacity,
-                soc_current=soc_current,  # Todos usan el mismo SOC inicial
-                charging_power_kw=charging_power_kw,
-                safety_margin_percent=safety_margin,
-            )
-            print(
-                f"{trip['id']} ({trip['kwh']} kWh): "
-                f"Energía = {energy_info['energia_necesaria_kwh']} kWh, "
-                f"Horas = {energy_info['horas_carga_necesarias']}"
-            )
-        print("")
-
-        # Crear adapter
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
         mock_store = AsyncMock()
         mock_store.async_save = AsyncMock()
         adapter._store = mock_store
         adapter._presence_monitor = None
 
-        # Mockear SOC al 50%
         async def mock_get_current_soc():
             return 50.0
 
         adapter._get_current_soc = mock_get_current_soc
+        adapter._get_hora_regreso = lambda: None
 
-        async def mock_get_hora_regreso():
-            return None
+        with patch("homeassistant.util.dt.now", return_value=ref_now):
+            await adapter.async_publish_all_deferrable_loads(trips)
 
-        adapter._get_hora_regreso = mock_get_hora_regreso
+        params = adapter._cached_per_trip_params
 
-        # Publicar todos los viajes
-        print("=== PUBLICANDO TODOS LOS VIAJES ===")
-        result = await adapter.async_publish_all_deferrable_loads(trips)
-        print(f"Resultado: {result}")
-        print("")
+        # trip_a: first by start_timestep, has tight window ~0.5h
+        # After deficit propagation: ceil(0.5) = 1h, NOT 0
+        a = params.get("trip_a", {})
+        a_def = a.get("def_total_hours", 0)
+        print(f"trip_a: def_total_hours={a_def} power_watts={a.get('power_watts', 0)}")
 
-        # Obtener parámetros de caché
-        per_trip_params = getattr(adapter, "_cached_per_trip_params", {})
+        # trip_b: later trip, ample window → 3h
+        b = params.get("trip_b", {})
+        b_def = b.get("def_total_hours", 0)
+        print(f"trip_b: def_total_hours={b_def} power_watts={b.get('power_watts', 0)}")
 
-        print("=== VERIFICACIÓN DEL BUG (debe fallar) ===")
-
-        for trip in trips:
-            trip_id = trip["id"]
-            if trip_id in per_trip_params:
-                params = per_trip_params[trip_id]
-                def_hours = params.get("def_total_hours", 0)
-                power_watts = params.get("power_watts", 0.0)
-
-                print(f"{trip_id} ({trip['kwh']} kWh):")
-                print(f"  def_total_hours = {def_hours}")
-                print(f"  power_watts = {power_watts} W")
-                print("")
-
-                # En SOLID API: def_total_hours y power_watts deben ser > 0
-                # cuando hay un viaje con energía que cargar
-                if trip["kwh"] > 0:
-                    assert def_hours > 0, (
-                        f"Trip {trip_id}: requiere {trip['kwh']} kWh "
-                        f"pero def_total_hours = {def_hours} (debería ser > 0)"
-                    )
-                    assert power_watts > 0, (
-                        f"Trip {trip_id}: requiere {trip['kwh']} kWh "
-                        f"pero power_watts = {power_watts} W (debería ser > 0)"
-                    )
-                else:
-                    assert def_hours == 0, (
-                        f"Trip {trip_id}: sin energía necesaria "
-                        f"pero def_total_hours = {def_hours} (debería ser 0)"
-                    )
-                    assert power_watts == 0.0, (
-                        f"Trip {trip_id}: sin energía necesaria "
-                        f"pero power_watts = {power_watts} W (debería ser 0.0)"
-                    )
+        # Strict assertion: origin with any positive window → ceil = 1
+        assert a_def == 1, (
+            f"trip_a: window ~0.5h should ceil to 1h, got {a_def} (must not be 0)"
+        )
+        assert b_def == 3, f"trip_b: ample window → 3h, got {b_def}"
+        assert a.get("power_watts", 0) > 0, "trip_a: power_watts must be > 0"
+        assert b.get("power_watts", 0) > 0, "trip_b: power_watts must be > 0"
 
 
 if __name__ == "__main__":

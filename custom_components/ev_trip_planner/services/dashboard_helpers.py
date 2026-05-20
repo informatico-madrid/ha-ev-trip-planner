@@ -15,12 +15,19 @@ from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_LEGACY_STATIC_PATHS = "Registered static paths using legacy method (%s)"
+_LOG_STATIC_PATHS_CANT_REG = "Cannot register static paths (%s): %s"
+_LOG_STATIC_PATHS_REGISTERED = "Registered %d static path(s) for EV Trip Planner panel (early)"
+_LOG_PANEL_REG_FALSE = "Panel registration returned False for vehicle %s - panel will not be available in sidebar"
+_LOG_PANEL_REG_FAILED = "Failed to register panel for vehicle %s: %s. Panel will not be available."
+
 
 def _register_static_paths_legacy(
     hass: HomeAssistant,
     static_paths: list[Any],
     context_label: str,
-) -> None:  # pragma: no mutate
+) -> None:
     """Register static paths using the legacy HA register_static_path API.
 
     Called as a fallback when the new StaticPathConfig API is unavailable.
@@ -38,7 +45,7 @@ def _register_static_paths_legacy(
             if "already registered" in str(path_err).lower():
                 continue
             raise
-    _LOGGER.info("Registered static paths using legacy method (%s)", context_label)
+    _LOGGER.info(_LOG_LEGACY_STATIC_PATHS, context_label)
 
 
 # CC-N-ACCEPTED: cc=12 — static path registration with branches for different
@@ -46,7 +53,7 @@ def _register_static_paths_legacy(
 # path registration for each discovered file.
 async def async_register_static_paths(
     hass: HomeAssistant,
-) -> None:  # pragma: no mutate
+) -> None:
     """Register static paths for the panel JS/CSS files.
 
     This must be called early before any browser tries to load the panel.
@@ -99,15 +106,12 @@ async def async_register_static_paths(
     if not static_paths or hass.http is None:
         label = "early"
         reason = "hass.http is None" if static_paths else "no static files found"
-        _LOGGER.warning("Cannot register static paths (%s): %s", label, reason)
+        _LOGGER.warning(_LOG_STATIC_PATHS_CANT_REG, label, reason)
         return
 
     try:
         await hass.http.async_register_static_paths(static_paths)
-        _LOGGER.info(
-            "Registered %d static path(s) for EV Trip Planner panel (early)",
-            len(static_paths),
-        )
+        _LOGGER.info(_LOG_STATIC_PATHS_REGISTERED, len(static_paths))
     except (
         TypeError,
         AttributeError,
@@ -121,7 +125,7 @@ async def async_register_panel_for_entry(
     entry: ConfigEntry,
     vehicle_id: str,
     vehicle_name: str,
-) -> bool:  # pragma: no mutate
+) -> bool:
     """Register native panel for a config entry.
 
     Args:
@@ -144,15 +148,7 @@ async def async_register_panel_for_entry(
         )
         panel_registered = panel_result is True
         if not panel_registered:
-            _LOGGER.error(
-                "Panel registration returned False for vehicle %s - panel will not be available in sidebar",
-                vehicle_name,
-            )
+            _LOGGER.error(_LOG_PANEL_REG_FALSE, vehicle_name)
     except Exception as err:
-        _LOGGER.error(
-            "Failed to register panel for vehicle %s: %s. Panel will not be available.",
-            vehicle_name,
-            err,
-            exc_info=True,
-        )
+        _LOGGER.error(_LOG_PANEL_REG_FAILED, vehicle_name, err, exc_info=True)
     return panel_registered

@@ -19,8 +19,31 @@ from ..const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_CLEANED_STALE_YAML = "Cleaned up stale YAML-only storage for vehicle %s"
+_LOG_SKIPPING_YAML_CLEANUP = "Skipping YAML cleanup for %s — Store data exists (normal)"
+_LOG_CLEANUP_SAFETY_NET_ERROR = "Cleanup safety net error (continuing): %s"
+_LOG_CLEANUP_ORPHANED_EMHASS = "Error cleaning up orphaned EMHASS sensors: %s"
+_LOG_UNLOAD_BEFORE_REMOVE = "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s"
+_LOG_UNLOAD_REMOVED_LISTENER = "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s"
+_LOG_UNLOAD_CALL_DELETE = "E2E-DEBUG async_unload_entry_cleanup: Calling async_delete_all_trips for %s, trip_manager=%s"
+_LOG_UNLOAD_CALL_CLEANUP_IDX = "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s"
+_LOG_UNLOAD_CLEANUP_IDX_DONE = "E2E-DEBUG async_unload_entry_cleanup: async_cleanup_vehicle_indices COMPLETED for %s"
+_LOG_CLEANUP_ENTITY_REG = "Failed to clean up entity registry: %s"
+_LOG_CLEANUP_UNREGISTER_PANEL = "Failed to unregister panel for vehicle %s: %s"
+_LOG_REMOVE_ENTRY_CALLED = "=== async_remove_entry CALLED === entry_id: %s"
+_LOG_REMOVE_LISTENER_ERROR = "Error invoking config entry listener: %s"
+_LOG_CASCADE_DELETE = "Cascade deleting all trips for vehicle %s"
+_LOG_REMOVE_TRIPS_ERROR = "Error deleting trips for vehicle %s: %s"
+_LOG_CLEANUP_EMHASS_INDICES = "Cleaned up EMHASS indices for vehicle %s during integration removal"
+_LOG_CLEANUP_EMHASS_INDICES_ERR = "Error cleaning up EMHASS indices for vehicle %s: %s"
+_LOG_REMOVE_STORAGE_WARN = "Could not remove storage for %s: %s"
+_LOG_CLEANED_YAML_FALLBACK = "Cleaned up YAML fallback storage for vehicle %s"
+_LOG_YAML_REMOVAL_WARN = "Could not remove YAML fallback storage for %s: %s"
+_LOG_REMOVE_ENTRY_COMPLETED = "=== async_remove_entry COMPLETED === entry_id: %s"
 
-async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> None:  # pragma: no mutate
+
+async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> None:
     """Clean up YAML residual from a partial async_remove_entry_cleanup failure.
 
     This is a SAFETY NET only. Normal deletion goes through async_remove_entry_cleanup()
@@ -48,22 +71,16 @@ async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> N
             if not existing_data:
                 # Store already gone — YAML is orphaned residual from failed cleanup
                 yaml_path.unlink()
-                _LOGGER.info(
-                    "Cleaned up stale YAML-only storage for vehicle %s",
-                    vehicle_id,
-                )
+                _LOGGER.info(_LOG_CLEANED_STALE_YAML, vehicle_id)
             else:
                 # Store exists with data — this is normal (restart or active vehicle).
                 # DO NOT delete YAML, the Store is the source of truth.
-                _LOGGER.debug(
-                    "Skipping YAML cleanup for %s — Store data exists (normal)",
-                    vehicle_id,
-                )
+                _LOGGER.debug(_LOG_SKIPPING_YAML_CLEANUP, vehicle_id)
     except Exception as cleanup_err:
-        _LOGGER.warning("Cleanup safety net error (continuing): %s", cleanup_err)
+        _LOGGER.warning(_LOG_CLEANUP_SAFETY_NET_ERROR, cleanup_err)
 
 
-async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:  # pragma: no mutate
+async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
     """Clean up orphaned EMHASS state-based sensors from deleted integrations.
 
     This iterates over all entity registry entries and removes any EMHASS
@@ -78,7 +95,7 @@ async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:  #
             for _entry in entries:
                 pass  # Placeholder - actual cleanup logic would go here
     except Exception as e:
-        _LOGGER.debug("Error cleaning up orphaned EMHASS sensors: %s", e)
+        _LOGGER.debug(_LOG_CLEANUP_ORPHANED_EMHASS, e)
 
 
 # CC-N-ACCEPTED: cc=13 — cleanup function with sequential HA lifecycle steps:
@@ -89,7 +106,7 @@ async def async_unload_entry_cleanup(
     entry: ConfigEntry,
     vehicle_id: str,
     vehicle_name: str,
-) -> bool:  # pragma: no mutate
+) -> bool:
     """Perform cleanup operations during entry unload.
 
     Performs cascade delete of trips, cleans up EMHASS adapters,
@@ -113,7 +130,7 @@ async def async_unload_entry_cleanup(
 
     # E2E-DEBUG-CRITICAL: Log cleanup of listener before deleting trips
     _LOGGER.debug(
-        "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s",
+        _LOG_UNLOAD_BEFORE_REMOVE,
         emhass_adapter,
         getattr(emhass_adapter, "_config_entry_listener", None)
         if emhass_adapter
@@ -131,30 +148,17 @@ async def async_unload_entry_cleanup(
         ):
             emhass_adapter._config_entry_listener()
             emhass_adapter._config_entry_listener = None
-            _LOGGER.debug(
-                "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s",
-                vehicle_name,
-            )
+            _LOGGER.debug(_LOG_UNLOAD_REMOVED_LISTENER, vehicle_name)
 
     if trip_manager:
-        _LOGGER.debug(
-            "E2E-DEBUG async_unload_entry_cleanup: Calling async_delete_all_trips for %s, trip_manager=%s",
-            vehicle_name,
-            trip_manager,
-        )
+        _LOGGER.debug(_LOG_UNLOAD_CALL_DELETE, vehicle_name, trip_manager)
         await trip_manager._lifecycle.async_delete_all_trips()
 
     # Cleanup EMHASS vehicle indices before unload
     if emhass_adapter:
-        _LOGGER.debug(
-            "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s",
-            vehicle_name,
-        )
+        _LOGGER.debug(_LOG_UNLOAD_CALL_CLEANUP_IDX, vehicle_name)
         await emhass_adapter.async_cleanup_vehicle_indices()
-        _LOGGER.debug(
-            "E2E-DEBUG async_unload_entry_cleanup: async_cleanup_vehicle_indices COMPLETED for %s",
-            vehicle_name,
-        )
+        _LOGGER.debug(_LOG_UNLOAD_CLEANUP_IDX_DONE, vehicle_name)
 
     from homeassistant.const import Platform
 
@@ -178,7 +182,7 @@ async def async_unload_entry_cleanup(
             # See: homeassistant/helpers/entity_registry.py
             entity_registry.async_remove(entity_entry.entity_id)
     except Exception as ex:
-        _LOGGER.warning("Failed to clean up entity registry: %s", ex)
+        _LOGGER.warning(_LOG_CLEANUP_ENTITY_REG, ex)
 
     # Remove the native panel from sidebar
     try:
@@ -186,7 +190,7 @@ async def async_unload_entry_cleanup(
 
         await async_unregister_panel(hass, vehicle_id)
     except Exception as ex:
-        _LOGGER.warning("Failed to unregister panel for vehicle %s: %s", vehicle_id, ex)
+        _LOGGER.warning(_LOG_CLEANUP_UNREGISTER_PANEL, vehicle_id, ex)
 
     return unload_ok
 
@@ -198,7 +202,7 @@ async def async_unload_entry_cleanup(
 async def async_remove_entry_cleanup(
     hass: HomeAssistant,
     entry: ConfigEntry,
-) -> None:  # pragma: no mutate
+) -> None:
     """Remove a config entry and all its data.
 
     This handles final cleanup of persistent storage after unload.
@@ -207,7 +211,7 @@ async def async_remove_entry_cleanup(
         hass: The Home Assistant instance.
         entry: The config entry to remove.
     """
-    _LOGGER.debug("=== async_remove_entry CALLED === entry_id: %s", entry.entry_id)
+    _LOGGER.debug(_LOG_REMOVE_ENTRY_CALLED, entry.entry_id)
 
     # Safely extract vehicle_name from entry.data
     vehicle_name_raw = entry.data.get("vehicle_name") if entry.data else None
@@ -240,29 +244,24 @@ async def async_remove_entry_cleanup(
             ):
                 emhass_adapter._config_entry_listener()
         except Exception as err:
-            _LOGGER.error("Error invoking config entry listener: %s", err)
+            _LOGGER.error(_LOG_REMOVE_LISTENER_ERROR, err)
         finally:
             emhass_adapter._config_entry_listener = None
 
     if trip_manager:
         try:
-            _LOGGER.warning("Cascade deleting all trips for vehicle %s", vehicle_name)
+            _LOGGER.warning(_LOG_CASCADE_DELETE, vehicle_name)
             await trip_manager._lifecycle.async_delete_all_trips()
         except Exception as err:
-            _LOGGER.error("Error deleting trips for vehicle %s: %s", vehicle_name, err)
+            _LOGGER.error(_LOG_REMOVE_TRIPS_ERROR, vehicle_name, err)
 
     # Cleanup EMHASS vehicle indices
     if emhass_adapter:
         try:
             await emhass_adapter.async_cleanup_vehicle_indices()
-            _LOGGER.info(
-                "Cleaned up EMHASS indices for vehicle %s during integration removal",
-                vehicle_name,
-            )
+            _LOGGER.info(_LOG_CLEANUP_EMHASS_INDICES, vehicle_name)
         except Exception as err:
-            _LOGGER.error(
-                "Error cleaning up EMHASS indices for vehicle %s: %s", vehicle_name, err
-            )
+            _LOGGER.error(_LOG_CLEANUP_EMHASS_INDICES_ERR, vehicle_name, err)
 
     # Delete persistent storage for this vehicle
     storage_key = f"{DOMAIN}_{vehicle_id}"
@@ -272,7 +271,7 @@ async def async_remove_entry_cleanup(
     try:
         await store.async_remove()
     except Exception as store_err:
-        _LOGGER.warning("Could not remove storage for %s: %s", storage_key, store_err)
+        _LOGGER.warning(_LOG_REMOVE_STORAGE_WARN, storage_key, store_err)
 
     # Clean up YAML fallback storage
     try:
@@ -280,16 +279,11 @@ async def async_remove_entry_cleanup(
         yaml_path = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
         if yaml_path.exists():
             yaml_path.unlink()
-            _LOGGER.info(
-                "Cleaned up YAML fallback storage for vehicle %s",
-                vehicle_name,
-            )
+            _LOGGER.info(_LOG_CLEANED_YAML_FALLBACK, vehicle_name)
     except Exception as yaml_err:
-        _LOGGER.warning(
-            "Could not remove YAML fallback storage for %s: %s", vehicle_name, yaml_err
-        )
+        _LOGGER.warning(_LOG_YAML_REMOVAL_WARN, vehicle_name, yaml_err)
 
-    _LOGGER.debug("=== async_remove_entry COMPLETED === entry_id: %s", entry.entry_id)
+    _LOGGER.debug(_LOG_REMOVE_ENTRY_COMPLETED, entry.entry_id)
 
 
 __all__ = [

@@ -30,6 +30,26 @@ from .entity_trip_planner import TripPlannerSensor
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_INFO_CREATING_TRIP_SENSOR = "Creating trip sensor for trip %s (type=%s)"
+_LOG_ERROR_NO_ENTRY = "No entry found for entry_id %s"
+_LOG_ERROR_NO_TRIP_MANAGER = "No trip_manager found for entry %s"
+_LOG_ERROR_NO_COORDINATOR = "No coordinator found for entry %s"
+_LOG_DEBUG_TRIP_SENSOR_CREATED = "Trip sensor created and registered for trip %s"
+_LOG_ERROR_TRIP_SENSOR_CREATE_FAILED = "Failed to create trip sensor for trip %s: %s"
+_LOG_DEBUG_UPDATING_TRIP_SENSOR = "Updating trip sensor for trip %s"
+_LOG_DEBUG_TRIP_SENSOR_UPDATED = "Trip sensor updated for trip %s"
+_LOG_DEBUG_REMOVING_TRIP_SENSOR = "Removing trip sensor for trip %s"
+_LOG_DEBUG_TRIP_SENSOR_NOT_FOUND = "Trip sensor %s not found in registry"
+_LOG_DEBUG_REMOVING_EMHASS_SENSOR = "Removing EMHASS sensor for trip %s"
+_LOG_DEBUG_EMHASS_SENSOR_NOT_FOUND = "EMHASS sensor %s not found in registry"
+_LOG_INFO_CREATING_EMHASS_SENSOR = (
+    "Creating EMHASS sensor for trip %s on vehicle %s"
+)
+_LOG_DEBUG_EMHASS_SENSOR_CREATED = "EMHASS sensor created and registered for trip %s"
+_LOG_ERROR_EMHASS_SENSOR_CREATE_FAILED = (
+    "Failed to create EMHASS sensor for trip %s: %s"
+)
+
 
 def _format_window_time(value: Any) -> str | None:
     """Format window time to HH:MM from datetime or ISO string.
@@ -215,12 +235,12 @@ async def async_create_trip_sensor(
     trip_id: str = trip_data.get("id") or ""
     trip_type = trip_data.get("tipo", "recurrente")
 
-    _LOGGER.info("Creating trip sensor for trip %s (type=%s)", trip_id, trip_type)
+    _LOGGER.info(_LOG_INFO_CREATING_TRIP_SENSOR, trip_id, trip_type)
 
     # Get entry and runtime_data
     entry = hass.config_entries.async_get_entry(entry_id)
     if not entry:
-        _LOGGER.error("No entry found for entry_id %s", entry_id)
+        _LOGGER.error(_LOG_ERROR_NO_ENTRY, entry_id)
         return False
 
     runtime_data = entry.runtime_data
@@ -229,11 +249,11 @@ async def async_create_trip_sensor(
     async_add_entities = runtime_data.sensor_async_add_entities
 
     if not trip_manager:
-        _LOGGER.error("No trip_manager found for entry %s", entry_id)
+        _LOGGER.error(_LOG_ERROR_NO_TRIP_MANAGER, entry_id)
         return False
 
     if not coordinator:
-        _LOGGER.error("No coordinator found for entry %s", entry_id)
+        _LOGGER.error(_LOG_ERROR_NO_COORDINATOR, entry_id)
         return False
 
     if not async_add_entities:
@@ -256,10 +276,10 @@ async def async_create_trip_sensor(
             except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 # Sync callback
                 pass  # pragma: no cover reason=paired with TypeError above — sync callback returns None in HA entity platform
-        _LOGGER.debug("Trip sensor created and registered for trip %s", trip_id)
+        _LOGGER.debug(_LOG_DEBUG_TRIP_SENSOR_CREATED, trip_id)
         return True
     except Exception as err:  # pragma: no cover reason=requires HA entity platform — error path in real sensor creation
-        _LOGGER.error("Failed to create trip sensor for trip %s: %s", trip_id, err)
+        _LOGGER.error(_LOG_ERROR_TRIP_SENSOR_CREATE_FAILED, trip_id, err)
         return False  # pragma: no cover reason=paired with above — error return in HA entity platform sensor creation
 
 
@@ -285,19 +305,19 @@ async def async_update_trip_sensor(
     """
     trip_id: str = trip_data.get("id") or ""
 
-    _LOGGER.debug("Updating trip sensor for trip %s", trip_id)
+    _LOGGER.debug(_LOG_DEBUG_UPDATING_TRIP_SENSOR, trip_id)
 
     # Get entry and runtime_data
     entry = hass.config_entries.async_get_entry(entry_id)
     if not entry:
-        _LOGGER.error("No entry found for entry_id %s", entry_id)
+        _LOGGER.error(_LOG_ERROR_NO_ENTRY, entry_id)
         return False
 
     runtime_data = entry.runtime_data
     trip_manager = runtime_data.trip_manager
 
     if not trip_manager:
-        _LOGGER.error("No trip_manager found for entry %s", entry_id)
+        _LOGGER.error(_LOG_ERROR_NO_TRIP_MANAGER, entry_id)
         return False
 
     # Find existing sensor in entity registry
@@ -334,7 +354,7 @@ async def async_update_trip_sensor(
                 "Coordinator refresh triggered for trip %s sensor update", trip_id
             )
 
-        _LOGGER.debug("Trip sensor updated for trip %s", trip_id)
+        _LOGGER.debug(_LOG_DEBUG_TRIP_SENSOR_UPDATED, trip_id)
         return True
     else:
         # Sensor doesn't exist, create it
@@ -356,7 +376,7 @@ async def async_remove_trip_sensor(
     Returns:
         True if sensor was removed successfully.
     """
-    _LOGGER.debug("Removing trip sensor for trip %s", trip_id)
+    _LOGGER.debug(_LOG_DEBUG_REMOVING_TRIP_SENSOR, trip_id)
 
     # Remove from Entity Registry
     entity_registry: EntityRegistry = getattr(
@@ -377,7 +397,7 @@ async def async_remove_trip_sensor(
     if removed:
         return True
     else:
-        _LOGGER.debug("Trip sensor %s not found in registry", trip_id)
+        _LOGGER.debug(_LOG_DEBUG_TRIP_SENSOR_NOT_FOUND, trip_id)
         return False
 
 
@@ -403,7 +423,7 @@ async def async_remove_trip_emhass_sensor(
     Returns:
         True if sensor was removed successfully.
     """
-    _LOGGER.debug("Removing EMHASS sensor for trip %s", trip_id)
+    _LOGGER.debug(_LOG_DEBUG_REMOVING_EMHASS_SENSOR, trip_id)
 
     # Remove from Entity Registry
     entity_registry: EntityRegistry = getattr(
@@ -429,7 +449,7 @@ async def async_remove_trip_emhass_sensor(
     if removed:
         return True
     else:
-        _LOGGER.debug("EMHASS sensor %s not found in registry", trip_id)
+        _LOGGER.debug(_LOG_DEBUG_EMHASS_SENSOR_NOT_FOUND, trip_id)
         return False
 
 
@@ -457,14 +477,12 @@ async def async_create_trip_emhass_sensor(
     Returns:
         True if sensor was created successfully.
     """
-    _LOGGER.info(
-        "Creating EMHASS sensor for trip %s on vehicle %s", trip_id, vehicle_id
-    )
+    _LOGGER.info(_LOG_INFO_CREATING_EMHASS_SENSOR, trip_id, vehicle_id)
 
     # Get entry and runtime_data
     entry = hass.config_entries.async_get_entry(entry_id)
     if not entry:
-        _LOGGER.error("No entry found for entry_id %s", entry_id)
+        _LOGGER.error(_LOG_ERROR_NO_ENTRY, entry_id)
         return False
 
     runtime_data = entry.runtime_data
@@ -488,8 +506,8 @@ async def async_create_trip_emhass_sensor(
             except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 # Sync callback
                 pass  # pragma: no cover reason=paired with TypeError above — sync callback returns None in EMHASS sensor HA entity platform
-        _LOGGER.debug("EMHASS sensor created and registered for trip %s", trip_id)
+        _LOGGER.debug(_LOG_DEBUG_EMHASS_SENSOR_CREATED, trip_id)
         return True
     except Exception as err:  # pragma: no cover reason=requires HA entity platform — error path in real EMHASS sensor creation
-        _LOGGER.error("Failed to create EMHASS sensor for trip %s: %s", trip_id, err)
+        _LOGGER.error(_LOG_ERROR_EMHASS_SENSOR_CREATE_FAILED, trip_id, err)
         return False  # pragma: no cover reason=paired with above — error return in HA entity platform EMHASS sensor creation

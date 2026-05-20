@@ -14,6 +14,10 @@ from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_ERROR_SCANNING_REGISTRY = "Error scanning entity registry: %s"
+_LOG_INFO_NOTIFY_ENTITIES_AVAILABLE = "Notification step: %d notify entities available"
+_LOG_INFO_AUTO_SELECTED_SENSOR = "Auto-selected %s=%s"
+
 
 def scan_entities(
     hass: HomeAssistant,
@@ -42,7 +46,7 @@ def scan_entities(
         )
         return sorted(entities)
     except Exception as e:
-        _LOGGER.error("Error scanning entity registry: %s", e)
+        _LOGGER.error(_LOG_ERROR_SCANNING_REGISTRY, e)
         return []
 
 
@@ -68,7 +72,7 @@ def scan_notify_entities(
             if entity.domain == "notify"
         ]
         available = sorted(notify_entities)
-        _LOGGER.info("Notification step: %d notify entities available", len(available))
+        _LOGGER.info(_LOG_INFO_NOTIFY_ENTITIES_AVAILABLE, len(available))
         return available
     except Exception as err:
         _LOGGER.warning(
@@ -116,7 +120,7 @@ def auto_select_sensor(
     if entities:
         selected = entities[0]
         user_input = {**user_input, sensor_key: selected}
-        _LOGGER.info("Auto-selected %s=%s", sensor_key, selected)
+        _LOGGER.info(_LOG_INFO_AUTO_SELECTED_SENSOR, sensor_key, selected)
     else:
         _LOGGER.error(
             "No entities available for auto-selection from %s", domain_prefixes

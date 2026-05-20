@@ -2516,7 +2516,7 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.1 [VERIFY] Final full `make mutation` proves overall rate == 1.0 and gate OK
+- [x] 3.1 [VERIFY] Final full `make mutation` proves overall rate == 1.0 and gate OK
 
   - **Do**:
 
@@ -2538,7 +2538,7 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.2 Verify every pyproject module threshold == 1.00 (NFR-2)
+- [x] 3.2 Verify every pyproject module threshold == 1.00 (NFR-2)
 
   - **Do**: Confirm every `[tool.quality-gate.mutation.modules.*]` entry has `kill_threshold = 1.00`. Confirm via `git diff` that no `kill_threshold` was ever lowered across the whole spec and no source/test was excluded to pass the gate.
 
@@ -2554,7 +2554,7 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.3 Finalize the per-iteration delta table and mapping table in `.progress.md`
+- [x] 3.3 Finalize the per-iteration delta table and mapping table in `.progress.md`
 
   - **Do**: Complete the per-iteration delta table (baseline row -> every iteration -> final `100.0%` row, monotonic non-decreasing overall rate); confirm the module/key/path mapping table is present and reconciled. Add a `## Reality Check (AFTER)` block recording the final overall rate vs the A.1 baseline.
 
@@ -2570,7 +2570,7 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.4 [VERIFY] Verify NFR-1 adjudication log completeness + US-5 compliance
+- [x] 3.4 [VERIFY] Verify NFR-1 adjudication log completeness + US-5 compliance
 
   - **Do**: TWO checks must both pass:
 
@@ -2591,7 +2591,7 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.5 [VERIFY] V4 — full local CI: lint + import-check + test-cover + mutation-gate
+- [x] 3.5 [VERIFY] V4 — full local CI: lint + import-check + test-cover + mutation-gate
 
   - **Do**: Run the complete local CI suite: `make lint`, `make import-check`, `make test-cover` (`--cov-fail-under=100`), `make mutation-gate`. All must exit 0. Fix any issue and re-run.
 
@@ -2607,7 +2607,7 @@ Focus: prove overall kill rate == 1.0 with every module threshold at 1.00, final
 
 
 
-- [ ] 3.6 V5 — push branch and open PR
+- [x] 3.6 V5 — push branch and open PR
 
   - **Do**:
 

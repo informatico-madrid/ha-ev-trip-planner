@@ -53,6 +53,15 @@ from . import _entities
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_INFO_MIGRATED = "Config entry migrated to version %d"
+_LOG_DEBUG_STEP_USER = "Config flow step 1 (user): showing form"
+_LOG_DEBUG_STEP_EMHASS = "Config flow step 3 (emhass): showing form"
+_LOG_DEBUG_STEP_NOTIFICATIONS = "Config flow step 5 (notifications): showing form"
+_LOG_INFO_NOTIFICATION_SERVICE = "Notification service configured: %s"
+_LOG_INFO_ENTRY_CREATED = "Config entry created successfully for %s"
+_LOG_INFO_PANEL_REGISTERED = "Panel registered successfully for %s"
+_LOG_INFO_RETURNING_FLOW_RESULT = "Returning FlowResult for %s"
+
 # ---------------------------------------------------------------------------
 # Form schemas
 # ---------------------------------------------------------------------------
@@ -242,7 +251,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             await hass.config_entries.async_update_entry(
                 entry, data=new_data, version=CONFIG_VERSION
             )
-            _LOGGER.info("Config entry migrated to version %d", CONFIG_VERSION)
+            _LOGGER.info(_LOG_INFO_MIGRATED, CONFIG_VERSION)
             return True
 
         _LOGGER.warning(
@@ -300,7 +309,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso 1: Configuración básica del vehículo."""
-        _LOGGER.debug("Config flow step 1 (user): showing form")
+        _LOGGER.debug(_LOG_DEBUG_STEP_USER)
         if user_input is not None:
             # Validate vehicle name
             vehicle_name = user_input.get(CONF_VEHICLE_NAME, "").strip()
@@ -420,7 +429,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso 3: Configuración de integración EMHASS (opcional)."""
-        _LOGGER.debug("Config flow step 3 (emhass): showing form")
+        _LOGGER.debug(_LOG_DEBUG_STEP_EMHASS)
 
         if user_input is not None:
             emhass_config_path = os.environ.get(
@@ -567,7 +576,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         - notification_service (entity selector, notify domain)
         - notification_devices (multi-select, notify devices)
         """
-        _LOGGER.debug("Config flow step 5 (notifications): showing form")
+        _LOGGER.debug(_LOG_DEBUG_STEP_NOTIFICATIONS)
         if user_input is None:
             # Use entity registry to get all notify entities
             # This includes Nabu Casa devices (notify.alexa_media_*) and mobile app notifications
@@ -613,7 +622,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
         # Log notification configuration
         notify_service = user_input.get(CONF_NOTIFICATION_SERVICE)
         if notify_service:
-            _LOGGER.info("Notification service configured: %s", notify_service)
+            _LOGGER.info(_LOG_INFO_NOTIFICATION_SERVICE, notify_service)
         notify_devices = user_input.get(CONF_NOTIFICATION_DEVICES)
         if notify_devices:
             _LOGGER.info(
@@ -661,7 +670,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             title=vehicle_name,
             data=vehicle_data,
         )
-        _LOGGER.info("Config entry created successfully for %s", vehicle_name)
+        _LOGGER.info(_LOG_INFO_ENTRY_CREATED, vehicle_name)
 
         # Register native panel for the vehicle
         # This creates a sidebar entry in HA without requiring Lovelace
@@ -672,7 +681,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 vehicle_id=vehicle_id,  # Use friendly ID from vehicle name
                 vehicle_name=vehicle_name,
             )
-            _LOGGER.info("Panel registered successfully for %s", vehicle_name)
+            _LOGGER.info(_LOG_INFO_PANEL_REGISTERED, vehicle_name)
         except Exception as err:
             # Log but don't fail the flow - panel registration is optional
             _LOGGER.warning(
@@ -681,7 +690,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
                 err,
             )
 
-        _LOGGER.info("Returning FlowResult for %s", vehicle_name)
+        _LOGGER.info(_LOG_INFO_RETURNING_FLOW_RESULT, vehicle_name)
         return result  # type: ignore[return-value] # HA stub: ConfigFlowResult vs FlowResult[FlowContext, str]
 
     @staticmethod

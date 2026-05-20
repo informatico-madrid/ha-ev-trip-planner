@@ -22,6 +22,15 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_SOC_SENSOR_NOT_AVAILABLE_WARNING = "Sensor SOC no disponible para %s"
+_LOG_CONFIG_ENTRY_NOT_FOUND_WARNING = "Config entry no encontrada para %s"
+_LOG_SOC_FETCH_ERROR = "Error obteniendo SOC: %s"
+_LOG_MISSING_REQUIRED_FIELD_ERROR = (
+    "async_calcular_energia_necesaria: missing required field '%s' "
+    "in vehicle_config for trip %s"
+)
+
 
 class SOCQuery:
     """SOC fetching and energy calculation."""
@@ -30,7 +39,7 @@ class SOCQuery:
         """Initialize with shared state."""
         self._state = state
 
-    async def async_get_vehicle_soc(self, vehicle_id: str) -> float:  # pragma: no mutate
+    async def async_get_vehicle_soc(self, vehicle_id: str) -> float:
         """Fetch current SOC from the configured HA sensor."""
         try:
             entry: Optional[ConfigEntry[Any]] = None
@@ -44,16 +53,16 @@ class SOCQuery:
                     state = self._state.hass.states.get(soc_sensor)
                     if state and state.state not in ("unknown", "unavailable", "none"):
                         return float(state.state)
-                _LOGGER.warning("Sensor SOC no disponible para %s", vehicle_id)
+                _LOGGER.warning(_LOG_SOC_SENSOR_NOT_AVAILABLE_WARNING, vehicle_id)
             else:
-                _LOGGER.warning("Config entry no encontrada para %s", vehicle_id)
+                _LOGGER.warning(_LOG_CONFIG_ENTRY_NOT_FOUND_WARNING, vehicle_id)
         except Exception as err:
-            _LOGGER.error("Error obteniendo SOC: %s", err)
+            _LOGGER.error(_LOG_SOC_FETCH_ERROR, err)
         return 0.0
 
     async def async_calcular_energia_necesaria(
         self, trip: Dict[str, Any], vehicle_config: Dict[str, Any]
-    ) -> Dict[str, Any]:  # pragma: no mutate
+    ) -> Dict[str, Any]:
         """Calcula la energía necesaria considerando el SOC actual.
 
         Delegates to calculate_energy_needed (windows.py) for the pure energy
@@ -63,12 +72,7 @@ class SOCQuery:
         # Validate required fields — no silent defaults
         for field in ("battery_capacity_kwh", "charging_power_kw"):
             if field not in vehicle_config:
-                _LOGGER.error(
-                    "async_calcular_energia_necesaria: missing required field '%s' "
-                    "in vehicle_config for trip %s",
-                    field,
-                    trip.get("id"),
-                )
+                _LOGGER.error(_LOG_MISSING_REQUIRED_FIELD_ERROR, field, trip.get("id"))
                 return {
                     "energia_necesaria_kwh": 0.0,
                     "horas_carga_necesarias": 0,

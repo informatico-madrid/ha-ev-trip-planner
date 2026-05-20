@@ -23,6 +23,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # ── Log format string constants (US-5 testability) ──────────────────────
 _LOG_TRIP_MISSING_ID = "Trip missing ID"
+_LOG_TRIP_NO_DEADLINE = "Trip %s has no valid deadline"
+_LOG_REMOVED_DEFERRABLE = "Removed deferrable load for trip %s"
+_LOG_FAILED_REMOVE_DEFERRABLE = "Failed to remove deferrable load for trip %s"
 
 
 # Note: ChargingConfigBase ABC removed to fix AP12 Speculative Generality.
@@ -126,7 +129,7 @@ class LoadPublisher(LoadPublisherBase):
         # Calculate deadline
         deadline_dt = self._calculate_deadline(trip)
         if deadline_dt is None:
-            _LOGGER.error("Trip %s has no valid deadline", trip_id)
+            _LOGGER.error(_LOG_TRIP_NO_DEADLINE, trip_id)
             self._index_manager.release_index(trip_id)
             return False
 
@@ -222,9 +225,9 @@ class LoadPublisher(LoadPublisherBase):
         success = self._index_manager.release_index(trip_id)
 
         if success:
-            _LOGGER.info("Removed deferrable load for trip %s", trip_id)
+            _LOGGER.info(_LOG_REMOVED_DEFERRABLE, trip_id)
         else:
-            _LOGGER.warning("Failed to remove deferrable load for trip %s", trip_id)
+            _LOGGER.warning(_LOG_FAILED_REMOVE_DEFERRABLE, trip_id)
 
         return success
 

@@ -23,6 +23,9 @@ from .load_publisher import LoadPublisher, LoadPublisherConfig
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_DEBUG_FLOW2_GET_CURRENT_SOC = "FLOW2-DEBUG: _get_current_soc called"
+
 
 # qg-accepted: BMAD consensus 2026-05-12 — FALSE POSITIVE: facade pattern (18 public methods,
 #   27 attrs, high delegation ratio are all inherent to the facade architecture delegating
@@ -595,7 +598,7 @@ class EMHASSAdapter:
         """
         # Read soc_sensor from ConfigEntry
         soc_sensor = None
-        _LOGGER.warning("FLOW2-DEBUG: _get_current_soc called")
+        _LOGGER.warning(_LOG_DEBUG_FLOW2_GET_CURRENT_SOC)
         if self._entry:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))

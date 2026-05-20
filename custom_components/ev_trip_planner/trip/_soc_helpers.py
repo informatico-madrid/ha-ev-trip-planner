@@ -25,6 +25,10 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_PARSE_FAILED_WARNING = "Failed to parse trip datetime: %s, falling back to now"
+_LOG_PARSE_REPR_WARNING = "Failed to parse trip datetime: %s"
+
 
 class SOCHelpers:
     """Stateless SOC helpers shared by SOC calculations.
@@ -38,7 +42,7 @@ class SOCHelpers:
 
     def _parse_trip_datetime(
         self, trip_datetime: datetime | str, allow_none: bool = False
-    ) -> datetime | None:  # pragma: no mutate
+    ) -> datetime | None:
         """Parse trip datetime, ensuring timezone awareness."""
         if isinstance(trip_datetime, datetime):
             dt = trip_datetime
@@ -50,14 +54,11 @@ class SOCHelpers:
             if parsed is not None and parsed.tzinfo is None:
                 parsed = parsed.replace(tzinfo=timezone.utc)
             if parsed is None:
-                _LOGGER.warning(
-                    "Failed to parse trip datetime: %s, falling back to now",
-                    repr(trip_datetime),
-                )
+                _LOGGER.warning(_LOG_PARSE_FAILED_WARNING, repr(trip_datetime))
                 return None if allow_none else datetime.now(timezone.utc)
             return parsed
         except Exception:
-            _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
+            _LOGGER.warning(_LOG_PARSE_REPR_WARNING, repr(trip_datetime))
             return None if allow_none else datetime.now(timezone.utc)
 
     def _get_charging_power(self) -> float:  # pragma: no mutate
@@ -95,7 +96,7 @@ class SOCHelpers:
         """Verifica si un viaje ocurre hoy."""
         return pure_is_trip_today(trip, today)
 
-    def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:  # pragma: no mutate
+    def _get_trip_time(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Obtiene la fecha y hora del viaje."""
         tipo = trip.get("tipo")
         if tipo is None:

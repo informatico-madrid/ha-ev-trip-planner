@@ -32,6 +32,8 @@ from ..const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_DEBUG_OPTIONS_INIT = "Options flow step init: showing form"
+
 # ---------------------------------------------------------------------------
 # EVTripPlannerOptionsFlowHandler
 # ---------------------------------------------------------------------------
@@ -48,7 +50,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso inicial del flujo de opciones."""
-        _LOGGER.debug("Options flow step init: showing form")
+        _LOGGER.debug(_LOG_DEBUG_OPTIONS_INIT)
 
         if user_input is not None:
             _LOGGER.debug(

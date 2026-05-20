@@ -12,6 +12,20 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_COORDINATOR_CLEANUP_WARNING = "Coordinator cleanup during delete_all: %s"
+_LOG_DELETED_ALL_INFO = "Deleted all trips for vehicle %s"
+_LOG_PAUSED_RECURRING_INFO = "Paused recurring trip %s for vehicle %s"
+_LOG_RECURRING_NOT_FOUND_PAUSE_WARNING = "Recurring trip %s not found for pause in vehicle %s"
+_LOG_RESUMED_RECURRING_INFO = "Resumed recurring trip %s for vehicle %s"
+_LOG_RECURRING_NOT_FOUND_RESUME_WARNING = "Recurring trip %s not found for resume in vehicle %s"
+_LOG_COMPLETED_PUNCTUAL_INFO = "Completed punctual trip %s for vehicle %s"
+_LOG_PUNCTUAL_NOT_FOUND_COMPLETE_WARNING = "Punctual trip %s not found for completion in vehicle %s"
+_LOG_CANCELLED_PUNCTUAL_INFO = "Cancelled punctual trip %s for vehicle %s"
+_LOG_PUNCTUAL_NOT_FOUND_CANCEL_WARNING = "Punctual trip %s not found for cancellation in vehicle %s"
+_LOG_TRIP_NOT_FOUND_SENSOR_UPDATE_WARNING = "Trip %s not found for sensor update in vehicle %s"
+_LOG_ERROR_UPDATING_TRIP_SENSOR_ERROR = "Error updating trip sensor for trip %s: %s"
+
 
 class TripLifecycle:
     """Bulk deletion, pause/resume, complete/cancel, sensor refresh."""
@@ -22,7 +36,7 @@ class TripLifecycle:
 
     # ── Public API ───────────────────────────────────────────────
 
-    async def async_delete_all_trips(self) -> None:  # pragma: no mutate
+    async def async_delete_all_trips(self) -> None:
         """Deletes all recurring and punctual trips for cascade deletion."""
         state = self._state
 
@@ -54,75 +68,51 @@ class TripLifecycle:
                     }
                     await coordinator.async_refresh()
         except Exception as err:
-            _LOGGER.warning("Coordinator cleanup during delete_all: %s", err)
+            _LOGGER.warning(_LOG_COORDINATOR_CLEANUP_WARNING, err)
 
-        _LOGGER.info("Deleted all trips for vehicle %s", state.vehicle_id)
+        _LOGGER.info(_LOG_DELETED_ALL_INFO, state.vehicle_id)
 
-    async def async_pause_recurring_trip(self, trip_id: str) -> None:  # pragma: no mutate
+    async def async_pause_recurring_trip(self, trip_id: str) -> None:
         """Pausa un viaje recurrente."""
         state = self._state
         if trip_id in state.recurring_trips:
             state.recurring_trips[trip_id]["activo"] = False
             await state.async_save_trips()
-            _LOGGER.info(
-                "Paused recurring trip %s for vehicle %s", trip_id, state.vehicle_id
-            )
+            _LOGGER.info(_LOG_PAUSED_RECURRING_INFO, trip_id, state.vehicle_id)
         else:
-            _LOGGER.warning(
-                "Recurring trip %s not found for pause in vehicle %s",
-                trip_id,
-                state.vehicle_id,
-            )
+            _LOGGER.warning(_LOG_RECURRING_NOT_FOUND_PAUSE_WARNING, trip_id, state.vehicle_id)
 
-    async def async_resume_recurring_trip(self, trip_id: str) -> None:  # pragma: no mutate
+    async def async_resume_recurring_trip(self, trip_id: str) -> None:
         """Reanuda un viaje recurrente."""
         state = self._state
         if trip_id in state.recurring_trips:
             state.recurring_trips[trip_id]["activo"] = True
             await state.async_save_trips()
-            _LOGGER.info(
-                "Resumed recurring trip %s for vehicle %s", trip_id, state.vehicle_id
-            )
+            _LOGGER.info(_LOG_RESUMED_RECURRING_INFO, trip_id, state.vehicle_id)
         else:
-            _LOGGER.warning(
-                "Recurring trip %s not found for resume in vehicle %s",
-                trip_id,
-                state.vehicle_id,
-            )
+            _LOGGER.warning(_LOG_RECURRING_NOT_FOUND_RESUME_WARNING, trip_id, state.vehicle_id)
 
-    async def async_complete_punctual_trip(self, trip_id: str) -> None:  # pragma: no mutate
+    async def async_complete_punctual_trip(self, trip_id: str) -> None:
         """Marca un viaje puntual como completado."""
         state = self._state
         if trip_id in state.punctual_trips:
             state.punctual_trips[trip_id]["estado"] = "completado"
             await state.async_save_trips()
-            _LOGGER.info(
-                "Completed punctual trip %s for vehicle %s", trip_id, state.vehicle_id
-            )
+            _LOGGER.info(_LOG_COMPLETED_PUNCTUAL_INFO, trip_id, state.vehicle_id)
         else:
-            _LOGGER.warning(
-                "Punctual trip %s not found for completion in vehicle %s",
-                trip_id,
-                state.vehicle_id,
-            )
+            _LOGGER.warning(_LOG_PUNCTUAL_NOT_FOUND_COMPLETE_WARNING, trip_id, state.vehicle_id)
 
-    async def async_cancel_punctual_trip(self, trip_id: str) -> None:  # pragma: no mutate
+    async def async_cancel_punctual_trip(self, trip_id: str) -> None:
         """Cancela un viaje puntual."""
         state = self._state
         if trip_id in state.punctual_trips:
             del state.punctual_trips[trip_id]
             await state.async_save_trips()
-            _LOGGER.info(
-                "Cancelled punctual trip %s for vehicle %s", trip_id, state.vehicle_id
-            )
+            _LOGGER.info(_LOG_CANCELLED_PUNCTUAL_INFO, trip_id, state.vehicle_id)
             if state.emhass_adapter:
                 await state._emhass_sync._async_remove_trip_from_emhass(trip_id)
         else:
-            _LOGGER.warning(
-                "Punctual trip %s not found for cancellation in vehicle %s",
-                trip_id,
-                state.vehicle_id,
-            )
+            _LOGGER.warning(_LOG_PUNCTUAL_NOT_FOUND_CANCEL_WARNING, trip_id, state.vehicle_id)
 
     async def async_update_trip_sensor(
         self, trip_id: str
@@ -149,11 +139,7 @@ class TripLifecycle:
                 trip_type = "punctual"
 
             if trip_data is None:
-                _LOGGER.warning(
-                    "Trip %s not found for sensor update in vehicle %s",
-                    trip_id,
-                    state.vehicle_id,
-                )
+                _LOGGER.warning(_LOG_TRIP_NOT_FOUND_SENSOR_UPDATE_WARNING, trip_id, state.vehicle_id)
                 return
 
             state_attributes = {
@@ -177,9 +163,4 @@ class TripLifecycle:
                 entity_id, native_value, attributes=state_attributes
             )
         except Exception as err:  # pragma: no cover reason=ha-entity-registry
-            _LOGGER.error(
-                "Error updating trip sensor for trip %s: %s",
-                trip_id,
-                err,
-                exc_info=True,
-            )
+            _LOGGER.error(_LOG_ERROR_UPDATING_TRIP_SENSOR_ERROR, trip_id, err, exc_info=True)
