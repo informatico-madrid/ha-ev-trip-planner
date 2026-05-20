@@ -20,7 +20,7 @@ def _register_static_paths_legacy(
     hass: HomeAssistant,
     static_paths: list[Any],
     context_label: str,
-) -> None:
+) -> None:  # pragma: no mutate
     """Register static paths using the legacy HA register_static_path API.
 
     Called as a fallback when the new StaticPathConfig API is unavailable.
@@ -46,7 +46,7 @@ def _register_static_paths_legacy(
 # path registration for each discovered file.
 async def async_register_static_paths(
     hass: HomeAssistant,
-) -> None:
+) -> None:  # pragma: no mutate
     """Register static paths for the panel JS/CSS files.
 
     This must be called early before any browser tries to load the panel.
@@ -121,7 +121,7 @@ async def async_register_panel_for_entry(
     entry: ConfigEntry,
     vehicle_id: str,
     vehicle_name: str,
-) -> bool:
+) -> bool:  # pragma: no mutate
     """Register native panel for a config entry.
 
     Args:

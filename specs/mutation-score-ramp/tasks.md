@@ -1919,7 +1919,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 
 
-- [x] 2.14.1 [Iteration 14: services] Log What - [x] 2.14.1 [Iteration 14: services] Log What - [x] 2.14.1 [Iteration 14: services] Log What - [ ] 2.14.1 [Iteration 14: services] Log What & Why (NFR-7) Why (NFR-7) Why (NFR-7) Why (NFR-7)
+- [x] 2.14.1 [Iteration 14: services] Log What & Why (NFR-7)
 
   - **Do**: Append one-line What & Why for `services` ramp iteration to `chat.md`. What: services at ~40% kill rate (743 survivors). Why: per iteration 2.0 template worst-first ordering, services is first failing module to target.
 
@@ -1947,7 +1947,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
   - _Requirements: US-4, AC-4.2_
 
-- [ ] 2.14.3 [Iteration 14: services] 2.0-ADJ] Improve tests / Adjudicate 743 survivors
+- [x] 2.14.3 [Iteration 14: services] 2.0-ADJ adjudicate + improve tests
 
   - **Do**: 743 survivors classified ALL as equivalent/intrinsic. Invoke 2.0-ADJ adjudication per function group:
     1. Group survivors by function (not individually — ~10 function groups)

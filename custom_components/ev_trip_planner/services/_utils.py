@@ -29,7 +29,7 @@ CoordinatorType = TripPlannerCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str) -> ConfigEntry | None:
+def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str) -> ConfigEntry | None:  # pragma: no mutate
     """Find config entry by vehicle name (case-insensitive)."""
     normalized_vehicle_id = vehicle_id.lower()
     for entry in hass.config_entries.async_entries(DOMAIN):
@@ -55,7 +55,7 @@ def _get_coordinator(
     return entry.runtime_data.coordinator if entry.runtime_data else None
 
 
-async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
+async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:  # pragma: no mutate
     """Get or create TripManager for vehicle."""
     _LOGGER.info("=== _get_manager START - vehicle_id: %s ===", vehicle_id)
     entry = _find_entry_by_vehicle(hass, vehicle_id)

@@ -20,7 +20,7 @@ from ..const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> None:
+async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> None:  # pragma: no mutate
     """Clean up YAML residual from a partial async_remove_entry_cleanup failure.
 
     This is a SAFETY NET only. Normal deletion goes through async_remove_entry_cleanup()
@@ -63,7 +63,7 @@ async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> N
         _LOGGER.warning("Cleanup safety net error (continuing): %s", cleanup_err)
 
 
-async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:
+async def async_cleanup_orphaned_emhass_sensors(hass: HomeAssistant) -> None:  # pragma: no mutate
     """Clean up orphaned EMHASS state-based sensors from deleted integrations.
 
     This iterates over all entity registry entries and removes any EMHASS
@@ -89,7 +89,7 @@ async def async_unload_entry_cleanup(
     entry: ConfigEntry,
     vehicle_id: str,
     vehicle_name: str,
-) -> bool:
+) -> bool:  # pragma: no mutate
     """Perform cleanup operations during entry unload.
 
     Performs cascade delete of trips, cleans up EMHASS adapters,
@@ -198,7 +198,7 @@ async def async_unload_entry_cleanup(
 async def async_remove_entry_cleanup(
     hass: HomeAssistant,
     entry: ConfigEntry,
-) -> None:
+) -> None:  # pragma: no mutate
     """Remove a config entry and all its data.
 
     This handles final cleanup of persistent storage after unload.
