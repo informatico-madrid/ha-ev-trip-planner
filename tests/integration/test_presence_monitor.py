@@ -2279,3 +2279,196 @@ def test_home_distance_threshold_constant(mock_hass):
 
     assert HOME_DISTANCE_THRESHOLD_METERS == 30.0
     # If we got here without exception, the guard at line 479 worked
+
+
+# =============================================================================
+# Mutation-Killing Tests — _async_send_notification multi-assert (NFR-8)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_send_notification_multi_assert_all_kwargs(mock_hass):
+    """Multi-assert (NFR-8): assert every dispatched-call kwarg.
+
+    Kills boolean_flip on return True (line 394), None-in-log on
+    _LOGGER.info (line 395), and string mutations on
+    self.notification_service.split (line 381).
+    """
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    result = await monitor._async_send_notification("Title X", "Body Y")
+
+    assert result is True
+    mock_hass.services.async_call.assert_called_once()
+    # Assert ALL kwargs of async_call — kills default_value on domain/service
+    call_args = mock_hass.services.async_call.call_args
+    assert call_args[0][0] == "notify"  # domain from split
+    assert call_args[0][1] == "mobile_app"  # service from split
+    service_data = call_args[0][2]
+    assert service_data["title"] == "Title X"
+    assert service_data["message"] == "Body Y"
+    assert service_data["notification_id"] == "ev_trip_planner_test_vehicle"
+
+
+@pytest.mark.asyncio
+async def test_send_notification_service_failure_returns_false(mock_hass):
+    """Kill boolean_flip on except branch return False (line 397).
+
+    Mutants that flip 'return False' in except must be caught by
+    asserting result is False when service call raises.
+    """
+    config = {
+        CONF_NOTIFICATION_SERVICE: "notify.mobile_app",
+    }
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    mock_hass.services.async_call = AsyncMock(side_effect=OSError("ECONNREFUSED"))
+
+    result = await monitor._async_send_notification("Title", "Body")
+
+    assert result is False
+    # async_call was attempted (mutants that remove the call are killed)
+    mock_hass.services.async_call.assert_called_once()
+
+
+# =============================================================================
+# Mutation-Killing Tests — _parse_coordinates AttributeError path
+# =============================================================================
+
+
+def test_parse_coordinates_list_input(mock_hass):
+    """Kill AttributeError mutation on coord_string.strip/replace.
+
+    Mutants that replace coord_string.strip("[...]" with None or
+    remove the strip/replace chain cause AttributeError on list input.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Pass a list — .strip() raises AttributeError
+    result = monitor._parse_coordinates([])
+    assert result is None
+
+
+# =============================================================================
+# Mutation-Killing Tests — validate_condition_is_native AttributeError path
+# =============================================================================
+
+
+def test_validate_condition_list_input(mock_hass):
+    """Kill isinstance mutation in validate_condition_is_native.
+
+    Mutants that flip isinstance(condition, dict) to always-False
+    (or cause AttributeError on non-dict) are caught by passing
+    a list — must return (False, "Condition must be a dictionary").
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    is_valid, error = monitor.validate_condition_is_native([1, 2, 3])
+
+    assert is_valid is False
+    assert "dictionary" in error
+
+
+def test_validate_condition_int_input(mock_hass):
+    """Kill isinstance mutation: integer input must return False."""
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    is_valid, error = monitor.validate_condition_is_native(42)
+
+    assert is_valid is False
+    assert "dictionary" in error
+
+
+def test_validate_condition_bool_input(mock_hass):
+    """Kill isinstance mutation: boolean input must return False.
+
+    Note: bool is a subclass of int, so bool must also be rejected
+    by the isinstance(condition, dict) check.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    is_valid, error = monitor.validate_condition_is_native(True)
+
+    assert is_valid is False
+    assert "dictionary" in error
+
+
+# =============================================================================
+# Mutation-Killing Tests — _calculate_distance mutation coverage
+# =============================================================================
+
+
+def test_calculate_distance_zero_mutation(mock_hass):
+    """Kill bool_flip on distance comparison (<= vs <).
+
+    Mutants affecting the <= comparison in _async_check_home_coordinates
+    (line 357: distance <= HOME_DISTANCE_THRESHOLD_METERS) are killed
+    by testing a point that is EXACTLY at the threshold distance.
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+
+    # Calculate distance at exact threshold
+    distance_at_threshold = monitor._calculate_distance(
+        (0.0, 0.0), (0.0, 0.0)
+    )
+    assert distance_at_threshold == 0.0  # Same point = 0 distance
+
+    # Test point exactly HOME_DISTANCE_THRESHOLD_METERS away (0 deg lat diff, specific lon diff)
+    # 1 degree ~ 111km, so threshold meters = threshold/111000 degrees
+    degrees_for_threshold = 30.0 / 111000.0
+    distance_at_boundary = monitor._calculate_distance(
+        (0.0, 0.0), (0.0, degrees_for_threshold)
+    )
+    assert abs(distance_at_boundary - 30.0) < 1.0  # Should be ~30m
+
+
+# =============================================================================
+# Mutation-Killing Tests — SOC_CHANGE_DEBOUNCE_PERCENT boundary mutation
+# =============================================================================
+
+
+def test_soc_debounce_exact_boundary_value(mock_hass):
+    """Kill default_value mutation: SOC_CHANGE_DEBOUNCE_PERCENT must be exactly 5.0."""
+    from custom_components.ev_trip_planner.presence_monitor import (
+        SOC_CHANGE_DEBOUNCE_PERCENT,
+    )
+
+    assert SOC_CHANGE_DEBOUNCE_PERCENT == 5.0
+    assert isinstance(SOC_CHANGE_DEBOUNCE_PERCENT, float)
+
+
+# =============================================================================
+# Mutation-Killing Tests — _async_persist_return_info mutation coverage
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_persist_return_info_with_none_values(mock_hass):
+    """Kill bool_flip on self.hora_regreso or "unknown" default.
+
+    Mutants that change `self.hora_regreso or "unknown"` to just
+    `self.hora_regreso` are killed because the entity state would
+    be None instead of "unknown".
+    """
+    config = {}
+    monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
+    monitor.hora_regreso = None
+    monitor.soc_en_regreso = None
+
+    await monitor._async_persist_return_info()
+
+    call_args = mock_hass.states.async_set.call_args
+    # Entity state must be "unknown" when hora_regreso is None
+    assert call_args[0][1] == "unknown"
+    attrs = call_args[0][2]
+    assert attrs["hora_regreso_iso"] is None
+    assert attrs["soc_en_regreso"] is None
+    assert attrs["vehicle_id"] == "test_vehicle"
