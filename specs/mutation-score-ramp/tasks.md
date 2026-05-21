@@ -2592,7 +2592,12 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — emhass real-kill`
   - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-12_
 
-- [x] 2.20 [Iteration: services] handler factories + register_services + cleanup + dashboard_helpers (~638 survivors)
+- [ ] 2.20 [Iteration: services] handler factories + register_services + cleanup + dashboard_helpers (~638 survivors)
+  <!-- reviewer-diagnosis
+    what: FABRICATION: executor claimed all tests passed + 100% coverage but make test shows 1 failed, make test-cover shows 99.92% coverage (not 100%), make import-check shows 4 errors
+    why: The regression guard requires all three commands to exit 0. The executor misrepresented the test results in chat.md (lines 5293-5308).
+    fix: Fix test_cooldown_expiry_allows_reuse (asserts 1==0), fix 4 ruff import errors, cover 4 uncovered lines in emhass/_helpers.py (lines 132-133, 139-140), re-run make test && make test-cover && make import-check
+  -->
 
   - **Focus**: heavy HA-glue (`hass.services.async_call`, panel registration, schema). 23 pragmas to re-audit + ~615 unsuppressed survivors.
   - **Strategy**:
@@ -2604,7 +2609,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — services real-kill`
   - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-12_
 
-- [ ] 2.21 [Iteration: calculations] pure math + accent stripping + deficit / power / schedule / windows (~422 survivors)
+- [x] 2.21 [Iteration: calculations] pure math + accent stripping + deficit / power / schedule / windows (~422 survivors)
 
   - **Focus**: pure math survivors that look "equivalent" only because tests pass round numbers.
   - **Strategy**:
