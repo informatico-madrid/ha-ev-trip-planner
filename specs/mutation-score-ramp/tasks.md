@@ -2592,7 +2592,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — emhass real-kill`
   - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-12_
 
-- [ ] 2.20 [Iteration: services] handler factories + register_services + cleanup + dashboard_helpers (~638 survivors)
+- [x] 2.20 [Iteration: services] handler factories + register_services + cleanup + dashboard_helpers (~638 survivors)
 
   - **Focus**: heavy HA-glue (`hass.services.async_call`, panel registration, schema). 23 pragmas to re-audit + ~615 unsuppressed survivors.
   - **Strategy**:
