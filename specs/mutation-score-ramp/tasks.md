@@ -2644,7 +2644,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — config_flow real-kill via integration + schema-key multi-assert`
   - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-10, NFR-12_
 
-- [ ] 2.24 [Iteration: vehicle] controller + strategy + external (~147 survivors)
+- [x] 2.24 [Iteration: vehicle] controller + strategy + external (~147 survivors)
 
   - **Focus**: vehicle module after 2.18.7 already removed all 16 prior pragmas via US-5 log constants. Remaining survivors are HA service-call arg mutations and strategy branch coverage.
   - **Strategy**:
