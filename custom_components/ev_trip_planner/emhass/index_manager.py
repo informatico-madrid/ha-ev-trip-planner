@@ -33,6 +33,8 @@ class IndexManager(IndexManagerBase):
   
     def _is_index_in_cooldown(self, index: int) -> bool:
         """Check if an index is still in soft-delete cooldown."""
+        if self._index_cooldown_hours <= 0:
+            return False
         for released in self._released_indices:
             if released.get("index") == index:
                 ts = released.get("timestamp", 0)
@@ -53,7 +55,7 @@ class IndexManager(IndexManagerBase):
             ts = r.get("timestamp")
             if isinstance(ts, datetime):
                 elapsed_h = (now - ts).total_seconds() / 3600
-                if elapsed_h <= self._index_cooldown_hours:
+                if elapsed_h < self._index_cooldown_hours:
                     kept.append(r)
             elif ts is not None:
                 kept.append(r)  # numeric timestamp: keep all

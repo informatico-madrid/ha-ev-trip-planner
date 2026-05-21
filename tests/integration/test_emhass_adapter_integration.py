@@ -462,6 +462,7 @@ class TestCooldownAcrossTime:
         new_idx = mgr.assign_index("trip-2")
         assert new_idx != idx  # Different index assigned
 
+    @freeze_time("2026-05-21T12:00:00+00:00")
     def test_cooldown_expiry_allows_reuse(self):
         """After cooldown expires, released index is pruned from cooldown."""
         mgr = IndexManager(cooldown_hours=0)  # Instant cooldown
