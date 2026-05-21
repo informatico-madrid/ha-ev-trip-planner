@@ -12,7 +12,8 @@ import pytest
 _LOGGER = logging.getLogger(__name__)
 
 # Force import to trigger trampoline during collection (forced fail test)
-import custom_components.ev_trip_planner  # noqa: F401
+import custom_components.ev_trip_planner  # noqa: E402, F401
+
 
 @pytest.fixture
 def hass(tmp_path):

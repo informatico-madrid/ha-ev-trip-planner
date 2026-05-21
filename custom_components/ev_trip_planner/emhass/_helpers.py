@@ -10,8 +10,8 @@ with a function that has an explicit default — so that mutating
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict
 
 
 def get_config_str(

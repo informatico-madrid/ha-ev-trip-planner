@@ -22,7 +22,6 @@ from custom_components.ev_trip_planner.emhass._helpers import (
     parse_planning_horizon,
 )
 
-
 # ---------------------------------------------------------------------------
 # get_config_str — default_value mutations on "" default
 # ---------------------------------------------------------------------------
@@ -284,6 +283,46 @@ class TestBuildEntryData:
         result = build_entry_data(entry)
         assert result["a"] == 1
         assert result["b"] == 2
+
+    def test_options_typeerror_catches_and_skips(self):
+        """Options that raise TypeError when converted to dict → skipped."""
+        entry = MagicMock()
+        entry.options = "not_a_dict"  # str → TypeError in dict()
+        entry.data = {"key": "val"}
+        result = build_entry_data(entry)
+        assert result == {"key": "val"}
+
+    def test_options_valueerror_catches_and_skips(self):
+        """Options that raise ValueError when converted to dict → skipped."""
+        entry = MagicMock()
+        entry.options = 42  # int → TypeError in dict()
+        entry.data = {}
+        result = build_entry_data(entry)
+        assert result == {}
+
+    def test_data_typeerror_catches_and_skips(self):
+        """Data that raises TypeError when converted to dict → skipped."""
+        entry = MagicMock()
+        entry.options = {}
+        entry.data = "bad_data"  # str → TypeError in dict()
+        result = build_entry_data(entry)
+        assert result == {}
+
+    def test_data_valueerror_catches_and_skips(self):
+        """Data that raises ValueError when converted to dict → skipped."""
+        entry = MagicMock()
+        entry.options = {"a": 1}
+        entry.data = 123  # int → TypeError in dict()
+        result = build_entry_data(entry)
+        assert result == {"a": 1}
+
+    def test_both_options_and_data_typeerror(self):
+        """Both options and data raise TypeError → returns empty dict."""
+        entry = MagicMock()
+        entry.options = "bad"
+        entry.data = 42
+        result = build_entry_data(entry)
+        assert result == {}
 
 
 # ---------------------------------------------------------------------------
