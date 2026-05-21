@@ -19,6 +19,8 @@ import pytest
 
 from custom_components.ev_trip_planner.services._helpers import (
     get_bool,
+    get_optional_str,
+    get_or,
     get_str,
     get_str_fallback,
     get_str_nested,
@@ -210,3 +212,69 @@ class TestGetBool:
 
     def test_empty_string_returns_false(self):
         assert get_bool({"flag": ""}, "flag") is False
+
+
+class TestGetOptionalStr:
+    """Test get_optional_str — covers data.get("datetime") pattern."""
+
+    def test_present_string(self):
+        assert get_optional_str({"datetime": "2026-01-01T10:00:00"}, "datetime") == "2026-01-01T10:00:00"
+
+    def test_missing_returns_none(self):
+        """Kill mutation: data.get("datetime") → data.get("datetime", "default")
+        would return a string instead of None, changing control flow.
+        """
+        result = get_optional_str({}, "datetime")
+        assert result is None
+
+    def test_none_value_returns_default(self):
+        """Explicit None is treated as missing."""
+        assert get_optional_str({"datetime": None}, "datetime") is None
+
+    def test_explicit_default_none(self):
+        result = get_optional_str({}, "key")
+        assert result is None
+
+    def test_explicit_default_value(self):
+        result = get_optional_str({}, "key", "fallback")
+        assert result == "fallback"
+
+    def test_non_string_value(self):
+        """Integer value gets str()-ified."""
+        result = get_optional_str({"count": 42}, "count")
+        assert result == "42"
+
+    def test_empty_string_returns_empty(self):
+        """Empty string is a valid value, not None."""
+        assert get_optional_str({"key": ""}, "key") == ""
+
+
+class TestGetOr:
+    """Test get_or — covers data.get("dia_semana") or data.get("day_of_week") pattern."""
+
+    def test_primary_present(self):
+        assert get_or({"dia_semana": "lunes"}, "dia_semana", "day_of_week") == "lunes"
+
+    def test_primary_missing_fallback_used(self):
+        """Kill mutation: removing fallback key lookup → returns None instead of fallback value."""
+        assert get_or({"day_of_week": "monday"}, "dia_semana", "day_of_week") == "monday"
+
+    def test_both_present_returns_primary(self):
+        assert get_or({"dia_semana": "lunes", "day_of_week": "monday"}, "dia_semana", "day_of_week") == "lunes"
+
+    def test_both_missing_returns_none(self):
+        """Kill mutation: both key lookups removed → returns a non-None default."""
+        result = get_or({}, "dia_semana", "day_of_week")
+        assert result is None
+
+    def test_primary_empty_uses_fallback(self):
+        """Empty string is falsy → falls through to fallback."""
+        assert get_or({"dia_semana": "", "day_of_week": "monday"}, "dia_semana", "day_of_week") == "monday"
+
+    def test_primary_zero_uses_fallback(self):
+        """Numeric zero is falsy → falls through to fallback."""
+        assert get_or({"idx": 0, "index": 5}, "idx", "index") == 5
+
+    def test_primary_int_fallback_missing(self):
+        """Primary is an int, gets str()-ified (design: returns str)."""
+        assert get_or({"idx": 42}, "idx", "index") == "42"

@@ -14,6 +14,8 @@ from homeassistant.core import HomeAssistant, ServiceCall
 
 from ._helpers import (
     get_bool,
+    get_optional_str,
+    get_or,
     get_str,
     get_str_fallback,
     get_str_nested,
@@ -171,7 +173,6 @@ def make_trip_update_handler(hass: HomeAssistant):
         data = call.data
         vehicle_id = data["vehicle_id"]
         trip_id = str(data["trip_id"])
-        _ = get_str(data, "type", "recurrente")
 
         if "updates" in data:
             updates = dict(data["updates"])
@@ -366,8 +367,8 @@ def make_trip_create_handler(hass: HomeAssistant):
         mgr = await _get_manager(hass, vehicle_id)
 
         if trip_type == "recurrente":
-            dia_semana = data.get("dia_semana") or data.get("day_of_week")
-            hora = data.get("hora") or data.get("time")
+            dia_semana = get_or(data, "dia_semana", "day_of_week")
+            hora = get_or(data, "hora", "time")
             descripcion = get_str_fallback(data, "descripcion", "description")
             await mgr._crud.async_add_recurring_trip(
                 dia_semana=dia_semana,
@@ -378,7 +379,7 @@ def make_trip_create_handler(hass: HomeAssistant):
             )
             _LOGGER.info(_LOG_CREATED_RECURRING, vehicle_id, dia_semana, hora, data["km"])
         elif trip_type == "puntual":
-            datetime_str = data.get("datetime")
+            datetime_str = get_optional_str(data, "datetime")
             descripcion = get_str_fallback(data, "descripcion", "description")
             await mgr._crud.async_add_punctual_trip(
                 datetime_str=datetime_str,
@@ -586,6 +587,8 @@ def make_trip_get_handler(hass: HomeAssistant):
 
 __all__: list[str] = [
     "get_bool",
+    "get_optional_str",
+    "get_or",
     "get_str",
     "get_str_fallback",
     "get_str_nested",

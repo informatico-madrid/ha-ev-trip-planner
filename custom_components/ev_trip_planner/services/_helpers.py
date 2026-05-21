@@ -78,10 +78,44 @@ def get_bool(data: dict[str, Any], key: str, default: bool = True) -> bool:
     return bool(data.get(key, default))
 
 
+def get_optional_str(data: dict[str, Any], key: str, default: str | None = None) -> str | None:
+    """Extract an optional string value from service call data.
+
+    Returns None if the key is absent or its value is None,
+    otherwise returns the string representation of the value.
+
+    Used for optional fields like datetime where None is a valid
+    and distinct sentinel from the empty string.
+    """
+    value = data.get(key)
+    if value is None:
+        return default
+    return str(value)
+
+
+def get_or(data: dict[str, Any], primary: str, fallback: str) -> str | None:
+    """Extract a string from service call data, falling back to a second key.
+
+    Returns data[primary] if truthy, else data[fallback] if present, else None.
+
+    Used for bilingual/multi-key fields where the caller may send the field
+    under different key names (e.g. "dia_semana" / "day_of_week").
+
+    This is intentionally pure so that mutations on the primary/fallback
+    key resolution are independently killable.
+    """
+    value = data.get(primary)
+    if value:
+        return str(value) if not isinstance(value, str) else value
+    return data.get(fallback)
+
+
 __all__: list[str] = [
+    "get_bool",
+    "get_optional_str",
+    "get_or",
     "get_str",
     "get_str_fallback",
     "get_str_nested",
     "get_vehicle_id",
-    "get_bool",
 ]

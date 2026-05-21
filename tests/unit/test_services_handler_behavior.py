@@ -958,3 +958,232 @@ class TestMakeTripCreateHandlerFull:
         call_args = mock_mgr._crud.async_add_recurring_trip.call_args
         assert call_args[1]["dia_semana"] == "martes"
         assert call_args[1]["hora"] == "18:00"
+
+
+class TestMakeTripCreateHandlerMultiAssert:
+    """Multi-assert tests for make_trip_create_handler targeting get_or/get_optional_str mutations.
+
+    These tests assert on the full tuple of handler call arguments to kill mutations on
+    the new get_or() and get_optional_str() helpers.
+    """
+
+    @pytest.mark.asyncio
+    async def test_recurring_fallback_day_of_week(self, mock_hass, mock_mgr):
+        """Kill mutation: get_or removes fallback key → returns None for dia_semana."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_trip_create_handler,
+        )
+
+        mock_mgr._crud.async_add_recurring_trip = AsyncMock()
+
+        handler = make_trip_create_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "type": "recurrente",
+            "day_of_week": "wednesday",
+            "time": "20:00",
+            "km": 10.0,
+            "kwh": 1.5,
+        })
+
+        result = await handler(call)
+
+        assert result is None
+        mock_mgr._crud.async_add_recurring_trip.assert_called_once()
+        call_args = mock_mgr._crud.async_add_recurring_trip.call_args
+        assert call_args[1]["dia_semana"] == "wednesday"
+        assert call_args[1]["hora"] == "20:00"
+        assert call_args[1]["km"] == 10.0
+        assert call_args[1]["kwh"] == 1.5
+
+    @pytest.mark.asyncio
+    async def test_punctual_datetime_present(self, mock_hass, mock_mgr):
+        """Kill mutation: get_optional_str returns None when datetime present."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_trip_create_handler,
+        )
+
+        mock_mgr._crud.async_add_punctual_trip = AsyncMock()
+
+        handler = make_trip_create_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "type": "puntual",
+            "datetime": "2026-06-15T14:00:00",
+            "km": 25.0,
+            "kwh": 3.0,
+        })
+
+        result = await handler(call)
+
+        assert result is None
+        mock_mgr._crud.async_add_punctual_trip.assert_called_once()
+        call_args = mock_mgr._crud.async_add_punctual_trip.call_args
+        assert call_args[1]["datetime_str"] == "2026-06-15T14:00:00"
+        assert call_args[1]["km"] == 25.0
+        assert call_args[1]["kwh"] == 3.0
+
+    @pytest.mark.asyncio
+    async def test_punctual_no_datetime_returns_none(self, mock_hass, mock_mgr):
+        """Kill mutation: get_optional_str returns non-None when datetime missing."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_trip_create_handler,
+        )
+
+        mock_mgr._crud.async_add_punctual_trip = AsyncMock()
+
+        handler = make_trip_create_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "type": "puntual",
+            "km": 5.0,
+            "kwh": 0.5,
+        })
+
+        result = await handler(call)
+
+        assert result is None
+        mock_mgr._crud.async_add_punctual_trip.assert_called_once()
+        call_args = mock_mgr._crud.async_add_punctual_trip.call_args
+        assert call_args[1]["datetime_str"] is None
+        assert call_args[1]["km"] == 5.0
+
+    @pytest.mark.asyncio
+    async def test_invalid_type_returns_early(self, mock_hass, mock_mgr):
+        """Kill mutation: early return removed → proceeds with invalid type."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_trip_create_handler,
+        )
+
+        handler = make_trip_create_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "type": "invalid",
+        })
+
+        result = await handler(call)
+
+        assert result is None
+        mock_mgr._crud.async_add_recurring_trip.assert_not_called()
+        mock_mgr._crud.async_add_punctual_trip.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_recurring_bilingual_description(self, mock_hass, mock_mgr):
+        """Kill mutation: get_str_fallback key order flipped."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_trip_create_handler,
+        )
+
+        mock_mgr._crud.async_add_recurring_trip = AsyncMock()
+
+        handler = make_trip_create_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "type": "recurrente",
+            "dia_semana": "lunes",
+            "hora": "08:00",
+            "km": 20.0,
+            "kwh": 2.5,
+            "descripcion": "Vuelta al trabajo",
+        })
+
+        result = await handler(call)
+
+        assert result is None
+        call_args = mock_mgr._crud.async_add_recurring_trip.call_args
+        assert call_args[1]["dia_semana"] == "lunes"
+        assert call_args[1]["hora"] == "08:00"
+        assert call_args[1]["descripcion"] == "Vuelta al trabajo"
+        assert call_args[1]["km"] == 20.0
+        assert call_args[1]["kwh"] == 2.5
+
+
+class TestMakeImportWeeklyPatternHandler:
+    """Targets survivors in make_import_weekly_pattern_handler — assert CRUD call args."""
+
+    @pytest.mark.asyncio
+    async def test_clear_existing_deletes_all(self, mock_hass, mock_mgr):
+        """Kill mutation: clear_existing path removed → existing trips not deleted."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_import_weekly_pattern_handler,
+        )
+
+        mock_mgr._crud.async_get_recurring_trips = AsyncMock(
+            return_value=[{"id": "existing1"}, {"id": "existing2"}]
+        )
+        mock_mgr._crud.async_delete_trip = AsyncMock()
+        mock_mgr._crud.async_add_recurring_trip = AsyncMock()
+
+        handler = make_import_weekly_pattern_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "clear_existing": True,
+            "pattern": {
+                "lunes": [{"hora": "08:00", "km": "15", "kwh": "2"}],
+            },
+        })
+
+        await handler(call)
+
+        # Should delete both existing trips
+        assert mock_mgr._crud.async_delete_trip.call_count == 2
+        calls = [c[0][0] for c in mock_mgr._crud.async_delete_trip.call_args_list]
+        assert "existing1" in calls
+        assert "existing2" in calls
+        # And add the imported trip
+        mock_mgr._crud.async_add_recurring_trip.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_clear_existing_preserves(self, mock_hass, mock_mgr):
+        """Kill mutation: clear_existing=False still deletes existing trips."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_import_weekly_pattern_handler,
+        )
+
+        mock_mgr._crud.async_add_recurring_trip = AsyncMock()
+
+        handler = make_import_weekly_pattern_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "clear_existing": False,
+            "pattern": {
+                "martes": [{"hora": "09:00", "km": "10", "kwh": "1.5"}],
+            },
+        })
+
+        await handler(call)
+
+        # Should NOT delete any existing trips
+        mock_mgr._crud.async_delete_trip.assert_not_called()
+        # But should call async_add_recurring_trip for the imported pattern
+        mock_mgr._crud.async_add_recurring_trip.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_imported_trip_args(self, mock_hass, mock_mgr):
+        """Kill mutation: km/kwh not converted to float."""
+        from custom_components.ev_trip_planner.services._handler_factories import (
+            make_import_weekly_pattern_handler,
+        )
+
+        mock_mgr._crud.async_add_recurring_trip = AsyncMock()
+
+        handler = make_import_weekly_pattern_handler(mock_hass)
+        call = _make_service_call({
+            "vehicle_id": "test_vehicle",
+            "clear_existing": False,
+            "pattern": {
+                "miercoles": [
+                    {"hora": "07:30", "km": "30", "kwh": "4.5", "descripcion": "Ruta laboral"},
+                ],
+            },
+        })
+
+        await handler(call)
+
+        mock_mgr._crud.async_add_recurring_trip.assert_called_once()
+        call_args = mock_mgr._crud.async_add_recurring_trip.call_args
+        assert call_args[1]["dia_semana"] == "miercoles"
+        assert call_args[1]["hora"] == "07:30"
+        assert call_args[1]["km"] == 30.0
+        assert call_args[1]["kwh"] == 4.5
+        assert call_args[1]["descripcion"] == "Ruta laboral"
