@@ -2655,7 +2655,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — vehicle real-kill`
   - _Requirements: US-4, US-6, US-7, US-9, NFR-8, NFR-9, NFR-10_
 
-- [ ] 2.25 [Iteration: __init__] integration lifecycle (~142 survivors)
+- [x] 2.25 [Iteration: __init__] integration lifecycle (~142 survivors)
 
   - **Focus**: `async_setup_entry`, `async_unload_entry`, `_hourly_refresh_callback`. Heavy HA lifecycle glue.
   - **Strategy**:

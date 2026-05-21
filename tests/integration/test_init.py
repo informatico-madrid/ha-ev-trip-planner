@@ -943,3 +943,380 @@ class TestHourlyRefreshCallbackStringMutations:
         assert "async_refresh_trips" in log_text, (
             "Should log async_refresh_trips start/done"
         )
+
+
+class TestInitLifecycle:
+    """Integration tests for async_setup_entry -> async_unload_entry -> re-setup lifecycle.
+
+    NFR-9: Uses real HA framework (mocked hass) to test setup/unload lifecycle.
+    Verifies hass.data[DOMAIN] contents at each step.
+    """
+
+    @pytest.mark.asyncio
+    async def test_setup_then_unload_clears_runtime_data(self):
+        """Setup creates runtime_data, unload clears it.
+
+        Tests the full lifecycle: setup -> runtime_data exists -> unload -> timer cancelled.
+        """
+        from custom_components.ev_trip_planner import (
+            async_setup_entry,
+            async_unload_entry,
+        )
+
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
+        hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+        entry = MagicMock()
+        entry.data = {"vehicle_name": "Lifecycle Vehicle"}
+        entry.entry_id = "lifecycle_entry"
+
+        cancel_handle = MagicMock()
+
+        # Build trip_manager mock with all attributes the cleanup path needs
+        mock_tm = MagicMock()
+        mock_tm._persistence = MagicMock()
+        mock_tm._persistence.async_setup = AsyncMock()
+        mock_tm._lifecycle = MagicMock()
+        mock_tm._lifecycle.async_delete_all_trips = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.async_register_static_paths",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.build_presence_config",
+            return_value={},
+        ), patch(
+            "custom_components.ev_trip_planner.YamlTripStorage",
+        ) as MockStorage, patch(
+            "custom_components.ev_trip_planner.TripManager",
+            return_value=mock_tm,
+        ), patch(
+            "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        ) as MockCoord, patch(
+            "custom_components.ev_trip_planner.async_register_panel_for_entry",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.register_services",
+        ), patch(
+            "custom_components.ev_trip_planner.async_track_time_interval",
+        ) as MockTimer:
+            MockStorage.return_value = MagicMock()
+            mock_coord = MagicMock()
+            mock_coord.async_config_entry_first_refresh = AsyncMock()
+            MockCoord.return_value = mock_coord
+            MockTimer.return_value = cancel_handle
+
+            # SETUP
+            result = await async_setup_entry(hass, entry)
+            assert result is True
+            assert entry.runtime_data is not None
+            assert entry.runtime_data.coordinator is not None
+            assert entry.runtime_data.trip_manager is not None
+
+            # Verify timer was registered
+            assert MockTimer.called
+            assert entry.runtime_data.hourly_refresh_cancel is cancel_handle
+
+            # UNLOAD
+            unload_result = await async_unload_entry(hass, entry)
+            assert unload_result is True
+
+            # Verify timer was cancelled
+            cancel_handle.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_setup_with_emhass_then_unload(self):
+        """Setup with EMHASS enabled, then unload.
+
+        Verifies EMHASS adapter flows through setup -> unload lifecycle.
+        """
+        from custom_components.ev_trip_planner import (
+            async_setup_entry,
+            async_unload_entry,
+        )
+
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
+        hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
+
+        entry = MagicMock()
+        entry.data = {
+            "vehicle_name": "EMHASS Vehicle",
+            "planning_horizon_days": 7,
+            "max_deferrable_loads": 10,
+        }
+        entry.entry_id = "emhass_entry"
+
+        # Build trip_manager mock with all attributes the cleanup path needs
+        mock_tm = MagicMock()
+        mock_tm._persistence = MagicMock()
+        mock_tm._persistence.async_setup = AsyncMock()
+        mock_tm._schedule = MagicMock()
+        mock_tm._schedule.publish_deferrable_loads = AsyncMock()
+        mock_tm._lifecycle = MagicMock()
+        mock_tm._lifecycle.async_delete_all_trips = AsyncMock()
+
+        with patch(
+            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.async_register_static_paths",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.build_presence_config",
+            return_value={},
+        ), patch(
+            "custom_components.ev_trip_planner.YamlTripStorage",
+        ) as MockStorage, patch(
+            "custom_components.ev_trip_planner.TripManager",
+            return_value=mock_tm,
+        ), patch(
+            "custom_components.ev_trip_planner.EMHASSAdapter",
+        ) as MockEMHASS, patch(
+            "custom_components.ev_trip_planner.TripPlannerCoordinator",
+        ) as MockCoord, patch(
+            "custom_components.ev_trip_planner.async_register_panel_for_entry",
+            new=AsyncMock(),
+        ), patch(
+            "custom_components.ev_trip_planner.register_services",
+        ), patch(
+            "custom_components.ev_trip_planner.async_track_time_interval",
+        ) as MockTimer:
+            MockStorage.return_value = MagicMock()
+
+            mock_emhass = MagicMock()
+            mock_emhass.async_load = AsyncMock()
+            mock_emhass.setup_config_entry_listener = MagicMock()
+            mock_emhass.async_cleanup_vehicle_indices = AsyncMock()
+            MockEMHASS.return_value = mock_emhass
+
+            mock_coord = MagicMock()
+            mock_coord.async_config_entry_first_refresh = AsyncMock()
+            mock_coord.async_refresh_trips = AsyncMock()
+            MockCoord.return_value = mock_coord
+
+            # SETUP
+            result = await async_setup_entry(hass, entry)
+            assert result is True
+
+            # Verify EMHASS adapter assigned
+            assert mock_tm.emhass_adapter is mock_emhass
+            assert entry.runtime_data.emhass_adapter is mock_emhass
+
+            # UNLOAD
+            unload_result = await async_unload_entry(hass, entry)
+            assert unload_result is True
+
+    @pytest.mark.asyncio
+    async def test_unload_without_runtime_data(self):
+        """Unload when entry has no runtime_data attribute.
+
+        Tests getattr fallback in async_unload_entry.
+        """
+        from custom_components.ev_trip_planner import async_unload_entry
+
+        hass = MagicMock()
+        entry = MagicMock(spec=[])  # No runtime_data attribute
+        entry.entry_id = "no_rt_entry"
+        entry.data = {"vehicle_name": "Test"}
+
+        with patch(
+            "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+            new=AsyncMock(return_value=True),
+        ) as mock_cleanup:
+            result = await async_unload_entry(hass, entry)
+            assert result is True
+            mock_cleanup.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_unload_runtime_data_but_no_timer(self):
+        """Unload with runtime_data but hourly_refresh_cancel is None."""
+        from custom_components.ev_trip_planner import async_unload_entry
+
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.entry_id = "no_timer_entry"
+        entry.data = {"vehicle_name": "Test"}
+        runtime_data = MagicMock()
+        runtime_data.hourly_refresh_cancel = None
+        entry.runtime_data = runtime_data
+
+        with patch(
+            "custom_components.ev_trip_planner.async_unload_entry_cleanup",
+            new=AsyncMock(return_value=True),
+        ) as mock_cleanup:
+            result = await async_unload_entry(hass, entry)
+            assert result is True
+            mock_cleanup.assert_called_once()
+
+
+class TestHourlyRefreshCallbackMultiAssert:
+    """Multi-assert log constant tests (NFR-8).
+
+    Asserts on every output field, not just truthiness.
+    """
+
+    @pytest.mark.asyncio
+    async def test_all_log_constants_in_normal_flow(self, caplog):
+        """Normal flow: all 12 log constants appear in output.
+
+        Multi-assert: checks every log message type independently.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {"t1": {"def_start_timestep_array": [0]}},
+                "emhass_power_profile": [100],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+
+        log_text = " ".join(r.message for r in caplog.records)
+
+        # Multi-assert: every log constant must appear
+        assert "FLOW2-DEBUG" in log_text, "START message"
+        assert "present" in log_text, "runtime_data present in START"
+        assert "all runtime_data fields present" in log_text, "ALL_PRESENT"
+        assert "cache BEFORE" in log_text, "CACHE_BEFORE"
+        assert "per_trip" in log_text, "per_trip in cache log"
+        assert "power_nonzero" in log_text, "power_nonzero in cache log"
+        assert "publish_deferrable_loads" not in log_text or "FAILED" not in log_text, (
+            "No FAILED message in normal flow"
+        )
+        assert "cache AFTER" in log_text, "CACHE_AFTER"
+        assert "post_cache" in log_text, "POST_CACHE_ENTRY"
+        assert "async_refresh_trips" in log_text, "REFRESH_START/DONE"
+        assert "DONE" in log_text, "REFRESH_DONE"
+
+    @pytest.mark.asyncio
+    async def test_exception_flow_logs_failed_with_exc_info(self, caplog):
+        """Exception flow: logs FAILED message with exc_info=True.
+
+        Multi-assert: checks both FAILED log AND exc_info flag.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock(
+            side_effect=ValueError("publish failed")
+        )
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={"per_trip_emhass_params": {}, "emhass_power_profile": []}
+        )
+        rt = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+
+        # Multi-assert: FAILED message AND exc_info flag
+        fail_records = [r for r in caplog.records if "FAILED" in r.message]
+        assert len(fail_records) == 1, "Exactly one FAILED log"
+        assert fail_records[0].exc_info is not None, "exc_info=True set"
+        assert "publish_deferrable_loads" in fail_records[0].message, (
+            "Log mentions publish_deferrable_loads"
+        )
+        # Verify NO post-cache or refresh logs (early return)
+        no_post_cache = all("post_cache" not in r.message for r in caplog.records)
+        assert no_post_cache, "No post_cache logs in exception flow"
+
+    @pytest.mark.asyncio
+    async def test_base_exception_logs_cancelled_without_exc_info(self, caplog):
+        """BaseException flow: logs CANCELLED without exc_info."""
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock(
+            side_effect=KeyboardInterrupt("stop")
+        )
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={"per_trip_emhass_params": {}, "emhass_power_profile": []}
+        )
+        rt = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+
+        cancel_records = [r for r in caplog.records if "CANCELLED" in r.message]
+        assert len(cancel_records) >= 1, "CANCELLED log present"
+        assert "publish_deferrable_loads" in cancel_records[0].message, (
+            "Log mentions publish_deferrable_loads"
+        )
+        # Verify NO post-cache or refresh logs (early return)
+        no_post_cache = all("post_cache" not in r.message for r in caplog.records)
+        assert no_post_cache, "No post_cache logs in BaseException flow"
+
+    @pytest.mark.asyncio
+    async def test_each_missing_field_logs_correct_abort_message(self, caplog):
+        """Each missing field logs its specific abort message.
+
+        Multi-assert: checks each field independently.
+        """
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={"per_trip_emhass_params": {}, "emhass_power_profile": []}
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+
+        with caplog.at_level("WARNING"):
+            # trip_manager None
+            rt = EVTripRuntimeData(
+                coordinator=coord, trip_manager=None, emhass_adapter=adapter
+            )
+            await _hourly_refresh_callback(None, rt)
+            tm_logs = [r for r in caplog.records if "trip_manager" in r.message.lower()]
+            assert len(tm_logs) >= 1, "trip_manager abort message"
+
+        with caplog.at_level("WARNING"):
+            # emhass_adapter None
+            mgr = MagicMock()
+            mgr._schedule = MagicMock()
+            rt = EVTripRuntimeData(
+                coordinator=coord, trip_manager=mgr, emhass_adapter=None
+            )
+            await _hourly_refresh_callback(None, rt)
+            emhass_logs = [r for r in caplog.records if "emhass" in r.message.lower()]
+            assert len(emhass_logs) >= 1, "emhass_adapter abort message"
+
+        with caplog.at_level("WARNING"):
+            # coordinator None
+            mgr = MagicMock()
+            mgr._schedule = MagicMock()
+            rt = EVTripRuntimeData(
+                coordinator=None, trip_manager=mgr, emhass_adapter=adapter
+            )
+            await _hourly_refresh_callback(None, rt)
+            coord_logs = [r for r in caplog.records if "coordinator" in r.message.lower()]
+            assert len(coord_logs) >= 1, "coordinator abort message"

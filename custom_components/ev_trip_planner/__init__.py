@@ -41,6 +41,8 @@ from .trip._types import TripManagerConfig
 from .utils import normalize_vehicle_id
 from .yaml_trip_storage import YamlTripStorage
 
+from . import __init_helpers  # US-5: pure helpers for mutation testability
+
 # Type aliases for cleaner signatures
 CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 
@@ -90,6 +92,8 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
     After publishing to EMHASS (which updates the adapter cache), we trigger
     a coordinator refresh so sensors see the new data immediately.
     The timer is registered in async_setup_entry and cleaned up in async_unload_entry.
+
+    US-5: Pure logic extracted to __init_helpers.py for mutation testability.
     """
     _LOGGER.warning(
         _LOG_HOURLY_CALLBACK_START,
@@ -110,13 +114,13 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
 
     _LOGGER.warning(_LOG_HOURLY_CALLBACK_ALL_PRESENT)
 
-    # Log cache state BEFORE publish
+    # Log cache state BEFORE publish (US-5: extracted to helper)
     adapter = runtime_data.emhass_adapter
-    pre_cache = adapter.get_cached_optimization_results()
+    pre_report = _build_cache_report(adapter)
     _LOGGER.warning(
         _LOG_HOURLY_CALLBACK_CACHE_BEFORE,
-        len(pre_cache.get("per_trip_emhass_params", {})),
-        sum(1 for x in (pre_cache.get("emhass_power_profile") or []) if x > 0),
+        pre_report.per_trip_count,
+        pre_report.power_nonzero,
     )
 
     try:
@@ -130,13 +134,14 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
         _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
         return
 
-    # Log cache state AFTER publish
-    post_cache = adapter.get_cached_optimization_results()
+    # Log cache state AFTER publish (US-5: extracted to helper)
+    post_report = _build_cache_report(adapter)
     _LOGGER.warning(
         _LOG_HOURLY_CALLBACK_CACHE_AFTER,
-        len(post_cache.get("per_trip_emhass_params", {})),
-        sum(1 for x in (post_cache.get("emhass_power_profile") or []) if x > 0),
+        post_report.per_trip_count,
+        post_report.power_nonzero,
     )
+    post_cache = adapter.get_cached_optimization_results()
     for tid, tp in post_cache.get("per_trip_emhass_params", {}).items():
         _LOGGER.warning(
             _LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY,
@@ -149,6 +154,14 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
     _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_START)
     await runtime_data.coordinator.async_refresh_trips()
     _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_DONE)
+
+
+def _build_cache_report(adapter: Any) -> __init_helpers.CacheReport:
+    """Extract cache state from EMHASS adapter.
+
+    US-5: extracted from _hourly_refresh_callback for mutation testability.
+    """
+    return __init_helpers.build_cache_report(adapter)
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
