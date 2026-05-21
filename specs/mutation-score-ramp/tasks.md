@@ -2555,7 +2555,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 > Template per iteration block (each `2.N.x` follows the SAME 6 sub-tasks; the *strategy* differs per module — see "Focus" below). The iteration is DONE when the targeted module's measured rate is strictly greater than entry AND the module's surviving pragmas are ≤ the post-NFR-1b ceiling AND `make test` + `make test-cover` + `make import-check` exit 0. The threshold is ratcheted to the new rate. **Pragma proposals require human escalation (NFR-1) — never auto-add.**
 
-- [ ] 2.17 [Iteration: coordinator] gate-failing module — push past 56.0% threshold and toward 100%
+- [x] 2.17 [Iteration: coordinator] gate-failing module — push past 56.0% threshold and toward 100%
 
   - **Focus**: coordinator is the only module currently *failing* its threshold (55.9% vs 56.0%). 64 survivors. Heavy `update_interval` / refresh-cycle / passthrough mutations.
   - **Strategy**:
