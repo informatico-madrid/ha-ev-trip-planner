@@ -138,6 +138,8 @@ pytest_add_cli_args = ["-k", "not test_solid_metrics and not test_vehicle_contro
 also_copy = []
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
+mutate_only_covered_lines = true
+max_stack_depth = 8
 environment_setup_command = "export MUTMUT_RUN=1"
 
 [tool.quality-gate.mutation]

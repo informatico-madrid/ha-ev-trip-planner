@@ -11,13 +11,15 @@ import pytest
 
 _LOGGER = logging.getLogger(__name__)
 
+# Force import to trigger trampoline during collection (forced fail test)
+import custom_components.ev_trip_planner  # noqa: F401
 
 @pytest.fixture
 def hass(tmp_path):
     """Fixture to provide a minimal mock HomeAssistant instance.
 
     This creates a mock hass instance that avoids compatibility issues
-    with pytest-homeassistant-custom-component. Both unit and integration tests
+    with pytest-homeassistant-custom_component. Both unit and integration tests
     use this fixture for state/service mocking.
     """
     hass_inst = MagicMock()

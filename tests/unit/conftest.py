@@ -7,8 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.trip import TripManager
-from custom_components.ev_trip_planner.trip._types import TripManagerConfig
 
 
 @pytest.fixture
@@ -23,6 +21,8 @@ def trip_manager_no_entry_id(mock_hass):
             tm = trip_manager_no_entry_id
             result = await tm.async_get_kwh_needed_today()
     """
+    from custom_components.ev_trip_planner.trip import TripManager
+
     return TripManager(mock_hass, "test_vehicle")
 
 
@@ -187,6 +187,8 @@ def trip_manager(mock_hass_with_storage):
     Depends on mock_hass_with_storage which is provided by the conftest fixture.
     Used by TestCRUDOperationsViaDashboard and TestDashboardDataSync tests.
     """
+    from custom_components.ev_trip_planner.trip import TripManager
+
     manager = TripManager(mock_hass_with_storage, "test_vehicle")
     return manager
 

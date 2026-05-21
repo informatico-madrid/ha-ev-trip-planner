@@ -2476,133 +2476,226 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 ---
 
-- [x] 2.15 [Phase 2 iteration 18: kill survivors] Push ALL modules to threshold using US-5 + pragmas
+## Phase 2 HOT REVISION (2026-05-21) — Real-kill ramp to 100% with NO unjustified pragmas
 
-  - **Context**: Checked-only kill rate is 65.0%. 12 modules FAIL their kill_threshold.
-    Previous iterations showed US-5 (extract pure helpers) is the winning strategy — panel went from 37.8% to 65.3%.
+> **Reset of strategy, NOT of progress.** All completed iterations (1–18) remain checked-off. The blocks below SUPERSEDE the stale 2.15 plan. New direction:
+>
+> - **No pragma without HUMAN approval** (NFR-1). The ~118 prior "verified not US-5 applicable" pragmas are presumed removable and must be re-audited one-by-one. Cap on retained pragmas across the whole project: ~10 (reference class — PHP/Infection on 10×-larger codebases).
+> - **Strengthen existing tests first** (US-6 / NFR-8) — most surviving mutants are reached by an existing test that just under-asserts. Multi-attribute asserts on dict/dataclass/dispatched-call returns kill many mutants per test edit.
+> - **Integration-first for HA glue** (US-7 / NFR-9) — `config_flow`, `services`, `panel`, `sensor`, `__init__`, `coordinator`, `presence_monitor` get at least one `pytest-homeassistant-custom-component`-backed test asserting on HA-side observable state.
+> - **US-5 helper extraction with SOLID/DRY/KISS** (NFR-12) — pure helpers in shared `_helpers.py` per package; tests assertion-dense.
+> - **Distinctive test data** (NFR-10) — replace generic `""`/`0`/`None` defaults that hide mutants.
+> - **Mutmut tuned per Hovmöller 15 rules** (US-8 / NFR-13) — `mutate_only_covered_lines = true`, explicit `max_stack_depth`, verified `do_not_mutate`.
+>
+> Iteration template per module (replaces the old 2.0 template — every sub-task remains):
+>  1. **Log What & Why** (NFR-7)
+>  2. **Measure + classify** survivors into: (a) weak test → STRENGTHEN, (b) untestable structure → US-5 refactor, (c) HA framework glue → INTEGRATION test, (d) intrinsic/equivalent → ESCALATE TO HUMAN. Categories (a)–(c) account for >95% of survivors.
+>  3. **Improve** — apply the strategy from step 2 in order: strengthen first (cheapest), then integration test, then US-5 refactor. Pragma only as last resort and only with human written approval (NFR-1).
+>  4. **Re-measure targeted** — kill rate strictly increased; survivor count strictly dropped.
+>  5. **Regression guard** — `make test` + `make test-cover` (`--cov-fail-under=100`) + `make import-check` all exit 0.
+>  6. **Ratchet** — pyproject threshold raised to the new measured rate (never down), log delta row.
 
-  - **CRITICAL: Most mutations are "not checked"** — mutmut discovered 11,060 mutants but only ran tests on 3,152.
-    This means many code paths aren't tested AT ALL. The executor must write tests that exercise the code paths where mutations live.
+---
 
-  - **Step 1: Close <1% gap modules (3 modules — easiest wins)**
-    | Module | Rate | Threshold | Gap | Strategy |
-    |--------|------|-----------|-----|----------|
-    | config_flow._emhass | 38.4% | 39.0% | 0.6% | Write 1-2 tests for the specific surviving mutations |
-    | trip._trip_lifecycle | 50.8% | 51.6% | 0.8% | Write tests for the specific constants in this file |
-    | calculations.schedule | 65.0% | 78.9% | 13.9% | US-5 extract constants to module-level + test them |
+- [x] 2.15 [Hot revision · tooling tune] Apply Hovmöller rules 1–3 to `[tool.mutmut]` and re-baseline
 
-  - **Step 2: Close 1-8% gap modules**
-    | Module | Rate | Threshold | Survivors | Strategy |
-    |--------|------|-----------|-----------|----------|
-    | calculations.deficit | 76.1% | 78.9% | 56 | US-5 extract + pragmas for equivalents |
-    | calculations.power | 75.7% | 78.9% | 43 | US-5 extract + pragmas |
-    | emhass.load_publisher | 56.2% | 64.0% | 7 | US-5 extract pure helpers |
-    | emhass.adapter | 58.0% | 64.0% | 71 | US-5 extract + pragmas |
-    | services.cleanup | 43.7% | 54.8% | 80 | US-5 extract + pragmas |
-
-  - **Step 3: Close large gap modules (structural US-5)**
-    | Module | Rate | Threshold | Survivors | Strategy |
-    |--------|------|-----------|-----------|----------|
-    | trip._crud | 30.2% | 51.6% | 81 | MASSIVE: extract ALL .get("key", default) to pure helpers |
-    | trip._persistence | 12.9% | 51.6% | 61 | MASSIVE: extract ALL .get("key", default) to pure helpers |
-    | config_flow.options | 25.1% | 39.0% | 131 | MASSIVE: extract ALL .get("key", default) to pure helpers |
-
-  - **US-5 Pattern (proven working):**
-    ```python
-    # In the source module (e.g., trip/_crud.py):
-    # BEFORE:
-    value = data.get("key", "default_value")
-    # AFTER:
-    _DATA_KEY = "key"
-    _DATA_DEFAULT = "default_value"
-    def _get_data_key(data):
-        return data.get(_DATA_KEY, _DATA_DEFAULT)
-    value = _get_data_key(data)
-    ```
-    Then write tests that call `_get_data_key` directly — the mutation tests can then detect
-    when the helper returns wrong values.
+  - **Why**: rules 1, 2, 3 of the 15 are not yet wired into pyproject. Without `mutate_only_covered_lines = true` the suite mutates dead lines that no test can ever reach; without an explicit `max_stack_depth` transitive coverage inflates ratios opaquely. Fixing this BEFORE the next ramp gives a trustworthy denominator.
 
   - **Do**:
-    1. Fresh mutmut run: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.*"`
-    2. Process modules by priority: <1% gap → 1-8% gap → large gap (biggest impact first)
-    3. For each module: enumerate survivors → classify → US-5 extract or pragma or test
-    4. Re-measure per-module with mutmut
-    5. Ratchet pyproject.toml kill_thresholds (never lower)
-    6. Update delta table in .progress.md
-    7. Regression: `make test && make test-cover && make import-check` must pass
+    1. Edit `pyproject.toml` `[tool.mutmut]`: add `mutate_only_covered_lines = true`; add `max_stack_depth = 8` (justify the value in `chat.md` — 8 covers HA's typical fixture → integration → module → helper depth without rewarding incidental transitive coverage); confirm `do_not_mutate` already excludes `tests/**` and `conftest.py` (it does — verify, do not change).
+    2. Run a clean `make mutation` (full run, ~10 min). Record total mutants, killed, survived, per-module counts as the **post-tune authoritative re-baseline** in `.progress.md` under `## Re-baseline 2026-05-21 (post Hovmöller tune)`. The pre-tune numbers remain above as history.
+    3. Re-audit the 15-rule table in `design.md` — mark rules 1, 2, 3 as fully implemented; flag rule 4 (`type_check_command`) as DEFERRED with justification in `chat.md`.
 
-  - **Module priority table** (sorted by gap size, largest gaps first):
-    | Module | Checked Rate | Threshold | Gap | Survivors | Strategy |
-    |--------|-------------|-----------|-----|-----------|----------|
-    | trip._crud | 30.2% | 51.6% | 21.4% | 81 | US-5 extract helpers to pure functions |
-    | trip._persistence | 12.9% | 51.6% | 38.7% | 61 | US-5 extract + pragmas for equivalents |
-    | calculations.schedule | 65.0% | 78.9% | 13.9% | 14 | US-5 extract log strings |
-    | config_flow.options | 25.1% | 39.0% | 13.9% | 131 | US-5 extract + pragmas |
-    | services.cleanup | 43.7% | 54.8% | 11.1% | 80 | US-5 extract helpers |
-    | emhass.load_publisher | 56.2% | 64.0% | 7.8% | 7 | Small pool — target specific mutations |
-    | emhass.adapter | 58.0% | 64.0% | 6.0% | 71 | US-5 extract + pragmas |
-    | calculations.power | 75.7% | 78.9% | 3.2% | 43 | Target specific constant mutations |
-    | calculations.deficit | 76.1% | 78.9% | 2.8% | 56 | Target specific constant mutations |
-    | config_flow._emhass | 38.4% | 39.0% | 0.6% | 85 | Small gap — write 1-2 direct tests |
-    | trip._trip_lifecycle | 50.8% | 51.6% | 0.8% | 58 | Write 1 direct test |
-    | coordinator | 68.2% | 56.0% | — | — | PASSING (skip) |
+  - **Files**: `pyproject.toml`, `specs/mutation-score-ramp/.progress.md`, `specs/mutation-score-ramp/chat.md`
 
-    PASSING modules (skip): calculations._helpers, calculations.windows, sensor._async_setup,
-    services.dashboard_helpers, services._utils, services._helpers, vehicle.*,
-    panel, presence_monitor, definitions, diagnostics, yaml_trip_storage
+  - **Done when**: `grep -E 'mutate_only_covered_lines|max_stack_depth' pyproject.toml | wc -l` returns ≥ 2; fresh `make mutation` exit 0 with the re-baseline recorded; 15-rule table updated.
+
+  - **Verify**: `grep -E '^mutate_only_covered_lines = true' pyproject.toml && grep -E '^max_stack_depth' pyproject.toml && grep -q 'Re-baseline 2026-05-21' specs/mutation-score-ramp/.progress.md && echo TOOLING_TUNED`
+
+  - **Commit**: `chore(mutation-score-ramp): tune mutmut config per Hovmöller rules 1-3 + re-baseline`
+
+  - _Requirements: US-8, NFR-13, FR-16, AC-8.1, AC-8.2, AC-8.3, AC-8.4_
+
+---
+
+- [ ] 2.16 [Hot revision · pragma re-audit] NFR-1b — Re-audit the 118 prior pragmas; remove every one that is not human-approved
+
+  - **Why**: iterations 13–18 added 118 pragmas labelled "verified not US-5 applicable" via a ≥2-subagent procedure that did NOT include human escalation. NFR-1 (hot revision) requires human approval *in writing* in `chat.md` for every retained pragma, with a complete NFR-11 dossier. Most prior pragmas are removable once integration tests (NFR-9) and multi-attribute asserts (NFR-8) replace them.
+
+  - **Procedure (per pragma, one file at a time)**:
+    1. List every `# pragma: no mutate` currently in `custom_components/ev_trip_planner/**` (~118 expected after 2.18.7 audit). Group by module/file.
+    2. For each pragma, attempt — in this order — to kill the underlying mutant:
+       - **(a) Strengthen the existing test** (NFR-8): use `mutmut tests-for-mutant <id>` to find the test that already runs the line; add asserts on every relevant attribute of return/state/dispatched-call args.
+       - **(b) Add an integration test** (NFR-9) for HA-glue modules: `pytest-homeassistant-custom-component` driving the real flow, assertion on HA-side state.
+       - **(c) US-5 refactor** (NFR-12): extract a pure helper under SOLID/DRY/KISS into the package's `_helpers.py`; test the helper directly with assertion density.
+       - **(d) Distinctive data** (NFR-10): replace generic `""`/`0`/`None` test data with values that distinguish the mutated branch.
+    3. If (a)–(d) all fail for a specific mutant, write the NFR-11 dossier (mutant id, source, what was tried, why it failed) and **ESCALATE TO HUMAN** in `chat.md` requesting written approval to retain the pragma. Wait for the human's reply before continuing on that mutant.
+    4. Otherwise, **remove** the `# pragma: no mutate` line and re-run targeted mutmut to confirm the mutant is now killed.
+
+  - **Do**: process the 118 pragmas in this order (smallest blast radius first → biggest):
+    1. `services/_handler_factories.py` (13) and `services/cleanup.py` (4), `services/dashboard_helpers.py` (3), `services/_utils.py` (2), `services/__init__.py` (1) — total ~23 pragmas; strategy: helper extraction into `services/_helpers.py` (already exists — extend it) + integration test for `services.async_setup_entry` lifecycle.
+    2. `vehicle/{controller,strategy,external}.py` — pragmas already removed in 2.18.7.1 verification (16 → 0). No action; record that they are at 0 to close the audit row.
+    3. `trip/_*.py` (36 retained) — split by file; integration test driving real trip lifecycle for `_crud`, `_persistence`, `_schedule`, `_emhass_sync`; helper extraction for `.get()` defaults in `_soc_helpers`, `_soc_query`, `_soc_window`, `_trip_navigator`, `manager`; assertion strengthening for `_sensor_callbacks` event dispatchers and `_trip_lifecycle`.
+    4. `emhass/{adapter,load_publisher,error_handler,index_manager}.py` (35) — integration test driving the EMHASS adapter through real config-entry + clock-freezer; helper extraction for config-key `.get()` patterns; distinctive data (real ISO timestamps, real-shape config dicts) for `index_manager`.
+    5. `calculations/{_helpers,deficit,power,schedule,windows,core}.py` (46) — `power.py` is at 0 survivors so its pragmas are pure defensive and can be removed outright; `_helpers._strip_accents` uses distinctive accented inputs (NFR-10) to flush the `"NFKD"`/`"ascii"` mutations; `deficit.py`, `schedule.py`, `windows.py`, `core.py` pure math gets boundary parametrisation that distinguishes constant mutations.
+
+  - **Files**: `custom_components/ev_trip_planner/**/*.py`, `tests/unit/**`, `tests/integration/**`, `specs/mutation-score-ramp/chat.md`, `specs/mutation-score-ramp/.progress.md`
+
+  - **Done when**: `grep -rc '# pragma: no mutate' custom_components/ | awk -F: '{s+=$2} END{print s}'` returns ≤ 10; every retained pragma traces to a `HUMAN APPROVED: <quote>` entry in `chat.md` AND a complete NFR-11 dossier; `make test` and `make test-cover` green.
+
+  - **Verify**: `count=$(grep -rh '# pragma: no mutate' custom_components/ | wc -l); approved=$(grep -c '^HUMAN APPROVED' specs/mutation-score-ramp/chat.md); test "$count" -le 10 && test "$approved" -ge "$count" && echo PRAGMA_REAUDIT_OK || echo PRAGMA_REAUDIT_FAIL`
+
+  - **Commit**: `chore(mutation-score-ramp): NFR-1b — re-audit 118 prior pragmas, remove unjustified, keep ≤10 with human approval`
+
+  - _Requirements: NFR-1, NFR-1b, NFR-11, US-5, US-6, US-7, US-8, US-9_
+
+---
+
+### 2.17 — 2.27 — Per-module real-kill iterations (worst-first by survivor count, coordinator prioritised because it fails the gate)
+
+> Template per iteration block (each `2.N.x` follows the SAME 6 sub-tasks; the *strategy* differs per module — see "Focus" below). The iteration is DONE when the targeted module's measured rate is strictly greater than entry AND the module's surviving pragmas are ≤ the post-NFR-1b ceiling AND `make test` + `make test-cover` + `make import-check` exit 0. The threshold is ratcheted to the new rate. **Pragma proposals require human escalation (NFR-1) — never auto-add.**
+
+- [ ] 2.17 [Iteration: coordinator] gate-failing module — push past 56.0% threshold and toward 100%
+
+  - **Focus**: coordinator is the only module currently *failing* its threshold (55.9% vs 56.0%). 64 survivors. Heavy `update_interval` / refresh-cycle / passthrough mutations.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: drive `DataUpdateCoordinator` against a real `hass` with `freezegun`; assert `last_update_success`, `data` shape (every key), and that `update_interval == timedelta(seconds=30)` exactly.
+    2. *Multi-assert (NFR-8)*: existing `test_coordinator.py` tests that assert "refresh was called" — extend to assert on every key of the returned `data` dict and on `last_update_success_time` monotonic.
+    3. *US-5 (NFR-12)*: any log-string constants not yet extracted → constants in `coordinator.py`; tests assert on the exact constant via `caplog`.
+  - **Do**: follow the 6 sub-tasks template (What&Why → Measure+classify → Improve → Re-measure → Regression → Ratchet). Specifically: bring coordinator above 56% threshold first, then ratchet toward 100% in a follow-up if survivors remain.
+  - **Verify**: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.coordinator.*"`; coordinator rate strictly > 55.9%; `make mutation-gate` no longer FAILs on coordinator.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — coordinator past gate threshold`
+  - _Requirements: US-4, US-6, US-7, US-9, AC-4.5, AC-7.1, NFR-8, NFR-9_
+
+- [ ] 2.18 [Iteration: trip] largest survivor pool (~996); split into per-file sub-iterations
+
+  - **Focus**: `trip/_crud`, `_persistence`, `_emhass_sync`, `_schedule`, `_power_profile`, `_sensor_callbacks`, `_soc_window`, `_soc_query`, `_soc_helpers`, `_trip_lifecycle`, `_trip_navigator`, `manager`. Heavy HA-glue + `.get()` defaults + log strings.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: full trip lifecycle through a real `hass` — create vehicle, add recurring + punctual trips, save/load via `_persistence`, query SOC via `_soc_query`, emit sensor callbacks, navigate via `_trip_navigator`. Assert on persisted shape + emitted state.
+    2. *US-5 helpers (NFR-12)*: extend `services/_helpers.py` pattern into a new `trip/_helpers.py` covering `.get()`-with-default for trip data shape; refactor every call site in `trip/_*` to use the helpers; test helpers with assertion density.
+    3. *Multi-assert (NFR-8)*: tests on `TripCRUD.async_add_*` and `SOCWindow.calcular_ventana_carga` strengthen from "result is truthy" to "result == fully-pinned dataclass with every field".
+    4. *Distinctive data (NFR-10)*: trip ids like `"trip-monday-commute-7am"` instead of `"t1"`; SOC values like `73.5`/`42.7`.
+  - **Do**: follow the 6 sub-tasks template. Re-run `mutmut run --max-children=4 "custom_components.ev_trip_planner.trip.*"` after each per-file pass.
+  - **Verify**: trip overall measured rate strictly > 53.1%; survivor count strictly < 996; pragma count for `trip/**` strictly < its starting value (36 from 2.18.7 audit); `make test-cover` 100%.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — trip real-kill via integration + helpers + multi-assert`
+  - _Requirements: US-4, US-5, US-6, US-7, US-9, AC-6.x, AC-7.x, NFR-8, NFR-9, NFR-10, NFR-12_
+
+- [ ] 2.19 [Iteration: emhass] adapter + load_publisher + error_handler + index_manager (~701 survivors)
+
+  - **Focus**: EMHASS adapter is dense in HA-glue + config-`.get()` + timestamp comparisons.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: drive `EmhassAdapter` through real config-entry + `freezegun` clock; assert on every entity registered for deferrable loads and on the `IndexManager` cooldown state across time.
+    2. *US-5 helpers (NFR-12)*: `emhass/_helpers.py` consolidates config-key `.get()` defaults and validation; tests on the helpers with assertion-dense unit tests.
+    3. *Multi-assert (NFR-8)*: on `publish`, `remove`, `_calculate_deadline` — assert on the full dispatched call args, not "was called".
+    4. *Distinctive data (NFR-10)*: real ISO timestamps in the future and past, real-shape EMHASS config dicts with all fields populated.
+  - **Verify**: emhass rate strictly > 64.2%; survivor count strictly < 701; emhass pragma count strictly < 35.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — emhass real-kill`
+  - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-12_
+
+- [ ] 2.20 [Iteration: services] handler factories + register_services + cleanup + dashboard_helpers (~638 survivors)
+
+  - **Focus**: heavy HA-glue (`hass.services.async_call`, panel registration, schema). 23 pragmas to re-audit + ~615 unsuppressed survivors.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: real `hass` + `async_setup_entry`; call each registered service (`trip.add_recurring`, `trip.update`, `trip.remove`, ...) with realistic payloads; assert on resulting state (entity changes, persisted trip data).
+    2. *Extend `services/_helpers.py`* (already exists with `get_str` etc.) — every `.get()` default in `_handler_factories.py` refactored to use the helpers; helper unit tests with assertion density.
+    3. *Multi-assert (NFR-8)*: `hass.services.async_call(...)` assertions become full-tuple checks (domain + service + data dict + blocking flag).
+    4. *Cleanup integration (NFR-9)*: `async_unload_entry_cleanup` exercised end-to-end and asserted on resulting registry/state.
+  - **Verify**: services rate strictly > 60.7%; survivor count strictly < 638; pragma count strictly < 23.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — services real-kill`
+  - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-12_
+
+- [ ] 2.21 [Iteration: calculations] pure math + accent stripping + deficit / power / schedule / windows (~422 survivors)
+
+  - **Focus**: pure math survivors that look "equivalent" only because tests pass round numbers.
+  - **Strategy**:
+    1. *Distinctive data (NFR-10)*: `_strip_accents` exercised with `"árbol"`, `"João"`, `"NIÑO"`; SOC/deficit math exercised with non-round inputs (`73.5`, `42.7`) so `100.0`→`101.0` and `round(x, 2)`→`round(x)` mutations flip the asserted output.
+    2. *Boundary parametrisation*: every `min`/`max`/`clamp` tested with the boundary value AND a value just inside/outside.
+    3. *Multi-assert (NFR-8)*: deficit propagation and window calculations assert on full output shape, including all intermediate dict keys, not just the headline number.
+    4. *Verify deficit.py origin-bug fix*: confirm `result["adjusted_def_total_hours"] = 0.0` (NOT `round(original_def_total, 2)`) at lines 480-483; add an explicit regression test if missing.
+  - **Verify**: calculations rate strictly > 79.0%; survivor count strictly < 422; pragma count for calculations strictly < 46; deficit.py origin returns 0.0 confirmed in source.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — calculations real-kill via distinctive data + boundary parametrisation`
+  - _Requirements: US-4, US-6, US-9, NFR-8, NFR-10_
+
+- [ ] 2.22 [Iteration: sensor] entity setup + update + remove (~306 survivors)
+
+  - **Focus**: `sensor/_async_setup.py`, `sensor/_async_update.py`, entity classes. Heavy lifecycle/glue.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: real `hass`, real entity platform setup; assert on `hass.states.async_get(...)` for every created sensor — `state`, `attributes`, `unique_id`, `device_class`, `state_class`, `unit_of_measurement`, `icon`.
+    2. *US-5 helpers (NFR-12)*: extract sensor-attribute builders to pure helpers; unit-test the helpers with assertion density.
+    3. *Multi-assert (NFR-8)*: state-update tests assert on every changed attribute, not just the headline `state` value.
+  - **Verify**: sensor rate strictly > 56.1%; survivor count strictly < 306.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — sensor real-kill`
+  - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9_
+
+- [ ] 2.23 [Iteration: config_flow] form schemas + options + voluptuous defaults (~285 survivors)
+
+  - **Focus**: config_flow is the lowest current rate (39.4%). Schema-default mutations + form-key string mutations dominate.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: walk `async_step_user`, `async_step_init`, `async_step_options` end-to-end through a real `hass`; submit valid + edge-case inputs; assert on `config_entry.data` + `options` shape including every key the schema declared.
+    2. *Multi-assert (NFR-8)*: tests that previously asserted "form is shown" now assert on the schema's `vol.Required`/`vol.Optional` keys *and* their default values *and* their validators.
+    3. *Distinctive data (NFR-10)*: real-shape config payloads with all fields populated; boundary cases for `planning_horizon_hours`, `max_loads`.
+    4. *Pure helpers split-out (NFR-12)*: continue the `config_flow/_options_helpers.py` pattern (already added in this branch) — extract any remaining schema-build / validation logic to pure helpers, test the helpers with assertion density.
+  - **Verify**: config_flow rate strictly > 39.4%; survivor count strictly < 285.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — config_flow real-kill via integration + schema-key multi-assert`
+  - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-10, NFR-12_
+
+- [ ] 2.24 [Iteration: vehicle] controller + strategy + external (~147 survivors)
+
+  - **Focus**: vehicle module after 2.18.7 already removed all 16 prior pragmas via US-5 log constants. Remaining survivors are HA service-call arg mutations and strategy branch coverage.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: real `hass`, vehicle controller activate/deactivate through each strategy (switch, script, service); assert on `hass.states.async_get(...)` for the controlled entity AND on `hass.services.async_call(...)` full-tuple args.
+    2. *Multi-assert (NFR-8)*: `test_vehicle_strategies.py` already strengthened in iter 16 — extend to assert on `external` HTTP call args fully when applicable.
+    3. *Distinctive data (NFR-10)*: realistic vehicle ids, strategy configs with all fields populated.
+  - **Verify**: vehicle rate strictly > 68.1%; survivor count strictly < 147; pragma count for vehicle stays at 0.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — vehicle real-kill`
+  - _Requirements: US-4, US-6, US-7, US-9, NFR-8, NFR-9, NFR-10_
+
+- [ ] 2.25 [Iteration: __init__] integration lifecycle (~142 survivors)
+
+  - **Focus**: `async_setup_entry`, `async_unload_entry`, `_hourly_refresh_callback`. Heavy HA lifecycle glue.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: real `hass`; setup → unload → re-setup cycle; assert on `hass.data[DOMAIN]` contents at each step.
+    2. *US-5 (NFR-12)*: extract `_hourly_refresh_callback` body to a pure helper that takes inputs explicitly; unit test the helper with assertion density.
+    3. *Multi-assert (NFR-8)*: log-constant assertions for every emitted `_LOG_*` constant (already partially extracted in iter 12).
+  - **Verify**: __init__ rate strictly > 57.0%; survivor count strictly < 142.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — __init__ real-kill`
+  - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9, NFR-12_
+
+- [ ] 2.26 [Iteration: presence_monitor] state-change listeners + notifications (~82 survivors)
+
+  - **Focus**: state listener, notification dispatcher, coordinate parsing, condition validation.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: real `hass` bus; fire state-change events that should trigger the monitor; assert on subsequent state / notification side effects.
+    2. *US-5 (NFR-12)*: `_parse_coordinates`, `validate_condition_is_native` already pure-ish — verify their tests assert on every output field; if not, strengthen.
+    3. *Multi-assert (NFR-8)*: `_async_send_notification` tests assert on every dispatched-call kwarg.
+  - **Verify**: presence_monitor rate strictly > 81.4%; survivor count strictly < 82.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — presence_monitor real-kill`
+  - _Requirements: US-4, US-6, US-7, US-9, NFR-8, NFR-9_
+
+- [ ] 2.27 [Iteration: panel] frontend registration (~69 survivors)
+
+  - **Focus**: 4 pure helpers already exist from iter 2 (`build_frontend_url_path`, `build_panel_config`, `build_module_url`, `build_panel_kwargs`). Remaining survivors are HA framework registration.
+  - **Strategy**:
+    1. *Integration test (NFR-9)*: real `hass` + `frontend.async_get_panels(hass)`; assert on every panel kwarg (sidebar title, icon, module_url, embed_iframe, require_admin, config dict).
+    2. *Multi-assert (NFR-8)*: pure-helper tests assert on the full returned shape, not just one substring.
+  - **Verify**: panel rate strictly > 65.3%; survivor count strictly < 69.
+  - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — panel real-kill via frontend integration test`
+  - _Requirements: US-4, US-6, US-7, US-9, NFR-8, NFR-9_
+
+---
+
+- [ ] 2.28 [VERIFY] Hot-revision end-of-Phase-2 gate — overall rate == 1.0, ≤10 pragmas, all human-approved
 
   - **Do**:
-    1. Fresh mutmut run: `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.*"`
-    2. Process modules in order: largest gap first
-    3. For each survivor: classify as equivalent (pragma), numeric (direct test), glue-code (US-5 extract)
-    4. For US-5 extract: create module-level pure helper functions, refactor call sites, add tests for helpers
-    5. Re-measure per-module after changes
-    6. Ratchet pyproject.toml kill_thresholds (never lower)
-    7. Update delta table in .progress.md
-    8. Regression: `make test && make test-cover && make import-check` must pass
-
-  - **US-5 Extract Pattern** (proven to work — used in panel.py, services/_handler_factories.py):
-    ```python
-    # Before (mutation-prone):
-    return str(data.get("key", "default"))
-
-    # After (pure helper, testable):
-    _DEFAULT_KEY = "default"  # module-level constant
-
-    def _get_str(data, key, default=_DEFAULT_KEY):
-        return str(data.get(key, default))
-
-    # Call sites use the helper
-    return _get_str(data, "key")
-    ```
-
-  - **Done when**: ALL modules above reach/exceed their kill_threshold; modules at 100% stay at 100%
-
-  - **Verify**: `.venv/bin/mutmut results --all true 2>&1 | grep -oP ': killed' | wc -l && echo KILLED_COUNT_OK`
-
-  - **Commit**: `chore(mutation-score-ramp): iteration 17 — close module gap to threshold`
-
-  - _Requirements: NFR-1 (no pragma for killable mutations), NFR-2 (never lower thresholds), US-1, US-5
-
-  - **Files**: `custom_components/ev_trip_planner/**`, `tests/**` (as needed)
-
-  - **Done when**: all modules with ≤20 survivors handled; <1% gap modules at threshold; modules with >20 survivors get pragmas for equivalent mutations
-
-  - **Verify**: `.venv/bin/mutmut results --all true 2>&1 | grep -c ": killed"`
-
-  - **Commit**: `chore(mutation-score-ramp): iteration 17 — close small gaps and handle ≤20 survivor modules`
-
-  - _Requirements: NFR-1, NFR-2, US-1, US-5_
-
-  - **Files**: `custom_components/ev_trip_planner/**`, `tests/**` (as needed per survivor classification)
-
-  - **Done when**: every module reaches/exceeds its kill_threshold; modules with target_final=1.00 reach 1.00
-
-  - **Verify**: `.venv/bin/mutmut results --all true 2>&1 | grep -c ": killed" && echo KILLED_COUNT_OK`
-
-  - **Commit**: `chore(mutation-score-ramp): iteration 16 — all-modules ramp toward per-module thresholds`
-
-  - _Requirements: NFR-1, NFR-2, US-1, US-5_
+    1. Full `make mutation` (~10 min) + `make mutation-gate`. Confirm gate `RESULT: OK`, overall kill rate JSON `== 1.0`, every per-module rate `== 1.00`, every threshold `== 1.00`.
+    2. Count remaining `# pragma: no mutate` lines: `grep -rh '# pragma: no mutate' custom_components/ | wc -l`. Must be ≤ 10.
+    3. For each remaining pragma, confirm `chat.md` contains a `HUMAN APPROVED:` block citing the mutant id and a complete NFR-11 dossier.
+    4. Confirm `make test`, `make test-cover` (`--cov-fail-under=100`), `make import-check` exit 0.
+  - **Files**: `specs/mutation-score-ramp/.progress.md`, `specs/mutation-score-ramp/chat.md`
+  - **Done when**: gate OK + overall rate 1.00 + ≤10 pragmas + every pragma human-approved with dossier + regression guard green.
+  - **Verify**: `make mutation && make mutation-gate 2>&1 | tee /tmp/gate.txt | grep -E 'RESULT:.*OK' && ! grep -E 'kill_rate.*0\.[0-9]' /tmp/gate.txt && count=$(grep -rh '# pragma: no mutate' custom_components/ | wc -l) && approved=$(grep -c '^HUMAN APPROVED' specs/mutation-score-ramp/chat.md) && [ "$count" -le 10 ] && [ "$approved" -ge "$count" ] && echo HOT_REV_PHASE2_PASS`
+  - **Commit**: `chore(mutation-score-ramp): hot-rev Phase 2 gate — 100% kill rate, ≤10 human-approved pragmas`
+  - _Requirements: US-4, US-8, NFR-1, NFR-1b, NFR-11, NFR-13, AC-4.4, AC-8.5_
 
 ## Phase 3: Final verification & quality gates
 
@@ -2938,7 +3031,9 @@ Focus: autonomous PR validation loop until all completion criteria are met.
 
 - **Phase-B iteration count is UNBOUNDED** — tasks 2.1.x..2.11.x are the planned set; task 2.12 is the gate that forces the executor to add 2.13.x+ blocks (per the 2.0 template) for any module still <100%. The spec is NOT done until every module is at 100%.
 
-- **NFR-1 adjudication (2.0-ADJ)** is a procedure, not a numbered task — invoked inline within an `improve` task only after a US-5 refactor is exhausted, requiring ≥2 independent expert-subagent dual-APPROVE, logged.
+- **HOT REVISION (2026-05-21)** introduced tasks 2.15–2.28 (this section) AS THE current path to 100%. The prior 2.15 stale block is superseded. Completed iterations 1–18 (149/159 tasks at the time of revision) remain checked-off; nothing is rolled back. The new flow: tooling tune (2.15) → pragma re-audit (2.16) → per-module real-kill iterations 2.17–2.27 worst-first → hot-rev gate (2.28) → existing Phase 3 (3.7, 3.8, VE0–VE3) → Phase 4 (4.1–4.3).
+
+- **NFR-1 adjudication is now HUMAN escalation** (hot revision). The prior ≥2-subagent procedure is RETIRED. Every pragma proposal — including retaining an existing pragma — requires the executor to produce the NFR-11 dossier in `chat.md` and obtain a `HUMAN APPROVED:` written reply. Ceiling: ~10 pragmas project-wide.
 
 - **Worst-first order** below is expected from design B.1 — the executor reorders per the A.1 authoritative baseline (task 1.5) if it differs.
 
@@ -2952,14 +3047,16 @@ Focus: autonomous PR validation loop until all completion criteria are met.
 
 
 
-- **Phase 1 (Tooling & Config Hardening)**: 25 tasks (1.1–1.25)
+- **Phase 1 (Tooling & Config Hardening)**: 25 tasks (1.1–1.25) — DONE.
 
-- **Phase 2 (Worst-first ramp to 100%)**: 70 tasks — 11 iteration blocks × 6 sub-tasks = 66, plus 3 embedded gate checkpoints (2.3.7, 2.6.7, 2.9.7), plus the unbounded-iteration gate (2.12).
+- **Phase 2 (Worst-first ramp to 100%)**: 70 tasks — 11 iteration blocks × 6 sub-tasks = 66, plus 3 embedded gate checkpoints (2.3.7, 2.6.7, 2.9.7), plus the unbounded-iteration gate (2.12). Iterations 1–18 DONE.
 
-- **Phase 3 (Final verification & quality gates)**: 12 tasks (3.1–3.8, VE0, VE1, VE2, VE3)
+- **Phase 2 HOT REVISION (added 2026-05-21)**: 14 new tasks — 2.15 (tooling tune), 2.16 (pragma re-audit / NFR-1b), 2.17–2.27 (11 per-module real-kill iterations worst-first), 2.28 (hot-rev gate).
 
-- **Phase 4 (PR Lifecycle)**: 3 tasks (4.1, 4.2, 4.3-VF)
+- **Phase 3 (Final verification & quality gates)**: 12 tasks (3.1–3.8, VE0, VE1, VE2, VE3) — gated by 2.28.
 
-- **TOTAL: 110 tasks** (planned; unbounded — grows if Phase-B modules need extra iteration blocks via task 2.12).
+- **Phase 4 (PR Lifecycle)**: 3 tasks (4.1, 4.2, 4.3-VF).
 
-- **Iteration-milestone task**: `2.0` (per-iteration task template). First instantiated iteration block: `2.1.1–2.1.6` (config_flow).
+- **TOTAL: 124 tasks** (planned; unbounded — grows if any module in 2.17–2.27 needs further sub-iterations).
+
+- **Iteration-milestone task**: `2.0` (per-iteration task template, applied to all hot-revision iterations). First hot-rev iteration: `2.17` (coordinator — gate-failing).

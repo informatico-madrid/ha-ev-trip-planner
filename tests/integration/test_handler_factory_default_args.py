@@ -30,7 +30,6 @@ from custom_components.ev_trip_planner.services._handler_factories import (
     make_trip_list_handler,
     make_trip_update_handler,
 )
-
 from tests.integration.conftest import _build_hass
 
 logger = logging.getLogger(__name__)
@@ -138,8 +137,8 @@ class TestTripListRemoveArgMutations:
         changes vehicle_id from "unknown" to None.
         """
         # Need a matching config entry so "unknown" vehicle_id resolves
-        from tests.integration.conftest import _MockConfigEntry
         from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+        from tests.integration.conftest import _MockConfigEntry
 
         hass = MagicMock()
         hass.data = {}

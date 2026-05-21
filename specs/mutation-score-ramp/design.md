@@ -3,7 +3,7 @@ spec: mutation-score-ramp
 basePath: specs/mutation-score-ramp
 epic: tech-debt-cleanup
 phase: design
-updated: 2026-05-18
+updated: 2026-05-21
 ---
 
 # Design: Mutation Score Ramp
@@ -224,21 +224,167 @@ Decision rule applied per survivor:
 - Every refactor names, in `chat.md`, the specific mutant(s)/logic it makes testable (AC-5.1, FR-12). Typical pattern: extract a closure body or an inline branch into a module-level pure helper, then unit-test that helper directly.
 - Source-inspection test exclusions (`test_solid_metrics`, `test_vehicle_controller_event`) MAY remain but MUST NOT be expanded (NFR-1).
 
-## Unkillable-mutant Adjudication Workflow (decision #3/#4, NFR-1)
+## Pragma Policy (NFR-1, NFR-1b, NFR-11) — HUMAN-ESCALATED, REFERENCE-CLASS SCARCE
 
-A `# pragma: no mutate` comment is the **only** sanctioned suppression, and only after:
+A `# pragma: no mutate` comment is **not** a routine tool in this spec. It is an emergency hatch reserved for mutants the broader testing community has documented as intrinsically unkillable. Reference class: PHP/Infection-style projects 10× the size of this codebase carry roughly 10 pragmas total, on functions whose untestability is well-understood (e.g. `__version__` constants, `break`-vs-`continue` performance optimisations where the loop terminates regardless, debug-only branches behind compile-time flags). The project-wide ceiling for THIS spec is the same order of magnitude: **~10 pragmas total**.
 
-1. **US-5 refactor exhausted first** — aggressive testability refactor is mandatory before any mutant may be called unkillable. A mutant is a candidate only if it survives even after the logic is exposed for direct testing.
-2. **Two independent expert subagents** review *each* proposed comment. They are spawned separately (blinded — each gets the mutant in isolation, not the other's verdict). Each receives:
-   - the exact mutant id (e.g. `custom_components.ev_trip_planner.panel.xǁ…ǁ…__mutmut_7`),
-   - the original source line and the mutated line (`mutmut show <id>`),
-   - the tests that exercise it (`mutmut tests-for-mutant <id>`),
-   - the executor's argument for why it is intrinsic/equivalent.
-3. **Verdict**: both must independently APPROVE (confirm genuinely intrinsic/equivalent — no honest test can ever distinguish it). Any REJECT → back to refactor or stronger test. No solo decision.
-4. **Logging**: the mutant identity, both subagent names, both verdicts, and the reasoning are written to `chat.md` and `.progress.md` (AC-4.4, NFR-1).
-5. A survivor caused by **bad architectural design** is NOT eligible for a comment — it MUST be refactored (decision #3b).
+### Prior pragma audit (NFR-1b) — supersedes the historical ≥2-subagent workflow
 
-The adjudicated set must be minimised; if it grows large enough to suggest a tooling/architecture gap, escalate for a scope decision.
+The 118 pragmas labelled "verified not US-5 applicable" in iterations 13–18 were added through a ≥2-subagent workflow that did NOT include human escalation. That workflow is RETIRED. Those 118 pragmas are presumed removable and MUST be re-audited one by one:
+
+| Prior label (presumed removable) | Default outcome | Real path to kill |
+|---|---|---|
+| "HA framework call args / glue" | Remove pragma, write integration test (NFR-9) | Drive real HA core via `pytest-homeassistant-custom-component`, assert on observable side effect (registered entity, panel id, schema-validated value). |
+| "Log text / None-in-log" | Remove pragma, extract `_LOG_*` constants, multi-assert (NFR-8) + caplog | Helper function returns the constant, test asserts on the exact log line. |
+| "default_value on `.get()`" | Remove pragma, refactor to pure helper (US-5) + assertion-dense unit test (NFR-8) | Pattern in `services/_helpers.py` — `get_str`, `get_str_fallback`, `get_str_nested`, `get_bool`, `get_vehicle_id`. Tests assert exact return for present, missing-with-default, missing-without-default. |
+| "String case on encoding param" | Remove pragma, replace generic test data (NFR-10), assert on output | Use distinctive accented input (`"árbol"`, `"João"`) so a `"NFKD"`→`"nfkd"` mutation produces a different normalised output. |
+| "Numeric constant in default" | Remove pragma, distinctive parametrised test (NFR-10) | Test the boundary value AND a value just inside/outside (so `100.0`→`101.0` swaps the truth of a `<=` check). |
+| "Event dispatcher returning None" | Remove pragma, multi-assert on side effects (NFR-8) | Spy on the dispatcher; assert on event name + payload + count, not just "called once". |
+| "Pure math intrinsic" | Likely keep, but ESCALATE to human first | Only after a documented attempt at boundary parametrisation fails. |
+
+### Workflow for ANY pragma proposal (new or retained)
+
+```mermaid
+sequenceDiagram
+    participant Dev as Executor
+    participant H as Human
+    participant Chat as chat.md
+    participant Code as source / tests
+    Dev->>Dev: US-5 helper extraction attempted
+    Dev->>Dev: NFR-8 multi-assert strengthening attempted
+    Dev->>Dev: NFR-9 integration test attempted
+    Dev->>Dev: NFR-10 distinctive test data attempted
+    Note over Dev: All four attempts must be DOCUMENTED in chat.md
+    Dev->>Chat: Write dossier (mutant id, source, helpers tried, integration test outcome, data variants tried)
+    Dev->>H: ESCALATE — request pragma approval
+    H-->>Dev: APPROVE (with reasoning) | REJECT
+    alt APPROVED in writing
+        Dev->>Code: Add # pragma: no mutate to that one line
+        Dev->>Chat: Append human approval verbatim
+    else REJECTED
+        Dev->>Dev: Pick a different US-5/US-6/US-7 strategy and retry
+    end
+```
+
+### Hard rules (DoD #7, NFR-11)
+
+1. **No pragma without human approval, in writing, in `chat.md`.** The ≥2-subagent procedure does NOT substitute for human approval — it has been retired for this spec.
+2. **No pragma without a complete NFR-11 dossier** — every retained pragma carries: mutant id, original/mutated source, US-5 helper signature considered + why it failed, NFR-8 assertion strengthening attempted + why it failed, NFR-9 integration test attempted + why it failed, NFR-10 distinctive test data attempted + why it failed.
+3. **No pragma on bad architecture.** A survivor caused by an un-injected dependency, a god-object, or a non-substitutable closure MUST be refactored (US-5) — not pragma'd.
+4. **Pre-existing exclusions** (`test_solid_metrics`, `test_vehicle_controller_event`) MAY remain but MUST NOT be expanded.
+5. **Project ceiling: ~10 pragmas.** If the count drifts above ~10 during the ramp, that is a signal to escalate the *strategy*, not to add more pragmas — likely a missing integration-test pattern or a refactor opportunity not yet attempted.
+
+## Mutmut Best-Practice Compliance (Hovmöller 15 Rules)
+
+Reference: mutmut official docs (`mutmut.readthedocs.io`) + Anders Hovmöller, *"Mutation testing in practice"* (kodare.net, 2016). Each rule, its mapping to this spec, and its status under the hot revision:
+
+| # | Rule | Spec mapping | Status & action |
+|---|---|---|---|
+| 1 | `mutate_only_covered_lines = true` — only mutate executed lines | US-8 AC-8.1, NFR-13, FR-16 | **IMPLEMENTED**: set in `[tool.mutmut]` 2026-05-21. Post-tune re-baseline run (2026-05-21) could not complete full mutation evaluation due to Python 3.14 / bleak / dbus_fast dependency incompatibility in `pytest-homeassistant-custom-component`; config verified present. |
+| 2 | `do_not_mutate` excludes tests, conftest, generated code | US-8 AC-8.3 | **IMPLEMENTED**: `paths_to_mutate` restricts to `custom_components/ev_trip_planner` — tests implicitly excluded. Explicit `do_not_mutate` key not needed (verified via mutmut 3.5.0 source). |
+| 3 | `max_stack_depth` to keep tests localised | US-8 AC-8.2, NFR-13 | **IMPLEMENTED**: set to `8` in `[tool.mutmut]` 2026-05-21. Justification: covers HA's typical fixture→integration→module→helper chain (6–8 frames) without rewarding incidental transitive coverage. Full justification in chat.md. |
+| 4 | `type_check_command` filters mutants invalid under types | (optional) | **DEFERRED**: project uses partial typing; adding `type_check_command` (e.g. `mypy`) would require mypy to pass on all mutants. Most mutants change string literals and default values — type signature mutations are rare. ROI unclear; defer unless mypy adoption increases. |
+| 5 | Pragmas only for genuinely equivalent/intrinsic mutants | NFR-1, NFR-11, US-5, prior-audit table above | **ACTION**: re-audit 118 prior pragmas; remove all without complete NFR-11 dossier + human approval. |
+| 6 | Loop: measure → classify → write test → re-run → revert mutation → confirm pass | B.2 per-iteration loop | **OK** for honest iterations; **ACTION**: the loop step "write a test to try to kill it" was previously skipped in favour of pragmas — re-enforced by NFR-8/9/10 and the iteration template. |
+| 7 | US-5 refactor (testability) BEFORE pragma | US-5, NFR-11 | **ACTION**: every retained-pragma proposal documents the US-5 attempt; refactor first, pragma last. |
+| 8 | Formal adjudication for each pragma | NFR-1 (human escalation) | **ACTION**: human escalation is now the adjudication; ≥2-subagent procedure retired. |
+| 9 | Strong tests that assert observable effects, not stubs | US-6, NFR-8 | **ACTION**: assertion-density audit per module; multi-attribute asserts on dict/dataclass/dispatched-call returns. |
+| 10 | 100% line coverage before measuring kill rate | NFR-3, AC-4.6 | **OK**: `make test-cover --cov-fail-under=100` already enforced. |
+| 11 | Integration tests with real framework for glue code | US-7, NFR-9 | **ACTION**: each HA-glue-dominated module grows an integration test using `pytest-homeassistant-custom-component`. |
+| 12 | Granular per-module targeting | B.1, C3 (positional mutmut globs) | **OK**: targeted runs in place via positional globs. |
+| 13 | No pragma-as-shortcut — write a test or refactor | NFR-1, NFR-1b, NFR-11 | **ACTION**: 118 prior pragmas re-audited under this rule. |
+| 14 | Kill rate monotonically non-decreasing | AC-4.2 | **OK** for honest moves; **WATCH**: pragma removals may locally *drop* the kill rate before refactor/test work pushes it back up — this is acceptable so long as the iteration ends above its entry rate. |
+| 15 | Classify survivors: (a) weak test, (b) untestable structure, (c) intrinsic/equivalent, (d) bad architectural design | US-5 testability strategy table | **ACTION**: classification re-applied per module with the new strategies (NFR-8/9/10), so very few survivors land in (c) and none in (d) without a refactor. |
+
+A re-audit of this table runs at every gate checkpoint and at every iteration's "Measure + classify" sub-task.
+
+## Multi-Attribute Assertion Pattern (US-6, NFR-8)
+
+The single highest-leverage move available in this spec is to strengthen the assertions on tests that *already exercise* a surviving mutant. One test with N relevant assertions kills N mutants the same test previously left alive — no new test files, no fixture churn.
+
+### Decision tree for a survivor whose corresponding test exists
+
+```dot
+digraph multi_assert {
+    "Survivor X exercised by test T?" [shape=diamond];
+    "Test T asserts every relevant attribute of return/state/call?" [shape=diamond];
+    "Strengthen T (add asserts)" [shape=box];
+    "Survivor X in callee not asserted by T" [shape=diamond];
+    "Add direct test for callee" [shape=box];
+    "Apply NFR-9 integration test" [shape=box];
+
+    "Survivor X exercised by test T?" -> "Test T asserts every relevant attribute of return/state/call?" [label="yes"];
+    "Survivor X exercised by test T?" -> "Survivor X in callee not asserted by T" [label="no"];
+    "Test T asserts every relevant attribute of return/state/call?" -> "Strengthen T (add asserts)" [label="no → cheapest fix"];
+    "Test T asserts every relevant attribute of return/state/call?" -> "Apply NFR-9 integration test" [label="yes → try integration"];
+    "Survivor X in callee not asserted by T" -> "Add direct test for callee" [label="yes"];
+}
+```
+
+### Concrete strengthening patterns
+
+| Return shape | Weak pattern (1–2 asserts, leaves mutants) | Strong pattern (multi-assert, kills more mutants) |
+|---|---|---|
+| `dict` | `assert result["status"] == "ok"` | `assert result == {"status": "ok", "vehicle_id": "tesla-3", "trip_id": "T-42", "soc": 73.5, "deadline": expected_iso}` — every key relevant to the function's contract |
+| `dataclass` | `assert obj.id == "x"` | `assert obj == ExpectedTrip(id="x", description="commute", soc=73.5, hora_regreso=time(18, 30), deficit_hours=2.0)` — equality on the full dataclass when applicable |
+| dispatched call (`hass.services.async_call`) | `mock.assert_called_once()` | `mock.assert_called_once_with("trip", "create", {"vehicle_id": "tesla-3", "description": "commute", "soc": 73.5}, blocking=True)` |
+| log emission | `assert "LOAD" in caplog.text` | `assert _LOG_DEFERRABLE_LOAD_PUBLISHED in caplog.text` *and* asserts on the interpolated `vehicle_id`/`load_id` values |
+| iterable | `assert len(items) == 3` | `assert items == [Trip(id="A", soc=10), Trip(id="B", soc=20), Trip(id="C", soc=30)]` — pinning order *and* every field |
+
+### Where to look for cheap wins
+
+Per module audit during "Measure + classify" sub-task:
+1. List survivors.
+2. Run `mutmut tests-for-mutant <id>` for each survivor.
+3. Diff the existing test against the function under test — count the number of attributes the test fails to assert.
+4. Rank survivors by "smallest assertion-density delta closes the kill" and strengthen those first.
+
+## Integration-First Strategy for HA Glue (US-7, NFR-9)
+
+Modules with ≥30% of survivors classified as "framework call args" or "schema defaults" have a structural test-quality problem that pure unit tests cannot reach: the mocked framework absorbs the mutation. The fix is **driving the real HA core through `pytest-homeassistant-custom-component`** and asserting on the HA-side observable effect.
+
+### Integration-test bias by module class
+
+| Module class | Symptoms | Integration-test seam |
+|---|---|---|
+| `config_flow/*` | Voluptuous schema-default mutations survive; "form key not asserted" | Walk the real `async_step_user`/`async_step_init` flow; submit valid and edge-case inputs; assert on the persisted `config_entry.data` / `options` dict. |
+| `services/*` | `hass.services.async_call(...)` arg mutations survive | Register the integration in a real test `hass`; call the service; assert on `hass.states.async_get(...)` and on the persisted trip/vehicle state. |
+| `panel.py` | `async_register_panel(...)` kwargs mutations survive | Register the integration; query `frontend.async_get_panels(hass)`; assert on every panel kwarg (sidebar title, icon, module_url, embed_iframe, require_admin). |
+| `sensor/*` | Entity attribute mutations survive | Setup the integration; query the entity registry and `hass.states`; assert on `state`, `attributes`, `unique_id`, `device_class`, `state_class`, `unit_of_measurement`. |
+| `__init__.py` | Lifecycle hook mutations survive | Exercise `async_setup_entry` + `async_unload_entry` against a real `hass`; assert on hass.data domain contents before/after. |
+| `coordinator.py` | `update_interval` and refresh-call mutations survive | Run real coordinator with a freezer-controlled clock; assert on `last_update_success`, `data` shape, and that `update_interval == timedelta(seconds=30)` exactly. |
+| `presence_monitor/*` | State-change listener mutations survive | Fire real `hass.bus.async_fire`/state-change events; assert on the observable side effect (entity updated, log emitted, notification dispatched). |
+
+### Where mocks remain (and how to use them safely)
+
+Mocks remain only where the mock call *is* the outcome and no HA-side observable exists — e.g. an external HTTP call to an upstream service. Even there, NFR-8 still applies: the mock assertion checks every relevant arg.
+
+## Distinctive Test Data Strategy (NFR-10)
+
+Generic defaults (`""`, `0`, `1`, `None`, `True`) are silent enablers of survivors. A mutation that swaps `data.get("vehicle_id", "")` to `data.get("vehicle_id", "XX")` survives if the test sets `vehicle_id = ""` because both branches return `""`. The fix is choosing distinctive values:
+
+| Domain | Generic (leaks mutants) | Distinctive (kills mutants) |
+|---|---|---|
+| Vehicle id | `""`, `"v1"` | `"tesla-model-3"`, `"renault-zoe-2024"` |
+| Trip id | `"t1"` | `"trip-monday-commute-7am"` |
+| SOC | `0`, `100` | `73.5`, `42.7` (avoid round 0/100 boundaries that interact with default-value mutations) |
+| Time | `time(0,0)` | `time(18, 30)` (avoid midnight default) |
+| Strings to be normalised | `"abc"` | `"árbol"`, `"João"` (ensures `NFKD`/`ascii` mutations show up) |
+| Booleans | `True` as default | Explicitly pass `True` AND `False` as parametrised cases |
+| Lists | `[]` | `[Trip("A"), Trip("B")]` — distinguishable elements with order pinned |
+
+Each iteration's "Improve" sub-task includes a quick scan: `grep` the changed tests for generic literals and replace them where they hide mutants.
+
+## SOLID / DRY / KISS Refactor Constraints (NFR-12)
+
+All US-5 refactors honour:
+
+- **SRP**: extracted helpers do one thing — read a key from a dict with a default, build a URL path, normalise a string. One input shape, one return shape.
+- **DRY**: helpers live in a shared `_helpers.py` per package (`services/_helpers.py` already exists; extend the pattern to `trip/_helpers.py`, `emhass/_helpers.py` as needed). No per-file copies.
+- **KISS**: no premature abstraction — three similar lines is fine; introduce a helper when the 4th call site arrives, or when extracting a helper *enables a test* that was previously infeasible.
+- **OCP/LSP/ISP/DIP** stay implicit: helpers are pure functions; substitution is trivial; the import-linter contracts hold.
+
+The helper's existence MUST enable at least one new assertion-dense unit test. A helper extracted without a corresponding test is a refactor without justification (AC-5.1) and is rejected.
 
 ## Technical Decisions
 
@@ -363,13 +509,24 @@ Discovered from the repo:
 
 ## Implementation Steps
 
-1. **A.1** — Run `make mutation` (record runtime, timeouts, `_other` count); run `make mutation-gate` and `make layer2`; confirm all exit cleanly (AC-1.x).
-2. **A.2** — Capture the exact analyzer-emitted module set; rewrite `[tool.quality-gate.mutation.modules.*]`: delete 3 `dashboard.*` keys, collapse 24 dotted keys → 5 top-level keys (`calculations`/`trip`/`emhass`/`services`/`vehicle`), add any missing key (`const`/`frontend`); verify 1:1 correspondence (AC-2.x).
-3. **A.3** — Ramp-iterate `__init__`, `trip`, `utils` with honest tests until each meets its threshold; confirm `make mutation-gate` = `OK` without lowering any threshold (AC-3.x).
-4. **B (loop)** — For each remaining module worst-first: targeted `mutmut run`, enumerate survivors, classify, improve (strengthen/dedupe/add/replace test or US-5 refactor), re-measure targeted, run `make test`+`make test-cover`, ratchet threshold, log What & Why + delta row (AC-4.x, US-5).
-5. **B (adjudication, as needed)** — For any survivor unkillable after US-5: run the ≥2-expert-subagent adjudication; on dual-APPROVE add `# pragma: no mutate` and log (NFR-1).
-6. **B (checkpoints)** — Every N iterations and at the end: full `make mutation` + `make mutation-gate`; append overall-rate delta row.
-7. **Final** — Confirm gate `OK`, overall kill rate `1.00`, every module threshold `1.00`; finalise delta table and mapping table in `.progress.md`.
+Phases A and most of B are complete (149/159 tasks). The steps below cover the remaining work and the **hot revision** introduced 2026-05-21.
+
+1. **A.1** — DONE. Run `make mutation` (record runtime, timeouts, `_other` count); run `make mutation-gate` and `make layer2`; confirm all exit cleanly (AC-1.x).
+2. **A.2** — DONE. Capture the exact analyzer-emitted module set; rewrite `[tool.quality-gate.mutation.modules.*]`: delete 3 `dashboard.*` keys, collapse 24 dotted keys → 5 top-level keys, add any missing key; verify 1:1 correspondence (AC-2.x).
+3. **A.3** — DONE. Ramp-iterate `__init__`, `trip`, `utils` with honest tests until each meets its threshold; confirm `make mutation-gate` = `OK` without lowering any threshold (AC-3.x).
+4. **B (loop, iters 1–18)** — DONE for the iterations recorded in `.progress.md` / `task_review.md`.
+5. **B′ (tooling hot revision, NEW)** — Tune `[tool.mutmut]` per Hovmöller rules 1–3 (NFR-13, US-8): set `mutate_only_covered_lines = true`, choose and justify an explicit `max_stack_depth`; rerun a full `make mutation` to record the **post-tune authoritative re-baseline** (AC-8.4). Previous per-module counts/ratios remain in `.progress.md` as history; iteration B″ targets the new numbers.
+6. **B″ (pragma re-audit + real-kill ramp, NEW)** — For each below-100% module (currently 11 of 15) and for every existing pragma:
+   - **Strengthen first (US-6 / NFR-8)** — audit existing tests that already exercise the survivor; add multi-attribute asserts on every relevant return/state/call key. Cheapest move, biggest leverage.
+   - **Integration test for HA glue (US-7 / NFR-9)** — for modules with ≥30% glue-classified survivors, add at least one `pytest-homeassistant-custom-component`-backed test asserting on HA-side observable effect.
+   - **Refactor for testability (US-5 / NFR-12)** — extract pure helpers under SOLID/DRY/KISS; tests on the helpers assertion-dense.
+   - **Distinctive data (NFR-10)** — replace generic `""`/`0`/`None` test inputs with distinguishing values where they hide mutants.
+   - **Re-audit pragmas (NFR-1b)** — for every existing pragma in the file under iteration, decide: (a) test it out (preferred), (b) refactor + test (US-5), or (c) escalate to the human (NFR-1) with the full NFR-11 dossier.
+   - Re-measure targeted; run `make test` + `make test-cover` (100%); ratchet threshold upward (never down).
+7. **B″ (checkpoints)** — Every N iterations: full `make mutation` + `make mutation-gate`; append overall-rate delta row; re-audit the Hovmöller 15-rule table.
+8. **Pragma proposal flow** — Whenever the executor proposes a pragma (existing-to-retain or new-to-add): produce the NFR-11 dossier in `chat.md`; ESCALATE to the human; await written approval; only then add (or retain) the pragma. The ≥2-subagent procedure is RETIRED — it does NOT replace human approval.
+9. **Final** — Confirm gate `OK`, overall kill rate `1.00`, every module threshold `1.00`; remaining pragmas number in the single digits with full NFR-11 dossiers and human approval; finalise delta table and mapping table in `.progress.md`; mark prior-iteration history clearly versus the post-revision ramp.
 
 <!-- Changelog 2026-05-18: initial design.md for mutation-score-ramp — Phase A tooling/config hardening + green gate, Phase B worst-first ramp to 100%, targeted-run via mutmut positional globs, ratchet to 1.00, ≥2-subagent NFR-1 adjudication. -->
 <!-- Changelog 2026-05-18: fixed spec-reviewer findings #9/#10/#13 — removed the rejected threshold-rebase-down narrative from A.3; added the A.1 authoritative-baseline statement marking research.md per-module figures stale and all quoted percentages as to-be-confirmed; made the collapsed-key threshold rule a single deterministic rule (A.1 true measured rate) in both A.2 and the Technical Decisions table. -->
+<!-- Changelog 2026-05-21 (HOT REVISION, no progress reset): supersedes the ≥2-subagent pragma path. Pragma policy is now HUMAN-ESCALATED and reference-class scarce (~10 project-wide ceiling, à la PHP/Infection). New section "Mutmut Best-Practice Compliance (Hovmöller 15 Rules)" maps each rule to a spec requirement. New "Multi-Attribute Assertion Pattern (US-6, NFR-8)" guides strengthening existing tests as the cheapest kill-rate lever. New "Integration-First Strategy for HA Glue (US-7, NFR-9)" prescribes `pytest-homeassistant-custom-component`-backed tests for config_flow/services/panel/sensor/__init__/coordinator/presence_monitor. New "Distinctive Test Data Strategy (NFR-10)" eliminates generic-default mutant hides. New "SOLID / DRY / KISS Refactor Constraints (NFR-12)" governs US-5 helper shape and placement. Implementation Steps re-numbered with the B′ (tooling tune) and B″ (re-audit + real-kill ramp) phases. Prior 118 "verified not US-5 applicable" pragmas are presumed removable under NFR-1b and must be re-audited one by one with human escalation. -->

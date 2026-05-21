@@ -12,8 +12,7 @@ Este es un bug diferente al de SOC 100%.
 """
 
 from datetime import datetime, timedelta, timezone
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 

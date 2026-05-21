@@ -749,3 +749,55 @@ class TestLoadTripsMutationKills:
         await tm._state._persistence._load_trips()
         # Should NOT have been overwritten
         assert "existing" in tm._state._trips
+
+
+# ── Targeted mutation-kill tests for _crud default_value mutations ──
+
+
+    @pytest.mark.asyncio
+    async def test_add_punctual_trip_without_descripcion_uses_default_empty(self):
+        """Without descripcion, it's set to empty string — kills default_value→None mutant.
+
+        Mutant: kwargs.get("descripcion", "") → kwargs.get("descripcion", None)
+        would store None instead of "".
+        """
+        tm = _make_tm()
+        await tm._crud.async_add_punctual_trip(
+            trip_id="test_no_desc",
+            datetime_str="2026-06-01T08:00",
+            km=30.0,
+            kwh=5.0,
+        )
+        trip = tm._state.punctual_trips["test_no_desc"]
+        assert trip["descripcion"] == ""  # NOT None — kills default_value mutant
+
+    @pytest.mark.asyncio
+    async def test_add_punctual_trip_without_datetime_uses_empty_string(self):
+        """Without datetime, datetime_str defaults to "" — kills default_value mutant.
+
+        The code does: kwargs.get("datetime_str", kwargs.get("datetime", ""))
+        Mutant: kwargs.get("datetime", "") → kwargs.get("datetime", None)
+        would result in None instead of "".
+        """
+        tm = _make_tm()
+        await tm._crud.async_add_punctual_trip(
+            trip_id="test_no_dt",
+            km=30.0,
+            kwh=5.0,
+        )
+        trip = tm._state.punctual_trips["test_no_dt"]
+        assert trip["datetime"] == ""  # NOT None — kills default_value mutant
+
+    @pytest.mark.asyncio
+    async def test_add_recurring_trip_without_descripcion_uses_default_empty(self):
+        """Without descripcion, it's set to empty string — kills default_value→None mutant."""
+        tm = _make_tm()
+        await tm._crud.async_add_recurring_trip(
+            trip_id="test_recurring_no_desc",
+            dia_semana="1",
+            hora="08:00",
+            km=50.0,
+            kwh=10.0,
+        )
+        trip = tm._state.recurring_trips["test_recurring_no_desc"]
+        assert trip["descripcion"] == ""  # NOT None

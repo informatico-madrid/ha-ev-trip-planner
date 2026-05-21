@@ -3,7 +3,7 @@ spec: mutation-score-ramp
 basePath: specs/mutation-score-ramp
 epic: tech-debt-cleanup
 phase: requirements
-updated: 2026-05-18
+updated: 2026-05-21
 ---
 
 # Requirements: Mutation Score Ramp
@@ -75,6 +75,52 @@ Reach **100% mutation kill rate** for the project — every per-module rate at `
 - [ ] AC-5.1: Any production refactor in this spec is justified in `chat.md` by naming the specific mutant(s)/logic it makes testable.
 - [ ] AC-5.2: Refactors preserve public API and behavior — `make test` passes and import-linter contracts hold.
 - [ ] AC-5.3: No refactor changes externally observable behavior of any HA entity, service, or config flow.
+- [ ] AC-5.4: Every US-5 refactor follows SOLID, DRY, KISS — extract pure helpers (single responsibility), reuse via shared module (DRY), keep API minimal (KISS).
+- [ ] AC-5.5: For every pragma added in the spec, evidence of a US-5 attempt is recorded in `chat.md`: the source lines considered, the helper signature attempted, and the reason extraction was infeasible (e.g. HA framework call where the call *is* the outcome). No pragma may be added without this evidence.
+
+### US-6: Strengthen existing tests with multi-attribute assertions (assertion density)
+
+**As a** developer raising the mutation kill rate
+**I want** every behavioural test to assert on every relevant attribute of the returned value/state/dispatched call
+**So that** a single test kills many mutants instead of one — and no mutant slips through because the test only checked one attribute.
+
+**Background**: Inspection of the current suite shows many tests with 1–2 `assert` lines on multi-attribute returns (dicts, dataclasses, dispatched-call args). A mutation on any *un-asserted* attribute survives even though the test already executes the mutated line. Strengthening assertions (no new tests) is the cheapest way to reclaim kills.
+
+**Acceptance Criteria:**
+- [ ] AC-6.1: For every module still below 100% kill rate, a survivor-driven audit lists tests that *execute* a surviving mutant but assert on too few attributes; each is strengthened in-place (no new test files needed).
+- [ ] AC-6.2: When a function returns a dict, the strengthened test asserts on every key relevant to the test's purpose — not just one. When a function returns a dataclass, every field touched by the function under test is asserted.
+- [ ] AC-6.3: When a function dispatches a call (HA service, coordinator refresh, log emission), the test asserts on the full argument tuple/kwargs dict (domain, service, data, blocking flag) — not just that the call happened.
+- [ ] AC-6.4: When a function emits a log line, the strengthened test asserts on the exact log constant *and* every interpolated value (or uses the extracted `_LOG_*` constant directly so mutations on it fail).
+- [ ] AC-6.5: Audit evidence (the survivor → existing-test mapping + the strengthened-assert diff) is logged in `chat.md` per iteration.
+
+### US-7: Integration-first testing for HA framework glue
+
+**As a** developer killing mutants in modules dominated by HA framework glue (`config_flow`, `services`, `panel`, `sensor`, `__init__`, `coordinator`)
+**I want** the suite to lean on `pytest-homeassistant-custom-component`-backed integration tests that go through real HA core, registries, and config-entry lifecycle
+**So that** mutations on framework call args (domain/service/data, schema defaults, panel kwargs) become observable through HA state instead of being hidden by mocks.
+
+**Background**: A large share of surviving mutants are arg/string mutations on `hass.services.async_call(...)`, `async_register_panel(...)`, voluptuous schema defaults, etc. Unit tests mock these calls; the mutation changes the mocked arg, and no assertion notices. An integration test driving the real HA core *exercises* the wired-up effect — the wrong arg surfaces as a missing entity, missing panel, missing schema field.
+
+**Acceptance Criteria:**
+- [ ] AC-7.1: Each module dominated by HA glue (≥30% of its survivors classified as "framework call args" or "schema defaults") gets at least one integration-level test exercising the real HA flow end-to-end via the test harness.
+- [ ] AC-7.2: Integration tests assert on the *observable* HA-side effect: registered entity/service/panel id, config-entry state, schema-validated value — not on mock call args.
+- [ ] AC-7.3: Where the existing unit test only verifies "the mock was called", it is either replaced by an integration test (preferred) or *complemented* by a multi-attribute assert covering every call argument (AC-6.3).
+- [ ] AC-7.4: Pre-existing source-inspection exclusions (`test_solid_metrics`, `test_vehicle_controller_event`) are not expanded; new integration tests do not introduce new mutmut exclusions (NFR-1).
+
+### US-8: Mutmut tooling tuned per Hovmöller's 15 rules
+
+**As a** maintainer of the mutation gate
+**I want** the mutmut configuration in `pyproject.toml` to follow the documented best-practice rules (mutate only covered lines, bound stack depth, optional type-check filter, explicit test-file exclusion)
+**So that** the gate measures real test gaps — not unreachable code paths or transitive-incidental tests — and the kill rate is comparable across iterations.
+
+**Reference**: `mutmut.readthedocs.io` config reference + Anders Hovmöller, *"Mutation testing in practice"* (kodare.net, 2016).
+
+**Acceptance Criteria:**
+- [ ] AC-8.1: `[tool.mutmut]` in `pyproject.toml` sets `mutate_only_covered_lines = true` (rule 1) — mutants are generated only for lines actually executed by the test suite.
+- [ ] AC-8.2: `[tool.mutmut]` sets `max_stack_depth` (rule 3) to bound transitive coverage — value chosen per design.md, justified in `chat.md`.
+- [ ] AC-8.3: `do_not_mutate` already excludes `tests/**` and `conftest.py` (rule 2) — verified, no regression.
+- [ ] AC-8.4: A baseline run on the tuned config records the new total-mutant count and per-module kill rate as the **authoritative re-baseline**; previous deltas remain in `.progress.md` for history but the gate ratchet rebases to the new numbers.
+- [ ] AC-8.5: The 15-rule compliance table (rule ↔ requirement/AC ↔ status) is committed in `design.md` and re-audited at every gate checkpoint.
 
 ## Functional Requirements
 
@@ -93,18 +139,30 @@ Reach **100% mutation kill rate** for the project — every per-module rate at `
 | FR-11 | Record baseline + final mutation metrics in spec artifacts | Medium | Baseline and final numbers documented |
 | FR-12 | Refactor production code only where needed for testability, API-preserving | Medium | Justified in chat.md, tests + import-linter pass |
 | FR-13 | Document the module-name ↔ pyproject-key ↔ source-path mapping | Medium | Mapping table committed in spec |
+| FR-14 | Strengthen existing tests with multi-attribute assertions before writing new tests | High | Each iteration logs "tests strengthened" count and survivor delta attributable to assertion density |
+| FR-15 | Add at least one integration test (real HA harness) per HA-glue-dominated module | High | Integration test file added; asserts on HA-side observable effect; module's survivor count strictly drops |
+| FR-16 | Tune mutmut config per the 15 Hovmöller rules (covered-lines, stack-depth, do_not_mutate) | High | `[tool.mutmut]` includes `mutate_only_covered_lines`, `max_stack_depth`; verified by grep + baseline rerun |
+| FR-17 | Audit every pragma in the suite for US-5 evidence; remove any pragma without it | High | `chat.md` shows per-pragma US-5 attempt log; pragmas without evidence removed and module re-mutmut'd |
+| FR-18 | Replace generic test data (0, 1, "", None) with distinctive values where it kills numeric/string mutants | Medium | Audit diff shows replaced literals; per-module kill rate strictly increases |
 
 ## Non-Functional Requirements
 
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
-| NFR-1 | **No skip/pragma to dodge a mutant or metric.** `# pragma: no mutate`, `@pytest.mark.mutmut_skip` added to hide failures, blanket `mutmut_skip`, or `-k` test-exclusion args added solely to suppress failures are PROHIBITED. Pre-existing exclusions (`test_solid_metrics`, `test_vehicle_controller_event` — source-inspection tests genuinely incompatible with mutation) MAY remain but MUST NOT be expanded. A super-exceptional new exclusion is permitted ONLY after explicit review and approval by **multiple (≥2) expert subagents**, with the approval recorded in `chat.md`/`.progress.md`. | Count of new skip/pragma constructs added to dodge a mutant or metric | 0 (unless multi-subagent-approved and logged) |
+| NFR-1 | **Pragmas are real, scarce, and human-escalated.** `# pragma: no mutate`, `@pytest.mark.mutmut_skip`, blanket `mutmut_skip`, or `-k` exclusion args are NOT a normal tool — they are an emergency hatch reserved for mutants the broader testing community has documented as intrinsically unkillable (e.g. `__version__` constants, performance-only `break`-vs-`continue` where the loop terminates regardless, debug-only branches behind a compile-time constant). The bar: a reference-class similar to the well-known PHP/Infection community list (~10 pragmas across a project 10× this size). **Before adding any pragma, the executor MUST escalate to the human** — the human approves or rejects in writing in `chat.md`. The pre-existing `test_solid_metrics` / `test_vehicle_controller_event` exclusions MAY remain but MUST NOT be expanded. The prior `≥2`-subagent procedure is INSUFFICIENT — it does not replace human escalation. | Pragmas added without prior human approval; total pragma count | 0 unapproved; total ≤ ~10 across the whole project |
+| NFR-1b | **Remove pragmas added without human escalation in earlier iterations.** The 118 pragmas previously labeled "verified not US-5 applicable" (iterations 13–18) were added without the human-escalation step required by NFR-1. They must be re-evaluated one by one: for each, either (a) write a real test / refactor (US-5/US-6/US-7) that kills the mutant, or (b) escalate to the human and obtain written approval to keep it. Any pragma whose justification is "HA framework glue", "string case mutation", "default_value on `.get()`", "log text", or similar mass-category label is presumed removable and must be retried with the integration-first + multi-assert strategy. | Pragmas surviving the re-audit without human approval | 0 |
 | NFR-2 | Score is improved by real test work, never by lowering thresholds or excluding code | Threshold/exclusion diff | No threshold lowered; no code excluded to pass |
 | NFR-3 | Test suite stays green and coverage stays 100% after every iteration | `make test-cover` | Pass, `--cov-fail-under=100` |
 | NFR-4 | Full mutmut run remains practical for scheduled CI | Wall-clock | ≤ ~15 min on the project's reference machine |
 | NFR-5 | No mutmut timeouts introduced | timeout count | 0 |
 | NFR-6 | Public API, import-linter contracts, and HA-observable behavior unchanged by any refactor | `make test`, `lint-imports` | All pass |
 | NFR-7 | Each iteration records a one-line What & Why in `chat.md` before its verify step | chat.md entries | One per iteration/task |
+| NFR-8 | **Multi-attribute assertion density.** A behavioural test that touches a multi-attribute value (dict, dataclass, dispatched call) MUST assert on every attribute relevant to the test's stated purpose. Tests that assert "only the call happened" or "only one key" leave mutants on the un-asserted attributes alive and are considered weak; they MUST be strengthened in place. | Per strengthened test: number of additional assertions vs prior version; per module: drop in surviving mutants attributable to assertion strengthening | ≥1 added assertion per strengthened test; survivor delta logged |
+| NFR-9 | **Integration-first for HA glue.** Modules whose survivors are ≥30% "framework call args" or "schema defaults" MUST grow at least one integration test using `pytest-homeassistant-custom-component` that drives the real HA core and asserts on the HA-side effect (registered entity/service/panel id, config-entry data, schema-validated value). Mocks remain only where the interaction is *itself* the outcome and no observable HA-side effect exists. | Integration tests added per HA-glue module; assertions on HA-side state | ≥1 integration test per qualifying module |
+| NFR-10 | **Distinctive test data.** Test fixtures and parametrised cases MUST use distinguishable, realistic values — not `0`/`1`/`""`/`None` as defaults. A test that uses `vehicle_id = ""` lets a mutation that changes `"vehicle_id"` to `"XXvehicle_idXX"` survive because the mocked `.get()` returns the same `""` in both cases. Each iteration's test diff is reviewed for generic defaults; replacements with realistic constants (`"tesla-model-3"`, `42.7`, `"NFKD"` for accent-stripping) are recorded. | Generic-default occurrences in iteration diff | 0 introduced; existing flagged and replaced where they hide mutants |
+| NFR-11 | **US-5 evidence is mandatory before any pragma.** For every existing pragma in the codebase and every pragma proposed in this spec, `chat.md` MUST contain: the mutant id, the source lines, the helper signature considered for extraction, the reason extraction was infeasible (or, equivalently, the integration-test attempted and why it could not observe the effect), and the human's written approval. A pragma without this dossier is invalid. | Per-pragma dossier completeness | 100% of remaining pragmas have a complete dossier with human approval |
+| NFR-12 | **SOLID / DRY / KISS for US-5 refactors.** Extracted helpers are single-responsibility (one input shape, one return shape), reused across callers (no duplicated helper per file), and minimal (no premature abstraction). Helpers live in a shared `_helpers.py` per package; tests for the helpers are unit-level and assertion-dense (NFR-8). | Per-refactor: duplication count (`grep -c` of the extracted pattern still present in source); helper LOC | 0 duplicated patterns remaining; helper LOC bounded by single-responsibility |
+| NFR-13 | **Tuned mutmut config.** `[tool.mutmut]` in `pyproject.toml` reflects rules 1–3 of the Hovmöller 15: `mutate_only_covered_lines = true`, `max_stack_depth` set explicitly, `do_not_mutate` excludes tests and conftest. The 15-rule table in `design.md` is kept current. | grep of `[tool.mutmut]` for each setting | All three present and correct |
 
 ## Glossary
 
@@ -132,12 +190,14 @@ Reach **100% mutation kill rate** for the project — every per-module rate at `
 ## Definition of Done (measurable)
 
 1. `make mutation`, `make mutation-gate`, `make layer2` all exit 0 with no traceback.
-2. pyproject mutation config has 1:1 correspondence with analyzer-emitted modules; no `dashboard.*` keys.
-3. **Overall mutation kill rate = 100%** — every per-module kill rate is `1.00`. Every mutant is either killed by an honest test, or formally adjudicated genuinely unkillable by ≥2 expert-subagent review (NFR-1) with the adjudication logged in `chat.md`/`.progress.md`. No mutant is suppressed without that approved adjudication.
+2. pyproject mutation config has 1:1 correspondence with analyzer-emitted modules; no `dashboard.*` keys; `[tool.mutmut]` carries `mutate_only_covered_lines = true`, an explicit `max_stack_depth`, and a `do_not_mutate` excluding tests/conftest (NFR-13 / Hovmöller rules 1–3).
+3. **Overall mutation kill rate = 100%** — every per-module kill rate is `1.00`. Mutants are killed by honest tests (multi-attribute asserts per NFR-8, integration tests for HA glue per NFR-9, distinctive data per NFR-10) and US-5 refactors (NFR-12). Pragmas are the rare exception, each carrying the NFR-11 dossier *and* the human's written approval from NFR-1; the project-wide pragma count is reference-class small (~10 max).
 4. `make mutation-gate` returns gate `OK` with **every per-module threshold ratcheted to `target_final = 1.00`**.
-5. A per-iteration delta table documents the monotonic climb from the 57.1% baseline to 100%.
+5. A per-iteration delta table documents the monotonic climb from the 57.1% baseline to 100% — including the iterations that *remove* pragmas added without human approval (NFR-1b) and replace them with real tests/refactors.
 6. Thresholds only ratcheted upward (never down); `make test-cover` passes at 100% coverage; `make test` and import-linter contracts pass.
-7. Zero new skip/pragma constructs added to dodge mutants/metrics (NFR-1) — except multi-subagent-approved, logged adjudications of genuinely unkillable mutants.
+7. Every surviving pragma in the repo at completion has: (a) human written approval in `chat.md`, (b) the NFR-11 dossier (mutant id, source, helper signature considered, reason extraction failed, integration-test attempt and outcome), (c) belongs to a community-recognised intrinsically-unkillable category. Any pragma without all three is removed.
+8. The iteration that re-audits the 118 prior pragmas (NFR-1b) is recorded in `chat.md` with per-pragma verdict (kept-with-approval | removed-and-killed-by-test | removed-and-killed-by-refactor).
+9. Each below-100% module gains at least one new integration test using `pytest-homeassistant-custom-component` (NFR-9) where the survivor classification flags HA glue dominance.
 
 ## Dependencies / Assumptions
 
@@ -213,3 +273,4 @@ Reach **100% mutation kill rate** for the project — every per-module rate at `
 
 <!-- Changed: initial requirements for mutation-score-ramp — tooling/config hardening + green gate + exercised ratchet + ≥4 ramp iterations; 100% framed as epic-level target, not this spec's claim. -->
 <!-- Changed: 100% mutation kill rate is now THIS spec's committed deliverable and Definition of Done (Goal, US-4, AC-4.x, FR-9, DoD, Verification Contract). Iteration count unfixed (unbounded, task-plan-decided) — supersedes the prior "≥4 iterations". Removed the Out-of-Scope bullet excluding literal 100%. 100% kept honest: every mutant killed by an honest test or formally adjudicated unkillable via ≥2 expert-subagent review (NFR-1); NFR-1/NFR-2 unchanged. -->
+<!-- Changelog 2026-05-21 (hot revision, NO progress reset): supersedes the ≥2-subagent pragma path with mandatory HUMAN escalation (NFR-1) — pragmas are now scarce, reference-class ~10 across the project. Adds NFR-1b: re-audit and mostly REMOVE the 118 prior "verified not US-5 applicable" pragmas. New user stories US-6 (multi-attribute asserts), US-7 (integration-first for HA glue), US-8 (Hovmöller 15-rule tooling tune). New NFRs 8–13: assertion density, integration-first, distinctive test data, pragma dossier, SOLID/DRY/KISS, tuned mutmut config. New FRs 14–18 covering strengthened tests, integration tests, mutmut config tuning, pragma audit, distinctive data. DoD rewritten: kill via tests/refactor — pragma is exception with human approval + community-recognised category. Completed Phase 1 + Phase 2 (149/159 tasks) preserved untouched. -->
