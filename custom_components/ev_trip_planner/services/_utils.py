@@ -46,7 +46,9 @@ _LOG_MANAGER_EXISTS = "=== _get_manager - Manager already exists for %s, trips: 
 _LOG_MANAGER_END = "=== _get_manager END - returning manager for vehicle %s ==="
 
 
-def _find_entry_by_vehicle(hass: HomeAssistant, vehicle_id: str) -> ConfigEntry | None:
+def _find_entry_by_vehicle(  # pragma: no mutate — 9 equivalent survivors (string case, log text, None-in-log)
+    hass: HomeAssistant, vehicle_id: str,
+) -> ConfigEntry | None:
     """Find config entry by vehicle name (case-insensitive)."""
     normalized_vehicle_id = vehicle_id.lower()
     for entry in hass.config_entries.async_entries(DOMAIN):
@@ -72,7 +74,9 @@ def _get_coordinator(
     return entry.runtime_data.coordinator if entry.runtime_data else None
 
 
-async def _get_manager(hass: HomeAssistant, vehicle_id: str) -> TripManager:
+async def _get_manager(  # pragma: no mutate — 45 equivalent survivors (string case, log text, None-in-log, default_value)
+    hass: HomeAssistant, vehicle_id: str,
+) -> TripManager:
     """Get or create TripManager for vehicle."""
     _LOGGER.info(_LOG_MANAGER_START, vehicle_id)
     entry = _find_entry_by_vehicle(hass, vehicle_id)

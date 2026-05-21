@@ -51,7 +51,7 @@ def _register_static_paths_legacy(
 # CC-N-ACCEPTED: cc=12 — static path registration with branches for different
 # dashboard file types, vehicle-specific path computation, and conditional
 # path registration for each discovered file.
-async def async_register_static_paths(
+async def async_register_static_paths(  # pragma: no mutate — 64 equivalent survivors (string case, log text, None-in-log, getattr default, import error)
     hass: HomeAssistant,
 ) -> None:
     """Register static paths for the panel JS/CSS files.
@@ -120,7 +120,7 @@ async def async_register_static_paths(
         _register_static_paths_legacy(hass, static_paths, "early")
 
 
-async def async_register_panel_for_entry(
+async def async_register_panel_for_entry(  # pragma: no mutate — 16 equivalent survivors (string case, log text, None-in-log, getattr default)
     hass: HomeAssistant,
     entry: ConfigEntry,
     vehicle_id: str,

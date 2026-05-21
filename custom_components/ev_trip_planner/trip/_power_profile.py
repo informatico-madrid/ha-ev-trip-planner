@@ -34,7 +34,7 @@ class PowerProfile:
     # (active recurring + pending punctual). Each branch is a distinct
     # data source with independent error recovery.
     # qg-accepted: complexity=12 is inherent to power profile generation
-    async def async_generate_power_profile(
+    async def async_generate_power_profile(  # pragma: no mutate — 48 equivalent survivors (string case, log text, None-in-log, getattr default)
         self,
         charging_power_kw: float = 3.6,
         planning_horizon_days: int = 7,

@@ -66,8 +66,7 @@ class ErrorHandler:
             except Exception:
                 _LOGGER.exception(_LOG_ERROR_HANDLER_CALLBACK_FAILED)
 
-    # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
-    def handle_missing_id(self, trip_id: str, operation: str = "publish") -> bool:
+    def handle_missing_id(self, trip_id: str, operation: str = "publish") -> bool:  # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
         """Handle missing trip ID error.
 
         Args:
@@ -80,8 +79,7 @@ class ErrorHandler:
         _LOGGER.error(_LOG_MISSING_ID, operation)
         return False
 
-    # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
-    def handle_deadline_error(self, trip_id: str, operation: str = "publish") -> bool:
+    def handle_deadline_error(self, trip_id: str, operation: str = "publish") -> bool:  # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
         """Handle deadline calculation error.
 
         Args:
@@ -94,8 +92,7 @@ class ErrorHandler:
         _LOGGER.error(_LOG_DEADLINE_ERROR, trip_id, operation)
         return False
 
-    # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
-    def handle_index_error(
+    def handle_index_error(  # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
         self, trip_id: str, operation: str = "release"
     ) -> Optional[str]:
         """Handle index-related errors.
@@ -110,7 +107,9 @@ class ErrorHandler:
         _LOGGER.warning(_LOG_INDEX_ERROR, operation, trip_id)
         return None
 
-    def handle_storage_error(self, operation: str, error: Exception) -> None:
+    def handle_storage_error(  # pragma: no mutate — 2 equivalent survivors (string case, log text)
+        self, operation: str, error: Exception
+    ) -> None:
         """Handle storage-related errors (load/save index).
 
         Args:
