@@ -66,7 +66,7 @@ def generate_deferrable_schedule_from_trips(
     return schedule
 
 
-def _normalize_reference_dt(  # pragma: no mutate
+def _normalize_reference_dt(
     reference_dt: datetime | None,
 ) -> datetime:
     """Normalize reference datetime to UTC-aware."""
@@ -77,7 +77,7 @@ def _normalize_reference_dt(  # pragma: no mutate
     return datetime.now(timezone.utc)
 
 
-def _compute_schedule_time(  # pragma: no mutate
+def _compute_schedule_time(
     now: datetime, hour_offset: int,
 ) -> datetime:
     """Compute schedule time for a given hour offset."""
@@ -89,7 +89,7 @@ def _compute_schedule_time(  # pragma: no mutate
     return schedule_time
 
 
-def _compute_trip_power(  # pragma: no mutate
+def _compute_trip_power(
     trip: Dict[str, Any],
     power_kw: float,
     now: datetime,
@@ -115,7 +115,7 @@ def _compute_trip_power(  # pragma: no mutate
     return _check_charging_window(power_kw, kwh, horas_hasta_viaje, hour_offset)
 
 
-def _parse_deadline(  # pragma: no mutate
+def _parse_deadline(
     deadline: Any,
 ) -> Optional[datetime]:
     """Parse deadline value to UTC-aware datetime, or None if invalid."""
@@ -134,7 +134,7 @@ def _parse_deadline(  # pragma: no mutate
         return deadline_dt
 
 
-def _check_charging_window(  # pragma: no mutate
+def _check_charging_window(
     power_kw: float,
     kwh: float,
     horas_hasta_viaje: int,
@@ -155,7 +155,7 @@ def _check_charging_window(  # pragma: no mutate
     return "0.0"
 
 
-def calculate_deferrable_parameters(  # pragma: no mutate
+def calculate_deferrable_parameters(
     trip: Dict[str, Any],
     power_kw: float,
     reference_dt: Optional[datetime] = None,

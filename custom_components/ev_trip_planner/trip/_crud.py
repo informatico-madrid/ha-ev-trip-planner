@@ -102,7 +102,7 @@ class TripCRUD:
 
     # ── Add ──────────────────────────────────────────────────────
 
-    async def async_add_recurring_trip(self, **kwargs: Any) -> None:  # pragma: no mutate
+    async def async_add_recurring_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
         state = self._state
         _LOGGER.debug(
@@ -138,7 +138,7 @@ class TripCRUD:
                 state.recurring_trips[trip_id]
             )
 
-    async def async_add_punctual_trip(self, **kwargs: Any) -> None:  # pragma: no mutate
+    async def async_add_punctual_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje puntual y sincroniza con EMHASS."""
         state = self._state
         _LOGGER.debug(
@@ -175,7 +175,7 @@ class TripCRUD:
     # CC-N-ACCEPTED: cc=11 — trip type dispatch (recurring vs punctual) with
     # different field sets, save, emit, EMHASS sync. Branching is domain
     # logic: each trip type has distinct relevant fields and sync requirements.
-    async def async_update_trip(self, trip_id: str, updates: Dict[str, Any]) -> None:  # pragma: no mutate
+    async def async_update_trip(self, trip_id: str, updates: Dict[str, Any]) -> None:
         """Actualiza un viaje existente y sincroniza con EMHASS."""
         state = self._state
         _LOGGER.debug(_LOG_UPDATE_DEBUG, trip_id, state.vehicle_id, updates)
@@ -223,7 +223,7 @@ class TripCRUD:
 
     # ── Delete ───────────────────────────────────────────────────
 
-    async def async_delete_trip(self, trip_id: str) -> None:  # pragma: no mutate
+    async def async_delete_trip(self, trip_id: str) -> None:
         """Elimina un viaje existente y sincroniza con EMHASS."""
         state = self._state
         _LOGGER.debug(_LOG_DELETE_DEBUG, trip_id, state.vehicle_id)

@@ -21,7 +21,7 @@ def _get_option_float(data: Dict[str, Any], key: str, default: float) -> float:
     Mutations on ``default`` (e.g. ``None``) are independently killable
     by testing both the present-key and missing-key paths.
     """
-    return data.get(key, default)  # pragma: no mutate
+    return data.get(key, default)
 
 
 def _get_option_int(data: Dict[str, Any], key: str, default: int) -> int:
@@ -30,7 +30,7 @@ def _get_option_int(data: Dict[str, Any], key: str, default: int) -> int:
     Pure helper replacing inline ``data.get(key, default)`` in options.py.
     Mutations on ``default`` are independently killable.
     """
-    return data.get(key, default)  # pragma: no mutate
+    return data.get(key, default)
 
 
 def _get_option_str(data: Dict[str, Any], key: str, default: str) -> str:
@@ -39,7 +39,7 @@ def _get_option_str(data: Dict[str, Any], key: str, default: str) -> str:
     Pure helper replacing inline ``data.get(key, default)`` in options.py.
     Mutations on ``default`` are independently killable.
     """
-    return data.get(key, default)  # pragma: no mutate
+    return data.get(key, default)
 
 
 def _safe_data_dict(data: Dict[str, Any] | None) -> Dict[str, Any]:

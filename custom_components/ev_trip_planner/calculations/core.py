@@ -28,7 +28,7 @@ SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
 def compute_safe_delta(
     trip_time: datetime,
     now: datetime,
-) -> Optional[timedelta]:  # pragma: no mutate
+) -> Optional[timedelta]:
     """Compute (trip_time - now) with timezone-safety fallback.
 
     If direct subtraction raises TypeError (naive vs aware), attempts to
@@ -109,7 +109,7 @@ class BatteryCapacity:
             return None
 
 
-def calculate_dynamic_soc_limit(  # pragma: no mutate
+def calculate_dynamic_soc_limit(
     t_hours: float,
     soc_post_trip: float,
     battery_capacity_kwh: float,
@@ -151,7 +151,7 @@ def calculate_dynamic_soc_limit(  # pragma: no mutate
 # =============================================================================
 
 
-def _strip_accents(s: str) -> str:  # pragma: no mutate
+def _strip_accents(s: str) -> str:
     """Remove diacritical marks: 'miércoles' → 'miercoles'."""
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
@@ -204,7 +204,7 @@ def calculate_day_index(day_name: str) -> int:
 # (with/without timezone) × 2 datetime format variants. Extracting would
 # split a single coherent dispatch logic into 5+ helpers with unclear names.
 # qg-accepted: arity=6 is the canonical trip time API — all domain inputs
-def calculate_trip_time(  # pragma: no mutate
+def calculate_trip_time(
     trip_tipo: str,
     hora: Optional[str],
     dia_semana: Optional[str],
@@ -291,7 +291,7 @@ def calculate_trip_time(  # pragma: no mutate
 # =============================================================================
 
 
-def calculate_charging_rate(  # pragma: no mutate
+def calculate_charging_rate(
     charging_power_kw: float, battery_capacity_kwh: float = 50.0
 ) -> float:
     """Calcula la tasa de carga en % SOC/hora.
@@ -310,7 +310,7 @@ def calculate_charging_rate(  # pragma: no mutate
     return (charging_power_kw / battery_capacity_kwh) * 100
 
 
-def calculate_soc_target(  # pragma: no mutate
+def calculate_soc_target(
     trip: Dict[str, Any],
     battery_capacity_kwh: float,
     consumption_kwh_per_km: float = 0.15,

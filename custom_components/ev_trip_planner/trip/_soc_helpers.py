@@ -61,7 +61,7 @@ class SOCHelpers:
             _LOGGER.warning(_LOG_PARSE_REPR_WARNING, repr(trip_datetime))
             return None if allow_none else datetime.now(timezone.utc)
 
-    def _get_charging_power(self) -> float:  # pragma: no mutate
+    def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
         try:
             entry: Optional[ConfigEntry[Any]] = None
@@ -79,7 +79,7 @@ class SOCHelpers:
 
     def _calcular_tasa_carga_soc(
         self, charging_power_kw: float, battery_capacity_kwh: float = 50.0
-    ) -> float:  # pragma: no mutate
+    ) -> float:
         """Calcula la tasa de carga en % SOC/hora."""
         return calculate_charging_rate(charging_power_kw, battery_capacity_kwh)
 
@@ -88,7 +88,7 @@ class SOCHelpers:
         trip: Dict[str, Any],
         battery_capacity_kwh: float,
         consumption_kwh_per_km: float = 0.15,
-    ) -> float:  # pragma: no mutate
+    ) -> float:
         """Calculates the base SOC target percentage for a trip."""
         return calculate_soc_target(trip, battery_capacity_kwh, consumption_kwh_per_km)
 

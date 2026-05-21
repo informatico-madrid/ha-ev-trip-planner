@@ -1815,3 +1815,15 @@ Total potentially non-compliant pragmas: 120+ of 169 (71%).
 - reviewed_at: 2026-05-20T14:30:00Z
 - resolved_at: 2026-05-20T14:30:00Z
 - resolution: DEADLOCK resolved. Services pragmas confirmed: 23→1 (only register_services entry point remains, not US-5 applicable). The stale FAIL was based on stale WORKDIR comparison that didn't reflect committed state. US-5 work verified: log constants extracted, tests added (test_services_log_constants.py), pragmas removed.
+
+### [task-2.15] Hot revision tooling tune — Hovmöller rules 1–3
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-21T17:15:45Z
+- criterion_failed: none
+- evidence: |
+  Verify command output: mutate_only_covered_lines = true, max_stack_depth = 8, Re-baseline 2026-05-21 found in .progress.md → TOOLING_TUNED
+  git diff confirms Hovmöller rules 1-3 applied to pyproject.toml
+  taskIndex advanced 149→150 by coordinator
+- fix_hint: N/A
+- resolved_at: 2026-05-21T17:15:45Z

@@ -114,7 +114,7 @@ trip_create_schema = vol.Schema(
 # === Factory: add_recurring_trip ===
 
 
-def make_add_recurring_handler(hass: HomeAssistant):  # pragma: no mutate — 4 equivalent survivors (None-in-log, string case on HA call args)
+def make_add_recurring_handler(hass: HomeAssistant):
     """Return async handler for add_recurring_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -139,7 +139,7 @@ def make_add_recurring_handler(hass: HomeAssistant):  # pragma: no mutate — 4 
 # === Factory: add_punctual_trip ===
 
 
-def make_add_punctual_handler(hass: HomeAssistant):  # pragma: no mutate — 4 equivalent survivors (None-in-log, string case on HA call args)
+def make_add_punctual_handler(hass: HomeAssistant):
     """Return async handler for add_punctual_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -163,7 +163,7 @@ def make_add_punctual_handler(hass: HomeAssistant):  # pragma: no mutate — 4 e
 # === Factory: trip_update ===
 
 
-def make_trip_update_handler(hass: HomeAssistant):  # pragma: no mutate — 30 equivalent survivors (None-in-log, string case on data keys)
+def make_trip_update_handler(hass: HomeAssistant):
     """Return async handler for trip_update service."""
 
     # qg-accepted: complexity=13 is inherent to trip update handler with field mapping
@@ -235,7 +235,7 @@ def make_trip_update_handler(hass: HomeAssistant):  # pragma: no mutate — 30 e
 # === Factory: edit_trip ===
 
 
-def make_edit_trip_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equivalent survivors (None-in-log, string case on data keys)
+def make_edit_trip_handler(hass: HomeAssistant):
     """Return async handler for edit_trip service (deprecated alias)."""
 
     async def handler(call: ServiceCall) -> None:
@@ -255,7 +255,7 @@ def make_edit_trip_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equi
 # === Factory: delete_trip ===
 
 
-def make_delete_trip_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equivalent survivors (None-in-log, string case on data keys)
+def make_delete_trip_handler(hass: HomeAssistant):
     """Return async handler for delete_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -276,7 +276,7 @@ def make_delete_trip_handler(hass: HomeAssistant):  # pragma: no mutate — 5 eq
 # === Factory: pause_recurring_trip ===
 
 
-def make_pause_recurring_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equivalent survivors (None-in-log, string case on data keys)
+def make_pause_recurring_handler(hass: HomeAssistant):
     """Return async handler for pause_recurring_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -296,7 +296,7 @@ def make_pause_recurring_handler(hass: HomeAssistant):  # pragma: no mutate — 
 # === Factory: resume_recurring_trip ===
 
 
-def make_resume_recurring_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equivalent survivors (None-in-log, string case on data keys)
+def make_resume_recurring_handler(hass: HomeAssistant):
     """Return async handler for resume_recurring_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -316,7 +316,7 @@ def make_resume_recurring_handler(hass: HomeAssistant):  # pragma: no mutate —
 # === Factory: complete_punctual_trip ===
 
 
-def make_complete_punctual_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equivalent survivors (None-in-log, string case on data keys)
+def make_complete_punctual_handler(hass: HomeAssistant):
     """Return async handler for complete_punctual_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -336,7 +336,7 @@ def make_complete_punctual_handler(hass: HomeAssistant):  # pragma: no mutate �
 # === Factory: cancel_punctual_trip ===
 
 
-def make_cancel_punctual_handler(hass: HomeAssistant):  # pragma: no mutate — 5 equivalent survivors (None-in-log, string case on data keys)
+def make_cancel_punctual_handler(hass: HomeAssistant):
     """Return async handler for cancel_punctual_trip service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -356,7 +356,7 @@ def make_cancel_punctual_handler(hass: HomeAssistant):  # pragma: no mutate — 
 # === Factory: trip_create ===
 
 
-def make_trip_create_handler(hass: HomeAssistant):  # pragma: no mutate — 16 equivalent survivors (None-in-log, string case on data keys)
+def make_trip_create_handler(hass: HomeAssistant):
     """Return async handler for trip_create service (unified)."""
 
     async def handler(call: ServiceCall) -> None:
@@ -402,7 +402,7 @@ def make_trip_create_handler(hass: HomeAssistant):  # pragma: no mutate — 16 e
 # === Factory: import_weekly_pattern ===
 
 
-def make_import_weekly_pattern_handler(hass: HomeAssistant):  # pragma: no mutate — 16 equivalent survivors (None-in-log, string case on data keys)
+def make_import_weekly_pattern_handler(hass: HomeAssistant):
     """Return async handler for import_from_weekly_pattern service."""
 
     async def handler(call: ServiceCall) -> None:
@@ -439,7 +439,7 @@ def make_import_weekly_pattern_handler(hass: HomeAssistant):  # pragma: no mutat
 # === Factory: trip_list ===
 
 
-def make_trip_list_handler(hass: HomeAssistant):  # pragma: no mutate — 93 equivalent survivors (None-in-log, string case on data keys)
+def make_trip_list_handler(hass: HomeAssistant):
     """Return async handler for trip_list service."""
 
     async def handler(call: ServiceCall) -> dict[str, Any]:
@@ -526,7 +526,7 @@ def make_trip_list_handler(hass: HomeAssistant):  # pragma: no mutate — 93 equ
 # === Factory: trip_get ===
 
 
-def make_trip_get_handler(hass: HomeAssistant):  # pragma: no mutate — 39 equivalent survivors (None-in-log, string case on data keys)
+def make_trip_get_handler(hass: HomeAssistant):
     """Return async handler for trip_get service."""
 
     async def handler(call: ServiceCall) -> dict[str, Any]:

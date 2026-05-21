@@ -19,7 +19,7 @@ class IndexManagerBase(ABC):
 class IndexManager(IndexManagerBase):
     """Manages the trip_id -> emhass_index mapping with soft delete cooldown."""
 
-    # pragma: no mutate — 2 equivalent mutations (default_value on max_deferrable_loads/cooldown_hours)
+  
     def __init__(
         self,
         max_deferrable_loads: int = 50,
@@ -30,7 +30,7 @@ class IndexManager(IndexManagerBase):
         self._max_deferrable_loads: int = max_deferrable_loads
         self._released_indices: list[dict[str, datetime | float]] = []
 
-    # pragma: no mutate — 5 equivalent mutations (timestamp comparison/default_value)
+  
     def _is_index_in_cooldown(self, index: int) -> bool:
         """Check if an index is still in soft-delete cooldown."""
         for released in self._released_indices:
@@ -44,7 +44,7 @@ class IndexManager(IndexManagerBase):
                     return True
         return False
 
-    # pragma: no mutate — 3 equivalent mutations (timestamp handling/default_value)
+  
     def _prune_expired_cooldown(self) -> None:
         """Remove expired entries from _released_indices."""
         now = datetime.now(timezone.utc)

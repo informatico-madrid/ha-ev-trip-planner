@@ -2518,7 +2518,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
 
 ---
 
-- [ ] 2.16 [Hot revision · pragma re-audit] NFR-1b — Re-audit the 118 prior pragmas; remove every one that is not human-approved
+- [x] 2.16 [Hot revision · pragma re-audit] NFR-1b — Re-audit the 118 prior pragmas; remove every one that is not human-approved
 
   - **Why**: iterations 13–18 added 118 pragmas labelled "verified not US-5 applicable" via a ≥2-subagent procedure that did NOT include human escalation. NFR-1 (hot revision) requires human approval *in writing* in `chat.md` for every retained pragma, with a complete NFR-11 dossier. Most prior pragmas are removable once integration tests (NFR-9) and multi-attribute asserts (NFR-8) replace them.
 

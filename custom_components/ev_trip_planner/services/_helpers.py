@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 
-def get_str(data: dict[str, Any], key: str, default: str = "") -> str:  # pragma: no mutate
+def get_str(data: dict[str, Any], key: str, default: str = "") -> str:
     """Extract a string value from service call data with a default.
 
     Equivalent to: str(data.get(key, default))
@@ -25,7 +25,7 @@ def get_str_fallback(
     data: dict[str, Any],
     primary: str,
     fallback: str,
-    default: str = "",  # pragma: no mutate
+    default: str = "",
 ) -> str:
     """Extract a string from service call data, falling back to a second key.
 
@@ -44,7 +44,7 @@ def get_str_nested(
     data: dict[str, Any],
     primary: str,
     fallback: str,
-    default: str = "",  # pragma: no mutate
+    default: str = "",
 ) -> str:
     """Extract a string with a nested fallback key.
 
@@ -68,7 +68,7 @@ def get_vehicle_id(data: dict[str, Any]) -> str:
     return str(data.get("vehicle_id", "unknown"))
 
 
-def get_bool(data: dict[str, Any], key: str, default: bool = True) -> bool:  # pragma: no mutate
+def get_bool(data: dict[str, Any], key: str, default: bool = True) -> bool:
     """Extract a boolean value from service call data with a default.
 
     Equivalent to: bool(data.get(key, default))

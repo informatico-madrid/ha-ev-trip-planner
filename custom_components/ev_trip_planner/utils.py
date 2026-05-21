@@ -34,7 +34,7 @@ DAY_ABBREVIATIONS: dict[str, str] = {
 ALL_DAYS = set(DAY_ABBREVIATIONS.keys())
 
 
-def generate_random_suffix(length: int = 6) -> str:  # pragma: no mutate
+def generate_random_suffix(length: int = 6) -> str:
     """Generate a random alphanumeric suffix for trip IDs.
 
     Args:
@@ -52,7 +52,7 @@ def _generate_recurrent_trip_id(
 ) -> str:
     """Generate ID for a recurrent trip."""
     day_input = (
-        str(day_or_date) if isinstance(day_or_date, date) else day_or_date or "lunes"  # pragma: no mutate
+        str(day_or_date) if isinstance(day_or_date, date) else day_or_date or "lunes"
     ).lower()
     if day_input in DAY_ABBREVIATIONS:
         day_abbr = DAY_ABBREVIATIONS[day_input]
@@ -70,10 +70,10 @@ def _generate_punctual_trip_id(
         date_str = day_or_date.strftime("%Y%m%d")
     elif isinstance(day_or_date, str):
         try:
-            parsed = datetime.fromisoformat(day_or_date.replace("Z", "+00:00"))  # pragma: no mutate
+            parsed = datetime.fromisoformat(day_or_date.replace("Z", "+00:00"))
             date_str = parsed.strftime("%Y%m%d")
         except ValueError:
-            date_str = day_or_date.replace("-", "").replace("/", "")  # pragma: no mutate
+            date_str = day_or_date.replace("-", "").replace("/", "")
     else:
         date_str = datetime.now().strftime("%Y%m%d")
     return f"pun_{date_str}_{random_suffix}"
@@ -152,12 +152,12 @@ def validate_hora(hora: str) -> None:
                     or minute is out of range (0-59).
     """
     if not isinstance(hora, str) or len(hora) != 5 or hora[2] != ":":
-        raise ValueError("Invalid time format: expected HH:MM")  # pragma: no mutate
+        raise ValueError("Invalid time format: expected HH:MM")
 
-    hour_str, minute_str = hora.split(":", 1)  # pragma: no mutate
+    hour_str, minute_str = hora.split(":", 1)
 
     if not hour_str.isdigit() or not minute_str.isdigit():
-        raise ValueError("Invalid time format: expected HH:MM")  # pragma: no mutate
+        raise ValueError("Invalid time format: expected HH:MM")
 
     hour = int(hour_str)
     minute = int(minute_str)
@@ -200,7 +200,7 @@ def get_day_index(day_name: str) -> int:
         ValueError: If the day name is not recognized.
     """
     if not day_name:
-        raise ValueError("Day name cannot be empty")  # pragma: no mutate
+        raise ValueError("Day name cannot be empty")
     day_lower = day_name.lower()
     if day_lower in ("lunes", "monday"):
         return 0
@@ -230,7 +230,7 @@ def sanitize_recurring_trips(trips: dict[str, Any]) -> dict[str, Any]:
     """
     sanitized: dict[str, Any] = {}
     for trip_id, trip in trips.items():
-        hora = trip.get("hora", "")  # pragma: no mutate
+        hora = trip.get("hora", "")
         try:
             validate_hora(hora)
             sanitized[trip_id] = trip
@@ -265,7 +265,7 @@ def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     if trip_type == "recurrente":
         # Recurring trip: check if today's day name matches the trip's day
         # Support both 'dia' (legacy/test format) and 'dia_semana' (production format)
-        trip_day = trip.get("dia", "") or trip.get("dia_semana", "")  # pragma: no mutate
+        trip_day = trip.get("dia", "") or trip.get("dia_semana", "")
         trip_day = trip_day.lower()
         today_day = today.strftime("%A").lower()  # Full English day name
 
@@ -288,7 +288,7 @@ def is_trip_today(trip: dict[str, Any], today: date) -> bool:
                     return eng_day == today_day
         return False
 
-    elif trip_type in ("puntual", "punctual"):  # pragma: no mutate
+    elif trip_type in ("puntual", "punctual"):
         # Punctual trip: check if the trip's date matches today
         # Support both 'datetime' (TripManager format) and 'fecha' (legacy/test format)
         # Also support both 'puntual' (Spanish) and 'punctual' (English) trip types
@@ -352,9 +352,9 @@ def calcular_energia_kwh(
         ValueError: If distance_km or consumption_kwh_per_km is negative.
     """
     if distance_km < 0:
-        raise ValueError("Distance cannot be negative")  # pragma: no mutate
+        raise ValueError("Distance cannot be negative")
     if consumption_kwh_per_km < 0:
-        raise ValueError("Consumption cannot be negative")  # pragma: no mutate
+        raise ValueError("Consumption cannot be negative")
 
     energy_kwh = distance_km * consumption_kwh_per_km
     return round(energy_kwh, 3)

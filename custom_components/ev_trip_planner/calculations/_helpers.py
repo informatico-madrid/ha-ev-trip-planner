@@ -107,7 +107,7 @@ def _strip_accents(s: str) -> str:  # pragma: no mutate
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
 
-def _is_valid_day(day) -> bool:  # pragma: no mutate
+def _is_valid_day(day) -> bool:
     """Check if a day value is a valid day name or numeric (0-6)."""
     if day is None:
         return False
@@ -135,11 +135,11 @@ def _is_valid_day(day) -> bool:  # pragma: no mutate
     return normalized in valid_names
 
 
-def resolve_trip_deadline(  # pragma: no mutate
+def resolve_trip_deadline(
     trip: Dict[str, Any],
     now: datetime,
     tz: Any = None,
-) -> datetime | None:  # pragma: no mutate
+) -> datetime | None:
     """Resolve a trip to a deadline datetime, or None if invalid.
 
     Handles both punctual trips (has 'datetime' key) and recurring trips

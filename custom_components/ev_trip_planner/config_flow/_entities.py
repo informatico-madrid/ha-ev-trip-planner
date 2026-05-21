@@ -19,7 +19,7 @@ _LOG_INFO_NOTIFY_ENTITIES_AVAILABLE = "Notification step: %d notify entities ava
 _LOG_INFO_AUTO_SELECTED_SENSOR = "Auto-selected %s=%s"
 
 
-def scan_entities(  # pragma: no mutate — 12 equivalent survivors (string case, log text, None-in-log)
+def scan_entities(
     hass: HomeAssistant,
     domain_prefixes: List[str],
 ) -> List[str]:
@@ -50,7 +50,7 @@ def scan_entities(  # pragma: no mutate — 12 equivalent survivors (string case
         return []
 
 
-def scan_notify_entities(  # pragma: no mutate — 14 equivalent survivors (string case, log text, None-in-log, getattr default)
+def scan_notify_entities(
     hass: HomeAssistant,
 ) -> List[str]:
     """Scan entity registry for notify-domain entities.
@@ -88,7 +88,7 @@ def scan_notify_entities(  # pragma: no mutate — 14 equivalent survivors (stri
         return available
 
 
-def auto_select_sensor(  # pragma: no mutate — 14 equivalent survivors (string case, log text, None-in-log, default_value)
+def auto_select_sensor(
     hass: HomeAssistant,
     domain_prefixes: List[str],
     user_input: Dict[str, Any],

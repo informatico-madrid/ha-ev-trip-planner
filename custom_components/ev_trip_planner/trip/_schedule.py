@@ -32,7 +32,7 @@ class TripScheduler:
         """Initialize the schedule mixin with shared state."""
         self._state = state
 
-    def _read_battery_config(  # pragma: no mutate — 7 equivalent survivors (string case, log text, None-in-log, default_value)
+    def _read_battery_config(
         self,
     ) -> tuple[float, float]:
         """Return (battery_capacity_kwh, safety_margin_percent) from config entry."""
@@ -50,7 +50,7 @@ class TripScheduler:
             pass
         return 50.0, 10.0
 
-    async def _load_active_trips(  # pragma: no mutate — 17 equivalent survivors (string case, log text, None-in-log, default_value)
+    async def _load_active_trips(
         self,
     ) -> List[Dict[str, Any]]:
         """Load active trips, compute deadlines, and sort by urgency."""
@@ -71,7 +71,7 @@ class TripScheduler:
         all_trips.sort(key=lambda t: t.get("_hours_until_deadline", float("inf")))
         return all_trips
 
-    async def _build_power_profiles(  # pragma: no mutate — 39 equivalent survivors (string case, log text, None-in-log, default_value)
+    async def _build_power_profiles(
         self,
         trips: List[Dict[str, Any]],
         battery_capacity: float,
@@ -128,7 +128,7 @@ class TripScheduler:
 
         return power_profiles, num_trips
 
-    def _build_schedule_matrix(  # pragma: no mutate — 46 equivalent survivors (string case, log text, None-in-log, default_value)
+    def _build_schedule_matrix(
         self,
         power_profiles: List[List[float]],
         num_trips: int,
@@ -160,7 +160,7 @@ class TripScheduler:
 
         return schedule
 
-    async def async_generate_deferrables_schedule(  # pragma: no mutate — 33 equivalent survivors (string case, log text, None-in-log, default_value)
+    async def async_generate_deferrables_schedule(
         self,
         charging_power_kw: float = 3.6,
         planning_horizon_days: int = 7,
@@ -180,7 +180,7 @@ class TripScheduler:
         )
         return schedule
 
-    async def publish_deferrable_loads(  # pragma: no mutate — 15 equivalent survivors (string case, log text, None-in-log, default_value)
+    async def publish_deferrable_loads(
         self, trips: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """Publishes all active trips as deferrable loads to EMHASS."""

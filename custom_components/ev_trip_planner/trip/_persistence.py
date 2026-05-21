@@ -52,7 +52,7 @@ class TripPersistence:
 
     # ── Public API ─────────────────────────────────────────────────
 
-    async def async_setup(  # pragma: no mutate — 3 equivalent survivors (string case, log text)
+    async def async_setup(
         self,
     ) -> None:
         """Configura el gestor de viajes y carga los datos desde el almacenamiento."""
@@ -61,7 +61,7 @@ class TripPersistence:
         await self._load_trips()
         await self._state._schedule.publish_deferrable_loads()
 
-    async def async_save_trips(  # pragma: no mutate — 22 equivalent survivors (string case, log text, None-in-log, getattr default)
+    async def async_save_trips(
         self,
     ) -> None:
         """Guarda los viajes en el almacenamiento persistente."""
@@ -108,7 +108,7 @@ class TripPersistence:
 
     # ── Private helpers ───────────────────────────────────────────
 
-    async def _load_trips(self) -> None:  # pragma: no mutate
+    async def _load_trips(self) -> None:
         """Carga los viajes desde el almacenamiento persistente."""
         state = self._state
         if state.punctual_trips or state.recurring_trips or state._trips:
@@ -165,7 +165,7 @@ class TripPersistence:
 
     async def _load_trips_yaml(
         self, storage_key: str
-    ) -> None:  # pragma: no mutate — 21 equivalent survivors (string case, log text, getattr default)  # pragma: no cover reason=ha-filesystem-only
+    ) -> None:
         """Carga los viajes desde un archivo YAML (fallback)."""
         state = self._state
         try:
@@ -190,7 +190,7 @@ class TripPersistence:
             _LOGGER.error(_LOG_LOAD_YAML_ERROR, err)
             self._reset_trips()
 
-    async def _save_trips_yaml(  # pragma: no mutate — 22 equivalent survivors (string case, log text, getattr default)
+    async def _save_trips_yaml(
         self, storage_key: str,
     ) -> None:  # pragma: no cover reason=ha-filesystem-only
         """Guarda los viajes en un archivo YAML (fallback)."""
@@ -213,7 +213,7 @@ class TripPersistence:
         except Exception as err:  # pragma: no cover reason=ha-filesystem-only
             _LOGGER.error(_LOG_SAVE_YAML_FAIL_ERROR, err)
 
-    def _reset_trips(  # pragma: no mutate — 3 equivalent survivors (string case, log text)
+    def _reset_trips(
         self,
     ) -> None:
         """Resetea todas las colecciones de viajes."""
@@ -222,7 +222,7 @@ class TripPersistence:
         self._state.punctual_trips = {}
         self._state.last_update = None
 
-    def _sanitize_recurring_trips(  # pragma: no mutate — 5 equivalent survivors (string case, log text)
+    def _sanitize_recurring_trips(
         self, trips: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Elimina viajes recurrentes con formato de hora inválido."""

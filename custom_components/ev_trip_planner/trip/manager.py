@@ -47,7 +47,7 @@ class TripManager:
         hass: HomeAssistant,
         vehicle_id: str,
         config: Optional[TripManagerConfig] = None,
-    ) -> None:  # pragma: no mutate
+    ) -> None:
         """Inicializa el gestor de viajes para un vehículo específico."""
         cfg = config or TripManagerConfig()
 
@@ -112,7 +112,7 @@ class TripManager:
         """Valida que una cadena de hora tenga el formato HH:MM y valores válidos."""
         pure_validate_hora(hora)
 
-    def _sanitize_recurring_trips(self, trips: Dict[str, Any]) -> Dict[str, Any]:  # pragma: no mutate
+    def _sanitize_recurring_trips(self, trips: Dict[str, Any]) -> Dict[str, Any]:
         """Elimina viajes recurrentes con formato de hora inválido."""
         original_count = len(trips)
         sanitized = pure_sanitize_recurring_trips(trips)

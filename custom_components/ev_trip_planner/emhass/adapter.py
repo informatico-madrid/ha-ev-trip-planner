@@ -61,7 +61,7 @@ class EMHASSAdapter:
     a unified interface while maintaining single responsibility per component.
     """
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:  # pragma: no mutate — 26 default_value/string survivors in config parsing
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         # qg-accepted: complexity=11 is inherent to EMHASS adapter init with HA deps
         """Initialize the EMHASS adapter facade.
 
@@ -160,7 +160,7 @@ class EMHASSAdapter:
         """Load adapter state from storage."""
         await self._index_manager.async_load_index()
 
-    async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:  # pragma: no mutate — 10 log/string/default_value survivors
+    async def async_assign_index_to_trip(self, trip_id: str) -> Optional[int]:
         """Assign an index to a trip."""
         try:
             return self._index_manager.assign_index(trip_id)
@@ -168,7 +168,7 @@ class EMHASSAdapter:
             self._error_handler.handle_error("assign_index", err, {"trip_id": trip_id})
             return None
 
-    async def async_remove_deferrable_load(self, trip_id: str) -> bool:  # pragma: no mutate — 10 log/string/default_value survivors
+    async def async_remove_deferrable_load(self, trip_id: str) -> bool:
         """Remove a deferrable load."""
         try:
             success = await self._load_publisher.remove(trip_id)
@@ -179,7 +179,7 @@ class EMHASSAdapter:
             self._error_handler.handle_error("remove", err, {"trip_id": trip_id})
             return False
 
-    async def async_update_deferrable_load(self, trip: Dict[str, Any]) -> bool:  # pragma: no mutate — 12 log/string/default_value survivors
+    async def async_update_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         """Update an existing deferrable load."""
         try:
             return await self._load_publisher.update(trip)
@@ -187,7 +187,7 @@ class EMHASSAdapter:
             self._error_handler.handle_error("update", err, {"trip": trip.get("id")})
             return False
 
-    def get_available_indices(  # pragma: no mutate — 6 equivalent survivors (string case, log text)
+    def get_available_indices(
         self,
     ) -> List[int]:
         """Get list of available indices."""
@@ -196,7 +196,7 @@ class EMHASSAdapter:
         max_idx = max(self._index_manager._index_map.values())
         return list(range(max_idx + 1))
 
-    def get_cached_optimization_results(self) -> Dict[str, Any]:  # pragma: no mutate — 20 log/string/default_value survivors
+    def get_cached_optimization_results(self) -> Dict[str, Any]:
         """Return cached optimization results for coordinator retrieval.
 
         Returns:
@@ -223,7 +223,7 @@ class EMHASSAdapter:
             "per_trip_emhass_params": self._cached_per_trip_params,
         }
 
-    async def update_charging_power(self, force: bool = False) -> None:  # pragma: no mutate — 3 log/string/default_value survivors
+    async def update_charging_power(self, force: bool = False) -> None:
         """Update charging power and republish sensor attributes if changed.
 
         Args:
@@ -251,7 +251,7 @@ class EMHASSAdapter:
         # Propagate to LoadPublisher so publish() uses correct power
         self._load_publisher.charging_power_kw = new_power
 
-    def setup_config_entry_listener(self) -> None:  # pragma: no mutate — 3 log/string/default_value survivors
+    def setup_config_entry_listener(self) -> None:
         """Subscribe to config entry updates to trigger republish when charging power changes."""
         self.config_entry = self.hass.config_entries.async_get_entry(self.entry_id)
         if not self.config_entry:
@@ -260,7 +260,7 @@ class EMHASSAdapter:
             self.config_entry.add_update_listener(self._handle_config_entry_update)
         )
 
-    async def _handle_config_entry_update(  # pragma: no mutate — 1 log/string/default_value survivor
+    async def _handle_config_entry_update(
         self, hass: HomeAssistant, config_entry: ConfigEntry
     ) -> None:
         """Handle config entry update events."""
@@ -275,7 +275,7 @@ class EMHASSAdapter:
             # Propagate to LoadPublisher so publish() uses correct power
             self._load_publisher.charging_power_kw = new_charging_power
 
-    async def async_publish_all_deferrable_loads(  # pragma: no mutate — 49 log/string/default_value survivors
+    async def async_publish_all_deferrable_loads(
         self,
         trips: List[Dict[str, Any]],
         charging_power: float | None = None,
@@ -362,7 +362,7 @@ class EMHASSAdapter:
 
         return success
 
-    async def _precompute_and_process_trips(  # pragma: no mutate — 54 log/string/default_value survivors
+    async def _precompute_and_process_trips(
         self,
         trips: List[Dict[str, Any]],
         battery_capacity_kwh: float,
@@ -430,7 +430,7 @@ class EMHASSAdapter:
 
         return soc_current
 
-    def _build_trip_deadlines(  # pragma: no mutate — 1 log/string/default_value survivor
+    def _build_trip_deadlines(
         self, trips: List[Dict[str, Any]]
     ) -> List[Tuple[datetime, Dict[str, Any]]]:
         """Build sorted list of (deadline, trip) tuples."""
@@ -442,7 +442,7 @@ class EMHASSAdapter:
         trip_deadlines.sort(key=lambda x: x[0])
         return trip_deadlines
 
-    def _compute_charging_windows(  # pragma: no mutate — 2 log/string/default_value survivors
+    def _compute_charging_windows(
         self,
         trip_deadlines: List[Tuple[datetime, Dict[str, Any]]],
         soc_current: float,
@@ -464,7 +464,7 @@ class EMHASSAdapter:
             now=now,
         )
 
-    def _build_window_lookup(  # pragma: no mutate — 6 equivalent survivors (string case, log text)
+    def _build_window_lookup(
         self, windows: List[Dict[str, Any]]
     ) -> Dict[str, Dict[str, Any]]:
         """Build lookup dict from trip_id to window."""
@@ -477,7 +477,7 @@ class EMHASSAdapter:
                     lookup[trip_id] = window
         return lookup
 
-    async def _process_trips_with_windows(  # pragma: no mutate — 16 log/string/default_value survivors
+    async def _process_trips_with_windows(
         self,
         trips: List[Dict[str, Any]],
         battery_capacity_kwh: float,
@@ -516,7 +516,7 @@ class EMHASSAdapter:
                 if not trip_success:
                     self._cached_emhass_status = "error"
 
-    def _get_horizon_hours(self) -> int:  # pragma: no mutate — 29 log/string/default_value survivors
+    def _get_horizon_hours(self) -> int:
         """Read planning horizon from config entry."""
         horizon = 168  # default: 7 days * 24 hours
         try:
@@ -527,7 +527,7 @@ class EMHASSAdapter:
             pass
         return horizon
 
-    def _build_power_profile_and_schedule(  # pragma: no mutate — 40 log/string/default_value survivors
+    def _build_power_profile_and_schedule(
         self,
         horizon: int,
         power_profile: List[float],
@@ -559,7 +559,7 @@ class EMHASSAdapter:
                 }
             )
 
-    async def async_cleanup_vehicle_indices(self) -> None:  # pragma: no mutate — 4 log/string/default_value survivors
+    async def async_cleanup_vehicle_indices(self) -> None:
         """Clean up all indices for this vehicle."""
         indices_to_release = list(self._index_manager._index_map.keys())
         for trip_id in indices_to_release:
@@ -575,7 +575,7 @@ class EMHASSAdapter:
     # ------------------------------------------------------------------
 
     # qg-accepted: complexity=13 is inherent to SOC fetching with error handling
-    async def _get_current_soc(self) -> Optional[float]:  # pragma: no mutate — 35 log/string/default_value survivors
+    async def _get_current_soc(self) -> Optional[float]:
         """Get current SOC from configured sensor.
 
         Returns:
@@ -648,7 +648,7 @@ class EMHASSAdapter:
     # CC-N-ACCEPTED: cc=12 — cache entry builder with branches for punctual vs
     # recurring trips, datetime handling, charging window calc, and energy
     # calculation. Each step has distinct error paths.
-    async def _populate_per_trip_cache_entry(  # pragma: no mutate — 89 log/string/default_value survivors (equivalent mutations)
+    async def _populate_per_trip_cache_entry(
         self,
         params: PerTripCacheParams,
         pre_computed_inicio_ventana: Optional[datetime] = None,
@@ -877,7 +877,7 @@ class EMHASSAdapter:
             _helpers.kw_to_watts(charging_power_kw),
         )
 
-    def _apply_deficit_propagation(self) -> None:  # pragma: no mutate — 31 log/string/default_value survivors
+    def _apply_deficit_propagation(self) -> None:
         """Apply deficit propagation across all cached per-trip params.
 
         Walks trips backward (last to first) and propagates unmet charging
@@ -929,7 +929,7 @@ class EMHASSAdapter:
             )
         self._apply_deficit_results(results, active)
 
-    def _get_active_trips_sorted(self) -> List[Dict[str, Any]]:  # pragma: no mutate — 12 log/string/default_value survivors
+    def _get_active_trips_sorted(self) -> List[Dict[str, Any]]:
         """Return active trips sorted by (start_timestep, index)."""
         active: List[Dict[str, Any]] = []
         for params in self._cached_per_trip_params.values():
@@ -940,7 +940,7 @@ class EMHASSAdapter:
         )
         return active
 
-    def _build_deficit_windows(  # pragma: no mutate — 19 log/string/default_value survivors
+    def _build_deficit_windows(
         self, active: List[Dict[str, Any]]
     ) -> tuple[List[Dict[str, float]], List[float]]:
         """Build windows and total_hours lists for deficit propagation."""
@@ -972,7 +972,7 @@ class EMHASSAdapter:
             total_hours_list.append(p.get("def_total_hours", 0))
         return windows, total_hours_list
 
-    def _apply_deficit_results(  # pragma: no mutate — 31 log/string/default_value survivors
+    def _apply_deficit_results(
         self,
         results: List[Dict[str, Any]],
         active: List[Dict[str, Any]],
@@ -1031,7 +1031,7 @@ class EMHASSAdapter:
                 )
                 self._cached_per_trip_params[trip_id]["p_deferrable_matrix"] = [new_row]
 
-    def _find_trip_id_for_params(  # pragma: no mutate — 4 equivalent survivors (string case, log text)
+    def _find_trip_id_for_params(
         self, params: Dict[str, Any]
     ) -> Optional[str]:
         """Find trip_id matching a params dict by identity."""
@@ -1040,7 +1040,7 @@ class EMHASSAdapter:
                 return tid
         return None
 
-    async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:  # pragma: no mutate — 7 log/string/default_value survivors
+    async def async_publish_deferrable_load(self, trip: Dict[str, Any]) -> bool:
         """Publish a single trip as a deferrable load.
 
         Populates _cached_per_trip_params and _published_trips for cache

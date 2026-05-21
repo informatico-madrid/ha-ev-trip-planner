@@ -63,7 +63,7 @@ def build_panel_config(vehicle_id: str) -> dict[str, str]:
     return {"vehicle_id": vehicle_id}
 
 
-def build_module_url(  # pragma: no mutate — 3 equivalent survivors (string case, log text)
+def build_module_url(
     vehicle_id: str,
 ) -> str:
     """Build the cache-busted module URL for the panel JS.
@@ -107,7 +107,7 @@ def build_panel_kwargs(
     }
 
 
-async def async_register_panel(  # pragma: no mutate — 34 equivalent survivors (log text, string case, None-in-log, getattr default)
+async def async_register_panel(
     hass: HomeAssistant,
     vehicle_id: str,
     vehicle_name: str,
@@ -174,7 +174,7 @@ async def async_register_panel(  # pragma: no mutate — 34 equivalent survivors
         return False
 
 
-async def async_unregister_panel(  # pragma: no mutate — 11 equivalent survivors (string case, log text, None-in-log)
+async def async_unregister_panel(
     hass: HomeAssistant,
     vehicle_id: str,
 ) -> bool:
@@ -215,7 +215,7 @@ async def async_unregister_panel(  # pragma: no mutate — 11 equivalent survivo
         return False
 
 
-def _store_vehicle_panel_mapping(  # pragma: no mutate — 9 equivalent survivors (string case, log text)
+def _store_vehicle_panel_mapping(
     hass: HomeAssistant,
     vehicle_id: str,
     frontend_url_path: str,
@@ -239,7 +239,7 @@ def _store_vehicle_panel_mapping(  # pragma: no mutate — 9 equivalent survivor
     )
 
 
-def _remove_vehicle_panel_mapping(  # pragma: no mutate — 5 equivalent survivors (string case, log text)
+def _remove_vehicle_panel_mapping(
     hass: HomeAssistant,
     vehicle_id: str,
 ) -> None:
@@ -287,7 +287,7 @@ def get_all_panel_mappings(
     return hass.data.get(VEHICLE_PANEL_MAPPING_KEY, {})
 
 
-async def async_register_all_panels(  # pragma: no mutate — 7 equivalent survivors (string case, log text)
+async def async_register_all_panels(
     hass: HomeAssistant,
     vehicles: list[dict[str, Any]],
 ) -> None:
