@@ -2621,7 +2621,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — calculations real-kill via distinctive data + boundary parametrisation`
   - _Requirements: US-4, US-6, US-9, NFR-8, NFR-10_
 
-- [ ] 2.22 [Iteration: sensor] entity setup + update + remove (~306 survivors)
+- [x] 2.22 [Iteration: sensor] entity setup + update + remove (~306 survivors)
 
   - **Focus**: `sensor/_async_setup.py`, `sensor/_async_update.py`, entity classes. Heavy lifecycle/glue.
   - **Strategy**:
@@ -2632,7 +2632,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — sensor real-kill`
   - _Requirements: US-4, US-5, US-6, US-7, US-9, NFR-8, NFR-9_
 
-- [ ] 2.23 [Iteration: config_flow] form schemas + options + voluptuous defaults (~285 survivors)
+- [x] 2.23 [Iteration: config_flow] form schemas + options + voluptuous defaults (~285 survivors)
 
   - **Focus**: config_flow is the lowest current rate (39.4%). Schema-default mutations + form-key string mutations dominate.
   - **Strategy**:

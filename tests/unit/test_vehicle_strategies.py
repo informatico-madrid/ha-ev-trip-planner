@@ -434,6 +434,32 @@ class TestCreateControlStrategy:
         assert isinstance(strategy, ExternalStrategy)
 
     @pytest.mark.asyncio
+    async def test_switch_factory_asserts_entity_id_in_config(self):
+        """SwitchStrategy factory stores entity_id in config dict."""
+        hass = MagicMock()
+        strategy = create_control_strategy(hass, {
+            "control_type": "switch",
+            "charge_control_entity": "switch.ev_charger_main",
+        })
+        assert isinstance(strategy, SwitchStrategy)
+        assert strategy.config == {"entity_id": "switch.ev_charger_main"}
+
+    @pytest.mark.asyncio
+    async def test_script_factory_asserts_script_ids(self):
+        """ScriptStrategy factory stores full script IDs in config."""
+        hass = MagicMock()
+        strategy = create_control_strategy(hass, {
+            "control_type": "script",
+            "charge_script_on": "script.start_ev_charging",
+            "charge_script_off": "script.stop_ev_charging",
+        })
+        assert isinstance(strategy, ScriptStrategy)
+        assert strategy.config == {
+            "script_on": "script.start_ev_charging",
+            "script_off": "script.stop_ev_charging",
+        }
+
+    @pytest.mark.asyncio
     async def test_service_with_data(self):
         """Service strategy with data_on/data_off."""
         hass = MagicMock()
@@ -448,6 +474,50 @@ class TestCreateControlStrategy:
         assert isinstance(strategy, ServiceStrategy)
         assert strategy.data_on == {"entity_id": "sw.1"}
         assert strategy.data_off == {}
+
+    @pytest.mark.asyncio
+    async def test_service_factory_default_data_off_empty(self):
+        """Factory with no charge_service_data_off → empty dict default."""
+        hass = MagicMock()
+        config = {
+            "control_type": "service",
+            "charge_service_on": "script.start",
+            "charge_service_off": "script.stop",
+            "charge_service_data_on": {"x": 1},
+        }
+        strategy = create_control_strategy(hass, config)
+        assert isinstance(strategy, ServiceStrategy)
+        assert strategy.data_off == {}
+        assert strategy.data_on == {"x": 1}
+
+    @pytest.mark.asyncio
+    async def test_service_strategy_full_args_multi_assert(self):
+        """ServiceStrategy activate asserts full domain/service/data tuple."""
+        hass = MagicMock()
+        hass.services.async_call = AsyncMock()
+        wrapper = HomeAssistantWrapper(hass)
+        strategy = ServiceStrategy(
+            wrapper,
+            {
+                "service_on": "light.bedroom",
+                "service_off": "light.bedroom_off",
+                "data_on": {"brightness": 200},
+                "data_off": {"brightness": 0},
+            },
+        )
+
+        await strategy.async_activate()
+        call = hass.services.async_call.call_args
+        # Full-tuple assert: domain, service, data
+        assert call[0][0] == "light"
+        assert call[0][1] == "bedroom"
+        assert call[0][2] == {"brightness": 200}
+
+        await strategy.async_deactivate()
+        call2 = hass.services.async_call.call_args
+        assert call2[0][0] == "light"
+        assert call2[0][1] == "bedroom_off"
+        assert call2[0][2] == {"brightness": 0}
 
 
 class TestVehicleController:
