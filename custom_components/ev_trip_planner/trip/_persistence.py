@@ -17,6 +17,7 @@ from homeassistant.helpers import storage as ha_storage
 from homeassistant.helpers.storage import Store
 
 from ..const import DOMAIN
+from ._helpers import get_dict, get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -136,14 +137,14 @@ class TripPersistence:
 
             if stored_data:
                 if isinstance(stored_data, dict) and "data" in stored_data:
-                    data = stored_data.get("data", {})
+                    data = get_dict(stored_data, "data")
                 else:
                     data = stored_data
 
-                state._trips = data.get("trips", {})
-                state.recurring_trips = data.get("recurring_trips", {})
-                state.punctual_trips = data.get("punctual_trips", {})
-                state.last_update = data.get("last_update")
+                state._trips = get_dict(data, "trips")
+                state.recurring_trips = get_dict(data, "recurring_trips")
+                state.punctual_trips = get_dict(data, "punctual_trips")
+                state.last_update = get_str(data, "last_update", "") or None
 
                 state.recurring_trips = self._sanitize_recurring_trips(
                     state.recurring_trips
@@ -165,7 +166,7 @@ class TripPersistence:
 
     async def _load_trips_yaml(
         self, storage_key: str
-    ) -> None:
+    ) -> None:  # pragma: no cover reason=ha-filesystem-only
         """Carga los viajes desde un archivo YAML (fallback)."""
         state = self._state
         try:
@@ -178,10 +179,10 @@ class TripPersistence:
                     data = yaml.safe_load(f) or {}
                 if "data" in data:
                     trip_data = data["data"]
-                    state._trips = trip_data.get("trips", {})
-                    state.recurring_trips = trip_data.get("recurring_trips", {})
-                    state.punctual_trips = trip_data.get("punctual_trips", {})
-                    state.last_update = trip_data.get("last_update")
+                    state._trips = get_dict(trip_data, "trips")
+                    state.recurring_trips = get_dict(trip_data, "recurring_trips")
+                    state.punctual_trips = get_dict(trip_data, "punctual_trips")
+                    state.last_update = get_str(trip_data, "last_update", "") or None
                 else:
                     self._reset_trips()
             else:

@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 
 from ..const import TRIP_TYPE_PUNCTUAL, TRIP_TYPE_RECURRING
 from ..utils import generate_trip_id, validate_hora
+from ._helpers import get_bool, get_number, get_str, get_trip_datetime
 from ._sensor_callbacks import SensorEvent, emit
 from .state import TripManagerState
 
@@ -105,18 +106,22 @@ class TripCRUD:
     async def async_add_recurring_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje recurrente y sincroniza con EMHASS."""
         state = self._state
+        dia_semana = get_str(kwargs, "dia_semana")
+        hora = get_str(kwargs, "hora", "")
+        km = get_number(kwargs, "km", 0.0)
+        kwh = get_number(kwargs, "kwh", 0.0)
         _LOGGER.debug(
             _LOG_ADD_RECURRING_DEBUG,
             state.vehicle_id,
-            kwargs.get("dia_semana"),
-            kwargs.get("hora"),
-            kwargs.get("km", 0),
-            kwargs.get("kwh", 0),
+            dia_semana,
+            hora,
+            km,
+            kwh,
         )
-        validate_hora(kwargs.get("hora", ""))
+        validate_hora(hora)
 
         trip_id = kwargs.get("trip_id") or generate_trip_id(
-            "recurrente", kwargs.get("dia_semana", "lunes")
+            "recurrente", get_str(kwargs, "dia_semana", "lunes")
         )
         state.recurring_trips[trip_id] = {
             "id": trip_id,
@@ -125,8 +130,8 @@ class TripCRUD:
             "hora": kwargs["hora"],
             "km": kwargs["km"],
             "kwh": kwargs["kwh"],
-            "descripcion": kwargs.get("descripcion", ""),
-            "activo": True,
+            "descripcion": get_str(kwargs, "descripcion", ""),
+            "activo": get_bool(kwargs, "activo", True),
         }
         await state.async_save_trips()
         _LOGGER.info(_LOG_ADD_RECURRING_INFO, trip_id, state.vehicle_id)
@@ -141,14 +146,16 @@ class TripCRUD:
     async def async_add_punctual_trip(self, **kwargs: Any) -> None:
         """Añade un nuevo viaje puntual y sincroniza con EMHASS."""
         state = self._state
+        datetime_str = get_trip_datetime(kwargs)
+        km = kwargs.get("km", 0)
+        kwh = kwargs.get("kwh", 0)
         _LOGGER.debug(
             _LOG_ADD_PUNCTUAL_DEBUG,
             state.vehicle_id,
-            kwargs.get("datetime_str", kwargs.get("datetime", "")),
-            kwargs.get("km", 0),
-            kwargs.get("kwh", 0),
+            datetime_str,
+            km,
+            kwh,
         )
-        datetime_str = kwargs.get("datetime_str", kwargs.get("datetime", ""))
         date_part = datetime_str.split("T")[0].replace("-", "") if datetime_str else ""
         trip_id = kwargs.get("trip_id") or generate_trip_id("punctual", date_part)
         state.punctual_trips[trip_id] = {
@@ -157,7 +164,7 @@ class TripCRUD:
             "datetime": datetime_str,
             "km": kwargs["km"],
             "kwh": kwargs["kwh"],
-            "descripcion": kwargs.get("descripcion", ""),
+            "descripcion": get_str(kwargs, "descripcion", ""),
             "estado": "pendiente",
         }
         await state.async_save_trips()

@@ -19,6 +19,7 @@ from ..calculations import (
     calculate_deficit_propagation,
     calculate_dynamic_soc_limit,
 )
+from ._helpers import get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -118,7 +119,7 @@ class SOCWindow:
             self._state._soc._get_trip_time(params.trips[0]) if params.trips else None
         )
         if trip_departure_time is None and params.trips:
-            dt_str = params.trips[0].get("datetime")
+            dt_str = get_str(params.trips[0], "datetime", "") or None
             if dt_str:
                 trip_departure_time = self._state._soc._parse_trip_datetime(
                     dt_str, allow_none=True

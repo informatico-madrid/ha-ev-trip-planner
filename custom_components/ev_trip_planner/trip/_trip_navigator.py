@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from ..const import DAYS_OF_WEEK
+from ._helpers import get_bool, get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class TripNavigator:
 
         # Filter punctual trips: datetime > hora_regreso and estado=pendiente
         for trip in self._state.punctual_trips.values():
-            if trip.get("estado") != "pendiente":
+            if get_str(trip, "estado", "pendiente") != "pendiente":
                 continue
             trip_time = self._state._soc._get_trip_time(trip)
             if trip_time and trip_time > hora_regreso:
@@ -48,13 +49,14 @@ class TripNavigator:
 
         # Filter recurring trips: today's day_of_week, hora > hora_regreso.time(), activo=True
         for trip in self._state.recurring_trips.values():
-            if not trip.get("activo", True):
+            if not get_bool(trip, "activo", True):
                 continue
-            if trip.get("dia_semana", "").lower() != dia_semana_hoy:
+            if get_str(trip, "dia_semana", "").lower() != dia_semana_hoy:
                 continue
             try:
-                trip_hour = int(trip["hora"].split(":")[0])
-                trip_minute = int(trip["hora"].split(":")[1])
+                trip_hora = get_str(trip, "hora", "")
+                trip_hour = int(trip_hora.split(":")[0])
+                trip_minute = int(trip_hora.split(":")[1])
                 regreso_hour = hora_regreso.hour
                 regreso_minute = hora_regreso.minute
                 if trip_hour < regreso_hour or (
@@ -86,7 +88,7 @@ class TripNavigator:
         now = datetime.now(timezone.utc)
         next_trip: Optional[Dict[str, Any]] = None
         for trip in self._state.recurring_trips.values():
-            if trip.get("activo"):
+            if get_bool(trip, "activo", True):
                 trip_time = self._state._soc._get_trip_time(trip)
                 if trip_time and trip_time > now:
                     if next_trip is None or trip_time < next_trip["time"]:

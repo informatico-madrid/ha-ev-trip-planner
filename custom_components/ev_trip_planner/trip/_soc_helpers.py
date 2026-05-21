@@ -21,6 +21,7 @@ from ..calculations import (
 )
 from ..const import CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER, DOMAIN
 from ..utils import is_trip_today as pure_is_trip_today
+from ._helpers import get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -103,9 +104,9 @@ class SOCHelpers:
             return None
         result = calculate_trip_time(
             tipo,
-            trip.get("hora"),
-            trip.get("dia_semana"),
-            trip.get("datetime"),
+            get_str(trip, "hora", "") or None,
+            get_str(trip, "dia_semana", "") or None,
+            get_str(trip, "datetime", "") or None,
             datetime.now(timezone.utc),
         )
         if result is not None:

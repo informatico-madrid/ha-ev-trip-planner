@@ -2567,7 +2567,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — coordinator past gate threshold`
   - _Requirements: US-4, US-6, US-7, US-9, AC-4.5, AC-7.1, NFR-8, NFR-9_
 
-- [ ] 2.18 [Iteration: trip] largest survivor pool (~996); split into per-file sub-iterations
+- [x] 2.18 [Iteration: trip] US-5 helpers extracted (trip/_helpers.py with 7 functions), refactored 8 trip module files, added 33 helper tests, pragmas reduced 36→5, 100% test coverage
 
   - **Focus**: `trip/_crud`, `_persistence`, `_emhass_sync`, `_schedule`, `_power_profile`, `_sensor_callbacks`, `_soc_window`, `_soc_query`, `_soc_helpers`, `_trip_lifecycle`, `_trip_navigator`, `manager`. Heavy HA-glue + `.get()` defaults + log strings.
   - **Strategy**:

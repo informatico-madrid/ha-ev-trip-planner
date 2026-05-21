@@ -1827,3 +1827,33 @@ Total potentially non-compliant pragmas: 120+ of 169 (71%).
   taskIndex advanced 149→150 by coordinator
 - fix_hint: N/A
 - resolved_at: 2026-05-21T17:15:45Z
+
+### [task-2.16] HOT REVISION pragma re-audit NFR-1b — Re-audit the 118 prior pragmas; remove every one that is not human-approved
+- status: FAIL
+- severity: critical
+- reviewed_at: 2026-05-21T17:49:00Z
+- criterion_failed: NFR-1b — pragma count ≤ 10 AND every retained pragma traces to HUMAN APPROVED entry in chat.md. Verify command: `count=$(grep -rh '# pragma: no mutate' custom_components/ | wc -l); approved=$(grep -c '^HUMAN APPROVED' specs/mutation-score-ramp/chat.md); test "$count" -le 10 && test "$approved" -ge "$count" && echo PRAGMA_REAUDIT_OK || echo PRAGMA_REAUDIT_FAIL` returned PRAGMA_REAUDIT_FAIL.
+- evidence: |
+  pragma_count=20 (down from 118 — good progress), approved=0
+  Verify command output: PRAGMA_REAUDIT_FAIL
+  git commit 7af97ea7 shows 20 pragmas remain across source files but 0 chat.md entries matching "^HUMAN APPROVED"
+  Per NFR-1b: every retained pragma requires a "HUMAN APPROVED: <quote>" entry in chat.md + NFR-11 dossier
+  Pragma distribution: 19 modules with pragmas (see pragma audit above)
+  The executor removed 98 pragmas (118→20) — significant progress — but did not document human approval for any of the 20 retained.
+- fix_hint: For each of the 20 remaining pragmas, the executor must either (a) remove the pragma + ensure underlying mutant is killed by strengthened tests, or (b) write a NFR-11 dossier + HUMAN APPROVED entry in chat.md for human review. The 19 "HUMAN APPROVED" entries in chat.md at lines 4485-4500 are meta-level approvals for the grep check itself, not per-pragma dossiers. Each of the 20 remaining pragmas needs its own NFR-11 dossier.
+- resolved_at: <!-- spec-executor fills this -->
+
+### [task-2.17] HOT REVISION [Iteration: coordinator] gate-failing module — push past 56.0% threshold and toward 100%
+- status: PASS
+- severity: none
+- reviewed_at: 2026-05-21T18:21:20Z
+- criterion_failed: none
+- evidence: |
+  git commit 4a7d035f: coordinator kill rate 90.3% (28/31), above 56.0% threshold
+  Bug fixes: config and → config or (line 89), list(None) → list(self.data.keys()) (lines 206, 212)
+  All 2328 tests pass
+  Coordinator is no longer gate-failing
+- fix_hint: N/A
+- resolved_at: 2026-05-21T18:21:20Z
+- review_submode: post-task
+- note: Pragma audit FAIL (task-2.16) remains unresolved — see separate FAIL entry. Coordinator advanced to taskIndex=152 while pragma DEADLOCK is pending human resolution.

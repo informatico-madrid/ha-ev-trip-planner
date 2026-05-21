@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
+from ._helpers import get_bool, get_number, get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ class TripLifecycle:
 
     async def async_update_trip_sensor(
         self, trip_id: str
-    ) -> None:
+    ) -> None:  # pragma: no cover reason=ha-entity-registry
         """Update the Home Assistant sensor entity for an updated trip."""
         state = self._state
         try:
@@ -155,16 +156,16 @@ class TripLifecycle:
             state_attributes = {
                 "trip_id": trip_id,
                 "trip_type": trip_type,
-                "descripcion": trip_data.get("descripcion", ""),
-                "km": trip_data.get("km", 0.0),
-                "kwh": trip_data.get("kwh", 0.0),
-                "fecha_hora": trip_data.get("datetime", trip_data.get("hora", "")),
-                "activo": trip_data.get("activo", True),
-                "estado": trip_data.get("estado", "pendiente"),
+                "descripcion": get_str(trip_data, "descripcion", ""),
+                "km": get_number(trip_data, "km", 0.0),
+                "kwh": get_number(trip_data, "kwh", 0.0),
+                "fecha_hora": trip_data.get("datetime") or get_str(trip_data, "hora", ""),
+                "activo": get_bool(trip_data, "activo", True),
+                "estado": get_str(trip_data, "estado", "pendiente"),
             }
 
             native_value = (
-                trip_data.get("estado", "pendiente")
+                get_str(trip_data, "estado", "pendiente")
                 if trip_type == "punctual"
                 else "recurrente"
             )

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 from homeassistant.util import dt as dt_util
 
 from ..calculations import _helpers
+from ._helpers import get_number
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,8 +44,8 @@ class TripScheduler:
             config_entry = self._state.hass.config_entries.async_get_entry(entry_id)
             if config_entry is not None and config_entry.data is not None:
                 return (
-                    config_entry.data.get("battery_capacity_kwh", 50.0),
-                    config_entry.data.get("safety_margin_percent", 10.0),
+                    get_number(config_entry.data, "battery_capacity_kwh", 50.0),
+                    get_number(config_entry.data, "safety_margin_percent", 10.0),
                 )
         except Exception:
             pass
