@@ -2580,7 +2580,7 @@ The adjudicated set must be minimized; if it grows large, escalate for a scope d
   - **Commit**: `chore(mutation-score-ramp): hot-rev iteration — trip real-kill via integration + helpers + multi-assert`
   - _Requirements: US-4, US-5, US-6, US-7, US-9, AC-6.x, AC-7.x, NFR-8, NFR-9, NFR-10, NFR-12_
 
-- [ ] 2.19 [Iteration: emhass] adapter + load_publisher + error_handler + index_manager (~701 survivors)
+- [x] 2.19 [Iteration: emhass] adapter + load_publisher + error_handler + index_manager (~701 survivors)
 
   - **Focus**: EMHASS adapter is dense in HA-glue + config-`.get()` + timestamp comparisons.
   - **Strategy**:
