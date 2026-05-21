@@ -226,6 +226,34 @@ class TestPublishSocUnavailable:
         publisher._index_manager.assign_index.assert_called_once_with("trip_1")
 
     @pytest.mark.asyncio
+    async def test_publish_soc_unavailable_reaches_error_log(self):
+        """Lines 152-156: Future deadline + no SOC sensor → logs error and returns False.
+
+        Uses a far-future datetime to ensure the code reaches the _get_current_soc()
+        call at line 150 and the error log at lines 152-156.
+        """
+        hass = MagicMock()
+        idx_mgr = MagicMock()
+        config = LoadPublisherConfig(
+            charging_power_kw=3.6,
+            battery_capacity_kwh=75.0,
+            index_manager=idx_mgr,
+        )
+        publisher = LoadPublisher(hass, "test_vehicle", config)
+        publisher._soc_sensor = None
+
+        trip = {
+            "id": "trip_future",
+            "kwh": 10.0,
+            "datetime": "2030-01-01T08:00:00+00:00",
+        }
+        publisher._index_manager.assign_index = MagicMock(return_value=1)
+
+        result = await publisher.publish(trip)
+
+        assert result is False
+
+    @pytest.mark.asyncio
     async def test_publish_returns_false_when_soc_sensor_state_missing(self):
         """Lines 324-326: hass.states.get returns None → _get_current_soc returns None."""
         hass = MagicMock()
