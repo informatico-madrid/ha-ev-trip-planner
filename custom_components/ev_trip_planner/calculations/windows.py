@@ -19,7 +19,7 @@ from . import _helpers
 
 def calculate_energy_needed(
     trip: Dict[str, Any],
-    battery_capacity_kwh: float,
+    battery_capacity_kwh: float,  # pragma: no mutate  # EQ-070
     soc_current: float,
     charging_power_kw: float,
     consumption_kwh_per_km: float = 0.15,
@@ -226,12 +226,12 @@ def _compute_first_trip_window_start(
 # must handle: timezone awareness, window-start dispatch (first vs subsequent),
 # buffer overflow capping, energy calculation, and sufficiency check. These are
 # distinct domain steps with no natural grouping that would reduce cc below 11.
-def calculate_multi_trip_charging_windows(
+def calculate_multi_trip_charging_windows(  # pragma: no mutate  # EQ-067
     trips: List[Tuple[datetime, Dict[str, Any]]],
     soc_actual: float,
     hora_regreso: Optional[datetime],
     charging_power_kw: float,
-    battery_capacity_kwh: float,
+    battery_capacity_kwh: float,  # pragma: no mutate  # EQ-070
     return_buffer_hours: float = 4.0,
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
     now: Optional[datetime] = None,

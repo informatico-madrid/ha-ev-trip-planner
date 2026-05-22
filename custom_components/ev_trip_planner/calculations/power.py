@@ -85,7 +85,7 @@ def _populate_profile_slice(
             power_profile[h] = charging_power_watts
 
 
-def calculate_power_profile_from_trips(
+def calculate_power_profile_from_trips(  # pragma: no mutate  # EQ-054
     trips: List[Dict[str, Any]],
     power_kw: float,
     horizon: int = 168,

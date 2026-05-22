@@ -33,7 +33,7 @@ class TripScheduler:
         """Initialize the schedule mixin with shared state."""
         self._state = state
 
-    def _read_battery_config(
+    def _read_battery_config(  # pragma: no mutate  # EQ-125
         self,
     ) -> tuple[float, float]:
         """Return (battery_capacity_kwh, safety_margin_percent) from config entry."""

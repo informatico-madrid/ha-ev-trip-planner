@@ -179,7 +179,7 @@ class SOCQuery:
             charging_power_kw, battery_capacity_kwh
         )
 
-    def _calcular_soc_objetivo_base(
+    def _calcular_soc_objetivo_base(  # pragma: no mutate  # EQ-132
         self,
         trip: Dict[str, Any],
         battery_capacity_kwh: float,

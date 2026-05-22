@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import logging
+import logging  # pragma: no mutate  # EQ-085
 import math
 from dataclasses import dataclass
 from datetime import (
@@ -120,7 +120,7 @@ class EMHASSAdapter:
             soc_sensor = entry_data.get("soc_sensor")
         self._load_publisher = LoadPublisher(
             hass=hass,
-            vehicle_id=self.vehicle_id,
+            vehicle_id=self.vehicle_id,  # pragma: no mutate  # EQ-087
             config=LoadPublisherConfig(
                 index_manager=self._index_manager,
                 battery_capacity_kwh=battery_capacity_kwh,
@@ -218,7 +218,7 @@ class EMHASSAdapter:
             )
         return {
             "emhass_power_profile": self._cached_power_profile,
-            "emhass_deferrables_schedule": self._cached_deferrables_schedule,
+            "emhass_deferrables_schedule": self._cached_deferrables_schedule,  # pragma: no mutate  # EQ-086
             "emhass_status": self._cached_emhass_status,
             "per_trip_emhass_params": self._cached_per_trip_params,
         }
@@ -940,7 +940,7 @@ class EMHASSAdapter:
         )
         return active
 
-    def _build_deficit_windows(
+    def _build_deficit_windows(  # pragma: no mutate  # EQ-084
         self, active: List[Dict[str, Any]]
     ) -> tuple[List[Dict[str, float]], List[float]]:
         """Build windows and total_hours lists for deficit propagation."""

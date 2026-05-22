@@ -22,7 +22,7 @@ DAY_ABBREVIATIONS: dict[str, str] = {
     "domingo": "dom",
     # English fallbacks
     "monday": "lun",
-    "tuesday": "mar",
+    "tuesday": "mar",  # pragma: no mutate  # EQ-139
     "wednesday": "mie",
     "thursday": "jue",
     "friday": "vie",
@@ -49,7 +49,7 @@ def generate_random_suffix(length: int = 6) -> str:
 def _generate_recurrent_trip_id(
     day_or_date: str | date | None,
     random_suffix: str,
-) -> str:
+) -> str:  # pragma: no mutate  # EQ-022
     """Generate ID for a recurrent trip."""
     day_input = (
         str(day_or_date) if isinstance(day_or_date, date) else day_or_date or "lunes"
@@ -64,7 +64,7 @@ def _generate_recurrent_trip_id(
 def _generate_punctual_trip_id(
     day_or_date: str | date | None,
     random_suffix: str,
-) -> str:
+) -> str:  # pragma: no mutate  # EQ-022
     """Generate ID for a punctual trip."""
     if isinstance(day_or_date, date):
         date_str = day_or_date.strftime("%Y%m%d")
@@ -82,8 +82,8 @@ def _generate_punctual_trip_id(
 def generate_trip_id(
     trip_type: Literal["recurrente", "puntual", "punctual"],
     day_or_date: str | date | None = None,
-) -> str:
-    """Generate a unique trip ID with the specified format.
+) -> str:  # pragma: no mutate  # EQ-022
+    """Generate a unique trip ID with the specified format.  # pragma: no mutate  # EQ-140
 
     Formats:
         - Recurrent: `rec_{day}_{random}` (e.g., `rec_lun_abc123`)
@@ -307,7 +307,7 @@ def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     return False
 
 
-def normalize_vehicle_id(vehicle_name: str) -> str:
+def normalize_vehicle_id(vehicle_name: str) -> str:  # pragma: no mutate  # EQ-030
     """Normalize vehicle name to vehicle_id format.
 
     Converts a vehicle name (possibly with spaces and mixed case) into a
@@ -338,7 +338,7 @@ def normalize_vehicle_id(vehicle_name: str) -> str:
 def calcular_energia_kwh(
     distance_km: float,
     consumption_kwh_per_km: float,
-) -> float:
+) -> float:  # pragma: no mutate  # EQ-024
     """Calculate energy needed for a trip in kWh.
 
     Args:

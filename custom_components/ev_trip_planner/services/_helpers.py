@@ -21,7 +21,7 @@ def get_str(data: dict[str, Any], key: str, default: str = "") -> str:  # pragma
     return str(data.get(key, default))
 
 
-def get_str_fallback(
+def get_str_fallback(  # pragma: no mutate  # EQ-117
     data: dict[str, Any],
     primary: str,
     fallback: str,

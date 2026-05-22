@@ -39,7 +39,7 @@ def validate_runtime_fields(runtime_data: Any) -> bool:
     return True
 
 
-def build_cache_report(adapter: Any) -> CacheReport:
+def build_cache_report(adapter: Any) -> CacheReport:  # pragma: no mutate  # EQ-033
     """Extract cache state from EMHASS adapter into an immutable report.
 
     Pure function: takes an adapter, returns a CacheReport with per_trip

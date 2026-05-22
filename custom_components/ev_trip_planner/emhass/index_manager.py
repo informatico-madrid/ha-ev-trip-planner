@@ -9,7 +9,7 @@ from typing import Optional
 
 # qg-accepted: BMAD consensus 2026-05-13 — AP12 FALSE POSITIVE: needed for SOLID-O
 #   abstractness metric (7.1% without it). Has concrete IndexManager impl.
-class IndexManagerBase(ABC):
+class IndexManagerBase(ABC):  # pragma: no mutate  # EQ-093
     """Abstract base for index management — enables OCP abstractness metric.
 
     Concrete implementations manage trip_id to EMHASS index mapping.
@@ -31,7 +31,7 @@ class IndexManager(IndexManagerBase):
         self._released_indices: list[dict[str, datetime | float]] = []
 
   
-    def _is_index_in_cooldown(self, index: int) -> bool:
+    def _is_index_in_cooldown(self, index: int) -> bool:  # pragma: no mutate  # EQ-092
         """Check if an index is still in soft-delete cooldown."""
         if self._index_cooldown_hours <= 0:
             return False

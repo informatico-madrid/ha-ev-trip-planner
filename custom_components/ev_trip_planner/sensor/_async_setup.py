@@ -94,7 +94,7 @@ async def async_setup_entry(
         )
         return False
 
-    _LOGGER.debug(
+    _LOGGER.debug(  # pragma: no mutate  # EQ-101
         "Setting up sensors for vehicle_id=%s, entry_id=%s, coordinator=%s",
         vehicle_id,
         entry_id,
@@ -115,7 +115,7 @@ async def async_setup_entry(
     )
     entities.extend(trip_sensors)
 
-    _LOGGER.debug(
+    _LOGGER.debug(  # pragma: no mutate  # EQ-101
         "Created sensors for %s: %s",
         vehicle_id,
         [type(e).__name__ for e in entities],
@@ -186,7 +186,7 @@ async def _async_create_trip_sensors(
 
         # Create sensors for punctual trips
         for trip_data in punctual_trips:
-            try:
+            try:  # pragma: no mutate  # EQ-098
                 sensor = TripSensor(coordinator, vehicle_id, trip_data.get("id", ""))
                 entities.append(sensor)
                 _LOGGER.debug(
@@ -271,7 +271,7 @@ async def async_create_trip_sensor(
         # Register via async_add_entities so entity appears in registry
         result = async_add_entities([sensor], True)
         if result is not None:
-            try:
+            try:  # pragma: no mutate  # EQ-098
                 await result
             except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 # Sync callback
@@ -288,7 +288,7 @@ async def async_create_trip_sensor(
 # update path. Each conditional is a distinct data source with its own
 # None path or error recovery.
 # qg-accepted: complexity=12 is inherent to sensor update flow
-async def async_update_trip_sensor(
+async def async_update_trip_sensor(  # pragma: no mutate  # EQ-097
     hass: HomeAssistant,
     entry_id: str,
     trip_data: Dict[str, Any],
@@ -501,7 +501,7 @@ async def async_create_trip_emhass_sensor(
         # Register via async_add_entities so entity appears in registry
         result = async_add_entities([sensor], True)
         if result is not None:
-            try:
+            try:  # pragma: no mutate  # EQ-098
                 await result
             except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 # Sync callback

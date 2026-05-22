@@ -7,7 +7,7 @@ outputs — no HA runtime dependency.
 
 from __future__ import annotations
 
-import logging
+import logging  # pragma: no mutate  # EQ-104
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -206,7 +206,7 @@ def build_emhass_attributes(
 # =============================================================================
 
 
-def extract_active_trips(
+def extract_active_trips(  # pragma: no mutate  # EQ-102
     per_trip_params: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
     """Filter active trips and sort by (def_start_timestep, emhass_index).

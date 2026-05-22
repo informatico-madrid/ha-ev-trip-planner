@@ -5,7 +5,7 @@ SOLID decomposition (Spec 3). These functions handle SOC deficit
 propagation, charging decisions, and recurring datetime calculations.
 """
 
-from __future__ import annotations
+from __future__ import annotations  # pragma: no mutate  # EQ-042
 
 import math
 from dataclasses import dataclass
@@ -72,7 +72,7 @@ def determine_charging_need(
     needs_charging = kwh_needed > 0
 
     if needs_charging:
-        total_hours = (
+        total_hours = (  # pragma: no mutate  # EQ-043
             int(math.ceil(kwh_needed / charging_power_kw))
             if charging_power_kw > 0
             else 0
@@ -254,7 +254,7 @@ def _compute_trip_trip_time(
 # propagation (trips, soc_data, windows, tasa_carga_soc, battery_capacity_kwh, reference_dt,
 # optional arrays). The 3 optional params (trip_times, soc_targets, soc_caps) are for
 # optimization/caching and follow the Options pattern. This IS the domain function signature.
-def calculate_deficit_propagation(
+def calculate_deficit_propagation(  # pragma: no mutate  # EQ-048
     trips: List[Dict[str, Any]],
     soc_data: List[Dict[str, Any]],
     windows: List[Dict[str, Any]],

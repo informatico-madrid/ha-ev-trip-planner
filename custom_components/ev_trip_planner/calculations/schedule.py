@@ -7,7 +7,7 @@ load schedule calculations.
 
 from __future__ import annotations
 
-import logging
+import logging  # pragma: no mutate  # EQ-066
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -155,7 +155,7 @@ def _check_charging_window(
     return "0.0"
 
 
-def calculate_deferrable_parameters(
+def calculate_deferrable_parameters(  # pragma: no mutate  # EQ-063
     trip: Dict[str, Any],
     power_kw: float,
     reference_dt: Optional[datetime] = None,

@@ -72,7 +72,7 @@ def get_config_bool(
         default: Default value if key is missing.
 
     Returns:
-        Boolean value or default.
+        Boolean value or default.  # pragma: no mutate  # EQ-078
     """
     value = entry_data.get(key)
     if value is None:

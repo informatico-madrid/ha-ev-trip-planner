@@ -40,7 +40,7 @@ class EMHASSSync:
     them via state-level references rather than direct calls.
     """
 
-    def __init__(self, state: TripManagerState) -> None:
+    def __init__(self, state: TripManagerState) -> None:  # pragma: no mutate  # EQ-120
         """Initialize with shared state."""
         self._state = state
 

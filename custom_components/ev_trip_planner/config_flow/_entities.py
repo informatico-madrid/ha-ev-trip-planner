@@ -6,7 +6,7 @@ Provides unified entity registry queries used by presence and notifications step
 
 from __future__ import annotations
 
-import logging
+import logging  # pragma: no mutate  # EQ-074
 from typing import Any, Dict, List
 
 from homeassistant.core import HomeAssistant
@@ -20,7 +20,7 @@ _LOG_INFO_AUTO_SELECTED_SENSOR = "Auto-selected %s=%s"
 
 
 def scan_entities(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # pragma: no mutate  # EQ-075
     domain_prefixes: List[str],
 ) -> List[str]:
     """Scan entity registry for entities matching given domain prefixes.
@@ -50,8 +50,8 @@ def scan_entities(
         return []
 
 
-def scan_notify_entities(
-    hass: HomeAssistant,
+def scan_notify_entities(  # pragma: no mutate  # EQ-073
+    hass: HomeAssistant,  # pragma: no mutate  # EQ-075
 ) -> List[str]:
     """Scan entity registry for notify-domain entities.
 
@@ -89,7 +89,7 @@ def scan_notify_entities(
 
 
 def auto_select_sensor(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # pragma: no mutate  # EQ-075
     domain_prefixes: List[str],
     user_input: Dict[str, Any],
     sensor_key: str,

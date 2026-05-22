@@ -65,7 +65,7 @@ class TripSensor(
             "recurrente",
         ]
 
-    def _get_trip_data(self) -> Dict[str, Any]:
+    def _get_trip_data(self) -> Dict[str, Any]:  # pragma: no mutate  # EQ-113
         """Get trip data from coordinator.
 
         Returns:

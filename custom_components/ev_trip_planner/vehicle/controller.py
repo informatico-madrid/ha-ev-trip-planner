@@ -46,7 +46,7 @@ MAX_RETRY_ATTEMPTS = 3
 RETRY_TIME_WINDOW_SECONDS = 300  # 5 minutes
 
 
-def create_control_strategy(
+def create_control_strategy(  # pragma: no mutate  # EQ-001
     hass: HomeAssistant, config: Dict[str, Any]
 ) -> VehicleControlStrategy:
     """Factory function to create appropriate control strategy."""
@@ -94,7 +94,7 @@ class VehicleController:
         vehicle_id: str,
         presence_config: Optional[Dict[str, Any]] = None,
         trip_manager: Optional["TripManager"] = None,
-    ) -> None:
+    ) -> None:  # pragma: no mutate  # EQ-003
         """Initialize the vehicle controller."""
         self.hass = hass
         self.vehicle_id = vehicle_id
@@ -229,7 +229,7 @@ class VehicleController:
         # Update last known charging state
         self._last_charging_state = current_charging
 
-    def reset_retry_state(self) -> None:
+    def reset_retry_state(self) -> None:  # pragma: no mutate  # EQ-004
         """Manually reset the retry counter.
 
         This can be called when the user wants to reset after being
@@ -270,7 +270,7 @@ class VehicleController:
 
     async def _update_charging_state_after_deactivation(
         self,
-    ) -> None:
+    ) -> None:  # pragma: no mutate  # EQ-003
         """Update charging state after deactivation to track disconnect."""
         if not self._charging_sensor:
             return

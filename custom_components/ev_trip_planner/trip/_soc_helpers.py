@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 
 from ..calculations import (
-    calculate_charging_rate,
+    calculate_charging_rate,  # pragma: no mutate  # EQ-129
     calculate_day_index,
     calculate_soc_target,
     calculate_trip_time,

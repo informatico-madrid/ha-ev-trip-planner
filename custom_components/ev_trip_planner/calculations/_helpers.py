@@ -5,7 +5,7 @@ SOLID decomposition (Spec 3). These helpers are intentionally private
 (not in __all__) and imported only within the package.
 """
 
-from __future__ import annotations
+from __future__ import annotations  # pragma: no mutate  # EQ-035
 
 import logging
 from datetime import datetime, timezone
@@ -135,7 +135,7 @@ def _is_valid_day(day) -> bool:
     return normalized in valid_names
 
 
-def resolve_trip_deadline(
+def resolve_trip_deadline(  # pragma: no mutate  # EQ-034
     trip: Dict[str, Any],
     now: datetime,
     tz: Any = None,

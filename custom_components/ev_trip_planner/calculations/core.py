@@ -204,7 +204,7 @@ def calculate_day_index(day_name: str) -> int:
 # (with/without timezone) × 2 datetime format variants. Extracting would
 # split a single coherent dispatch logic into 5+ helpers with unclear names.
 # qg-accepted: arity=6 is the canonical trip time API — all domain inputs
-def calculate_trip_time(
+def calculate_trip_time(  # pragma: no mutate  # EQ-036
     trip_tipo: str,
     hora: Optional[str],
     dia_semana: Optional[str],

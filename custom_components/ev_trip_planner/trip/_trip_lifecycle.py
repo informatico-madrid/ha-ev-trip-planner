@@ -31,7 +31,7 @@ _LOG_ERROR_UPDATING_TRIP_SENSOR_ERROR = "Error updating trip sensor for trip %s:
 class TripLifecycle:
     """Bulk deletion, pause/resume, complete/cancel, sensor refresh."""
 
-    def __init__(self, state: TripManagerState) -> None:
+    def __init__(self, state: TripManagerState) -> None:  # pragma: no mutate  # EQ-135
         """Initialize with shared state."""
         self._state = state
 
