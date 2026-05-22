@@ -56,6 +56,11 @@ class TestBuildPanelConfig:
         config = build_panel_config("v1")
         assert isinstance(config, dict)
 
+    def test_build_config_exact_dict_equality(self):
+        """Test exact dict content. Kills mutation: dict literal → {} or similar."""
+        config = build_panel_config("v1")
+        assert config == {"vehicle_id": "v1"}
+
 
 class TestBuildModuleUrl:
     """Tests for the extracted build_module_url function."""
@@ -77,6 +82,33 @@ class TestBuildModuleUrl:
         u1 = build_module_url("car_a")
         u2 = build_module_url("car_b")
         assert u1 != u2
+
+    def test_build_module_url_domain_replace(self):
+        """Test DOMAIN underscores replaced with hyphens (line 78).
+        Kills mutation: replace('_', '-') → replace('_', '_') or similar."""
+        url = build_module_url("v1")
+        # DOMAIN = "ev_trip_planner", replace('_', '-') = "ev-trip-planner"
+        assert url.startswith("/ev-trip-planner/panel.js")
+
+    def test_build_module_url_exact_path_prefix(self):
+        """Test exact path prefix. Kills string mutations on path."""
+        url = build_module_url("v1")
+        # The path portion before ?t= must be exact
+        path_part = url.split("?")[0]
+        assert path_part == "/ev-trip-planner/panel.js"
+
+    def test_build_module_url_cache_bust_structure(self):
+        """Test cache_bust has version prefix and timestamp.
+        Kills mutation: + str() → str(), or time.time() mutation."""
+        url = build_module_url("v1")
+        cache_bust = url.split("?t=")[1]
+        # Format: version-timestamp-hash (hash may be negative = contains -)
+        # Verify version prefix and timestamp are present
+        assert cache_bust.startswith("3.0.11-")
+        # Timestamp is numeric part after version
+        after_version = cache_bust[len("3.0.11-"):]
+        ts_str = after_version.split("-")[0]
+        assert ts_str.isdigit()
 
 
 class TestBuildPanelKwargs:
@@ -119,6 +151,30 @@ class TestBuildPanelKwargs:
         """Test embed_iframe defaults to False."""
         kwargs = build_panel_kwargs("p", "V", "u", {})
         assert kwargs["embed_iframe"] is False
+
+    def test_build_kwargs_webcomponent_name(self):
+        """Test webcomponent_name is exact PANEL_COMPONENT_NAME.
+        Kills string mutations on 'ev-trip-planner-panel'."""
+        kwargs = build_panel_kwargs("p", "V", "u", {})
+        assert kwargs["webcomponent_name"] == "ev-trip-planner-panel"
+
+    def test_build_kwargs_sidebar_icon(self):
+        """Test sidebar_icon is exact DEFAULT_SIDEBAR_ICON.
+        Kills string mutations on 'mdi:car-electric'."""
+        kwargs = build_panel_kwargs("p", "V", "u", {})
+        assert kwargs["sidebar_icon"] == "mdi:car-electric"
+
+    def test_build_kwargs_exact_frontend_url_path(self):
+        """Test frontend_url_path matches input exactly.
+        Kills mutations that change the value assignment."""
+        kwargs = build_panel_kwargs("my-path", "V", "u", {})
+        assert kwargs["frontend_url_path"] == "my-path"
+
+    def test_build_kwargs_exact_module_url(self):
+        """Test module_url matches input exactly.
+        Kills mutations that change the value assignment."""
+        kwargs = build_panel_kwargs("p", "V", "my-url", {})
+        assert kwargs["module_url"] == "my-url"
 
 
 # --- Fixture definitions (previously conftest) ---
@@ -419,6 +475,24 @@ class TestGetVehiclePanelUrlPath:
         url_path = panel.get_vehicle_panel_url_path(hass, "vehicle_1")
         assert url_path is None
 
+    def test_get_vehicle_panel_url_path_return_type_is_str(self):
+        """Test that return type is str when found, not mutated form."""
+        hass = MagicMock()
+        mapping = {"vehicle_1": "ev-trip-planner-vehicle_1"}
+        hass.data = {panel.VEHICLE_PANEL_MAPPING_KEY: mapping}
+
+        url_path = panel.get_vehicle_panel_url_path(hass, "vehicle_1")
+        assert isinstance(url_path, str)
+        assert url_path == "ev-trip-planner-vehicle_1"
+
+    def test_get_vehicle_panel_url_path_none_return_type(self):
+        """Test that return is None when not found, not mutated sentinel."""
+        hass = MagicMock()
+        hass.data = {}
+
+        url_path = panel.get_vehicle_panel_url_path(hass, "nonexistent")
+        assert url_path is None
+
 
 class TestGetAllPanelMappings:
     """Tests for get_all_panel_mappings function."""
@@ -441,6 +515,23 @@ class TestGetAllPanelMappings:
         hass.data = {}
 
         result = panel.get_all_panel_mappings(hass)
+        assert result == {}
+
+    def test_get_all_mappings_is_dict(self):
+        """Test that result is exactly a dict, not mutated type."""
+        hass = MagicMock()
+        hass.data = {}
+
+        result = panel.get_all_panel_mappings(hass)
+        assert type(result) is dict
+
+    def test_get_all_mappings_exact_empty_dict(self):
+        """Test exact empty dict equality. Kills mutation: {} → None etc."""
+        hass = MagicMock()
+        hass.data = {}
+
+        result = panel.get_all_panel_mappings(hass)
+        assert result is not None
         assert result == {}
 
 
