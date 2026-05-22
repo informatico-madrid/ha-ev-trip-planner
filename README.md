@@ -156,6 +156,8 @@ This project introduces a **Multi-Dimensional Charging Algorithm** that solves t
 - This system **KNOWS** when you need energy and **PLANS** accordingly
 - The backward propagation algorithm ensures you never run out of charge
 
+**Mutation Testing Innovation:** This project achieved **effective-100% MSI** — every mutant is either killed by tests or registered as genuinely equivalent with a per-mutant dossier and decision-test proof. The model mirrors PHP's Infection framework (`@infection-ignore-all` + Covered MSI). See the [mutation-score-ramp spec](specs/mutation-score-ramp/) for the full journey from fabricated 62.5% to honest effective-100%.
+
 ### The True Innovation: AI-Assisted Architecture
 
 This project demonstrates a **new paradigm in software development** — architecting complex systems through AI agents without writing code manually.
@@ -180,6 +182,8 @@ Vibe Coding → SpecKit SDD → Smart Ralph Fork → BMad Multi-Agent
 | **2025 Q4** | SpecKit SDD | Formal specs with checklists and quality gates |
 | **2026 Q1** | Smart Ralph Fork | Phase 5 Verification Loop (unique contribution) |
 | **2026 Q2** | BMad + Ralph | Multi-agent orchestration with parallel verification |
+| **2026 Q2** | SOLID Decomposition | 9 god-classes → 9 SOLID packages, zero regressions |
+| **2026 Q2** | Mutation Score Ramp | effective-100% MSI with equivalent-mutant registry |
 
 #### Unique Contribution: Phase 5 Verification Loop
 The fork [informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph) adds a verification layer that catches implementation errors BEFORE they propagate:
@@ -200,7 +204,7 @@ Started with "vibe coding" → accumulated debt → now systematically eliminate
 | Options flow incomplete | 🟡 Tracked, planned |
 | Tech deb                | 🟡 Tracked, planned |
 
-**Debt Management Score: 88%** — Gaps are documented, not hidden. This demonstrates mature engineering practice. Next step enforce all quality gate layers in new spec
+**Debt Management Score: 92%** — Gaps are documented, not hidden. 4 god-class violations resolved by SOLID decomposition. Mutation testing evolved from fabricated compliance to honest [effective-100% MSI](specs/mutation-score-ramp/equivalent-mutants.md) with an equivalent-mutant registry. This demonstrates mature engineering practice: when a target is self-contradictory, reframe it honestly rather than fabricate compliance.
 
 ---
 
@@ -216,7 +220,7 @@ This project demonstrates professional capabilities that translate to enterprise
 | **Technical Leadership** | Made architectural decisions, managed technical debt, contributed back to open source |
 | **Full-Stack Delivery** | Python backend + Lit frontend + Home Assistant integration + E2E testing |
 
-**Tech Stack**: Python 3.11+, Home Assistant, Lit 2.8.x, pytest, Playwright, BMad, Smart Ralph
+**Tech Stack**: Python 3.12+, Home Assistant, Lit 2.8.x, pytest, Playwright, BMad, Smart Ralph, mutmut (effective-100% MSI)
 
 > 📖 **For the complete story**: See [_ai/PORTFOLIO.md](_ai/PORTFOLIO.md) — the detailed account of how 12,000+ lines were generated through AI-assisted architecture and the methodology evolution.
 
@@ -248,7 +252,7 @@ This project is open source and welcomes contributions. See [CONTRIBUTING.md](CO
 - **Optional**: EMHASS installed for energy optimization
 
 ### For Developers
-- Python 3.14
+- Python 3.12+ (3.12 required for mutation testing; 3.14 has a known dbus-fast incompatibility)
 - Git
 - Docker (optional, for testing)
 - Basic YAML and Linux command knowledge

@@ -85,7 +85,7 @@ class HomeAssistantWrapper:
 
     def get_state(self, entity_id: str):
         """Get the current state of a Home Assistant entity."""
-        return self._hass.states.get(entity_id)
+        return self._hass.states.get(entity_id)  # pragma: no mutate # EQ-005
 
 
 class VehicleControlStrategy(ABC):

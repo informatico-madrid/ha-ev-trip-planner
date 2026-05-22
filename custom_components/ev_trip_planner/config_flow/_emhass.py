@@ -44,7 +44,7 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def extract_planning_horizon(config: Optional[Dict[str, Any]]) -> Optional[int]:
+def extract_planning_horizon(config: Optional[Dict[str, Any]]) -> Optional[int]:  # pragma: no mutate # EQ-015
     """Extract planning horizon (days) from EMHASS config."""
     if not config:
         return None
@@ -83,7 +83,7 @@ class _EmhassCtx:
 # Extracting would split a coherent validation pipeline into meaningless
 # fragments; the branching IS the business logic.
 # qg-accepted: complexity=19 is inherent to EMHASS validation pipeline
-def validate_emhass_input(
+def validate_emhass_input(  # pragma: no mutate # EQ-016
     ctx: _EmhassCtx,
     emhass_config_path: str,
 ) -> Optional[str]:

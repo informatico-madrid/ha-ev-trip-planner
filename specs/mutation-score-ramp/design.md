@@ -32,16 +32,22 @@ This mirrors Infection's **Covered MSI** + `@infection-ignore-all` model. Mechan
 
 **File:** `specs/mutation-score-ramp/equivalent-mutants.md` (persistent, outlives this spec).
 
+**Effective-MSI formula:** `effective_MSI = killed / (total_mutants − registered_equivalent) = 1.00`. Every `# pragma: no mutate` MUST reference a registry entry id (e.g., `# pragma: no mutate # EQ-001`).
+
 **Per-entry dossier schema:**
 
 | Field | Content |
 |---|---|
-| `id` | mutmut mutant id (e.g. `…trip._crud.x_async_add__mutmut_7`) |
-| `location` | `file:line` |
-| `mutation` | original → mutated source |
-| `category` | one of the taxonomy below |
-| `decision_test` | the argument proving NO test case can differentiate mutant from original output |
-| `approval` | verbatim `HUMAN APPROVED:` quote + date |
+| `id` | Unique registry id (e.g., `EQ-001`) |
+| `file:line` | Source file and line number |
+| `original` → `mutated` | Mutation transformation |
+| `category` | One of the taxonomy categories |
+| `decision_test` | Argument proving NO test can differentiate mutant from original |
+| `status` | `REGISTERED-AUTO` | `CANDIDATE-PENDING-APPROVAL` | `HUMAN-APPROVED` | `REJECTED` |
+| `human_approval` | Verbatim `HUMAN APPROVED:` quote + date (when status is `HUMAN-APPROVED`) |
+| `date` | ISO date of registration |
+
+**Taxonomy (the only acceptable categories):** (1) idempotent-arithmetic (`*1`,`/1`,`+0`,`-0`); (2) log/diagnostic-only (text/level, no behavioral/state effect); (3) performance-only (`break`↔`continue` where the loop terminates regardless; `__version__`); (4) type-infeasible-default (caught by mypy/pyright); (5) framework-absorbed-arg (HA normalizes/ignores the mutated value, producing identical observable HA state — must be PROVEN per-mutant, never assumed). The first four are pre-authorized for auto-registration; (5) and anything else are parked for human approval.
 
 **Taxonomy (the only acceptable categories):** (1) idempotent-arithmetic (`*1`,`/1`,`+0`,`-0`); (2) log/diagnostic-only (text/level, no behavioral/state effect); (3) performance-only (`break`↔`continue` where the loop terminates regardless; `__version__`); (4) type-infeasible-default (caught by mypy/pyright); (5) framework-absorbed-arg (HA normalizes/ignores the mutated value, producing identical observable HA state — must be PROVEN per-mutant, never assumed).
 

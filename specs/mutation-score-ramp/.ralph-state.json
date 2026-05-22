@@ -1,88 +1,33 @@
 {
-  "source": "spec",
-  "name": "mutation-score-ramp",
-  "basePath": "specs/mutation-score-ramp",
   "phase": "execution",
-  "taskIndex": 174,
+  "taskIndex": 177,
   "totalTasks": 180,
   "taskIteration": 1,
-  "maxTaskIterations": 5,
-  "globalIteration": 1,
-  "maxGlobalIterations": 100,
-  "awaitingApproval": false,
-  "granularity": "fine",
-  "executionPhase": "implement",
   "repairIteration": 0,
   "failedStory": null,
   "originTaskIndex": null,
+  "maxTaskIterations": 5,
   "recoveryMode": false,
   "maxFixTasksPerOriginal": 3,
   "maxFixTaskDepth": 3,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
   "fixTaskMap": {},
   "modificationMap": {},
   "maxModificationsPerTask": 3,
   "maxModificationDepth": 2,
+  "awaitingApproval": false,
   "nativeTaskMap": {},
   "nativeSyncEnabled": true,
   "nativeSyncFailureCount": 0,
+  "taskMarkSnapshot": null,
+  "executionPhase": "quality",
+  "ciCommands": null,
+  "ciSnapshot": null,
   "circuitBreaker": {
     "state": "closed",
     "consecutiveFailures": 0,
     "maxConsecutiveFailures": 5,
     "maxSessionSeconds": 172800
-  },
-  "checkpoint": {
-    "sha": "dffa349119346b7f3d39b8c072f1f59b565b3c7c",
-    "timestamp": "2026-05-18T17:31:32Z",
-    "branch": "mutation-score-ramp",
-    "message": "[ralphharness] checkpoint mutation-score-ramp (110 tasks)"
-  },
-  "ciCommands": [],
-  "ciSnapshot": {
-    "lint": null,
-    "typecheck": null,
-    "test": null,
-    "build": null,
-    "other": null
-  },
-  "chat": {
-    "reviewer": {
-      "lastReadLine": 5597
-    },
-    "executor": {
-      "lastReadLine": 153
-    }
-  },
-  "external_unmarks": {
-    "2.4.5": 1,
-    "2.7.5": 1,
-    "2.9.5": 1,
-    "2.18.7": 1,
-    "2.16": 1,
-    "2.20": 1,
-    "2.22": 1
-  },
-  "executor": {
-    "lastReadLine": 3590
-  },
-  "lastMutationRun": "2026-05-20T15:00:00Z",
-  "mutationStats": {
-    "total": 11046,
-    "killed": 7015,
-    "survived": 3827,
-    "unchanged": 204,
-    "timeout": 0,
-    "kill_rate": 0.635,
-    "sensor": {
-      "killed": 0,
-      "survived": 0,
-      "total": 0,
-      "kill_rate": null,
-      "status": "improved",
-      "new_tests": 73,
-      "helpers_extracted": true
-    },
-    "lastMutationRun": null
-  },
-  "taskMarkSnapshot": null
+  }
 }

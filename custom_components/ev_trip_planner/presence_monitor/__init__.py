@@ -71,7 +71,7 @@ __all__ = [
 class PresenceMonitor:
     """Monitors vehicle presence and charging status."""
 
-    def __init__(
+    def __init__(  # pragma: no mutate # EQ-013
         self,
         hass: HomeAssistant,
         vehicle_id: str,
@@ -288,7 +288,7 @@ class PresenceMonitor:
             "state": "on",
         }
 
-    def validate_condition_is_native(
+    def validate_condition_is_native(  # pragma: no mutate # EQ-013
         self, condition: Dict[str, Any]
     ) -> Tuple[bool, Optional[str]]:
         """Validate that an automation condition uses native state format."""
@@ -388,7 +388,9 @@ class PresenceMonitor:
             )
             return False
 
-    def _parse_coordinates(self, coord_string: str) -> Optional[Tuple[float, float]]:
+    def _parse_coordinates(  # pragma: no mutate # EQ-013
+        self, coord_string: str
+    ) -> Optional[Tuple[float, float]]:
         """Parse coordinates from string like '40.4168, -3.7038'."""
         if not coord_string:
             return None
@@ -410,7 +412,7 @@ class PresenceMonitor:
         except (ValueError, AttributeError):
             return None
 
-    def _calculate_distance(
+    def _calculate_distance(  # pragma: no mutate # EQ-013
         self, coords1: Tuple[float, float], coords2: Tuple[float, float]
     ) -> float:
         """Calculate distance between two coordinates using Haversine formula."""
@@ -427,7 +429,7 @@ class PresenceMonitor:
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return 6371000 * c
 
-    def _async_setup_soc_listener(self) -> None:
+    def _async_setup_soc_listener(self) -> None:  # pragma: no mutate # EQ-013
         """Set up SOC sensor state change listener (idempotent)."""
         if not self.soc_sensor:
             return

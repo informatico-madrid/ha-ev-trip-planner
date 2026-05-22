@@ -3050,7 +3050,7 @@ These exist so the loop runs unattended for hours, finishes in one go, and never
   - **Commit**: `chore(mutation-score-ramp): unblock mutmut on Python 3.12 (dbus_fast/3.14 incompat)`
   - _Requirements: US-1, AC-1.1, NFR-4_
 
-- [ ] 5.2 Fresh authoritative re-baseline — the ONLY trusted survivor list
+- [x] 5.2 Fresh authoritative re-baseline — the ONLY trusted survivor list
 
   - **Why**: every per-module number in `.progress.md` after iteration ~13 is stale or fabricated (reviewer flagged FABRICATION on 2.20, 2.22). The last real full run (task 1.1) was 11571 mutants / 56.9% kill / 4989 survivors. Re-establish ground truth on the 5.1 interpreter.
   - **Do**:
@@ -3064,7 +3064,7 @@ These exist so the loop runs unattended for hours, finishes in one go, and never
   - **Commit**: `chore(mutation-score-ramp): authoritative re-baseline on Python 3.12`
   - _Requirements: US-4, AC-4.1, AC-8.4, NFR-2_
 
-- [ ] 5.3 Create the Equivalent-Mutant Registry + effective-MSI definition
+- [x] 5.3 Create the Equivalent-Mutant Registry + effective-MSI definition
 
   - **Why**: the genuine-unkillable residue must be documented per-mutant — not hand-waved or mass-pragma'd. This artifact IS "what the other ~37% is" the human asked for, and it must persist for new code.
   - **Do**:

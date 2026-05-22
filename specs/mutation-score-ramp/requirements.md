@@ -33,6 +33,10 @@ effective_MSI = killed / (total − registered_equivalent)   →   target = 1.00
 
 **Persistence for new code:** the registry and gate must outlive this spec — when new code adds new survivors, each must be killed or registered (with dossier + approval) before merge. This is task 5.5.
 
+**Autonomy model (human decision 2026-05-22) — reconciles NFR-1 with unattended execution.** The autonomous run NEVER escalates-and-waits mid-flight: killable mutants are killed; the 4 community-recognized obvious-intrinsic categories (idempotent-arithmetic, log/diagnostic-only, performance-only, type-infeasible-default) are **auto-registered + pragma'd with a dossier** (pre-authorized); `framework-absorbed-arg` and anything ambiguous is **parked** as `CANDIDATE-PENDING-APPROVAL` (dossier only, no pragma, no block). The loop reaches a **clean planned stop** at task 5.6 when 0 killable survivors remain, where the human resolves all parked candidates in one approval pass. NFR-1's human-approval guarantee is preserved exactly where it matters (the `framework-absorbed-arg` category that hid the prior gaming); it is delegated to pre-authorization only for the 4 obviously-intrinsic classes.
+
+**Uniformity & cache (constraints C-A..C-C in tasks.md):** all mutation work runs on a single `.venv` rebuilt in place on Python 3.12 (no second venv); every `mutmut` invocation uses identical args (`--max-children=4`, CLI flags never override `[tool.mutmut]`); the mutmut cache is cleared before the authoritative re-baseline so no Python-3.14 artifact poisons results.
+
 **Definition of Done (revised):** Effective-100% MSI on a fresh real run; the Equivalent-Mutant Registry is complete, minimized, percentage-bounded, and fully human-approved; every pragma maps 1:1 to a registry entry; `make test` + `make test-cover` (100%) + `make import-check` green; the persistence gate fails on any unregistered survivor. The literal "every module kill_threshold == 1.00" of the original DoD is reinterpreted as "every module's *effective* rate == 1.00".
 
 ## User Stories

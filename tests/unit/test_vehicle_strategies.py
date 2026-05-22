@@ -491,6 +491,20 @@ class TestCreateControlStrategy:
         assert strategy.data_on == {"x": 1}
 
     @pytest.mark.asyncio
+    async def test_service_factory_default_data_both_empty(self):
+        """Factory with neither data_on nor data_off → both empty dicts."""
+        hass = MagicMock()
+        config = {
+            "control_type": "service",
+            "charge_service_on": "script.start",
+            "charge_service_off": "script.stop",
+        }
+        strategy = create_control_strategy(hass, config)
+        assert isinstance(strategy, ServiceStrategy)
+        assert strategy.data_on == {}
+        assert strategy.data_off == {}
+
+    @pytest.mark.asyncio
     async def test_service_strategy_full_args_multi_assert(self):
         """ServiceStrategy activate asserts full domain/service/data tuple."""
         hass = MagicMock()
@@ -524,13 +538,17 @@ class TestVehicleController:
     """Test VehicleController (controller.py lines 67-294)."""
 
     def test_init_no_presence_config(self):
-        """No presence config → no monitor, no charging sensor."""
+        """No presence config → no monitor, no charging sensor, all defaults."""
         hass = MagicMock()
         controller = VehicleController(hass, "test_vehicle")
+        assert controller.hass is hass
         assert controller.vehicle_id == "test_vehicle"
         assert controller._presence_monitor is None
         assert controller._charging_sensor is None
         assert controller._strategy is None
+        assert controller._config == {}
+        assert controller._last_charging_state is None
+        assert controller._retry_state.get_attempt_count() == 0
 
     def test_init_with_presence_config(self):
         """Presence config → monitor created, sensor stored."""
@@ -561,9 +579,11 @@ class TestVehicleController:
             "charge_control_entity": "switch.charger",
         }
         controller.update_config(config)
+        assert controller._config == config
         assert controller._strategy is not None
         assert controller._strategy is not initial_strategy
         assert isinstance(controller._strategy, SwitchStrategy)
+        assert controller._strategy.config == {"entity_id": "switch.charger"}
 
     def test_update_config_no_existing_strategy(self):
         """update_config with no existing strategy → strategy stays None."""
