@@ -17,7 +17,7 @@ apply()
 import mutmut.__main__
 
 if __name__ == "__main__":
-    sys.exit(mutmut.__main__.main())
+    sys.exit(mutmut.__main__.cli())
 else:
     # Called as library, don't exit
     pass

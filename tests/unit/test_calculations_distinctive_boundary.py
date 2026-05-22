@@ -15,7 +15,6 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-
 # =============================================================================
 # _helpers — _strip_accents (distinctive data)
 # =============================================================================

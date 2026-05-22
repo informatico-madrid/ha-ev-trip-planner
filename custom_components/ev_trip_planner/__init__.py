@@ -22,6 +22,7 @@ from homeassistant.helpers.entity_registry import async_migrate_entries
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from . import __init_helpers  # US-5: pure helpers for mutation testability
 from .const import DOMAIN  # noqa: F401
 from .coordinator import CoordinatorConfig, TripPlannerCoordinator
 from .emhass import EMHASSAdapter
@@ -40,8 +41,6 @@ from .trip import TripManager
 from .trip._types import TripManagerConfig
 from .utils import normalize_vehicle_id
 from .yaml_trip_storage import YamlTripStorage
-
-from . import __init_helpers  # US-5: pure helpers for mutation testability
 
 # Type aliases for cleaner signatures
 CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]

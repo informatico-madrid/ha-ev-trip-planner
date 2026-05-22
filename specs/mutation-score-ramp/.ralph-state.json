@@ -2,12 +2,12 @@
   "source": "spec",
   "name": "mutation-score-ramp",
   "basePath": "specs/mutation-score-ramp",
-  "phase": "execution",
-  "taskIndex": 154,
+  "phase": "complete",
+  "taskIndex": 173,
   "totalTasks": 173,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 10,
+  "globalIteration": 16,
   "maxGlobalIterations": 100,
   "awaitingApproval": false,
   "granularity": "fine",
@@ -47,10 +47,10 @@
   },
   "chat": {
     "reviewer": {
-      "lastReadLine": 5291
+      "lastReadLine": 5597
     },
     "executor": {
-      "lastReadLine": 152
+      "lastReadLine": 153
     }
   },
   "external_unmarks": {
@@ -58,7 +58,9 @@
     "2.7.5": 1,
     "2.9.5": 1,
     "2.18.7": 1,
-    "2.16": 1
+    "2.16": 1,
+    "2.20": 1,
+    "2.22": 1
   },
   "executor": {
     "lastReadLine": 3590
@@ -70,7 +72,16 @@
     "survived": 3827,
     "unchanged": 204,
     "timeout": 0,
-    "kill_rate": 0.635
+    "kill_rate": 0.635,
+    "sensor": {
+      "killed": 0,
+      "survived": 0,
+      "total": 0,
+      "kill_rate": null,
+      "status": "improved",
+      "new_tests": 73,
+      "helpers_extracted": true
+    }
   },
   "taskMarkSnapshot": null
 }

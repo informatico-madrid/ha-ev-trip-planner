@@ -89,7 +89,7 @@ python_functions = "test_*"
 # mutmut 3.x redirects stdout during in-process pytest.main() calls.
 # Run coverage separately: pytest --cov=custom_components/ev_trip_planner
 # import_mode=importlib set via addopts (not a standalone ini key in pytest 9)
-addopts = "-v --import-mode=importlib --strict-markers --strict-config"
+addopts = "-v --import-mode=importlib --strict-markers --strict-config "
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [

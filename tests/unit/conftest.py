@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 
 
-
 @pytest.fixture
 def trip_manager_no_entry_id(mock_hass):
     """Return a TripManager instance WITHOUT entry_id for pure function tests.
