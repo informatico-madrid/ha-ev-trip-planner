@@ -633,3 +633,56 @@ class TestIsTripTodayAdditionalMutationKills:
         today = date(2025, 5, 13)  # Tuesday
         trip = {"tipo": "recurrente", "dia_semana": "martes"}
         assert is_trip_today(trip, today) is True
+
+
+class TestGetTripTimeKillMutants:
+    """Tests to kill specific mutation survivors in get_trip_time.
+    
+    Target mutations:
+    - String mutations on '%H:%M' format
+    - Boolean flip on 'if not hora'
+    - Identity mutations on datetime.strptime
+    """
+
+    def test_get_trip_time_exact_datetime_values(self):
+        """Test exact hour and minute from parsed time string.
+        Kills mutation: strptime → different method that returns wrong time."""
+        result = get_trip_time({"hora": "14:30"})
+        assert result is not None
+        assert result.hour == 14
+        assert result.minute == 30
+        assert result.day == 1  # datetime(1900,1,1,14,30)
+        assert result.month == 1
+        assert result.year == 1900
+
+    def test_get_trip_time_midnight(self):
+        """Test midnight returns correct datetime.
+        Kills mutation on hour/minute parsing."""
+        result = get_trip_time({"hora": "00:00"})
+        assert result is not None
+        assert result.hour == 0
+        assert result.minute == 0
+
+    def test_get_trip_time_end_of_day(self):
+        """Test 23:59 returns correct datetime.
+        Kills mutation on hour/minute parsing at boundaries."""
+        result = get_trip_time({"hora": "23:59"})
+        assert result is not None
+        assert result.hour == 23
+        assert result.minute == 59
+
+    def test_get_trip_time_returns_datetime_type(self):
+        """Test return is exactly datetime, not mutated type.
+        Kills mutation: return None → return type, or identity mutation."""
+        result = get_trip_time({"hora": "12:00"})
+        from datetime import datetime
+        assert type(result) is datetime
+
+    def test_get_trip_time_string_format_hora_key(self):
+        """Test that 'hora' key is used, not mutated key name.
+        Kills mutation: 'hora' → '' or other string mutation."""
+        # Mutated function that uses wrong key name would return None
+        result = get_trip_time({"hora": "09:15"})
+        assert result is not None
+        assert result.hour == 9
+        assert result.minute == 15
