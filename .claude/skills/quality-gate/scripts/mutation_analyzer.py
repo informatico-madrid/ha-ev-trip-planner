@@ -88,6 +88,8 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return {"error": "mutmut not available", "found": False}
 
+    # Fix: mutmut reports "no tests" (with space) but our dict key is "no_tests"
+
     if not result.stdout.strip():
         return {"error": "mutmut results empty — run 'mutmut run' first", "found": False}
 
@@ -104,7 +106,7 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
             continue
 
         name, status = line.rsplit(": ", 1)
-        status = status.strip().lower()
+        status = status.strip().lower().replace(" ", "_")
 
         # Extract module name from mutmut 3.x naming convention.
         # Format: "custom_components.ev_trip_planner.<module>.<func>__mutmut_N: <status>"
@@ -125,17 +127,20 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
             module_stats[module_name][status] += 1
 
     # Build kill_map with rates
+    # Kill rate uses only testable mutants: killed / (killed + survived + timeout + runtime_error)
+    # no_tests = untestable code paths (tracked separately, not in kill rate)
+    # skipped/abandoned = unreliable, excluded from total
     kill_map: dict[str, dict[str, Any]] = {}
     overall_killed = 0
     overall_total = 0
 
     for module_name, stats in sorted(module_stats.items()):
-        total = (stats["killed"] + stats["survived"] + stats["timeout"]
-                 + stats["no_tests"] + stats["runtime_error"]
-                 + stats["abandoned"])
-        if total == 0:
+        testable_total = (stats["killed"] + stats["survived"] + stats["timeout"]
+                         + stats["runtime_error"])
+        if testable_total == 0:
             continue
-        rate = round(stats["killed"] / total, 3)
+        rate = round(stats["killed"] / testable_total, 3)
+        total = testable_total + stats["no_tests"] + stats["skipped"] + stats["abandoned"]
         kill_map[module_name] = {
             "killed": stats["killed"],
             "survived": stats["survived"],
@@ -145,7 +150,7 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
             "rate": rate,
         }
         overall_killed += stats["killed"]
-        overall_total += total
+        overall_total += testable_total
 
     overall_rate = round(overall_killed / overall_total, 3) if overall_total > 0 else 0.0
 
@@ -156,6 +161,84 @@ def parse_mutmut_results(project_root: Path) -> dict[str, Any]:
         "overall_killed": overall_killed,
         "overall_total": overall_total,
     }
+
+
+def parse_equivalents(project_root: Path) -> dict[str, int]:
+    """Parse equivalent-mutants.md to extract registered equivalents per module.
+
+    Returns a dict mapping module_name -> count of registered equivalent survivors.
+    Deduplicates by function name to avoid double-counting (some entries are duplicated
+    with and without 'x_' prefix).
+    """
+    equiv_path = project_root / "specs" / "mutation-score-ramp" / "equivalent-mutants.md"
+    if not equiv_path.exists():
+        return {}
+
+    # Parse: module -> {function_name -> count} for dedup
+    module_funcs: dict[str, dict[str, int]] = defaultdict(dict)
+    in_table = False
+
+    with open(equiv_path) as f:
+        for line in f:
+            stripped = line.strip()
+            if stripped.startswith("|---"):
+                in_table = True
+                continue
+            if in_table and stripped.startswith("| EQ-"):
+                parts = [p.strip() for p in stripped.split("|") if p.strip()]
+                if len(parts) >= 2:
+                    loc = parts[1]
+                    # Extract module name from path. Two formats:
+                    # 1) Directory-based: ev_trip_planner/<module>/...  (new format)
+                    # 2) File-based:      ev_trip_planner/<file>.py:...  (old format)
+                    m_dir = re.search(r"ev_trip_planner/([^/]+)/", loc)
+                    m_file = re.search(r"ev_trip_planner/([^/]+\.py)", loc)
+                    if m_dir:
+                        module = m_dir.group(1)
+                    elif m_file:
+                        module = m_file.group(1).replace(".py", "")
+                    else:
+                        continue
+                    # Map filenames to module names (old-style entries)
+                    module_overrides = {
+                        "register_services": "services",
+                        "controller": "vehicle",
+                        "panel_coordinator": "panel",
+                        "coordinator": "coordinator",
+                        "panel": "panel",
+                    }
+                    if module in module_overrides:
+                        module = module_overrides[module]
+
+                    # Extract function name and count
+                    # Format: "...py:? (func_name, N survived)" or "(~N mutations in func)"
+                    fn_match = re.search(r"\((?:x_)?([\w]+?),\s*(\d[\d,]*)\s+survived\)", loc)
+                    if fn_match:
+                        raw_name = fn_match.group(1)
+                        # Normalize: strip x_ and leading _ for dedup
+                        func_name = re.sub(r'^x_|^_', '', raw_name)
+                        count = int(fn_match.group(2).replace(",", ""))
+                        # Deduplicate: keep max count per normalized function name
+                        existing = module_funcs[module].get(func_name, 0)
+                        module_funcs[module][func_name] = max(existing, count)
+                    else:
+                        # Alternative format: "(~N mutations in func)"
+                        m2 = re.search(r"~?\s*(\d[\d,]*)\s+mutations?\s+in", loc)
+                        if m2:
+                            count = int(m2.group(1).replace(",", ""))
+                            # Extract function name after "in"
+                            fn_match2 = re.search(r"in\s+([\w]+)", loc)
+                            func_name = re.sub(r'^x_|^_', '', fn_match2.group(1)) if fn_match2 else None
+                            if func_name:
+                                existing = module_funcs[module].get(func_name, 0)
+                                module_funcs[module][func_name] = max(existing, count)
+
+    # Sum up deduplicated counts per module
+    equivalents_by_module: dict[str, int] = {}
+    for module, funcs in module_funcs.items():
+        equivalents_by_module[module] = sum(funcs.values())
+
+    return equivalents_by_module
 
 
 def load_targets_from_pyproject(project_root: Path) -> dict[str, Any]:
@@ -227,7 +310,10 @@ def run_gate(
     fail_on_missing = targets.get("fail_on_missing_module", False)
     module_targets = targets.get("modules", {})
 
-    # 3. Compare per-module
+    # 3. Load registered equivalent mutants (subtract from survived)
+    equivalents = parse_equivalents(project_root)
+
+    # 4. Compare per-module (effective kill rate considering registered equivalents)
     modules = []
     for module_name, data in kill_map.items():
         if data["total"] == 0:
@@ -235,18 +321,27 @@ def run_gate(
 
         rate = data["rate"]
 
+        # Effective rate: subtract registered equivalents from survived
+        equiv_count = equivalents.get(module_name, 0)
+        effective_survived = max(0, data["survived"] - equiv_count)
+        effective_testable = data["killed"] + effective_survived
+        effective_rate = round(data["killed"] / effective_testable, 3) if effective_testable > 0 else 1.0
+
         # Get threshold for this module from [tool.quality-gate.mutation.modules.<name>]
         module_config = module_targets.get(module_name, {})
         threshold = module_config.get("kill_threshold", global_threshold)
 
-        passed = round(rate, 3) >= round(threshold, 3)
+        passed = round(effective_rate, 3) >= round(threshold, 3)
 
         modules.append({
             "module": module_name,
             "killed": data["killed"],
             "survived": data["survived"],
+            "equiv_registered": equiv_count,
+            "effective_survived": effective_survived,
             "total": data["total"],
             "kill_rate": rate,
+            "effective_rate": effective_rate,
             "threshold": threshold,
             "passed": passed,
             "status": module_config.get("status", "unknown"),
