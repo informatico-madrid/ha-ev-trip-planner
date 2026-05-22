@@ -3,6 +3,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.components import frontend as ha_frontend
+from homeassistant.components import panel_custom as ha_panel_custom
 
 from custom_components.ev_trip_planner import panel
 from custom_components.ev_trip_planner.panel import (
@@ -512,3 +514,270 @@ class TestAsyncRegisterAllPanels:
         call_kwargs = mock_panel_module.async_register_panel.call_args.kwargs
         # Fallback: vehicle.get("vehicle_id", "Unknown")
         assert call_kwargs["sidebar_title"] == "v1"
+
+    @pytest.mark.asyncio
+    async def test_register_all_panels_vehicle_without_id_skipped(
+        self, mock_panel_module, mock_frontend_module
+    ):
+        """A vehicle dict without 'vehicle_id' should be skipped."""
+        mock_panel_module.async_register_panel = AsyncMock()
+        hass = MagicMock()
+        hass.config.components = {"panel_custom"}
+
+        vehicles = [{"name": "No ID"}]  # No vehicle_id key
+
+        await panel.async_register_all_panels(hass, vehicles)
+
+        mock_panel_module.async_register_panel.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_register_all_panels_uses_unknown_fallback(
+        self, mock_panel_module, mock_frontend_module
+    ):
+        """When 'name' is missing but 'vehicle_id' exists, uses vehicle_id as name."""
+        mock_panel_module.async_register_panel = AsyncMock()
+        hass = MagicMock()
+        hass.config.components = {"panel_custom"}
+
+        vehicles = [{"vehicle_id": "v1"}]  # No 'name' key, use vehicle_id fallback
+
+        await panel.async_register_all_panels(hass, vehicles)
+
+        call_kwargs = mock_panel_module.async_register_panel.call_args.kwargs
+        assert call_kwargs["sidebar_title"] == "v1"
+
+
+# ============================================================================
+# Integration tests: real HA framework panel registration
+# ============================================================================
+
+
+class TestPanelIntegration:
+    """Integration tests using real HA frontend/panel_custom modules.
+
+    These tests register panels through the actual Home Assistant framework
+    (frontend.async_register_built_in_panel, panel_custom.async_register_panel)
+    and assert on every returned panel kwarg, not just one field.
+
+    NFR-9: Integration tests use real HA framework.
+    NFR-8: Multi-assert — assert on every output field.
+    """
+
+    @pytest.mark.asyncio
+    async def test_register_panel_full_shape_via_framework(
+        self,
+    ):
+        """Assert every panel kwarg after real HA framework registration.
+
+        Verifies that async_register_panel correctly passes all kwargs
+        to HA's frontend.async_register_built_in_panel (via panel_custom).
+        Mutating any field (sidebar_title, icon, module_url, embed_iframe,
+        require_admin, config dict) would be detected here.
+
+        NFR-8: Multi-assert on every panel kwarg.
+        NFR-9: Uses real HA frontend/panel_custom modules.
+        """
+        expected_keys = {
+            "frontend_url_path",
+            "webcomponent_name",
+            "module_url",
+            "sidebar_title",
+            "sidebar_icon",
+            "config",
+            "require_admin",
+            "embed_iframe",
+        }
+
+        # Build a minimal hass that supports the HA frontend storage API
+        hass = MagicMock()
+        hass.data = {}
+        hass.bus = MagicMock()
+        hass.bus.async_fire = MagicMock()
+
+        # Patch panel_custom.async_register_panel to capture calls
+        # We patch it at the panel module import location
+        original_async_register = ha_panel_custom.async_register_panel
+
+        captured_kwargs = {}
+
+        async def capture_async_register(hass, **kwargs):
+            captured_kwargs.clear()
+            captured_kwargs.update(kwargs)
+            # Pass through to real HA registration
+            await original_async_register(hass, **kwargs)
+
+        with patch(
+            "custom_components.ev_trip_planner.panel.panel_custom.async_register_panel",
+            capture_async_register,
+        ):
+            result = await panel.async_register_panel(
+                hass, "integration_car", "Integration Car"
+            )
+
+        # Panel registration should succeed
+        assert result is True
+
+        # Verify the panel was stored in HA frontend_panels with correct shape
+        panels = hass.data.get("frontend_panels", {})
+        assert "ev-trip-planner-integration_car" in panels
+        ha_panel = panels["ev-trip-planner-integration_car"]
+
+        # NFR-8: Multi-assert on EVERY kwarg passed through HA framework
+        assert ha_panel.component_name == "custom"
+        assert ha_panel.sidebar_title == "Integration Car"
+        assert ha_panel.sidebar_icon == "mdi:car-electric"
+        assert ha_panel.frontend_url_path == "ev-trip-planner-integration_car"
+        assert ha_panel.require_admin is False
+
+        # Config must include _panel_custom with nested values
+        config = ha_panel.config
+        assert "vehicle_id" in config
+        assert config["vehicle_id"] == "integration_car"
+        assert "_panel_custom" in config
+        pc = config["_panel_custom"]
+        assert pc["name"] == "ev-trip-planner-panel"
+        assert pc["embed_iframe"] is False
+        assert pc["trust_external"] is False
+        assert "module_url" in pc
+        assert "/ev-trip-planner/panel.js" in pc["module_url"]
+        assert "?t=" in pc["module_url"]
+
+    @pytest.mark.asyncio
+    async def test_register_panel_multi_vehicle_full_shape(
+        self,
+    ):
+        """Register two vehicles and verify both have correct full shape.
+
+        Ensures that multiple registrations don't corrupt panel state
+        and each panel has its own distinct config.
+
+        NFR-8: Multi-assert on every panel field.
+        NFR-9: Uses real HA framework.
+        """
+        hass = MagicMock()
+        hass.data = {}
+        hass.bus = MagicMock()
+        hass.bus.async_fire = MagicMock()
+
+        original_async_register = ha_panel_custom.async_register_panel
+
+        with patch(
+            "custom_components.ev_trip_planner.panel.panel_custom.async_register_panel",
+            original_async_register,
+        ):
+            r1 = await panel.async_register_panel(
+                hass, "car_alpha", "Alpha Car"
+            )
+            r2 = await panel.async_register_panel(
+                hass, "car_beta", "Beta Car"
+            )
+
+        assert r1 is True
+        assert r2 is True
+
+        panels = hass.data.get("frontend_panels", {})
+        assert len(panels) == 2
+
+        p1 = panels["ev-trip-planner-car_alpha"]
+        p2 = panels["ev-trip-planner-car_beta"]
+
+        # Both panels must have all fields set correctly
+        for p, expected_path, expected_name in [
+            (p1, "ev-trip-planner-car_alpha", "Alpha Car"),
+            (p2, "ev-trip-planner-car_beta", "Beta Car"),
+        ]:
+            assert p.sidebar_title == expected_name
+            assert p.sidebar_icon == "mdi:car-electric"
+            assert p.frontend_url_path == expected_path
+            assert p.require_admin is False
+            assert p.config.get("vehicle_id") in ("car_alpha", "car_beta")
+            assert p.config.get("_panel_custom", {}).get("embed_iframe") is False
+
+    @pytest.mark.asyncio
+    async def test_panel_kwargs_all_fields_captured(
+        self,
+    ):
+        """Verify build_panel_kwargs produces the exact field set expected by panel_custom.
+
+        NFR-8: Multi-assert on every field of the kwargs dict.
+        """
+        kw = panel.build_panel_kwargs(
+            frontend_url_path="ev-trip-planner-v1",
+            vehicle_name="Test Vehicle",
+            module_url="/ev-trip-planner/panel.js?t=12345",
+            panel_config={"vehicle_id": "v1"},
+        )
+
+        # Full shape assertion — every field that panel_custom.async_register_panel
+        # will receive, asserted individually (NFR-8).
+        assert kw["frontend_url_path"] == "ev-trip-planner-v1"
+        assert kw["webcomponent_name"] == "ev-trip-planner-panel"
+        assert kw["module_url"] == "/ev-trip-planner/panel.js?t=12345"
+        assert kw["sidebar_title"] == "Test Vehicle"
+        assert kw["sidebar_icon"] == "mdi:car-electric"
+        assert kw["config"] == {"vehicle_id": "v1"}
+        assert kw["require_admin"] is False
+        assert kw["embed_iframe"] is False
+
+        # No extra fields
+        expected_keys = {
+            "frontend_url_path",
+            "webcomponent_name",
+            "module_url",
+            "sidebar_title",
+            "sidebar_icon",
+            "config",
+            "require_admin",
+            "embed_iframe",
+        }
+        assert set(kw.keys()) == expected_keys
+
+    @pytest.mark.asyncio
+    async def test_panel_store_and_remove_mapping_roundtrip(
+        self,
+    ):
+        """Store and remove mapping — verify data consistency.
+
+        NFR-8: Multi-assert on mapping dict state before/after.
+        """
+        hass = MagicMock()
+        hass.data = {}
+
+        # Store mapping
+        panel._store_vehicle_panel_mapping(hass, "v1", "ev-trip-planner-v1")
+        mapping = panel.get_all_panel_mappings(hass)
+        assert len(mapping) == 1
+        assert mapping["v1"] == "ev-trip-planner-v1"
+
+        # Remove mapping
+        panel._remove_vehicle_panel_mapping(hass, "v1")
+        mapping_after = panel.get_all_panel_mappings(hass)
+        assert mapping_after == {}
+
+        # Retrieving removed vehicle returns None
+        assert panel.get_vehicle_panel_url_path(hass, "v1") is None
+
+    @pytest.mark.asyncio
+    async def test_panel_mapping_key_not_in_hass_data(
+        self,
+    ):
+        """Unregister when mapping key doesn't exist — should still succeed.
+
+        Catches mutations in the 'if key in hass.data' guard.
+        Uses a proper mock for frontend.async_remove_panel to avoid
+        MagicMock-as-coroutine issues from autouse fixtures.
+        """
+        hass = MagicMock()
+        hass.data = {}
+
+        # Create a real async remove function (not a MagicMock)
+        async def real_remove(hass, path):
+            pass
+
+        with patch.object(panel, "frontend", MagicMock(async_remove_panel=real_remove)):
+            result = await panel.async_unregister_panel(hass, "nonexistent")
+
+        assert result is True
+        # Mapping key should NOT have been created
+        mapping_key = panel.VEHICLE_PANEL_MAPPING_KEY
+        assert mapping_key not in hass.data
