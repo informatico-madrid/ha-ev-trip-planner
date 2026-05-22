@@ -148,6 +148,8 @@ fail_on_missing_module = false
 increment_step = 0.01
 target_final = 1.00
 modules_per_sprint = 2
+# Phase 5 persistence gate: fail if any survivor has no registry entry
+fail_on_unregistered_survivor = true
 
 [tool.quality-gate.mutation.modules.calculations]
 kill_threshold = 0.789

@@ -1,4 +1,4 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation mutation-gate mutation-unregistered-check test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
 
 help:
 	@echo "Available commands / Comandos disponibles:"
@@ -42,6 +42,8 @@ help:
 	@echo "  make import-check    - Check import organization / Verificar organización de imports"
 	@echo "  make refurb          - Python modernization suggestions / Sugerencias de modernización"
 	@echo "  make mutation        - Run mutation testing / Ejecutar pruebas de mutación"
+	@echo "  make mutation-gate   - Run mutation threshold gate / Ejecutar umbral de mutación"
+	@echo "  make mutation-unregistered-check - Check unregistered survivors / Verificar supervivientes sin registrar"
 	@echo ""
 	@echo "Pre-commit Hooks:"
 	@echo "  make pre-commit-install - Install pre-commit hooks / Instalar hooks pre-commit"
@@ -248,6 +250,14 @@ mutation:
 mutation-gate:
 	@echo "Running mutation gate (per-module thresholds)..."
 	.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+
+mutation-unregistered-check:
+	@echo "Checking for unregistered survivors..."
+	.venv/bin/python scripts/check_unregistered_survivors.py
+
+# ============================================================================
+# Test Variants
+# ============================================================================
 
 # ============================================================================
 # Test Variants

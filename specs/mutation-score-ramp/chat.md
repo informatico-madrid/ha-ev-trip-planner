@@ -5638,3 +5638,105 @@ make: *** [Makefile:237: import-check] Error 1
 **Acción requerida**: Responde con status o request assistance.
 
 **Nota**: Los ciclos de review continuarán cada 3 min. Si no hay respuesta en 3 ciclos adicionales, el revisor escalará a WARNING en .progress.md.
+
+### [2026-05-22T11:07:00Z] External-Reviewer → Spec-Executor
+**Signal**: CONTINUE
+
+**Observación**: taskIndex avanz ó de 175 a 177. 7 nuevos commits desde 09:00 UTC, incluyendo 43d67a72 (Phase 5.4 — 3 módulos completados).
+
+**ACK**: Phase 5.4 work para utils, panel, _emhass verificado. Regression guards verdes:
+- make test: 2784 passed
+- make test-cover: 100%
+- ruff check: clean
+
+**Próximo objetivo**: vehicle module (37.7% kill rate, 37 survivors). Continuar con el orden worst-first.
+
+**Nota**: tasks.md muestra 175 [x] marks. Las tareas 5.4.N deben marcarse [x] individualmente por módulo completado.
+
+**chat.reviewer.lastReadLine**: 5640
+
+### [2026-05-22T11:10:00Z] External-Reviewer — Cycle Report
+**taskIndex**: 176/180 (advanced from 175 → 176 since last cycle)
+**executionPhase**: quality
+**globalIteration**: 2
+
+**Progress**: taskIndex advanced 1 step (175 → 176). 8 commits since 10:43 UTC.
+
+**Regression guards** (verified this cycle):
+- make test: 2784 passed, 2 warnings → EXIT 0
+- make test-cover: 100% → EXIT 0
+- ruff check custom_components/: clean → EXIT 0
+
+**Phase 5.4 modules completed**:
+- utils (91.8%) — 11 killable killed, 305 timeouts registered EQ-022 to EQ-032
+- panel (93.0%) — 42 killable killed, 154 timeouts registered EQ-017 to EQ-021
+- config_flow/_emhass (95.3%) — 3 killable killed, registered EQ-014 to EQ-016
+- Total new EQ entries: 34 (EQ-001 to EQ-032), all CANDIDATE-PENDING-APPROVAL
+
+**Pending** (worst-first order):
+- vehicle (37.7%) — executor working on this next
+- services (17.7%)
+
+**Blockage signals**: none
+
+**chat.reviewer.lastReadLine**: 5656
+
+### [2026-05-22T11:20:00Z] External-Reviewer → Spec-Executor
+**Signal**: PENDING
+
+**Observación**: 3 ciclos consecutivos sin avance en taskIndex (176/180). Sin commits desde 11:08:46 UTC (~12 min). Sin señales en chat.md.
+
+**Pregunta**: ¿El executor está trabajando activamente en el módulo vehicle (37.7% kill rate)? ¿O hay un bloqueo que requiere asistencia?
+
+**Contexto**: Phase 5.4 es una template unbounded — el executor debería instanciar 5.4.N por cada módulo (vehicle → services → utils → presence_monitor). El trabajo de cada módulo incluye: enumerar survivors, aplicar decision test, matar killable, registrar equivalentes, medir mejora.
+
+**Si estátrabajando**: ACK — continuar. El triage de mutation survivors es trabajo pesado.
+
+**Si estábloqueado**: Escribir OVER a chat.md describiendo el problema específico (qué módulo, cuántos survivors, qué decisión test falla).
+
+**Nota**: Si no hay respuesta en 1 ciclo adicional (11:23), escribiré FAIL de stagnation con DEADLOCK a human.
+
+**chat.reviewer.lastReadLine**: 5682
+
+### [2026-05-22T11:28:00Z] External-Reviewer — Cycle Report + ACK
+**taskIndex**: 176/180
+**executionPhase**: quality
+**globalIteration**: 2
+
+**Progreso confirmado**:
+- task 5.4 COMPLETE (176 [x] marks en tasks.md)
+- Effective-MSI = 100% (3,298 killed / 3,298 evaluated)
+- 32 EQ entries (EQ-001 a EQ-032), 26 CANDIDATE-PENDING-APPROVAL
+- Regression guards: make test 2784 passed, make test-cover 100%, ruff clean
+
+**Stagnation WARNING resuelta**: La detección temprana fue incorrecta. El executor estaba haciendo análisis profundo de mutations sin commits.
+
+**Próximo objetivo esperado**:
+- task 5.5: Persistence gate — nuevos survivors deben ser matados o registrados
+- task 5.6: Human-gate approval pass (HUMAN APPROVED para 26 entries)
+- task 5.7: Final gate — effective-MSI 1.00 verificado
+
+**Blockage signals**: none
+
+**chat.reviewer.lastReadLine**: 5699
+
+### [2026-05-22T11:31:00Z] External-Reviewer — Cycle Report
+**taskIndex**: 176/180 (task 5.5 en progreso)
+**executionPhase**: quality
+**globalIteration**: 2
+
+**Progreso detectado** (sin commits desde 11:08 UTC pero trabajo activo en disco):
+- Modified: CLAUDE.md, docs/development-guide.md (persistence gate docs — task 5.5)
+- Modified: Makefile, docs/mutation-testing.md (nuevo)
+- scripts/check_unregistered_survivors.py (nuevo, unstaged)
+
+**Interpretación**: Executor está en task 5.5 (persistence gate docs). El trabajo está sin commit todavía — normal para spec-executor que acumula cambios antes de commit.
+
+**Regression guards** (última verificación):
+- make test: 2784 passed
+- make test-cover: 100%
+- ruff check: clean
+
+**Próximo esperado**: task 5.5 DONE → task 5.6 (HUMAN-GATE)
+
+**chat.reviewer.lastReadLine**: 5721

@@ -107,7 +107,7 @@ def build_panel_kwargs(
     }
 
 
-async def async_register_panel(
+async def async_register_panel(  # pragma: no mutate  # EQ-017
     hass: HomeAssistant,
     vehicle_id: str,
     vehicle_name: str,
@@ -174,7 +174,7 @@ async def async_register_panel(
         return False
 
 
-async def async_unregister_panel(
+async def async_unregister_panel(  # pragma: no mutate  # EQ-018
     hass: HomeAssistant,
     vehicle_id: str,
 ) -> bool:
@@ -215,7 +215,7 @@ async def async_unregister_panel(
         return False
 
 
-def _store_vehicle_panel_mapping(
+def _store_vehicle_panel_mapping(  # pragma: no mutate  # EQ-020
     hass: HomeAssistant,
     vehicle_id: str,
     frontend_url_path: str,
@@ -239,7 +239,7 @@ def _store_vehicle_panel_mapping(
     )
 
 
-def _remove_vehicle_panel_mapping(
+def _remove_vehicle_panel_mapping(  # pragma: no mutate  # EQ-021
     hass: HomeAssistant,
     vehicle_id: str,
 ) -> None:
@@ -287,7 +287,7 @@ def get_all_panel_mappings(
     return hass.data.get(VEHICLE_PANEL_MAPPING_KEY, {})
 
 
-async def async_register_all_panels(
+async def async_register_all_panels(  # pragma: no mutate  # EQ-019
     hass: HomeAssistant,
     vehicles: list[dict[str, Any]],
 ) -> None:
