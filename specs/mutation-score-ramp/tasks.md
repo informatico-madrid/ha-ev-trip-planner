@@ -9,7 +9,7 @@ epic: tech-debt-cleanup
 phase: tasks
 
 
-updated: 2026-05-18
+updated: 2026-05-22
 
 ---
 
@@ -3014,6 +3014,133 @@ Focus: autonomous PR validation loop until all completion criteria are met.
 
 
 
+## Phase 5: Honest re-baseline & Effective-100% (2026-05-22 revision)
+
+> **Why this phase exists.** Tasks **2.28, 3.1, 3.4 (Check B), 3.5, 3.8 and 4.3-VF were marked `[x]` while `make mutation` was BLOCKED** by a Python 3.14 + dbus_fast incompatibility — their "100% kill rate verified" claims are unbacked (each carries its own "Deferred" note). The literal "every module 1.00" target is also unreachable by construction: the equivalent-mutant reference class is **<10% of mutants** (academic survey), so the genuine-unkillable residue must be **documented, not eliminated**. This phase replaces literal-100% with **Effective-100% MSI** = `killed / (total − registered_equivalent) = 1.00`, backed by a real mutation run on a compatible interpreter and an audited, persistent **Equivalent-Mutant Registry**. See `requirements.md` and `design.md` § "2026-05-22 Revision". The fabricated verify tasks above remain checked for history; **Phase 5 re-verifies them honestly** and supersedes them.
+
+### Phase 5 — Critical constraints threaded through EVERY task (read before executing any 5.x)
+
+These exist so the loop runs unattended for hours, finishes in one go, and never repeats a logged past error.
+
+**C-A. ONE interpreter, ONE venv — no exceptions.** The mutation work runs on **Python 3.12** by **rebuilding `.venv` IN PLACE** (task 5.1). Do NOT create a second venv (`.venv-mut` etc.) — a split venv is exactly how "different agents use different Python" happens. Every command (`make test`, `make test-cover`, `make mutation`, `make mutation-gate`, `make layer2`, every targeted `mutmut run`) MUST resolve to the same `.venv/bin/*`. As part of 5.1, fix `Makefile` line ~250 so `make mutation-gate` uses `.venv/bin/python` (not bare `python3`). After 5.1, EVERY agent and EVERY task uses `.venv` unchanged.
+
+**C-B. UNIFORM mutmut invocation — identical args everywhere.** Full run = `make mutation` (`.venv/bin/mutmut run --max-children=4`). Targeted run = `.venv/bin/mutmut run --max-children=4 "custom_components.ev_trip_planner.<module>.*"`. No agent may pass different `--max-children`, different `-k`, or extra flags — the `-k`/timeout/`max_stack_depth`/`mutate_only_covered_lines` live in `[tool.mutmut]` and must not be overridden on the CLI. The gate is always `make mutation-gate`.
+
+**C-C. CACHE hygiene.** mutmut shares ONE cache across full and targeted runs; the analyzer reads it. The crashed Python-3.14 runs may have left a stale/partial cache and a stale `mutants/` copy. Task 5.2 MUST clear the cache (`rm -rf mutants/ .mutmut-cache* 2>/dev/null`) on the rebuilt 3.12 venv BEFORE the authoritative full run, so no Python-3.14 artifact poisons the numbers. Never mix results produced by different venvs in one cache.
+
+**C-D. Pragma autonomy policy (human decision 2026-05-22) — the loop NEVER blocks.** Per-survivor outcome:
+- **KILLABLE** → write the real test (NFR-8/9/10/12). Preferred always.
+- **Obvious-intrinsic** — exactly these 4 categories: idempotent-arithmetic, log/diagnostic-only, performance-only, type-infeasible-default → **AUTO-REGISTER + add `# pragma: no mutate`** with a complete dossier (status `REGISTERED-AUTO`). Pre-authorized; no per-mutant escalation; batch-ratified at 5.6.
+- **framework-absorbed-arg, or ANYTHING not in the 4 obvious categories** → **PARK** as a registry entry with status `CANDIDATE-PENDING-APPROVAL`. Do NOT add a pragma, do NOT escalate-and-wait, do NOT block — write the dossier and move to the next survivor. The human approves/rejects these in ONE pass at 5.6.
+- The autonomous run reaches a **clean planned stop** when every module has 0 killable survivors (all remaining are REGISTERED-AUTO or parked CANDIDATEs). This is success, not a deadlock.
+
+**C-E. Known-failure guards (do not repeat — all logged).** Before marking any 5.x done: (1) **No FABRICATION** — `make test`, `make test-cover` (`--cov-fail-under=100`), `make import-check` must each ACTUALLY exit 0; paste real output, never claim green without it (reviewer caught this on 2.20, 2.22). (2) **deficit.py origin bug** — `calculate_hours_deficit_propagation` origin with `ventana_horas=0` must set `adjusted_def_total_hours = 0.0`, NOT `round(original_def_total, 2)` (lines ~480-483; regressed twice — see Phase 3 warning + task_review.md). (3) **flaky `test_cooldown_expiry_allows_reuse`** — known flaky; if it fails, it is a test-isolation issue (use tmp_path, mock at consumer), not a real regression. (4) **Stale numbers** — never reuse any per-module figure from `.progress.md` after iteration ~13; only the 5.2 re-baseline is authoritative.
+
+- [x] 5.1 Unblock the mutation interpreter — run mutmut on a compatible Python
+
+  - **Why**: `make mutation` crashes in mutmut's clean-test import phase on Python 3.14 — `dbus_fast.service.dbus_property` → `TypeError: access must be a PropertyAccess class` (homeassistant→habluetooth→bleak chain; reproduced 2026-05-22). Until mutmut runs, NO kill-rate number is real. Python 3.12 is installed at `/usr/bin/python3.12`.
+  - **Do** (constraint C-A — ONE venv, in place):
+    1. **Rebuild `.venv` IN PLACE on Python 3.12** (do NOT create a second venv): record current deps, then `python3.12 -m venv --clear .venv` (or equivalent) and reinstall the project + dev deps + mutmut 3.5.0 from the existing lock/requirements. Confirm `make test` still passes on 3.12 (HA + pytest support 3.12).
+    2. Fix `Makefile` so `make mutation-gate` uses `.venv/bin/python` instead of bare `python3` (line ~250) — uniformity per C-A.
+    3. Confirm `import bleak.backends.bluezdbus.advertisement_monitor` no longer raises and that `make mutation` reaches the mutation phase (mutants execute, not the PropertyAccess traceback).
+    4. Record the interpreter (Python 3.12) + that `.venv` was rebuilt in place in `design.md` (§ R2) and `.progress.md`. If Python 3.12 ALSO crashes, ESCALATE — do NOT proceed on stale numbers, do NOT create a workaround venv.
+  - **Files**: `.venv` (rebuilt), `Makefile`, `design.md`, `specs/mutation-score-ramp/.progress.md`
+  - **Done when**: `.venv` runs Python 3.12; `make mutation-gate` uses `.venv/bin/python`; the dbus_fast crash is gone; `make mutation` enters mutation execution; `make test` still green on 3.12.
+  - **Verify**: `.venv/bin/python --version` shows `3.12`; `.venv/bin/python -c "import bleak.backends.bluezdbus.advertisement_monitor; print('IMPORT_OK')"` prints `IMPORT_OK`; `grep -n '\.venv/bin/python .*mutation_analyzer' Makefile` confirms the gate fix; a short `make mutation` log shows mutants being executed.
+  - **Commit**: `chore(mutation-score-ramp): unblock mutmut on Python 3.12 (dbus_fast/3.14 incompat)`
+  - _Requirements: US-1, AC-1.1, NFR-4_
+
+- [ ] 5.2 Fresh authoritative re-baseline — the ONLY trusted survivor list
+
+  - **Why**: every per-module number in `.progress.md` after iteration ~13 is stale or fabricated (reviewer flagged FABRICATION on 2.20, 2.22). The last real full run (task 1.1) was 11571 mutants / 56.9% kill / 4989 survivors. Re-establish ground truth on the 5.1 interpreter.
+  - **Do**:
+    1. **Clear stale cache (constraint C-C)**: `rm -rf mutants/ .mutmut-cache* 2>/dev/null` so no Python-3.14 artifact poisons the run.
+    2. Full `make mutation` on the rebuilt `.venv` (~10 min).
+    3. Dump every survivor: `.venv/bin/mutmut results --all true > specs/mutation-score-ramp/survivors-2026-05-22.txt`.
+    4. Record overall + per-module killed/survived/rate as `## Authoritative re-baseline 2026-05-22` in `.progress.md`; mark ALL prior post-iter-13 numbers SUPERSEDED.
+  - **Files**: `specs/mutation-score-ramp/.progress.md`, `specs/mutation-score-ramp/survivors-2026-05-22.txt`
+  - **Done when**: fresh full run exits 0; survivor dump saved and non-empty; per-module table recorded; prior numbers marked superseded.
+  - **Verify**: `test -s specs/mutation-score-ramp/survivors-2026-05-22.txt && grep -q 'Authoritative re-baseline 2026-05-22' specs/mutation-score-ramp/.progress.md && echo REBASELINE_OK`
+  - **Commit**: `chore(mutation-score-ramp): authoritative re-baseline on Python 3.12`
+  - _Requirements: US-4, AC-4.1, AC-8.4, NFR-2_
+
+- [ ] 5.3 Create the Equivalent-Mutant Registry + effective-MSI definition
+
+  - **Why**: the genuine-unkillable residue must be documented per-mutant — not hand-waved or mass-pragma'd. This artifact IS "what the other ~37% is" the human asked for, and it must persist for new code.
+  - **Do**:
+    1. Create `specs/mutation-score-ramp/equivalent-mutants.md` with: (a) the effective-MSI formula; (b) the taxonomy (idempotent-arithmetic, log/diagnostic-only, performance-only, type-infeasible-default, framework-absorbed-arg — design.md § R3), marking the first 4 as **pre-authorized AUTO-register** and `framework-absorbed-arg` (+ anything else) as **PARK for human approval** (constraint C-D); (c) the per-entry dossier schema with a **`status`** field (`REGISTERED-AUTO` | `CANDIDATE-PENDING-APPROVAL` | `HUMAN-APPROVED` | `REJECTED`): id, file:line, original→mutated, category, decision-test argument, status, human-approval quote (when applicable), date; (d) an empty registry table to be filled during 5.4.
+    2. State in `design.md` that `effective_MSI = killed/(total − registered_equivalent)`, target 1.00, and that EVERY `# pragma: no mutate` MUST reference a registry entry id.
+  - **Files**: `specs/mutation-score-ramp/equivalent-mutants.md`, `design.md`
+  - **Done when**: registry file exists with formula + taxonomy + schema + empty table; design.md references it.
+  - **Verify**: `test -f specs/mutation-score-ramp/equivalent-mutants.md && grep -qi 'effective' specs/mutation-score-ramp/equivalent-mutants.md && echo REGISTRY_CREATED`
+  - **Commit**: `docs(mutation-score-ramp): add equivalent-mutant registry + effective-MSI model`
+  - _Requirements: US-4, US-5, NFR-1, NFR-11_
+
+- [ ] 5.4 [TEMPLATE — instantiate per module, worst-first from 5.2] Honest triage: kill killable, register genuine equivalents
+
+  - **Why**: <10% of mutants are genuinely equivalent, so MOST of the 4989 survivors are killable-but-unkilled. Each survivor gets the academic decision test: "does ANY test case differ between mutant and original output?" — Yes → write the test; No → register it.
+  - **Do (per module, ascending by 5.2 kill rate)**:
+    1. Log What & Why (NFR-7).
+    2. Enumerate the module's survivors from the 5.2 dump.
+    3. Per survivor, apply the decision test + constraint C-D (loop NEVER blocks):
+       - **KILLABLE** → strengthen existing test (NFR-8) / integration test via `pytest-homeassistant-custom-component` (NFR-9) / US-5 pure-helper extraction (NFR-12) / distinctive data (NFR-10). Always preferred.
+       - **Obvious-intrinsic (the 4 pre-authorized categories: idempotent-arithmetic, log/diagnostic-only, performance-only, type-infeasible-default)** → AUTO-REGISTER in `equivalent-mutants.md` with a complete dossier, status `REGISTERED-AUTO`, and add `# pragma: no mutate` referencing the entry id. No escalation; batch-ratified at 5.6.
+       - **framework-absorbed-arg, or anything NOT in the 4 obvious categories** → PARK: write the dossier with status `CANDIDATE-PENDING-APPROVAL`. Do NOT add a pragma, do NOT block. Move to the next survivor.
+    4. Re-measure targeted: raw kill rate up, survivor count down.
+    5. Regression guard: `make test` + `make test-cover` (`--cov-fail-under=100`) + `make import-check` exit 0 (paste real output — C-E, no fabrication).
+    6. Ratchet the module threshold to its new measured rate (never down).
+  - **Files**: `tests/**`, `custom_components/ev_trip_planner/**`, `equivalent-mutants.md`, `chat.md`, `.progress.md`, `pyproject.toml`
+  - **Done when (per module)**: every survivor is either killed, `REGISTERED-AUTO` (obvious + pragma'd), or parked `CANDIDATE-PENDING-APPROVAL`; 0 *killable* survivors remain; module raw rate strictly up; regression green. (Module reaches effective-100% now if it has no parked candidates; otherwise after the 5.6 approval pass.)
+  - **Verify (per module)**: targeted `mutmut run "custom_components.ev_trip_planner.<module>.*"` shows 0 *unregistered* survivors; `make test-cover` 100%.
+  - **Commit**: `chore(mutation-score-ramp): effective-100% — <module> killable killed, equivalents registered`
+  - _Requirements: US-4, US-5, US-6, US-7, NFR-1, NFR-8, NFR-9, NFR-10, NFR-11, NFR-12_
+  - **NOTE**: instantiate `5.4.1`, `5.4.2`, … one block per module; **UNBOUNDED** — continue until every module has 0 unregistered survivors. Re-does the 2.17–2.27 "real-kill" claims honestly against the 5.2 real numbers.
+
+- [ ] 5.5 Persistence gate — new code must kill or register
+
+  - **Why**: the human's core requirement — when new code/tests are added, new mutants must be auto-handled (killed or registered), never silently surviving.
+  - **Do**:
+    1. Add a gate rule (in the `[tool.quality-gate.mutation]` config or a `make` wrapper — WITHOUT modifying `mutation_analyzer.py` architecture, which is out of scope) that FAILS if any survivor has no registry entry.
+    2. Document in `docs/` + `CLAUDE.md` that any new survivor must be killed or registered (dossier + approval) before merge, and that contributors consult `equivalent-mutants.md` first.
+  - **Files**: `docs/**`, `CLAUDE.md`, `design.md`, `pyproject.toml`
+  - **Done when**: an unregistered survivor makes the gate FAIL; the rule is documented for future code/tests.
+  - **Verify**: introduce a temporary unregistered survivor in a scratch test, confirm the gate FAILs, revert; `grep -rqi 'equivalent-mutants\|register' docs/ CLAUDE.md && echo PERSISTENCE_GATE_OK`
+  - **Commit**: `feat(mutation-score-ramp): persistence gate — new survivors must be killed or registered`
+  - _Requirements: US-4, NFR-1, NFR-2_
+
+- [ ] 5.6 [HUMAN-GATE] Single approval pass over parked candidates
+
+  - **EXECUTOR: STOP HERE — this is the ONE planned human checkpoint. Do NOT auto-approve, do NOT skip, do NOT add pragmas for `CANDIDATE-PENDING-APPROVAL` entries yourself.** When the autonomous run reaches this task (all killable mutants killed, obvious intrinsics `REGISTERED-AUTO`, ambiguous ones parked), it has reached its clean planned stop. Hand control to the human.
+  - **Why**: per the 2026-05-22 decision, the 4 obvious-intrinsic categories were pre-authorized (auto-registered during 5.4), but `framework-absorbed-arg` and anything ambiguous was PARKED. The human reviews these in one sitting — this is the safeguard against the gaming that failed before (153-172 mass-pragmas).
+  - **Do (human, with executor assisting)**:
+    1. Present every `CANDIDATE-PENDING-APPROVAL` entry from `equivalent-mutants.md` as a list (id, location, mutation, decision-test argument).
+    2. For each: human writes `HUMAN APPROVED: <reason>` (→ status `HUMAN-APPROVED`, executor then adds `# pragma: no mutate`) or rejects (→ status `REJECTED`, executor returns it to the 5.4 kill queue and writes a real test).
+  - **Files**: `specs/mutation-score-ramp/equivalent-mutants.md`, `custom_components/ev_trip_planner/**`, `tests/**`
+  - **Done when**: zero entries remain `CANDIDATE-PENDING-APPROVAL` (each is `HUMAN-APPROVED`+pragma'd or `REJECTED`+killed).
+  - **Verify**: `! grep -q 'CANDIDATE-PENDING-APPROVAL' specs/mutation-score-ramp/equivalent-mutants.md && echo ALL_CANDIDATES_RESOLVED`
+  - **Commit**: `chore(mutation-score-ramp): human approval pass over parked equivalent candidates`
+  - _Requirements: US-4, NFR-1, NFR-11_
+
+- [ ] 5.7 [VERIFY] Effective-100% final gate (supersedes 2.28 / 3.1 / 4.3-VF)
+
+  - **Do**:
+    1. Full `make mutation` + `make mutation-gate` on the 5.1 interpreter.
+    2. Confirm **effective-MSI == 1.00** for every module (killed + registered == total); 0 unregistered survivors; 0 `CANDIDATE-PENDING-APPROVAL` remaining.
+    3. Audit the registry: every `# pragma: no mutate` → exactly one registry entry whose status is `REGISTERED-AUTO` (one of the 4 pre-authorized categories) or `HUMAN-APPROVED`, each with a complete dossier.
+    4. Confirm the registry is minimized and percentage-bounded (FLAG if > ~10% of mutants).
+    5. `make test` + `make test-cover` (100%) + `make import-check` exit 0 (paste real output — C-E).
+  - **Files**: `specs/mutation-score-ramp/.progress.md`, `specs/mutation-score-ramp/equivalent-mutants.md`
+  - **Done when**: effective-MSI 1.00; 0 unregistered survivors; 0 parked candidates; every pragma maps 1:1 to a `REGISTERED-AUTO`/`HUMAN-APPROVED` entry; regression green.
+  - **Verify**: gate `RESULT: OK` on the effective basis; `! grep -q 'CANDIDATE-PENDING-APPROVAL' specs/mutation-score-ramp/equivalent-mutants.md && count=$(grep -rh '# pragma: no mutate' custom_components/ | wc -l) && resolved=$(grep -cE 'REGISTERED-AUTO|HUMAN-APPROVED' specs/mutation-score-ramp/equivalent-mutants.md) && [ "$count" -le "$resolved" ] && echo EFFECTIVE_100_VERIFIED`
+  - **Commit**: `chore(mutation-score-ramp): effective-100% verified — registry audited, regression green`
+  - _Requirements: US-4, AC-4.4, NFR-1, NFR-11, NFR-2, NFR-3_
+
+
+
+---
+
+
+
 ## Notes
 
 
@@ -3022,7 +3149,7 @@ Focus: autonomous PR validation loop until all completion criteria are met.
 
 - **HOT REVISION (2026-05-21)** introduced tasks 2.15–2.28 (this section) AS THE current path to 100%. The prior 2.15 stale block is superseded. Completed iterations 1–18 (149/159 tasks at the time of revision) remain checked-off; nothing is rolled back. The new flow: tooling tune (2.15) → pragma re-audit (2.16) → per-module real-kill iterations 2.17–2.27 worst-first → hot-rev gate (2.28) → existing Phase 3 (3.7, 3.8, VE0–VE3) → Phase 4 (4.1–4.3).
 
-- **NFR-1 adjudication is now HUMAN escalation** (hot revision). The prior ≥2-subagent procedure is RETIRED. Every pragma proposal — including retaining an existing pragma — requires the executor to produce the NFR-11 dossier in `chat.md` and obtain a `HUMAN APPROVED:` written reply. Ceiling: ~10 pragmas project-wide.
+- **NFR-1 adjudication is now HUMAN escalation** (hot revision). The prior ≥2-subagent procedure is RETIRED. Every pragma proposal — including retaining an existing pragma — requires the executor to produce the NFR-11 dossier in `chat.md` and obtain a `HUMAN APPROVED:` written reply. Ceiling: ~10 pragmas project-wide. **(SUPERSEDED by Phase 5 / constraints C-A..C-E: the absolute "~10" cap is replaced by "minimized, individually-justified, percentage-bounded ≤~10% of mutants"; the 4 obvious-intrinsic categories are pre-authorized for auto-registration with a dossier; `framework-absorbed-arg` and anything ambiguous is parked for the single human approval pass at task 5.6.)**
 
 - **Worst-first order** below is expected from design B.1 — the executor reorders per the A.1 authoritative baseline (task 1.5) if it differs.
 
@@ -3046,6 +3173,8 @@ Focus: autonomous PR validation loop until all completion criteria are met.
 
 - **Phase 4 (PR Lifecycle)**: 3 tasks (4.1, 4.2, 4.3-VF).
 
-- **TOTAL: 124 tasks** (planned; unbounded — grows if any module in 2.17–2.27 needs further sub-iterations).
+- **Phase 5 (Honest re-baseline & Effective-100%, added 2026-05-22)**: 7 tasks — 5.1 (unblock mutmut by rebuilding `.venv` on Python 3.12 + uniform interpreter), 5.2 (cache-clean authoritative re-baseline), 5.3 (Equivalent-Mutant Registry + effective-MSI), 5.4 (per-module honest triage — UNBOUNDED template, auto-register obvious / park ambiguous), 5.5 (persistence gate for new code), 5.6 (single HUMAN-GATE approval pass over parked candidates — the one planned stop), 5.7 (effective-100% final gate). **This is the live phase** — supersedes the fabricated verify tasks (2.28, 3.1, 3.4B, 3.5, 3.8, 4.3-VF) that were checked while mutation was blocked. See "Phase 5 — Critical constraints" (C-A..C-E) for interpreter/cache/pragma/anti-fabrication rules.
+
+- **TOTAL: 130+ tasks** (planned; unbounded — Phase 5.4 grows one block per module until every module has 0 killable survivors).
 
 - **Iteration-milestone task**: `2.0` (per-iteration task template, applied to all hot-revision iterations). First hot-rev iteration: `2.17` (coordinator — gate-failing).

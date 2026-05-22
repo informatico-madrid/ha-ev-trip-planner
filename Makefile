@@ -247,7 +247,7 @@ mutation:
 
 mutation-gate:
 	@echo "Running mutation gate (per-module thresholds)..."
-	python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
 
 # ============================================================================
 # Test Variants

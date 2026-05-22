@@ -12,6 +12,29 @@ updated: 2026-05-21
 
 Reach **100% mutation kill rate** for the project — every per-module rate at `1.00`, `make mutation-gate` green with all thresholds ratcheted to `1.00` — through an iterative ramp of real test-quality improvements (and, where production-code structure makes logic untestable, testability refactors). First harden the mutation tooling (Makefile, quality gate, analyzer, pyproject config) so it runs perfectly and gates accurately against the current module structure. 100% means: every mutant is either killed by an honest test, or formally adjudicated genuinely unkillable by ≥2 expert-subagent review (NFR-1) — never gamed by a skip, pragma, lowered threshold, or excluded code.
 
+## 2026-05-22 Revision — Effective-100% supersedes literal-100% (AUTHORITATIVE)
+
+> **This section supersedes the literal "every per-module rate == 1.00" target wherever it appears below.** It is the result of `/bmad-technical-research` (artifact: `_bmad-output/planning-artifacts/research/technical-mutation-testing-php-vs-python-research-2026-05-22.md`) and the human's directive to define the genuinely-unkillable residue precisely before continuing.
+
+**Why the literal-100% target was a planning error.** Academic survey data shows **less than 10% of mutants are genuinely equivalent** ([arXiv 2024](https://arxiv.org/pdf/2404.09241)). Infection (PHP) — where the human reaches "100%" — already separates **MSI** from **Covered MSI** and annotates the genuinely-equivalent residue with `@infection-ignore-all`. So even in PHP, "100%" means *effective* 100%: kill everything killable, formally annotate the small equivalent residue. The literal "every module 1.00 AND ≤10 pragmas AND equivalents exist" combination in the original Goal/DoD is self-contradictory and drove fabrication (reviewer flagged FABRICATION on tasks 2.20, 2.22; 153-172 pragmas added then removed under NFR-1b).
+
+**The corrected target — Effective-100% MSI:**
+
+```
+effective_MSI = killed / (total − registered_equivalent)   →   target = 1.00
+```
+
+- **Maximize the raw kill rate honestly first** (real tests, integration-first, multi-assert, US-5 refactors). The real baseline is **56.9%** (task 1.1: 11571 mutants, 6581 killed, 4989 survived). The honest raw ceiling for a well-tested HA integration is ~85-95%, NOT 56.9%.
+- **The genuinely-unkillable residue is documented, not eliminated**, in a persistent **Equivalent-Mutant Registry** (`specs/mutation-score-ramp/equivalent-mutants.md`): one dossier per registered mutant (id, file:line, original→mutated, taxonomy category, the decision-test argument proving no test can differentiate, human-approval quote, date).
+- **Every `# pragma: no mutate` MUST reference a registry entry id.** No naked pragmas; no mass-category labels.
+- **Pragma ceiling reframed:** the arbitrary "~10 project-wide" cap is replaced by "minimized and individually-justified; expect more than 10 given HA framework glue, but the registered set must stay percentage-bounded (target ≤~10% of mutants) and every entry carries a per-mutant dossier + human approval." A registry approaching the 37%-survivor figure is a red flag of gaming.
+
+**Hard prerequisite (was silently deferred for weeks):** `make mutation` is BLOCKED on Python 3.14 by a `dbus_fast` incompatibility (`TypeError: access must be a PropertyAccess class`, reproduced 2026-05-22). No kill-rate number is real until mutmut runs on a compatible interpreter (Python 3.12 is installed). This is now task 5.1, the gate for all subsequent measurement.
+
+**Persistence for new code:** the registry and gate must outlive this spec — when new code adds new survivors, each must be killed or registered (with dossier + approval) before merge. This is task 5.5.
+
+**Definition of Done (revised):** Effective-100% MSI on a fresh real run; the Equivalent-Mutant Registry is complete, minimized, percentage-bounded, and fully human-approved; every pragma maps 1:1 to a registry entry; `make test` + `make test-cover` (100%) + `make import-check` green; the persistence gate fails on any unregistered survivor. The literal "every module kill_threshold == 1.00" of the original DoD is reinterpreted as "every module's *effective* rate == 1.00".
+
 ## User Stories
 
 ### US-1: Mutation tooling runs perfectly

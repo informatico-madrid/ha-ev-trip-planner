@@ -12,6 +12,57 @@ updated: 2026-05-21
 
 Phased delivery: (Phase A) harden the mutation tooling and rebase `pyproject.toml` mutation keys so the gate computes a real per-module verdict, then fix the 3 gate-failing modules to lock the gate green; (Phase B) ramp the remaining modules worst-first through iterations of honest test improvement and US-5 testability refactors, ratcheting each satisfied module's threshold toward `1.00` until `make mutation-gate` is `OK` with every per-module rate = `1.00`. The only honest path to 100% for a genuinely intrinsic/equivalent mutant is the NFR-1 `≥2`-expert-subagent adjudication gate.
 
+## 2026-05-22 Revision — Effective-100% model (AUTHORITATIVE, supersedes literal-100%)
+
+> Supersedes the Overview's "every per-module rate = 1.00" and the "literal 100%" Technical Decision. Driven by `/bmad-technical-research` + human directive. See `requirements.md` § "2026-05-22 Revision".
+
+### R1. Effective-MSI definition
+
+```
+effective_MSI = killed / (total − registered_equivalent)        target = 1.00
+```
+
+This mirrors Infection's **Covered MSI** + `@infection-ignore-all` model. Mechanism in mutmut: a registered-equivalent mutant carries `# pragma: no mutate` (removing it from the denominator), and **every such pragma references a registry entry id** — so effective-100% emerges from the existing per-module gate without any analyzer change. The honest order is: (1) maximize raw kill rate via tests/refactors, (2) register only the genuinely-unkillable residue.
+
+### R2. Interpreter-compatibility component (the unblock)
+
+`make mutation` crashed in mutmut's clean-test import phase on **Python 3.14**: the `homeassistant → habluetooth → bleak → dbus_fast` chain hit `dbus_fast.service.dbus_property` → `TypeError: access must be a PropertyAccess class` (reproduced 2026-05-22). Plain `pytest` collects fine (2761 tests) but mutmut's import model double-loads `dbus_fast`, breaking the `PropertyAccess` isinstance check. **Resolution:** `.venv` rebuilt in-place on **Python 3.12** (2026-05-22). All commands use `.venv/bin/python` (Makefile line ~250 fixed). 2761 tests pass. bleak import succeeds. All `.progress.md` numbers after iteration ~13 are stale/fabricated and MUST be discarded; the Python-3.12 full run is the sole authoritative source.
+
+### R3. Equivalent-Mutant Registry artifact
+
+**File:** `specs/mutation-score-ramp/equivalent-mutants.md` (persistent, outlives this spec).
+
+**Per-entry dossier schema:**
+
+| Field | Content |
+|---|---|
+| `id` | mutmut mutant id (e.g. `…trip._crud.x_async_add__mutmut_7`) |
+| `location` | `file:line` |
+| `mutation` | original → mutated source |
+| `category` | one of the taxonomy below |
+| `decision_test` | the argument proving NO test case can differentiate mutant from original output |
+| `approval` | verbatim `HUMAN APPROVED:` quote + date |
+
+**Taxonomy (the only acceptable categories):** (1) idempotent-arithmetic (`*1`,`/1`,`+0`,`-0`); (2) log/diagnostic-only (text/level, no behavioral/state effect); (3) performance-only (`break`↔`continue` where the loop terminates regardless; `__version__`); (4) type-infeasible-default (caught by mypy/pyright); (5) framework-absorbed-arg (HA normalizes/ignores the mutated value, producing identical observable HA state — must be PROVEN per-mutant, never assumed).
+
+### R4. Persistence gate for new code
+
+Beyond this spec: any new survivor introduced by future code must be **killed or registered** (dossier + human approval) before merge. The gate FAILS on any survivor that has neither a kill nor a registry entry. Documented in contributor docs so new code/tests consult the registry rather than re-discovering "unkillable" mutants.
+
+### R5. Reframed pragma ceiling + autonomy model (human decision 2026-05-22)
+
+The arbitrary "~10 project-wide" cap (NFR-1) is replaced by: **minimized, individually-justified, percentage-bounded (target ≤~10% of mutants).** Expect more than 10 entries given HA framework glue; each still needs its own dossier. No mass-category labels — those are presumed killable until a per-mutant decision-test proves otherwise.
+
+**Autonomy model (so the loop runs unattended for hours, finishes in one go, never deadlocks):**
+
+| Survivor class | Action during autonomous run | Human gate |
+|---|---|---|
+| Killable | Write the real test (NFR-8/9/10/12) | none |
+| Obvious-intrinsic — the 4 pre-authorized categories (idempotent-arithmetic, log/diagnostic-only, performance-only, type-infeasible-default) | AUTO-REGISTER + `# pragma: no mutate`, dossier, status `REGISTERED-AUTO` | batch-ratified at 5.6, non-blocking |
+| `framework-absorbed-arg` or anything else | PARK as `CANDIDATE-PENDING-APPROVAL` (dossier only, NO pragma, NO block) | single human approval pass at 5.6 |
+
+This reconciles NFR-1 with unattended execution: the loop never escalates-and-waits mid-flight. It reaches a **clean planned stop** at task 5.6 when 0 killable survivors remain; the human then resolves the parked candidates in one sitting. The `framework-absorbed-arg` gate is preserved precisely because that category is where the prior 153-172-pragma gaming hid (NFR-1b).
+
 ## Architecture
 
 ### A. Overall phased flow

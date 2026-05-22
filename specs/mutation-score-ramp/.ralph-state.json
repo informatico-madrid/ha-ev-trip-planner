@@ -2,16 +2,16 @@
   "source": "spec",
   "name": "mutation-score-ramp",
   "basePath": "specs/mutation-score-ramp",
-  "phase": "complete",
-  "taskIndex": 173,
-  "totalTasks": 173,
+  "phase": "execution",
+  "taskIndex": 174,
+  "totalTasks": 180,
   "taskIteration": 1,
   "maxTaskIterations": 5,
-  "globalIteration": 16,
+  "globalIteration": 1,
   "maxGlobalIterations": 100,
   "awaitingApproval": false,
   "granularity": "fine",
-  "executionPhase": "test",
+  "executionPhase": "implement",
   "repairIteration": 0,
   "failedStory": null,
   "originTaskIndex": null,
@@ -81,7 +81,8 @@
       "status": "improved",
       "new_tests": 73,
       "helpers_extracted": true
-    }
+    },
+    "lastMutationRun": null
   },
   "taskMarkSnapshot": null
 }
