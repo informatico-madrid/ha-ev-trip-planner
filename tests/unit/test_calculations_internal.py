@@ -303,14 +303,17 @@ class TestCalculateMultiTripChargingWindows:
         """Empty trips list returns empty list."""
         from custom_components.ev_trip_planner.calculations.windows import (
             calculate_multi_trip_charging_windows,
+            MultiTripChargingParams,
         )
 
         result = calculate_multi_trip_charging_windows(
             trips=[],
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+            ),
         )
         assert result == []
 
@@ -320,15 +323,18 @@ class TestCalculateMultiTripChargingWindows:
 
         from custom_components.ev_trip_planner.calculations.windows import (
             calculate_multi_trip_charging_windows,
+            MultiTripChargingParams,
         )
 
         trip_dt = datetime(2026, 6, 15, 14, 0, 0, tzinfo=timezone.utc)
         result = calculate_multi_trip_charging_windows(
             trips=[(trip_dt, {"id": "t1", "kwh": 5.0, "tipo": "punctual"})],
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc),
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc),
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+            ),
         )
 
         assert len(result) == 1
@@ -343,6 +349,7 @@ class TestCalculateMultiTripChargingWindows:
 
         from custom_components.ev_trip_planner.calculations.windows import (
             calculate_multi_trip_charging_windows,
+            MultiTripChargingParams,
         )
 
         trip1_dt = datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc)
@@ -352,10 +359,12 @@ class TestCalculateMultiTripChargingWindows:
                 (trip1_dt, {"id": "t1", "kwh": 3.0, "tipo": "punctual"}),
                 (trip2_dt, {"id": "t2", "kwh": 5.0, "tipo": "punctual"}),
             ],
-            soc_actual=80.0,
-            hora_regreso=datetime(2026, 6, 14, 18, 0, 0, tzinfo=timezone.utc),
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=80.0,
+                hora_regreso=datetime(2026, 6, 14, 18, 0, 0, tzinfo=timezone.utc),
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+            ),
         )
 
         assert len(result) == 2
@@ -369,6 +378,7 @@ class TestCalculateMultiTripChargingWindows:
 
         from custom_components.ev_trip_planner.calculations.windows import (
             calculate_multi_trip_charging_windows,
+            MultiTripChargingParams,
         )
 
         trip1_dt = datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc)
@@ -378,11 +388,13 @@ class TestCalculateMultiTripChargingWindows:
                 (trip1_dt, {"id": "t1", "kwh": 3.0, "tipo": "punctual"}),
                 (trip2_dt, {"id": "t2", "kwh": 5.0, "tipo": "punctual"}),
             ],
-            soc_actual=80.0,
-            hora_regreso=None,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
-            return_buffer_hours=2.0,
+            params=MultiTripChargingParams(
+                soc_actual=80.0,
+                hora_regreso=None,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+                return_buffer_hours=2.0,
+            ),
         )
 
         assert len(result) == 2

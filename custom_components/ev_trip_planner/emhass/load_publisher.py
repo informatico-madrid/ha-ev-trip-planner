@@ -16,6 +16,7 @@ from ..calculations import (
     calculate_energy_needed,
     calculate_multi_trip_charging_windows,
 )
+from ..calculations.windows import MultiTripChargingParams
 from ..const import DEFAULT_SAFETY_MARGIN
 from .index_manager import IndexManager
 
@@ -355,12 +356,14 @@ class LoadPublisher(LoadPublisherBase):
         """
         return calculate_multi_trip_charging_windows(
             trips=[(deadline_dt, trip)],
-            soc_actual=soc_current,
-            hora_regreso=None,
-            charging_power_kw=self.charging_power_kw,
-            battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
-            safety_margin_percent=self.safety_margin_percent,
-            now=dt_util.now(),
+            params=MultiTripChargingParams(
+                soc_actual=soc_current,
+                hora_regreso=None,
+                charging_power_kw=self.charging_power_kw,
+                battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
+                safety_margin_percent=self.safety_margin_percent,
+                now=dt_util.now(),
+            ),
         )
 
     @staticmethod

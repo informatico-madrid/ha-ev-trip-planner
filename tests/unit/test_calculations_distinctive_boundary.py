@@ -460,6 +460,7 @@ class TestMultiTripWindowsMultiAssert:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -470,11 +471,13 @@ class TestMultiTripWindowsMultiAssert:
         ]
         results = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=60.0,
-            hora_regreso=ref,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
-            now=ref,
+            params=MultiTripChargingParams(
+                soc_actual=60.0,
+                hora_regreso=ref,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+                now=ref,
+            ),
         )
         assert len(results) == 2
 
@@ -493,6 +496,7 @@ class TestMultiTripWindowsMultiAssert:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -503,11 +507,13 @@ class TestMultiTripWindowsMultiAssert:
         ]
         results = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=73.5,
-            hora_regreso=ref,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
-            now=ref,
+            params=MultiTripChargingParams(
+                soc_actual=73.5,
+                hora_regreso=ref,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+                now=ref,
+            ),
         )
         assert len(results) == 2
         assert results[0]["kwh_necesarios"] == 17.3
@@ -517,16 +523,19 @@ class TestMultiTripWindowsMultiAssert:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
         ref = datetime(2026, 6, 1, 8, 0, 0, tzinfo=timezone.utc)
         results = calculate_multi_trip_charging_windows(
             trips=[],
-            soc_actual=60.0,
-            hora_regreso=ref,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=60.0,
+                hora_regreso=ref,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=75.0,
+            ),
         )
         assert results == []
 

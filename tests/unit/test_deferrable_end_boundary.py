@@ -7,6 +7,8 @@ This test will FAIL with current code and PASS after the fix.
 """
 
 from datetime import datetime, timedelta, timezone
+
+from custom_components.ev_trip_planner.calculations.windows import MultiTripChargingParams
 from unittest.mock import patch
 
 import pytest
@@ -70,11 +72,13 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
     # First, let's see what calculate_multi_trip_charging_windows returns
     windows = calculate_multi_trip_charging_windows(
         trips=[(deadline, trip)],
-        soc_actual=50.0,
-        hora_regreso=hora_regreso,
-        charging_power_kw=3.6,
-        battery_capacity_kwh=60.0,
-        safety_margin_percent=10.0,
+        params=MultiTripChargingParams(
+            soc_actual=50.0,
+            hora_regreso=hora_regreso,
+            charging_power_kw=3.6,
+            battery_capacity_kwh=60.0,
+            safety_margin_percent=10.0,
+        ),
     )
 
     assert len(windows) > 0, "Should have charging windows"

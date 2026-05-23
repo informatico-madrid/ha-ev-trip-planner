@@ -166,14 +166,14 @@ ifeq ($(PARALLEL_ENABLED),true)
 	$(MAKE) typecheck & echo $$! > .layer3a-results/pyright.pid && \
 	python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ & echo $$! > .layer3a-results/solid.pid && \
 	python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ & echo $$! > .layer3a-results/principles.pid && \
-	python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ & echo $$! > .layer3a-results/antipattern.pid && \
+	python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ & echo $$! > .layer3a-results/antipattern.pid && \
 	wait && \
 	rm -rf .layer3a-results
 else
 	@$(MAKE) typecheck
 	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
 	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
-	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ || echo "WARNING: Antipattern Tier A violations"
+	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ || echo "WARNING: Antipattern Tier A violations"
 endif
 	@echo "=== Layer 3A Complete ==="
 

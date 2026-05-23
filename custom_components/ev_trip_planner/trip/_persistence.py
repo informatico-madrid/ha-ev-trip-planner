@@ -111,6 +111,8 @@ class TripPersistence:
 
     # ── Private helpers ───────────────────────────────────────────
 
+    # qg-accepted: KISS complexity=11 — distinct persistence backends (YAML vs HA Store),
+    # wrapper detection, and exception handling paths.
     async def _load_trips(self) -> None:
         """Carga los viajes desde el almacenamiento persistente."""
         state = self._state

@@ -18,6 +18,7 @@ import pytest
 from custom_components.ev_trip_planner.calculations import (
     calculate_multi_trip_charging_windows,
 )
+from custom_components.ev_trip_planner.calculations.windows import MultiTripChargingParams
 
 
 class TestSingleTripHoraRegresoPast:
@@ -38,10 +39,12 @@ class TestSingleTripHoraRegresoPast:
 
         results = calculate_multi_trip_charging_windows(
             trips=[(trip_deadline, trip)],
-            soc_actual=30.0,
-            hora_regreso=hora_regreso,
-            charging_power_kw=3.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=30.0,
+                hora_regreso=hora_regreso,
+                charging_power_kw=3.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
 
         result = results[0]
@@ -77,10 +80,12 @@ class TestSingleTripHoraRegresoPast:
 
         results = calculate_multi_trip_charging_windows(
             trips=[(trip_deadline, trip)],
-            soc_actual=30.0,
-            hora_regreso=None,  # The bug case: no return event ever recorded
-            charging_power_kw=3.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=30.0,
+                hora_regreso=None,  # The bug case: no return event ever recorded
+                charging_power_kw=3.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
 
         result = results[0]
@@ -112,10 +117,12 @@ class TestSingleTripHoraRegresoPast:
 
         results = calculate_multi_trip_charging_windows(
             trips=[(trip_deadline, trip)],
-            soc_actual=30.0,
-            hora_regreso=hora_regreso,
-            charging_power_kw=3.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=30.0,
+                hora_regreso=hora_regreso,
+                charging_power_kw=3.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
 
         result = results[0]

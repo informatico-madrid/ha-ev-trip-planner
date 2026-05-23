@@ -7,7 +7,6 @@ Original implementation in sensor_orig.py.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, List
 
 from homeassistant.components.sensor import SensorEntity
@@ -47,29 +46,6 @@ _LOG_DEBUG_EMHASS_SENSOR_CREATED = "EMHASS sensor created and registered for tri
 _LOG_ERROR_EMHASS_SENSOR_CREATE_FAILED = (
     "Failed to create EMHASS sensor for trip %s: %s"
 )
-
-
-def _format_window_time(value: Any) -> str | None:
-    """Format window time to HH:MM from datetime or ISO string.
-
-    Args:
-        value: Either a datetime object or an ISO format string
-
-    Returns:
-        Time formatted as HH:MM, or None if formatting fails
-    """
-    if value is None:
-        return None
-    try:
-        if isinstance(value, datetime):
-            dt_value = value
-        elif isinstance(value, str):
-            dt_value = datetime.fromisoformat(value)
-        else:
-            return None
-        return dt_value.strftime("%H:%M")
-    except (ValueError, TypeError, AttributeError):
-        return None
 
 
 async def async_setup_entry(

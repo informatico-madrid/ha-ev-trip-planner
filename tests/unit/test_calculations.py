@@ -13,6 +13,7 @@ import pytest
 
 from custom_components.ev_trip_planner.calculations.windows import (
     ChargingWindowPureParams,
+    MultiTripChargingParams,
 )
 
 
@@ -741,10 +742,12 @@ class TestCalculateMultiTripChargingWindows:
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,  # No return event detected
-            charging_power_kw=7.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,  # No return event detected
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert len(result) == 1
         # hora_regreso=None → window starts at now (car is assumed home)
@@ -764,10 +767,12 @@ class TestCalculateMultiTripChargingWindows:
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=0.0,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=0.0,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert len(result) == 1
         assert result[0]["horas_carga_necesarias"] == 0.0
@@ -780,10 +785,12 @@ class TestCalculateMultiTripChargingWindows:
 
         result = calculate_multi_trip_charging_windows(
             trips=[],
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert result == []
 
@@ -797,10 +804,12 @@ class TestCalculateMultiTripChargingWindows:
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert len(result) == 1
         # Window: hora_regreso (10am) to trip_departure (18:00) = 8 hours
@@ -828,11 +837,13 @@ class TestCalculateMultiTripChargingWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 7, 0),
-            charging_power_kw=7.4,
-            return_buffer_hours=0.0,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 7, 0),
+                charging_power_kw=7.4,
+                return_buffer_hours=0.0,
+                battery_capacity_kwh=50.0,
+            ),
         )
         # First window: 7am → 8am departure = 1h
         assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 7, 0)
@@ -858,11 +869,13 @@ class TestCalculateMultiTripChargingWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 6, 0),
-            charging_power_kw=7.4,
-            return_buffer_hours=3.0,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 6, 0),
+                charging_power_kw=7.4,
+                return_buffer_hours=3.0,
+                battery_capacity_kwh=50.0,
+            ),
         )
         # Second trip's window_start should be capped to trip2 departure (10:00)
         assert result[1]["inicio_ventana"].hour == 10
@@ -3456,6 +3469,7 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -3464,10 +3478,12 @@ class TestMutationKillsMultiTripWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
 
         assert isinstance(result, list)
@@ -3482,6 +3498,7 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timedelta, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -3492,10 +3509,12 @@ class TestMutationKillsMultiTripWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=base,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=base,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
         assert len(result) == 2, "Must have one result per trip"
 
@@ -3504,15 +3523,18 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
         result = calculate_multi_trip_charging_windows(
             trips=[],
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
         assert result == []
 
@@ -3521,6 +3543,7 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -3529,10 +3552,12 @@ class TestMutationKillsMultiTripWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
 
         required = (
@@ -3854,6 +3879,7 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -3862,10 +3888,12 @@ class TestMutationKillsMultiTripWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
 
         assert isinstance(result, list)
@@ -3880,6 +3908,7 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timedelta, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -3890,10 +3919,12 @@ class TestMutationKillsMultiTripWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=base,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=base,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
         assert len(result) == 2, "Must have one result per trip"
 
@@ -3902,15 +3933,18 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
         result = calculate_multi_trip_charging_windows(
             trips=[],
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
         assert result == []
 
@@ -3919,6 +3953,7 @@ class TestMutationKillsMultiTripWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
             calculate_multi_trip_charging_windows,
         )
 
@@ -3927,10 +3962,12 @@ class TestMutationKillsMultiTripWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
         )
 
         required = (

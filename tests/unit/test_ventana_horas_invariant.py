@@ -14,6 +14,7 @@ import pytest
 from custom_components.ev_trip_planner.calculations import (
     calculate_multi_trip_charging_windows,
 )
+from custom_components.ev_trip_planner.calculations.windows import MultiTripChargingParams
 
 
 def _make_trip(dt: datetime, km: float = 50.0, kwh: float = 10.0) -> dict:
@@ -39,12 +40,14 @@ class TestVentanaHorasInvariant:
 
         results = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
-            return_buffer_hours=1.0,
-            now=now,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+                return_buffer_hours=1.0,
+                now=now,
+            ),
         )
 
         assert len(results) == 1
@@ -73,12 +76,14 @@ class TestVentanaHorasInvariant:
 
         results = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
-            return_buffer_hours=1.0,
-            now=now,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+                return_buffer_hours=1.0,
+                now=now,
+            ),
         )
 
         assert len(results) == 2
@@ -108,12 +113,14 @@ class TestVentanaHorasInvariant:
 
         results = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=hora_regreso,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=75.0,
-            return_buffer_hours=1.0,
-            now=now,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=hora_regreso,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+                return_buffer_hours=1.0,
+                now=now,
+            ),
         )
 
         assert len(results) == 2

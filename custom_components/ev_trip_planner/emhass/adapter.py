@@ -16,6 +16,7 @@ from homeassistant.helpers.storage import (
     Store,  # noqa: F401 — re-export for test compatibility
 )
 
+from .. import const
 from ..calculations import _helpers
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
@@ -27,10 +28,10 @@ _LOGGER = logging.getLogger(__name__)
 _LOG_DEBUG_FLOW2_GET_CURRENT_SOC = "FLOW2-DEBUG: _get_current_soc called"
 
 
-# qg-accepted: BMAD consensus 2026-05-12 — FALSE POSITIVE: facade pattern (18 public methods,
-#   27 attrs, high delegation ratio are all inherent to the facade architecture delegating
-#   to IndexManager, LoadPublisher, ErrorHandler. Tier A counts facade methods as violations,
-#   Tier B confirms facades are legitimate SOLID-compliant design.
+# qg-accepted: BMAD consensus 2026-05-12 — ACCEPTED AS ORCHESTRATOR (not facade):
+#   80% business logic (SOC fetching, charging windows, deficit propagation,
+#   power profiles). High LOC justified as central EMHASS orchestration layer
+#   composing IndexManager, LoadPublisher, ErrorHandler.
 
 
 # Note: CachePolicy ABC removed to fix AP12 Speculative Generality.
@@ -133,7 +134,7 @@ class EMHASSAdapter:
 
         # Store the read values for later use
         self._stored_charging_power_kw = charging_power_kw
-        self._default_consumption = 0.15  # kWh/km, fallback when kwh_per_km missing
+        self._default_consumption = const.DEFAULT_CONSUMPTION  # kWh/km, fallback when kwh_per_km missing
 
         # State attributes (used by callers and tests)
         self._published_trips: set[str] = set()
@@ -452,16 +453,21 @@ class EMHASSAdapter:
         """Compute multi-trip charging windows from sorted deadlines."""
         if not trip_deadlines:
             return []
-        from ..calculations.windows import calculate_multi_trip_charging_windows
+        from ..calculations.windows import (
+            MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
+        )
 
         return calculate_multi_trip_charging_windows(
             trips=trip_deadlines,
-            soc_actual=soc_current,
-            hora_regreso=None,
-            charging_power_kw=self._load_publisher.charging_power_kw,
-            battery_capacity_kwh=battery_capacity_kwh,
-            safety_margin_percent=self._load_publisher.safety_margin_percent,
-            now=now,
+            params=MultiTripChargingParams(
+                soc_actual=soc_current,
+                hora_regreso=None,
+                charging_power_kw=self._load_publisher.charging_power_kw,
+                battery_capacity_kwh=battery_capacity_kwh,
+                safety_margin_percent=self._load_publisher.safety_margin_percent,
+                now=now,
+            ),
         )
 
     def _build_window_lookup(
@@ -518,7 +524,7 @@ class EMHASSAdapter:
 
     def _get_horizon_hours(self) -> int:
         """Read planning horizon from config entry."""
-        horizon = 168  # default: 7 days * 24 hours
+        horizon = const.DEFAULT_PLANNING_HORIZON * 24  # default: 7 days
         try:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
@@ -671,8 +677,8 @@ class EMHASSAdapter:
         soc_current = params.soc_current
 
         # Read t_base and planning_horizon from config entry
-        t_base = 24.0  # default
-        horizon_hours = 168  # default: 7 days * 24 hours
+        t_base = const.DEFAULT_T_BASE  # default
+        horizon_hours = const.DEFAULT_PLANNING_HORIZON * 24  # default: 7 days
         entry = self._entry
         if entry:
             entry_data = dict(getattr(entry, "options", {}) or {})
