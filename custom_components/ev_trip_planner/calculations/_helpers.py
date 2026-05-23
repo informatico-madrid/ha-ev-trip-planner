@@ -16,18 +16,12 @@ from .core import calculate_trip_time
 _LOGGER = logging.getLogger(__name__)
 
 # US-5 log string constants — mutation-observable, killed by log-constant tests
-_LOG_INVALID_DATETIME = (
-    "resolve_trip_deadline: trip %s has invalid datetime, skipping"
-)
+_LOG_INVALID_DATETIME = "resolve_trip_deadline: trip %s has invalid datetime, skipping"
 _LOG_NO_DATETIME_OR_DAY_TIME = (
     "resolve_trip_deadline: trip %s has no datetime or day/time fields, skipping"
 )
-_LOG_INVALID_DAY = (
-    "resolve_trip_deadline: trip %s has invalid day value '%s', skipping"
-)
-_LOG_INVALID_DAY_TIME = (
-    "resolve_trip_deadline: trip %s has invalid day/time, skipping"
-)
+_LOG_INVALID_DAY = "resolve_trip_deadline: trip %s has invalid day value '%s', skipping"
+_LOG_INVALID_DAY_TIME = "resolve_trip_deadline: trip %s has invalid day/time, skipping"
 
 
 def _ensure_aware(dt: datetime) -> datetime:

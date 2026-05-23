@@ -78,7 +78,8 @@ def _normalize_reference_dt(
 
 
 def _compute_schedule_time(
-    now: datetime, hour_offset: int,
+    now: datetime,
+    hour_offset: int,
 ) -> datetime:
     """Compute schedule time for a given hour offset."""
     schedule_time = now.replace(minute=0, second=0, microsecond=0)

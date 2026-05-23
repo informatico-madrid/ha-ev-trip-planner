@@ -42,9 +42,7 @@ _LOG_DEBUG_REMOVING_TRIP_SENSOR = "Removing trip sensor for trip %s"
 _LOG_DEBUG_TRIP_SENSOR_NOT_FOUND = "Trip sensor %s not found in registry"
 _LOG_DEBUG_REMOVING_EMHASS_SENSOR = "Removing EMHASS sensor for trip %s"
 _LOG_DEBUG_EMHASS_SENSOR_NOT_FOUND = "EMHASS sensor %s not found in registry"
-_LOG_INFO_CREATING_EMHASS_SENSOR = (
-    "Creating EMHASS sensor for trip %s on vehicle %s"
-)
+_LOG_INFO_CREATING_EMHASS_SENSOR = "Creating EMHASS sensor for trip %s on vehicle %s"
 _LOG_DEBUG_EMHASS_SENSOR_CREATED = "EMHASS sensor created and registered for trip %s"
 _LOG_ERROR_EMHASS_SENSOR_CREATE_FAILED = (
     "Failed to create EMHASS sensor for trip %s: %s"

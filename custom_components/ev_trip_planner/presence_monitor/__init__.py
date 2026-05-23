@@ -41,10 +41,10 @@ LOG_RETURN_HOME_DETECTED = (
 )
 LOG_NOTIFICATION_SENT = "Notification sent for %s: %s"
 LOG_NOTIFICATION_FAILED = "Failed to send notification for %s: %s"
-LOG_HOME_DETECTION_NOT_CONFIGURED = "No home detection configured for %s, assuming at home"
-LOG_FAILED_PARSE_HORA_REGRESO = (
-    "Failed to parse hora_regreso_iso '%s' for %s: %s"
+LOG_HOME_DETECTION_NOT_CONFIGURED = (
+    "No home detection configured for %s, assuming at home"
 )
+LOG_FAILED_PARSE_HORA_REGRESO = "Failed to parse hora_regreso_iso '%s' for %s: %s"
 
 # Umbral de distancia para considerar que el vehículo está "en casa"
 HOME_DISTANCE_THRESHOLD_METERS = 30.0
@@ -384,8 +384,7 @@ class PresenceMonitor:
             _LOGGER.info(LOG_NOTIFICATION_SENT, self.vehicle_id, title)
             return True
         except Exception as err:  # pylint: disable=broad-except
-            _LOGGER.error(LOG_NOTIFICATION_FAILED, self.vehicle_id, err
-            )
+            _LOGGER.error(LOG_NOTIFICATION_FAILED, self.vehicle_id, err)
             return False
 
     def _parse_coordinates(  # pragma: no mutate # EQ-013

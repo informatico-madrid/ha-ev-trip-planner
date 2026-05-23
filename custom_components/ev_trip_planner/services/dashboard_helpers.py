@@ -18,9 +18,13 @@ _LOGGER = logging.getLogger(__name__)
 # ── Log format string constants (US-5 testability) ──────────────────────
 _LOG_LEGACY_STATIC_PATHS = "Registered static paths using legacy method (%s)"
 _LOG_STATIC_PATHS_CANT_REG = "Cannot register static paths (%s): %s"
-_LOG_STATIC_PATHS_REGISTERED = "Registered %d static path(s) for EV Trip Planner panel (early)"
+_LOG_STATIC_PATHS_REGISTERED = (
+    "Registered %d static path(s) for EV Trip Planner panel (early)"
+)
 _LOG_PANEL_REG_FALSE = "Panel registration returned False for vehicle %s - panel will not be available in sidebar"
-_LOG_PANEL_REG_FAILED = "Failed to register panel for vehicle %s: %s. Panel will not be available."
+_LOG_PANEL_REG_FAILED = (
+    "Failed to register panel for vehicle %s: %s. Panel will not be available."
+)
 
 
 def _register_static_paths_legacy(

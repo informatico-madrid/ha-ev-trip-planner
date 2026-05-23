@@ -1031,9 +1031,7 @@ class EMHASSAdapter:
                 )
                 self._cached_per_trip_params[trip_id]["p_deferrable_matrix"] = [new_row]
 
-    def _find_trip_id_for_params(
-        self, params: Dict[str, Any]
-    ) -> Optional[str]:
+    def _find_trip_id_for_params(self, params: Dict[str, Any]) -> Optional[str]:
         """Find trip_id matching a params dict by identity."""
         for tid, p in self._cached_per_trip_params.items():
             if p is params:

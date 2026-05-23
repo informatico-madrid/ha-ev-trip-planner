@@ -10,7 +10,9 @@ from __future__ import annotations
 from typing import Any
 
 
-def get_str(data: dict[str, Any], key: str, default: str = "") -> str:  # pragma: no mutate # EQ-012  # pragma: no mutate # EQ-012
+def get_str(
+    data: dict[str, Any], key: str, default: str = ""
+) -> str:  # pragma: no mutate # EQ-012  # pragma: no mutate # EQ-012
     """Extract a string value from service call data with a default.
 
     Equivalent to: str(data.get(key, default))
@@ -60,7 +62,9 @@ def get_str_nested(
     return str(default)
 
 
-def get_vehicle_id(data: dict[str, Any]) -> str:  # pragma: no mutate # EQ-012  # pragma: no mutate # EQ-012
+def get_vehicle_id(
+    data: dict[str, Any],
+) -> str:  # pragma: no mutate # EQ-012  # pragma: no mutate # EQ-012
     """Extract vehicle_id with the standard 'unknown' default.
 
     Equivalent to: data.get("vehicle_id", "unknown")
@@ -68,7 +72,9 @@ def get_vehicle_id(data: dict[str, Any]) -> str:  # pragma: no mutate # EQ-012  
     return str(data.get("vehicle_id", "unknown"))
 
 
-def get_bool(data: dict[str, Any], key: str, default: bool = True) -> bool:  # pragma: no mutate # EQ-012  # pragma: no mutate # EQ-012
+def get_bool(
+    data: dict[str, Any], key: str, default: bool = True
+) -> bool:  # pragma: no mutate # EQ-012  # pragma: no mutate # EQ-012
     """Extract a boolean value from service call data with a default.
 
     Equivalent to: bool(data.get(key, default))
@@ -78,7 +84,9 @@ def get_bool(data: dict[str, Any], key: str, default: bool = True) -> bool:  # p
     return bool(data.get(key, default))
 
 
-def get_optional_str(data: dict[str, Any], key: str, default: str | None = None) -> str | None:  # pragma: no mutate # EQ-012
+def get_optional_str(
+    data: dict[str, Any], key: str, default: str | None = None
+) -> str | None:  # pragma: no mutate # EQ-012
     """Extract an optional string value from service call data.
 
     Returns None if the key is absent or its value is None,

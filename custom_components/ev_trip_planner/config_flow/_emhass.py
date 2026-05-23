@@ -44,7 +44,9 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def extract_planning_horizon(config: Optional[Dict[str, Any]]) -> Optional[int]:  # pragma: no mutate # EQ-015
+def extract_planning_horizon(
+    config: Optional[Dict[str, Any]],
+) -> Optional[int]:  # pragma: no mutate # EQ-015
     """Extract planning horizon (days) from EMHASS config."""
     if not config:
         return None

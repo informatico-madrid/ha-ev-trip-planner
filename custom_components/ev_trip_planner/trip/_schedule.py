@@ -182,7 +182,8 @@ class TripScheduler:
         return schedule
 
     async def publish_deferrable_loads(
-        self, trips: Optional[List[Dict[str, Any]]] = None,
+        self,
+        trips: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """Publishes all active trips as deferrable loads to EMHASS."""
         if trips is None:

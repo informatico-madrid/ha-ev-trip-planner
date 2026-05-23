@@ -64,7 +64,6 @@ class LoadPublisher(LoadPublisherBase):
     Manages the lifecycle of deferrable loads: publish, update, and remove.
     """
 
-  
     def __init__(
         self,
         hass: HomeAssistant,
@@ -106,7 +105,7 @@ class LoadPublisher(LoadPublisherBase):
     # missing SOC, and charging window calculation. Each error requires
     # cleanup (index release) and a different log level.
     # qg-accepted: complexity=13 is inherent to publish lifecycle error handling
-  
+
     async def publish(self, trip: Dict[str, Any]) -> bool:
         """Publish a trip as a deferrable load.
 
@@ -212,7 +211,6 @@ class LoadPublisher(LoadPublisherBase):
         """
         return await self.publish(trip)
 
-  
     async def remove(self, trip_id: str) -> bool:
         """Remove a deferrable load.
 
@@ -236,7 +234,7 @@ class LoadPublisher(LoadPublisherBase):
     # formats (Spanish/English/numeric), and time parsing with error branches.
     # This is a parser function — branching is the logic.
     # qg-accepted: complexity=13, nesting=5 — date parsing logic
-  
+
     def _calculate_deadline(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Calculate deadline datetime from trip data.
 
@@ -323,7 +321,6 @@ class LoadPublisher(LoadPublisherBase):
 
         return None
 
-  
     async def _get_current_soc(self) -> Optional[float]:
         """Get current battery SOC from configured sensor.
 
@@ -340,7 +337,6 @@ class LoadPublisher(LoadPublisherBase):
         except (ValueError, TypeError):
             return None
 
-  
     def _calculate_charging_windows(
         self,
         deadline_dt: datetime,

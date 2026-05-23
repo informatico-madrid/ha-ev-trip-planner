@@ -47,7 +47,10 @@ class EMHASSSync:
     # ── All private helpers ──────────────────────────────────────
 
     async def _async_sync_trip_to_emhass(
-        self, trip_id: str, old_trip: Dict[str, Any], updates: Dict[str, Any],
+        self,
+        trip_id: str,
+        old_trip: Dict[str, Any],
+        updates: Dict[str, Any],
     ) -> None:
         """Sync trip changes to EMHASS adapter."""
         state = self._state
@@ -91,7 +94,8 @@ class EMHASSSync:
             _LOGGER.error(_LOG_SYNC_ERROR, trip_id, err)
 
     async def _async_remove_trip_from_emhass(
-        self, trip_id: str,
+        self,
+        trip_id: str,
     ) -> None:
         """Remove a trip from EMHASS deferrable loads."""
         state = self._state
@@ -106,7 +110,8 @@ class EMHASSSync:
             _LOGGER.error(_LOG_REMOVE_ERROR, trip_id, err)
 
     async def _async_publish_new_trip_to_emhass(
-        self, trip: Dict[str, Any],
+        self,
+        trip: Dict[str, Any],
     ) -> None:
         """Publish a new trip to EMHASS as a deferrable load."""
         state = self._state
@@ -119,4 +124,3 @@ class EMHASSSync:
             _LOGGER.info(_LOG_PUBLISHED_INFO, trip.get("id"))
         except Exception as err:
             _LOGGER.error(_LOG_PUBLISH_ERROR, trip.get("id"), err)
-

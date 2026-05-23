@@ -36,8 +36,12 @@ _LOG_HANDLER_TRIP_LIST_RESULT = "=== trip_list result ==="
 _LOG_REFRESH = "Refrescando trips para vehículo: %s"
 _LOG_CALL_DATA = "=== call.data: %s"
 _LOG_TRIP_LIST_SERVICE_CALLED = "=== trip_list SERVICE CALLED === vehicle: %s"
-_LOG_RECURRING_TRIPS_BEFORE = "=== Before async_get_recurring_trips - mgr._state.recurring_trips: %d"
-_LOG_PUNCTUAL_TRIPS_BEFORE = "=== Before async_get_punctual_trips - mgr._state.punctual_trips: %d"
+_LOG_RECURRING_TRIPS_BEFORE = (
+    "=== Before async_get_recurring_trips - mgr._state.recurring_trips: %d"
+)
+_LOG_PUNCTUAL_TRIPS_BEFORE = (
+    "=== Before async_get_punctual_trips - mgr._state.punctual_trips: %d"
+)
 _LOG_GETTING_RECURRING = "Getting recurring trips for %s"
 _LOG_GOT_RECURRING = "Got %d recurring trips"
 _LOG_GETTING_PUNCTUAL = "Getting punctual trips for %s"
@@ -56,9 +60,13 @@ _LOG_ENTRY_NOT_FOUND = "Config entry not found for vehicle %s"
 _LOG_UPDATE_FAILED = "Failed to update trip sensor: %s"
 _LOG_CREATED_RECURRING = "Created recurring trip for vehicle %s: %s at %s, %s km"
 _LOG_CREATED_PUNCTUAL = "Created punctual trip for vehicle %s: %s, %s km"
-_LOG_INVALID_TRIP_TYPE = "Invalid trip type '%s' for vehicle %s. Must be 'recurrente' or 'puntual'"
+_LOG_INVALID_TRIP_TYPE = (
+    "Invalid trip type '%s' for vehicle %s. Must be 'recurrente' or 'puntual'"
+)
 _LOG_CALL_DATA_TRIP_GET = "=== call.data: %s"
-_LOG_TRIP_GET_SERVICE_CALLED = "=== trip_get SERVICE CALLED === vehicle: %s, trip_id: %s"
+_LOG_TRIP_GET_SERVICE_CALLED = (
+    "=== trip_get SERVICE CALLED === vehicle: %s, trip_id: %s"
+)
 _LOG_TRIP_GET_SUCCESS = "=== trip_get SUCCESS - Found trip: %s ==="
 _LOG_TRIP_GET_NOT_FOUND = "=== trip_get NOT FOUND - trip_id: %s ==="
 _LOG_GETTING_ALL_TO_FIND = "Getting all trips to find trip_id: %s"
@@ -377,7 +385,9 @@ def make_trip_create_handler(hass: HomeAssistant):  # pragma: no mutate  # EQ-00
                 kwh=float(data["kwh"]),
                 descripcion=descripcion,
             )
-            _LOGGER.info(_LOG_CREATED_RECURRING, vehicle_id, dia_semana, hora, data["km"])
+            _LOGGER.info(
+                _LOG_CREATED_RECURRING, vehicle_id, dia_semana, hora, data["km"]
+            )
         elif trip_type == "puntual":
             datetime_str = get_optional_str(data, "datetime")
             descripcion = get_str_fallback(data, "descripcion", "description")
@@ -546,7 +556,9 @@ def make_trip_get_handler(hass: HomeAssistant):  # pragma: no mutate  # EQ-006-1
             recurring_trips = await mgr._crud.async_get_recurring_trips()
             punctual_trips = await mgr._crud.async_get_punctual_trips()
 
-            _LOGGER.warning(_LOG_FOUND_TRIPS_COUNT, len(recurring_trips), len(punctual_trips))
+            _LOGGER.warning(
+                _LOG_FOUND_TRIPS_COUNT, len(recurring_trips), len(punctual_trips)
+            )
 
             all_trips = [*recurring_trips, *punctual_trips]
 
@@ -574,7 +586,9 @@ def make_trip_get_handler(hass: HomeAssistant):  # pragma: no mutate  # EQ-006-1
                     "error": f"Trip with ID {trip_id} not found",
                 }
         except Exception as err:
-            _LOGGER.error(_LOG_ERROR_GETTING_TRIP, trip_id, vehicle_id, err, exc_info=True)
+            _LOGGER.error(
+                _LOG_ERROR_GETTING_TRIP, trip_id, vehicle_id, err, exc_info=True
+            )
             return {
                 "vehicle_id": vehicle_id,
                 "trip": None,

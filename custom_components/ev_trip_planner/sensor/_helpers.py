@@ -262,16 +262,12 @@ def collect_deferrable_arrays(
         Dict with four array keys derived from scalar fields.
     """
     return {
-        "def_total_hours_array": [
-            p.get("def_total_hours", 0) for p in active_trips
-        ],
+        "def_total_hours_array": [p.get("def_total_hours", 0) for p in active_trips],
         "p_deferrable_nom_array": [p.get("power_watts", 0) for p in active_trips],
         "def_start_timestep_array": [
             p.get("def_start_timestep", 0) for p in active_trips
         ],
-        "def_end_timestep_array": [
-            p.get("def_end_timestep", 0) for p in active_trips
-        ],
+        "def_end_timestep_array": [p.get("def_end_timestep", 0) for p in active_trips],
     }
 
 

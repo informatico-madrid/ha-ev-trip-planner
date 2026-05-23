@@ -31,14 +31,22 @@ _LOGGER = logging.getLogger(__name__)
 # ── Log format string constants (US-5 testability) ──────────────────────
 _LOG_FIND_ENTRY_NONE = "Entry %s has None data, skipping"
 _LOG_MANAGER_START = "=== _get_manager START - vehicle_id: %s ==="
-_LOG_MANAGER_ERR_NOT_FOUND = "=== _get_manager ERROR - Vehicle %s not found in config entries ==="
+_LOG_MANAGER_ERR_NOT_FOUND = (
+    "=== _get_manager ERROR - Vehicle %s not found in config entries ==="
+)
 _LOG_MANAGER_FOUND_ENTRY = "=== _get_manager - Found entry: %s, entry_id: %s ==="
 _LOG_MANAGER_RUNTIME_DATA = "=== _get_manager - runtime_data: %s ==="
 _LOG_MANAGER_TRIP_MGR = "=== _get_manager - trip_manager from runtime_data: %s ==="
 _LOG_MANAGER_CREATING = "=== _get_manager - Creating new TripManager for vehicle %s ==="
-_LOG_MANAGER_BEFORE_SETUP = "=== _get_manager - Before async_setup - trips: recurring=%d, punctual=%d ==="
-_LOG_MANAGER_SETUP_CALL = "=== _get_manager - Calling trip_manager._persistence.async_setup() ==="
-_LOG_MANAGER_AFTER_SETUP = "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ==="
+_LOG_MANAGER_BEFORE_SETUP = (
+    "=== _get_manager - Before async_setup - trips: recurring=%d, punctual=%d ==="
+)
+_LOG_MANAGER_SETUP_CALL = (
+    "=== _get_manager - Calling trip_manager._persistence.async_setup() ==="
+)
+_LOG_MANAGER_AFTER_SETUP = (
+    "=== _get_manager - After async_setup - trips: recurring=%d, punctual=%d ==="
+)
 _LOG_MANAGER_SETUP_ERR = "=== _get_manager - Error setting up manager for %s: %s ==="
 _LOG_MANAGER_CREATED = "=== _get_manager - Manager created and set up for %s ==="
 _LOG_MANAGER_LOADED = "=== _get_manager - Trips loaded: %d recurring, %d punctual ==="
@@ -47,7 +55,8 @@ _LOG_MANAGER_END = "=== _get_manager END - returning manager for vehicle %s ==="
 
 
 def _find_entry_by_vehicle(  # pragma: no mutate — 9 equivalent survivors (string case, log text, None-in-log)
-    hass: HomeAssistant, vehicle_id: str,
+    hass: HomeAssistant,
+    vehicle_id: str,
 ) -> ConfigEntry | None:
     """Find config entry by vehicle name (case-insensitive)."""
     normalized_vehicle_id = vehicle_id.lower()
@@ -75,7 +84,8 @@ def _get_coordinator(
 
 
 async def _get_manager(  # pragma: no mutate — 45 equivalent survivors (string case, log text, None-in-log, default_value)
-    hass: HomeAssistant, vehicle_id: str,
+    hass: HomeAssistant,
+    vehicle_id: str,
 ) -> TripManager:
     """Get or create TripManager for vehicle."""
     _LOGGER.info(_LOG_MANAGER_START, vehicle_id)
@@ -97,20 +107,37 @@ async def _get_manager(  # pragma: no mutate — 45 equivalent survivors (string
     if not trip_manager:
         _LOGGER.info(_LOG_MANAGER_CREATING, vehicle_id)
         trip_manager = TripManager(hass, vehicle_id)
-        _LOGGER.info(_LOG_MANAGER_BEFORE_SETUP, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
+        _LOGGER.info(
+            _LOG_MANAGER_BEFORE_SETUP,
+            len(trip_manager._state.recurring_trips),
+            len(trip_manager._state.punctual_trips),
+        )
 
         # Load trips from HA storage
         try:
             _LOGGER.info(_LOG_MANAGER_SETUP_CALL)
             await trip_manager._persistence.async_setup()
-            _LOGGER.info(_LOG_MANAGER_AFTER_SETUP, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
+            _LOGGER.info(
+                _LOG_MANAGER_AFTER_SETUP,
+                len(trip_manager._state.recurring_trips),
+                len(trip_manager._state.punctual_trips),
+            )
         except Exception as setup_err:  # pragma: no cover reason=requires async_setup failure which needs HA runtime
             _LOGGER.error(_LOG_MANAGER_SETUP_ERR, vehicle_id, setup_err, exc_info=True)
 
         _LOGGER.info(_LOG_MANAGER_CREATED, vehicle_id)
-        _LOGGER.info(_LOG_MANAGER_LOADED, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
+        _LOGGER.info(
+            _LOG_MANAGER_LOADED,
+            len(trip_manager._state.recurring_trips),
+            len(trip_manager._state.punctual_trips),
+        )
     else:
-        _LOGGER.info(_LOG_MANAGER_EXISTS, vehicle_id, len(trip_manager._state.recurring_trips), len(trip_manager._state.punctual_trips))
+        _LOGGER.info(
+            _LOG_MANAGER_EXISTS,
+            vehicle_id,
+            len(trip_manager._state.recurring_trips),
+            len(trip_manager._state.punctual_trips),
+        )
 
     _LOGGER.info(_LOG_MANAGER_END, vehicle_id)
     return trip_manager

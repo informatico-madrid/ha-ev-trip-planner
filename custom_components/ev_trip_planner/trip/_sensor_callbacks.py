@@ -35,9 +35,7 @@ _LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_PUNCTUAL_EVENT = (
 _LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_CREATED_EMHASS_EV = (
     "trip_id required for trip_sensor_created_emhass event"
 )
-_LOG_TRIP_ID_REQUIRED_FOR_TRIP_REMOVED_EVENT = (
-    "trip_id required for trip_removed event"
-)
+_LOG_TRIP_ID_REQUIRED_FOR_TRIP_REMOVED_EVENT = "trip_id required for trip_removed event"
 _LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_REMOVED_EMHASS_EV = (
     "trip_id required for trip_sensor_removed_emhass event"
 )
@@ -70,7 +68,12 @@ def _register(event_name: str) -> Callable:  # pragma: no mutate
 @_register("trip_created_recurring")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_created_recurring(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id,
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Create a trip sensor for a new recurring trip."""
     if trip_data is None:
@@ -84,7 +87,12 @@ def _handle_trip_created_recurring(
 @_register("trip_created_punctual")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_created_punctual(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id,
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Create a trip sensor for a new punctual trip."""
     if trip_data is None:
@@ -98,7 +106,12 @@ def _handle_trip_created_punctual(
 @_register("trip_sensor_created_emhass")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_sensor_created_emhass(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id,
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Create an EMHASS sensor for a trip."""
     if trip_id is None:
@@ -110,7 +123,12 @@ def _handle_trip_sensor_created_emhass(
 @_register("trip_removed")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_removed(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id,
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Remove a trip sensor."""
     if trip_id is None:
@@ -122,7 +140,12 @@ def _handle_trip_removed(
 @_register("trip_sensor_removed_emhass")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_sensor_removed_emhass(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id,
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Remove an EMHASS sensor for a trip."""
     if trip_id is None:
@@ -133,7 +156,12 @@ def _handle_trip_sensor_removed_emhass(
 
 @_register("trip_sensor_updated")
 def _handle_trip_sensor_updated(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id,
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Update a trip sensor with new data."""
     if trip_data is None:

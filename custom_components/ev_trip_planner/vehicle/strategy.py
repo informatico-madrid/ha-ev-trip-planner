@@ -171,7 +171,9 @@ class ServiceStrategy(VehicleControlStrategy):
             _LOGGER.info(_LOG_SERVICE_DEACTIVATED, self.service_off)
             return True
         except Exception as err:
-            _LOGGER.error(_LOG_SERVICE_DEACTIVATE_ERROR, self.service_off, err, exc_info=True)
+            _LOGGER.error(
+                _LOG_SERVICE_DEACTIVATE_ERROR, self.service_off, err, exc_info=True
+            )
             return False
 
     async def async_get_status(self) -> bool:

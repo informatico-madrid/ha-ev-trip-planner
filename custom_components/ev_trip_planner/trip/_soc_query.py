@@ -40,7 +40,8 @@ class SOCQuery:
         self._state = state
 
     async def async_get_vehicle_soc(
-        self, vehicle_id: str,
+        self,
+        vehicle_id: str,
     ) -> float:
         """Fetch current SOC from the configured HA sensor."""
         try:
@@ -63,7 +64,9 @@ class SOCQuery:
         return 0.0
 
     async def async_calcular_energia_necesaria(
-        self, trip: Dict[str, Any], vehicle_config: Dict[str, Any],
+        self,
+        trip: Dict[str, Any],
+        vehicle_config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Calcula la energía necesaria considerando el SOC actual.
 

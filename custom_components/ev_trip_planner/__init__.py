@@ -48,17 +48,29 @@ CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 _LOGGER = logging.getLogger(__name__)
 
 # Log string constants for testability (US-5 mutation-testing pattern)
-_LOG_HOURLY_CALLBACK_START = "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s"
+_LOG_HOURLY_CALLBACK_START = (
+    "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s"
+)
 _LOG_HOURLY_CALLBACK_RUNTIME_NONE = "FLOW2-DEBUG: runtime_data is None, aborting"
 _LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE = "FLOW2-DEBUG: trip_manager is None, aborting"
 _LOG_HOURLY_CALLBACK_EMHASS_NONE = "FLOW2-DEBUG: emhass_adapter is None, aborting"
 _LOG_HOURLY_CALLBACK_COORDINATOR_NONE = "FLOW2-DEBUG: coordinator is None, aborting"
-_LOG_HOURLY_CALLBACK_ALL_PRESENT = "FLOW2-DEBUG: all runtime_data fields present, calling publish"
-_LOG_HOURLY_CALLBACK_CACHE_BEFORE = "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d"
+_LOG_HOURLY_CALLBACK_ALL_PRESENT = (
+    "FLOW2-DEBUG: all runtime_data fields present, calling publish"
+)
+_LOG_HOURLY_CALLBACK_CACHE_BEFORE = (
+    "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d"
+)
 _LOG_HOURLY_CALLBACK_PUBLISH_FAILED = "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s"
-_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED = "FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s"
-_LOG_HOURLY_CALLBACK_CACHE_AFTER = "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d"
-_LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY = "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s"
+_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED = (
+    "FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s"
+)
+_LOG_HOURLY_CALLBACK_CACHE_AFTER = (
+    "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d"
+)
+_LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY = (
+    "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s"
+)
 _LOG_HOURLY_CALLBACK_REFRESH_START = "FLOW2-DEBUG: calling async_refresh_trips"
 _LOG_HOURLY_CALLBACK_REFRESH_DONE = "FLOW2-DEBUG: async_refresh_trips DONE"
 
@@ -125,9 +137,7 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
     try:
         await runtime_data.trip_manager._schedule.publish_deferrable_loads()
     except Exception as err:
-        _LOGGER.warning(
-            _LOG_HOURLY_CALLBACK_PUBLISH_FAILED, err, exc_info=True
-        )
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_FAILED, err, exc_info=True)
         return
     except BaseException as err:
         _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
@@ -163,7 +173,9 @@ def _build_cache_report(adapter: Any) -> __init_helpers.CacheReport:
     return __init_helpers.build_cache_report(adapter)
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
     """Migrate config entry to latest schema version."""
     new_data = entry.data.copy()
     changed = False
@@ -212,7 +224,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool: 
 # optional EMHASS adapter (with 2 sub-steps). Each conditional is a domain
 # requirement, not code smell.
 # qg-accepted: complexity=14 is inherent to HA integration setup flow
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  # pragma: no mutate — 66 equivalent survivors (HA lifecycle log text, None-in-log, default_value)
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:  # pragma: no mutate — 66 equivalent survivors (HA lifecycle log text, None-in-log, default_value)
     """Set up EV Trip Planner from a config entry."""
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)
@@ -322,7 +336,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  #
     return True  # pragma: no cover reason=HA lifecycle — success return from async_setup_entry
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  # pragma: no mutate — 12 equivalent survivors (HA lifecycle log text, None-in-log)
+async def async_unload_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> (
+    bool
+):  # pragma: no mutate — 12 equivalent survivors (HA lifecycle log text, None-in-log)
     """Unload a config entry."""
     # EC-001 FIX: Cancel hourly refresh timer BEFORE cleanup to prevent leak
     runtime_data = getattr(entry, "runtime_data", None)

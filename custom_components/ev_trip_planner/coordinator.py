@@ -28,7 +28,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # E2E-DEBUG-CRITICAL: Log string constants — extracted for testability
 # Mutations on these strings are testable via assert on the constant values.
-_LOG_UPDATE_DATA_CALLED = "E2E-DEBUG coordinator _async_update_data called for vehicle %s"
+_LOG_UPDATE_DATA_CALLED = (
+    "E2E-DEBUG coordinator _async_update_data called for vehicle %s"
+)
 _LOG_UPDATE_DATA_TRIPS_BEFORE = (
     "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
 )

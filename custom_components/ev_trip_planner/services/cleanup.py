@@ -25,9 +25,13 @@ _LOG_SKIPPING_YAML_CLEANUP = "Skipping YAML cleanup for %s — Store data exists
 _LOG_CLEANUP_SAFETY_NET_ERROR = "Cleanup safety net error (continuing): %s"
 _LOG_CLEANUP_ORPHANED_EMHASS = "Error cleaning up orphaned EMHASS sensors: %s"
 _LOG_UNLOAD_BEFORE_REMOVE = "E2E-DEBUG async_unload_entry_cleanup: BEFORE removing listener - emhass_adapter=%s, _config_entry_listener=%s"
-_LOG_UNLOAD_REMOVED_LISTENER = "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s"
+_LOG_UNLOAD_REMOVED_LISTENER = (
+    "E2E-DEBUG async_unload_entry_cleanup: REMOVED _config_entry_listener for %s"
+)
 _LOG_UNLOAD_CALL_DELETE = "E2E-DEBUG async_unload_entry_cleanup: Calling async_delete_all_trips for %s, trip_manager=%s"
-_LOG_UNLOAD_CALL_CLEANUP_IDX = "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s"
+_LOG_UNLOAD_CALL_CLEANUP_IDX = (
+    "E2E-DEBUG async_unload_entry_cleanup: Calling async_cleanup_vehicle_indices for %s"
+)
 _LOG_UNLOAD_CLEANUP_IDX_DONE = "E2E-DEBUG async_unload_entry_cleanup: async_cleanup_vehicle_indices COMPLETED for %s"
 _LOG_CLEANUP_ENTITY_REG = "Failed to clean up entity registry: %s"
 _LOG_CLEANUP_UNREGISTER_PANEL = "Failed to unregister panel for vehicle %s: %s"
@@ -35,7 +39,9 @@ _LOG_REMOVE_ENTRY_CALLED = "=== async_remove_entry CALLED === entry_id: %s"
 _LOG_REMOVE_LISTENER_ERROR = "Error invoking config entry listener: %s"
 _LOG_CASCADE_DELETE = "Cascade deleting all trips for vehicle %s"
 _LOG_REMOVE_TRIPS_ERROR = "Error deleting trips for vehicle %s: %s"
-_LOG_CLEANUP_EMHASS_INDICES = "Cleaned up EMHASS indices for vehicle %s during integration removal"
+_LOG_CLEANUP_EMHASS_INDICES = (
+    "Cleaned up EMHASS indices for vehicle %s during integration removal"
+)
 _LOG_CLEANUP_EMHASS_INDICES_ERR = "Error cleaning up EMHASS indices for vehicle %s: %s"
 _LOG_REMOVE_STORAGE_WARN = "Could not remove storage for %s: %s"
 _LOG_CLEANED_YAML_FALLBACK = "Cleaned up YAML fallback storage for vehicle %s"
@@ -43,9 +49,7 @@ _LOG_YAML_REMOVAL_WARN = "Could not remove YAML fallback storage for %s: %s"
 _LOG_REMOVE_ENTRY_COMPLETED = "=== async_remove_entry COMPLETED === entry_id: %s"
 
 
-async def async_cleanup_stale_storage(
-    hass: HomeAssistant, vehicle_id: str
-) -> None:
+async def async_cleanup_stale_storage(hass: HomeAssistant, vehicle_id: str) -> None:
     """Clean up YAML residual from a partial async_remove_entry_cleanup failure.
 
     This is a SAFETY NET only. Normal deletion goes through async_remove_entry_cleanup()

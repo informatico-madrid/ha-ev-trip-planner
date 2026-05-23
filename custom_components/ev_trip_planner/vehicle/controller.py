@@ -162,11 +162,15 @@ class VehicleController:
 
         state = self.hass.states.get(self._charging_sensor)
         if not state:
-            _LOGGER.warning(_LOG_SENSOR_NOT_FOUND, self._charging_sensor, self.vehicle_id)
+            _LOGGER.warning(
+                _LOG_SENSOR_NOT_FOUND, self._charging_sensor, self.vehicle_id
+            )
             return False
 
         is_charging = state.state.lower() in ["on", "true", "yes", "charging"]
-        _LOGGER.debug(_LOG_CHARGING_STATUS, self.vehicle_id, self._charging_sensor, is_charging)
+        _LOGGER.debug(
+            _LOG_CHARGING_STATUS, self.vehicle_id, self._charging_sensor, is_charging
+        )
         return is_charging
 
     async def async_activate_charging(self) -> bool:
@@ -192,7 +196,12 @@ class VehicleController:
         # Check if we should retry
         if not self._retry_state.should_retry():
             attempt_count = self._retry_state.get_attempt_count()
-            _LOGGER.warning(_LOG_RETRY_EXCEEDED, MAX_RETRY_ATTEMPTS, self.vehicle_id, RETRY_TIME_WINDOW_SECONDS)
+            _LOGGER.warning(
+                _LOG_RETRY_EXCEEDED,
+                MAX_RETRY_ATTEMPTS,
+                self.vehicle_id,
+                RETRY_TIME_WINDOW_SECONDS,
+            )
             return False
 
         # Attempt to activate charging
@@ -206,7 +215,12 @@ class VehicleController:
             # Record this attempt
             self._retry_state.add_attempt()
             attempt_count = self._retry_state.get_attempt_count()
-            _LOGGER.warning(_LOG_ACTIVATION_FAILED, self.vehicle_id, attempt_count, MAX_RETRY_ATTEMPTS)
+            _LOGGER.warning(
+                _LOG_ACTIVATION_FAILED,
+                self.vehicle_id,
+                attempt_count,
+                MAX_RETRY_ATTEMPTS,
+            )
 
         return success
 

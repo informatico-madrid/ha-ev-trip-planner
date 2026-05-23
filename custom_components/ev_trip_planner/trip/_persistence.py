@@ -24,7 +24,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # ── Log format string constants (US-5 testability) ──────────────────
 _LOG_SETUP_INFO = "Configurando gestor de viajes para vehículo: %s"
-_LOG_SAVE_START_INFO = "async_save_trips START - vehicle=%s, recurrentes=%d, puntuales=%d"
+_LOG_SAVE_START_INFO = (
+    "async_save_trips START - vehicle=%s, recurrentes=%d, puntuales=%d"
+)
 _LOG_SAVE_INJECTED = "=== Using injected storage ==="
 _LOG_SAVE_FALLBACK = "=== Using fallback HA Store ==="
 _LOG_SAVE_KEY_INFO = "Creating store with key: %s"
@@ -192,7 +194,8 @@ class TripPersistence:
             self._reset_trips()
 
     async def _save_trips_yaml(
-        self, storage_key: str,
+        self,
+        storage_key: str,
     ) -> None:  # pragma: no cover reason=ha-filesystem-only
         """Guarda los viajes en un archivo YAML (fallback)."""
         state = self._state
@@ -224,7 +227,8 @@ class TripPersistence:
         self._state.last_update = None
 
     def _sanitize_recurring_trips(
-        self, trips: Dict[str, Any],
+        self,
+        trips: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Elimina viajes recurrentes con formato de hora inválido."""
         from ..utils import sanitize_recurring_trips as pure_sanitize
