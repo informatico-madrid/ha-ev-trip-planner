@@ -333,6 +333,10 @@ def run_gate(
 
         passed = round(effective_rate, 3) >= round(threshold, 3)
 
+        # Hard gate: effective-MSI must be 100% (no unregistered survivors)
+        effective_gate = effective_survived == 0
+        effective_gate_pass = effective_gate and passed
+
         modules.append({
             "module": module_name,
             "killed": data["killed"],
@@ -343,6 +347,7 @@ def run_gate(
             "kill_rate": rate,
             "effective_rate": effective_rate,
             "threshold": threshold,
+            "effective_gate": effective_gate_pass,
             "passed": passed,
             "status": module_config.get("status", "unknown"),
         })
@@ -351,9 +356,10 @@ def run_gate(
     if target_module:
         modules = [m for m in modules if target_module == m["module"]]
 
-    # 4. Determine gate result
-    modules_passed = [m for m in modules if m["passed"]]
-    modules_failed = [m for m in modules if not m["passed"]]
+    # Hard gate: effective-MSI must be 100% across ALL modules
+    # A module passes only when effective_survived == 0 AND it meets its threshold
+    modules_passed = [m for m in modules if m["effective_gate"]]
+    modules_failed = [m for m in modules if not m["effective_gate"]]
 
     gate = "OK" if len(modules_failed) == 0 else "NOK"
 
@@ -387,30 +393,37 @@ def print_gate_report(gate_result: dict[str, Any]) -> None:
         return
 
     # Table header
-    print(f"\n {'Module':<25} {'Kill Rate':>14} {'Threshold':>10} {'Status':>8}")
-    print(f" {'-'*25} {'-'*14} {'-'*10} {'-'*8}")
+    print(f"\n {'Module':<25} {'Kill Rate':>14} {'Effective':>10} {'Threshold':>10} {'Status':>8}")
+    print(f" {'-'*25} {'-'*14} {'-'*10} {'-'*10} {'-'*8}")
 
     for m in modules:
         rate_str = f"{m['kill_rate']*100:.1f}% ({m['killed']}/{m['total']})"
+        eff_str = f"{m['effective_rate']*100:.1f}% ({m['effective_survived']} left)"
         threshold_str = f"{m['threshold']*100:.0f}%"
-        status_str = "PASS" if m["passed"] else "FAIL"
-        print(f" {m['module']:<25} {rate_str:>14} {threshold_str:>10} {status_str:>8}")
+        status_str = "PASS" if m["effective_gate"] else "FAIL"
+        print(f" {m['module']:<25} {rate_str:>14} {eff_str:>10} {threshold_str:>10} {status_str:>8}")
 
     # Summary
+    effective_survivors = sum(m["effective_survived"] for m in modules)
     print(f"\n Overall: {summary['overall_kill_rate']*100:.1f}% "
           f"({summary['overall_killed']}/{summary['overall_total']} killed)")
+    print(f" Effective-MSI survivors: {effective_survivors}")
     print(f" Modules: {summary['modules_passed']}/{summary['modules_checked']} passed")
 
     # Gate result
     print("\n" + "-" * 70)
     if gate == "OK":
-        print(" RESULT: ✅ OK — All modules meet their thresholds")
+        print(" RESULT: ✅ OK — All modules have effective-MSI = 100%")
     else:
-        print(" RESULT: ❌ NOK — Some modules below threshold")
-        failed_names = [m["module"] for m in modules if not m["passed"]]
+        print(" RESULT: ❌ NOK — effective-MSI < 100% for some modules")
+        failed_names = [m["module"] for m in modules if not m["effective_gate"]]
         print(f" Failed: {', '.join(failed_names)}")
-        print("\n 💡 RECOMMEND: Activate the 'mutation-testing' skill for guidance")
-        print(" on improving weak tests that fail to kill surviving mutants.")
+        for m in modules:
+            if not m["effective_gate"]:
+                print(f"   {m['module']}: {m['effective_survived']} unregistered survivor(s), "
+                      f"effective-MSI = {m['effective_rate']*100:.1f}%")
+        print("\n 💡 FIX: Either kill survivors with better tests, or register them")
+        print("    in specs/mutation-score-ramp/equivalent-mutants.md")
 
     print("=" * 70)
 

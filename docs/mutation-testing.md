@@ -25,6 +25,18 @@ effective_MSI = killed / (total_mutants - registered_equivalent)
 - `registered_equivalent` = mutants in `specs/mutation-score-ramp/equivalent-mutants.md`
   with status `REGISTERED-AUTO` or `HUMAN-APPROVED`
 
+### Effective-MSI = 100% is a HARD GATE
+
+The mutation gate (`make mutation-gate`) enforces **effective-MSI = 100%** for ALL
+modules. This means **every survived mutant must be registered** in the equivalent
+mutants registry.
+
+`mutation-gate` fails (exit 1) if:
+- Any module has unregistered survivors (`effective_survived > 0`)
+- A module's effective-MSI doesn't match its configured threshold
+
+This is enforced in CI via `make quality-gate-ci` → `layer2` → `mutation-gate`.
+
 ## Equivalent-Mutant Registry
 
 See `specs/mutation-score-ramp/equivalent-mutants.md` for the full registry of genuine
