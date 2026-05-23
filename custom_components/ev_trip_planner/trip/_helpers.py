@@ -8,6 +8,7 @@ HomeAssistant runtime.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 
@@ -32,7 +33,7 @@ def get_dict(
     return value
 
 
-def get_number(data: dict[str, Any], key: str, default: float = 0.0) -> float:
+def get_number(data: Mapping[str, Any], key: str, default: float = 0.0) -> float:
     """Extract a numeric value from trip data with a default.
 
     Equivalent to: float(data.get(key, default))
