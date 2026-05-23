@@ -98,6 +98,24 @@ ln -sf "$(pwd)/custom_components/ev_trip_planner" \
 
 mkdir -p playwright/.auth
 
+# Force English language in HA storage (written BEFORE HA starts)
+python3 -c "
+import json, os
+storage = os.path.join('${HA_CONFIG_DIR}', '.storage')
+os.makedirs(storage, exist_ok=True)
+path = os.path.join(storage, 'core.default_config')
+if os.path.exists(path):
+    with open(path) as f:
+        data = json.load(f)
+else:
+    data = {'version': 1, 'minor_version': 1, 'key': 'core.default_config', 'data': {}}
+data['data']['language'] = 'en'
+data['data']['time_zone'] = 'UTC'
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2)
+print('  Forced language=en in HA storage (pre-startup)')
+" 2>/dev/null
+
 echo "✅ Config setup complete"
 
 # --- Step 3: Start Home Assistant ---
