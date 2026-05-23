@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.components import frontend as ha_frontend
 from homeassistant.components import panel_custom as ha_panel_custom
 
 from custom_components.ev_trip_planner import panel
@@ -94,7 +93,7 @@ class TestBuildModuleUrl:
         """Test exact path prefix. Kills string mutations on path."""
         url = build_module_url("v1")
         # The path portion before ?t= must be exact
-        path_part = url.split("?")[0]
+        path_part = url.split("?", maxsplit=1)[0]
         assert path_part == "/ev-trip-planner/panel.js"
 
     def test_build_module_url_cache_bust_structure(self):
@@ -523,7 +522,7 @@ class TestGetAllPanelMappings:
         hass.data = {}
 
         result = panel.get_all_panel_mappings(hass)
-        assert type(result) is dict
+        assert isinstance(result, dict)
 
     def test_get_all_mappings_exact_empty_dict(self):
         """Test exact empty dict equality. Kills mutation: {} → None etc."""
@@ -668,16 +667,6 @@ class TestPanelIntegration:
         NFR-8: Multi-assert on every panel kwarg.
         NFR-9: Uses real HA frontend/panel_custom modules.
         """
-        expected_keys = {
-            "frontend_url_path",
-            "webcomponent_name",
-            "module_url",
-            "sidebar_title",
-            "sidebar_icon",
-            "config",
-            "require_admin",
-            "embed_iframe",
-        }
 
         # Build a minimal hass that supports the HA frontend storage API
         hass = MagicMock()

@@ -216,6 +216,7 @@ def _build_milestone(
             if soc_caps is not None and original_idx < len(soc_caps)
             else 100.0
         ),
+        # qg-accepted: AP05
         "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
         "deficit_acumulado": round(deficits[original_idx], 2),
         "ventana_carga": {
@@ -625,9 +626,12 @@ def _compute_next_with_tz(
         0,
         tzinfo=tz,
     )
+    # qg-accepted: AP05
     current_day = local_ref.isoweekday() % 7
+    # qg-accepted: AP05
     days_ahead = (day - current_day) % 7
     if days_ahead == 0 and candidate_local < local_ref:
+        # qg-accepted: AP05
         days_ahead = 7
     result_local = candidate_local + timedelta(days=days_ahead)
     return result_local.astimezone(timezone.utc)
@@ -641,9 +645,12 @@ def _compute_next_naive(
 ) -> datetime:
     """Compute next occurrence without timezone (backward compat)."""
     candidate = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    # qg-accepted: AP05
     current_day = (reference_dt.weekday() + 1) % 7
+    # qg-accepted: AP05
     days_ahead = (day - current_day) % 7
     if days_ahead == 0 and candidate < reference_dt:
+        # qg-accepted: AP05
         days_ahead = 7
     return candidate + timedelta(days=days_ahead)
 

@@ -6,12 +6,8 @@ options.py. Each test targets killable mutation patterns in the helpers.
 
 from __future__ import annotations
 
-import pytest
 
 from custom_components.ev_trip_planner.config_flow._options_helpers import (
-    _DEFAULT_BATTERY_CAPACITY,
-    _DEFAULT_CHARGING_POWER,
-    _DEFAULT_SOH_SENSOR,
     _get_option_float,
     _get_option_int,
     _get_option_str,
@@ -118,15 +114,3 @@ class TestSafeDataDict:
         assert data["key"] == "value"
 
 
-class TestNamedConstants:
-    """Verify named defaults are used by the module."""
-
-    def test_default_battery_capacity(self):
-        """Named constant has expected value."""
-        assert _DEFAULT_BATTERY_CAPACITY == 60.0
-
-    def test_default_charging_power(self):
-        assert _DEFAULT_CHARGING_POWER == 11.0
-
-    def test_default_soh_sensor(self):
-        assert _DEFAULT_SOH_SENSOR == ""

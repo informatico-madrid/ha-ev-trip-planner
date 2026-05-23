@@ -19,7 +19,12 @@ from ..calculations import (
     calculate_soc_target,
     calculate_trip_time,
 )
-from ..const import CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER, DOMAIN
+from ..const import (
+    CONF_CHARGING_POWER,
+    DEFAULT_BATTERY_CAPACITY_KWH,
+    DEFAULT_CHARGING_POWER,
+    DOMAIN,
+)
 from ..utils import is_trip_today as pure_is_trip_today
 from ._helpers import get_str
 from .state import TripManagerState
@@ -79,7 +84,9 @@ class SOCHelpers:
         return DEFAULT_CHARGING_POWER
 
     def _calcular_tasa_carga_soc(
-        self, charging_power_kw: float, battery_capacity_kwh: float = 50.0
+        self,
+        charging_power_kw: float,
+        battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH,
     ) -> float:
         """Calcula la tasa de carga en % SOC/hora."""
         return calculate_charging_rate(charging_power_kw, battery_capacity_kwh)

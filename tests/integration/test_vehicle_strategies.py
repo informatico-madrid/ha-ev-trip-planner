@@ -26,7 +26,6 @@ from custom_components.ev_trip_planner.vehicle.external import (
     ScriptStrategy,
 )
 from custom_components.ev_trip_planner.vehicle.strategy import (
-    HomeAssistantWrapper,
     ServiceStrategy,
     SwitchStrategy,
 )

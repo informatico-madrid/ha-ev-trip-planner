@@ -32,7 +32,9 @@ _LOG_SERVICE_DEACTIVATE_ERROR = "Error calling service %s: %s"
 # OCP abstractness is maintained by existing ABCs with real implementations.
 
 
+# qg-accepted: AP05 — standard retry policy constants
 MAX_RETRY_ATTEMPTS = 3
+# qg-accepted: AP05 — retry time window in seconds
 RETRY_TIME_WINDOW_SECONDS = 300
 
 

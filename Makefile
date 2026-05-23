@@ -1,5 +1,7 @@
 .PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation mutation-gate mutation-unregistered-check test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
 
+SHELL := /bin/bash
+
 # ============================================================================
 # Variables de entorno para paralelismo (.env)
 # ============================================================================
@@ -101,7 +103,7 @@ test-dashboard:
 test-e2e:
 	@echo "Ejecutando tests E2E contra http://localhost:8123 ..."
 	@echo "⚠️  E2E uses hass directly (no Docker). See docs/staging-vs-e2e-separation.md"
-	npx playwright test tests/e2e/ --workers=1
+	npx playwright test tests/e2e/ --workers=4
 
 test-e2e-debug:
 	npx playwright test tests/e2e/ --workers=1 --debug
@@ -156,32 +158,35 @@ typecheck:
 # ============================================================================
 # Layer 3A: Smoke Test (fast, deterministic AST-based checks)
 # If this fails, stop immediately — don't run L1/L2/L3B/L4
+# The antipattern checker prints a summary to stderr. The final line reflects it.
 layer3a:
 	@echo "=== Layer 3A: Smoke Test ==="
 	@echo "Running ruff check (fail-fast)..."
 	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || { echo "FATAL: ruff violations found"; exit 1; }
 	@echo "Running remaining checks $(if $(filter true,$(PARALLEL_ENABLED)),in parallel,sequentially)..."
 ifeq ($(PARALLEL_ENABLED),true)
-	@mkdir -p .layer3a-results && \
-	$(MAKE) typecheck & echo $$! > .layer3a-results/pyright.pid && \
-	python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ & echo $$! > .layer3a-results/solid.pid && \
-	python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ & echo $$! > .layer3a-results/principles.pid && \
-	python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ & echo $$! > .layer3a-results/antipattern.pid && \
-	wait && \
-	rm -rf .layer3a-results
+	@$(MAKE) -s typecheck
+	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
+	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
+	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ > /tmp/.layer3a_antipattern.json 2>/dev/null
+	@python3 .claude/skills/quality-gate/scripts/layer3a_summary.py /tmp/.layer3a_antipattern.json || true
+	@rm -f /tmp/.layer3a_antipattern.json
 else
 	@$(MAKE) typecheck
 	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
 	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
-	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ || echo "WARNING: Antipattern Tier A violations"
+	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ > /tmp/.layer3a_antipattern.json 2>/dev/null; \
+	python3 .claude/skills/quality-gate/scripts/layer3a_summary.py /tmp/.layer3a_antipattern.json || true; \
+	rm -f /tmp/.layer3a_antipattern.json
 endif
 	@echo "=== Layer 3A Complete ==="
 
-# Layer 1: Test execution (unit tests + E2E auto-discovery)
+# Layer 1: Test execution (unit tests + E2E suites)
 layer1:
 	$(MAKE) test
 	@echo "Running E2E suites..."
-	@$(MAKE) $(filter-out e2e-headed e2e-debug e2e-soc-headed e2e-soc-debug,$(filter e2e-%,$(.PHONY))) 2>/dev/null || echo "No E2E suites found (e2e-% targets)"
+	@$(MAKE) e2e
+	@$(MAKE) e2e-soc
 
 # Layer 1 CI: Unit tests only (no E2E for CI speed)
 layer1-ci:

@@ -70,7 +70,6 @@ class TestOptionsFlowHandler:
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "init"
         # Assert default values — kills default_value mutations (→ None)
-        raw = result["data_schema"].schema
         # Defaults are on Required keys as callable factories
         # Build a lookup dict from vol.Required keys
         schema_map: dict[str, float] = {}

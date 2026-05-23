@@ -15,7 +15,6 @@ Mutations that are killable by these tests:
 
 from __future__ import annotations
 
-import pytest
 
 from custom_components.ev_trip_planner.services._helpers import (
     get_bool,

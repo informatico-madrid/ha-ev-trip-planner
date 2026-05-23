@@ -20,7 +20,6 @@ from custom_components.ev_trip_planner.services._handler_factories import (
     make_add_recurring_handler,
     make_cancel_punctual_handler,
     make_complete_punctual_handler,
-    make_delete_trip_handler,
     make_edit_trip_handler,
     make_import_weekly_pattern_handler,
     make_pause_recurring_handler,
@@ -89,7 +88,7 @@ class TestTripUpdateRemoveArgMutations:
             "dia_semana": "martes",  # triggers recurrente branch
             # NOTE: 'type' is intentionally omitted
         }
-        result = await handler(call)
+        await handler(call)
 
         # Should succeed — handler found trip via default 'recurrente' path
         mgr._crud.async_update_trip.assert_called_once()

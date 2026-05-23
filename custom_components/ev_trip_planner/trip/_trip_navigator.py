@@ -55,8 +55,9 @@ class TripNavigator:
                 continue
             try:
                 trip_hora = get_str(trip, "hora", "")
-                trip_hour = int(trip_hora.split(":")[0])
-                trip_minute = int(trip_hora.split(":")[1])
+                parts = trip_hora.split(":", maxsplit=1)
+                trip_hour = int(parts[0])
+                trip_minute = int(parts[1])
                 regreso_hour = hora_regreso.hour
                 regreso_minute = hora_regreso.minute
                 if trip_hour < regreso_hour or (

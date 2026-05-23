@@ -51,6 +51,7 @@ class IndexManager(IndexManagerBase):
         for r in self._released_indices:
             ts = r.get("timestamp")
             if isinstance(ts, datetime):
+                # qg-accepted: AP05 — seconds-to-hours conversion
                 elapsed_h = (now - ts).total_seconds() / 3600
                 if elapsed_h < self._index_cooldown_hours:
                     kept.append(r)

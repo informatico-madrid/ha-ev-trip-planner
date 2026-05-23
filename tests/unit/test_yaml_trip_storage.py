@@ -30,7 +30,7 @@ class TestYamlTripStorageInit:
             YamlTripStorage(mock_hass, "vehicle_42")
             # Verify Store was called with correct key
             call_args = MockStore.call_args
-            assert call_args[1]["key"] == f"ev_trip_planner_vehicle_42"
+            assert call_args[1]["key"] == "ev_trip_planner_vehicle_42"
 
     def test_init_store_version_is_one(self, mock_hass):
         """Test __init__ creates Store with version=1."""
@@ -401,7 +401,7 @@ class TestYamlTripStorageAsyncLoadEdgeCases:
 
         # Line 44: isinstance(None, dict) is False → falls to line 46
         # The value None is returned from .get(), but isinstance check fails
-        assert result == None  # noqa: E711
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_async_load_data_key_present_but_not_dict(self, mock_hass):

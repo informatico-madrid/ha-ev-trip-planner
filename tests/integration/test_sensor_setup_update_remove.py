@@ -83,7 +83,6 @@ class TestAsyncSetupEntry:
         - setup succeeds
         - runtime_data gets sensor_async_add_entities callback
         """
-        from custom_components.ev_trip_planner.const import DOMAIN
 
         mock_config_entry.runtime_data = MagicMock()
         mock_config_entry.runtime_data.trip_manager = mock_trip_manager

@@ -11,7 +11,7 @@ NFR-10: Distinctive data — real ISO timestamps, real-shape EMHASS config.
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from freezegun import freeze_time
@@ -466,7 +466,7 @@ class TestCooldownAcrossTime:
     def test_cooldown_expiry_allows_reuse(self):
         """After cooldown expires, released index is pruned from cooldown."""
         mgr = IndexManager(cooldown_hours=0)  # Instant cooldown
-        idx = mgr.assign_index("trip-1")
+        mgr.assign_index("trip-1")
         mgr.release_index("trip-1")
         # With cooldown_hours=0, pruned immediately
         mgr._prune_expired_cooldown()

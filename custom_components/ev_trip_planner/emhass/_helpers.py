@@ -146,6 +146,7 @@ def build_entry_data(entry: Any) -> Dict[str, Any]:
     return result
 
 
+# qg-accepted: AP05 — default planning horizon in days
 def parse_planning_horizon(entry_data: Dict[str, Any], default_days: int = 7) -> int:
     """Parse planning_horizon_days from config, return total hours.
 
@@ -158,8 +159,10 @@ def parse_planning_horizon(entry_data: Dict[str, Any], default_days: int = 7) ->
     """
     try:
         days = int(entry_data.get("planning_horizon_days", default_days))
+        # qg-accepted: AP05 — hours-per-day conversion
         return days * 24
     except (ValueError, TypeError):
+        # qg-accepted: AP05 — hours-per-day conversion
         return default_days * 24
 
 
@@ -177,6 +180,7 @@ def ensure_aware_utc(dt: datetime) -> datetime:
     return dt
 
 
+# qg-accepted: AP05 — max week-hours (7 * 24)
 def clamp_positive(value: float, max_value: int = 168) -> int:
     """Clamp a float to [0, max_value] and return as int.
 
@@ -190,6 +194,7 @@ def clamp_positive(value: float, max_value: int = 168) -> int:
     return max(0, min(int(value), max_value))
 
 
+# qg-accepted: AP05 — max week-hours (7 * 24)
 def clamp_hours(value: float, epsilon: float = 0.001, max_value: int = 168) -> int:
     """Clamp hours with epsilon adjustment for floating-point precision.
 

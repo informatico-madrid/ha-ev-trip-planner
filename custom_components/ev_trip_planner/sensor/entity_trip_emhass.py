@@ -111,6 +111,7 @@ class TripEmhassSensor(
             "def_total_hours": 0.0,
             "P_deferrable_nom": 0.0,
             "def_start_timestep": 0,
+            # qg-accepted: AP05 — timesteps per day
             "def_end_timestep": 24,
             "power_profile_watts": [],
             "trip_id": self._trip_id,

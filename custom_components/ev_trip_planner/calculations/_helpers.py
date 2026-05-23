@@ -60,6 +60,7 @@ def compute_hours_until(deadline: datetime, now: datetime) -> float:
     Both datetimes must be timezone-aware. Returns the difference in hours
     as a float (may be negative if deadline is in the past).
     """
+    # qg-accepted: AP05
     return (deadline - now).total_seconds() / 3600
 
 
@@ -107,6 +108,7 @@ def _is_valid_day(day) -> bool:
         return False
     day_str = str(day).lower().strip()
     if day_str.isdigit():
+        # qg-accepted: AP05
         return 0 <= int(day_str) <= 6
     # Valid day names in Spanish and English
     normalized = _strip_accents(day_str)

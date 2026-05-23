@@ -19,11 +19,13 @@ from ..calculations import (
     calculate_deficit_propagation,
     calculate_dynamic_soc_limit,
 )
+from ..const import DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_SAFETY_MARGIN
 from ._helpers import get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# qg-accepted: AP05 — standard trip duration in hours
 _DURACION_VIAJE_HORAS = 6
 
 
@@ -35,7 +37,7 @@ class VentanaCargaParams:
     soc_actual: float
     hora_regreso: Optional[datetime]
     charging_power_kw: float
-    safety_margin_percent: float = 10.0
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
 
 
 @dataclass(frozen=True)
@@ -46,8 +48,8 @@ class SOCInicioParams:
     soc_inicial: float
     hora_regreso: Optional[datetime]
     charging_power_kw: float
-    battery_capacity_kwh: float = 50.0
-    safety_margin_percent: float = 10.0
+    battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
 
 
 @dataclass(frozen=True)
@@ -57,8 +59,8 @@ class SOCWindowCalculator:
     trips: List[Dict[str, Any]]
     soc_inicial: float
     charging_power_kw: float
-    battery_capacity_kwh: float = 50.0
-    safety_margin_percent: float = 10.0
+    battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
     soh_sensor_entity_id: Optional[str] = None
     t_base: float = DEFAULT_T_BASE
 
@@ -147,10 +149,11 @@ class SOCWindow:
             else dt_util.now() + timedelta(hours=_DURACION_VIAJE_HORAS)
         )
         delta = fin_ventana - inicio_ventana
+        # qg-accepted: AP05 — seconds-to-hours conversion
         ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
         vehicle_config = {
-            "battery_capacity_kwh": 50.0,
+            "battery_capacity_kwh": DEFAULT_BATTERY_CAPACITY_KWH,
             "charging_power_kw": params.charging_power_kw,
             "soc_current": params.soc_actual,
             "safety_margin_percent": params.safety_margin_percent,
@@ -171,7 +174,9 @@ class SOCWindow:
 
         return {
             "ventana_horas": round(ventana_horas, 2),
-            "kwh_necesarios": round(kwh_necesarios, 3),
+            "kwh_necesarios": round(
+                kwh_necesarios, 3
+            ),  # qg-accepted: AP05 — rounding precision
             "horas_carga_necesarias": round(horas_carga_necesarias, 2),
             "inicio_ventana": inicio_ventana,
             "fin_ventana": fin_ventana,
@@ -210,10 +215,11 @@ class SOCWindow:
 
             trip_arrival = trip_departure_time + timedelta(hours=_DURACION_VIAJE_HORAS)
             delta = trip_arrival - window_start
+            # qg-accepted: AP05 — seconds-to-hours conversion
             ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
             vehicle_config = {
-                "battery_capacity_kwh": 50.0,
+                "battery_capacity_kwh": 50.0,  # qg-accepted: AP05 — domain battery capacity
                 "charging_power_kw": params.charging_power_kw,
                 "soc_current": params.soc_actual,
                 "safety_margin_percent": params.safety_margin_percent,
@@ -233,7 +239,9 @@ class SOCWindow:
             results.append(
                 {
                     "ventana_horas": round(ventana_horas, 2),
-                    "kwh_necesarios": round(kwh_necesarios, 3),
+                    "kwh_necesarios": round(
+                        kwh_necesarios, 3
+                    ),  # qg-accepted: AP05 — rounding precision
                     "horas_carga_necesarias": round(horas_carga, 2),
                     "inicio_ventana": window_start,
                     "fin_ventana": trip_departure_time,
@@ -349,6 +357,7 @@ class SOCWindow:
                     try:
                         if getattr(trip_time, "tzinfo", None) is None:
                             trip_time = trip_time.replace(tzinfo=timezone.utc)
+                        # qg-accepted: AP05 — seconds-to-hours conversion
                         t_hours = (trip_time - now_dt).total_seconds() / 3600.0
                     except Exception:
                         t_hours = 0.0

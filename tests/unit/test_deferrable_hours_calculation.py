@@ -11,12 +11,11 @@ El bug ocurre cuando:
 Este es un bug diferente al de SOC 100%.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.ev_trip_planner.calculations import calculate_energy_needed
 from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
@@ -83,11 +82,6 @@ class TestDeferrableHoursCalculation:
                 "kwh": 10.0,
             },
         ]
-
-        battery_capacity = 50.0
-        soc_current = 50.0
-        charging_power_kw = 3.4
-        safety_margin = 10.0
 
         adapter = EMHASSAdapter(self.mock_hass, self.mock_entry)
         mock_store = AsyncMock()

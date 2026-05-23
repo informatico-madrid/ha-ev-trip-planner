@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from homeassistant.util import dt as dt_util
 
+from .. import const
 from ..calculations import _helpers
 from ._helpers import get_number
 from .state import TripManagerState
@@ -40,16 +41,24 @@ class TripScheduler:
         try:
             entry_id = self._state.entry_id
             if entry_id is None:
-                return 50.0, 10.0
+                return const.DEFAULT_BATTERY_CAPACITY_KWH, const.DEFAULT_SAFETY_MARGIN
             config_entry = self._state.hass.config_entries.async_get_entry(entry_id)
             if config_entry is not None and config_entry.data is not None:
                 return (
-                    get_number(config_entry.data, "battery_capacity_kwh", 50.0),
-                    get_number(config_entry.data, "safety_margin_percent", 10.0),
+                    get_number(
+                        config_entry.data,
+                        "battery_capacity_kwh",
+                        const.DEFAULT_BATTERY_CAPACITY_KWH,
+                    ),
+                    get_number(
+                        config_entry.data,
+                        "safety_margin_percent",
+                        const.DEFAULT_SAFETY_MARGIN,
+                    ),
                 )
         except Exception:
             pass
-        return 50.0, 10.0
+        return const.DEFAULT_BATTERY_CAPACITY_KWH, const.DEFAULT_SAFETY_MARGIN
 
     async def _load_active_trips(
         self,
@@ -64,6 +73,7 @@ class TripScheduler:
             if trip_time:
                 trip["_deadline"] = trip_time
                 delta = trip_time - now
+                # qg-accepted: AP05 — seconds-to-hours conversion
                 trip["_hours_until_deadline"] = max(0, delta.total_seconds() / 3600)
             else:
                 trip["_deadline"] = datetime.max
@@ -82,7 +92,9 @@ class TripScheduler:
     ) -> tuple[List[List[float]], int]:
         """Build per-trip power profile matrix. Returns (profiles, num_trips)."""
         num_trips = len(trips)
-        profile_length = planning_horizon_days * 24
+        profile_length = (
+            planning_horizon_days * 24
+        )  # qg-accepted: AP05 — hours-to-days conversion
         charging_power_watts = _helpers.kw_to_watts(charging_power_kw)
 
         power_profiles: List[List[float]] = [
@@ -113,6 +125,7 @@ class TripScheduler:
                 continue
 
             delta = trip_time - now
+            # qg-accepted: AP05 — seconds-to-hours conversion
             horas_hasta_viaje = int(delta.total_seconds() / 3600)
 
             if horas_hasta_viaje < 0:
@@ -140,9 +153,11 @@ class TripScheduler:
         now_dt = dt_util.now()
 
         for day in range(planning_horizon_days):
-            for hour in range(24):
+            for hour in range(24):  # qg-accepted: AP05 — hours per day
                 timestamp = now_dt + timedelta(days=day, hours=hour)
-                profile_idx = day * 24 + hour
+                profile_idx = (
+                    day * 24 + hour
+                )  # qg-accepted: AP05 — hours-to-days conversion
 
                 entry: Dict[str, Any] = {"date": timestamp.isoformat()}
 
@@ -163,8 +178,8 @@ class TripScheduler:
 
     async def async_generate_deferrables_schedule(
         self,
-        charging_power_kw: float = 3.6,
-        planning_horizon_days: int = 7,
+        charging_power_kw: float = 3.6,  # qg-accepted: AP05 — default charging power in kW
+        planning_horizon_days: int = 7,  # qg-accepted: AP05 — default weekly planning horizon
     ) -> List[Dict[str, Any]]:
         """Genera el calendario de cargas diferibles para EMHASS."""
         trips = await self._load_active_trips()

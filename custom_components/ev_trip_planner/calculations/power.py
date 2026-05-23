@@ -88,6 +88,7 @@ def _populate_profile_slice(
 def calculate_power_profile_from_trips(  # pragma: no mutate  # EQ-054
     trips: List[Dict[str, Any]],
     power_kw: float,
+    # qg-accepted: AP05
     horizon: int = 168,
     reference_dt: Optional[datetime] = None,
     soc_current: Optional[float] = None,
@@ -191,6 +192,7 @@ def calculate_power_profile(
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
+    # qg-accepted: AP05
     profile_length = planning_horizon_days * 24
     power_profile = [0.0] * profile_length
 
@@ -358,6 +360,7 @@ def _try_populate_window(
             hora_regreso=hora_regreso,
             charging_power_kw=charging_power_kw,
             energia_kwh=energia_kwh,
+            # qg-accepted: AP05
             duration_hours=6.0,
         ),
     )

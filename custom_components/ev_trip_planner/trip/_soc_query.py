@@ -17,7 +17,7 @@ from ..calculations import (
     calculate_energy_needed,
     compute_safe_delta,
 )
-from ..const import DOMAIN
+from ..const import DEFAULT_BATTERY_CAPACITY_KWH, DOMAIN
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -161,6 +161,7 @@ class SOCQuery:
         delta = compute_safe_delta(trip_time, now)
         if delta is None:
             return 0.0
+        # qg-accepted: AP05 — seconds-to-hours conversion
         return max(0.0, delta.total_seconds() / 3600)
 
     # Delegate to SOCHelpers — shared logic lives in one place
@@ -175,7 +176,9 @@ class SOCQuery:
         return self._state._soc_helpers._get_charging_power()
 
     def _calcular_tasa_carga_soc(
-        self, charging_power_kw: float, battery_capacity_kwh: float = 50.0
+        self,
+        charging_power_kw: float,
+        battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH,
     ) -> float:
         """Calcula la tasa de carga en % SOC/hora."""
         return self._state._soc_helpers._calcular_tasa_carga_soc(

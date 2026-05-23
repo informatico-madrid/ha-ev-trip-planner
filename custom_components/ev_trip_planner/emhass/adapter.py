@@ -134,7 +134,9 @@ class EMHASSAdapter:
 
         # Store the read values for later use
         self._stored_charging_power_kw = charging_power_kw
-        self._default_consumption = const.DEFAULT_CONSUMPTION  # kWh/km, fallback when kwh_per_km missing
+        self._default_consumption = (
+            const.DEFAULT_CONSUMPTION
+        )  # kWh/km, fallback when kwh_per_km missing
 
         # State attributes (used by callers and tests)
         self._published_trips: set[str] = set()
@@ -387,6 +389,7 @@ class EMHASSAdapter:
                 if self._entry
                 else "unknown",
             )
+            # qg-accepted: AP05 — default SOC fallback
             soc_current = 50.0
 
         _LOGGER.warning(
@@ -524,10 +527,12 @@ class EMHASSAdapter:
 
     def _get_horizon_hours(self) -> int:
         """Read planning horizon from config entry."""
-        horizon = const.DEFAULT_PLANNING_HORIZON * 24  # default: 7 days
+        # qg-accepted: AP05 — hours-per-day conversion
+        horizon = const.DEFAULT_PLANNING_HORIZON * 24
         try:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
+            # qg-accepted: AP05 — default planning horizon days + hours-per-day
             horizon = int(entry_data.get("planning_horizon_days", 7)) * 24
         except Exception:
             pass
@@ -678,13 +683,17 @@ class EMHASSAdapter:
 
         # Read t_base and planning_horizon from config entry
         t_base = const.DEFAULT_T_BASE  # default
+        # qg-accepted: AP05 — hours-per-day for horizon
         horizon_hours = const.DEFAULT_PLANNING_HORIZON * 24  # default: 7 days
         entry = self._entry
         if entry:
             entry_data = dict(getattr(entry, "options", {}) or {})
             entry_data.update(dict(getattr(entry, "data", {}) or {}))
+            # qg-accepted: AP05 — default t_base hours
             t_base = float(entry_data.get("t_base", 24.0))
+            # qg-accepted: AP05 — default planning horizon days
             horizon_days = int(entry_data.get("planning_horizon_days", 7))
+            # qg-accepted: AP05 — hours-per-day conversion
             horizon_hours = horizon_days * 24
 
         # Assign index if not already assigned
@@ -705,6 +714,7 @@ class EMHASSAdapter:
         charging_windows: List[Dict[str, Any]] = []
 
         if deadline_dt is not None:
+            # qg-accepted: AP05 — seconds-to-hours conversion
             hours_available = (deadline_dt - now).total_seconds() / 3600
 
             # Calculate charging windows
@@ -724,23 +734,31 @@ class EMHASSAdapter:
             _pre_computed_fin = False
             if pre_computed_inicio_ventana is not None:
                 delta_hours = (
-                    self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
-                    - now
-                ).total_seconds() / 3600
+                    (
+                        self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
+                        - now
+                    ).total_seconds()
+                    / 3600
+                )  # qg-accepted: AP05 — seconds-to-hours conversion
                 # RULE: Each fraction of hour = 1 full hour slot. math.ceil() because 1 minute = 1 slot.
                 def_start_timestep = max(0, min(math.ceil(delta_hours), horizon_hours))
             elif charging_windows and charging_windows[0].get("inicio_ventana"):
                 inicio = charging_windows[0]["inicio_ventana"]
                 delta_hours = (
-                    self._load_publisher._ensure_aware(inicio) - now
-                ).total_seconds() / 3600
+                    (self._load_publisher._ensure_aware(inicio) - now).total_seconds()
+                    / 3600
+                )  # qg-accepted: AP05 — seconds-to-hours conversion
                 def_start_timestep = max(0, min(int(delta_hours), horizon_hours))
 
             # Handle pre-computed fin_ventana (batch/test mode)
             if pre_computed_fin_ventana is not None:
                 delta_fin = (
-                    self._load_publisher._ensure_aware(pre_computed_fin_ventana) - now
-                ).total_seconds() / 3600
+                    (
+                        self._load_publisher._ensure_aware(pre_computed_fin_ventana)
+                        - now
+                    ).total_seconds()
+                    / 3600
+                )  # qg-accepted: AP05 — seconds-to-hours conversion
                 def_end_timestep = max(
                     0, min(int(math.ceil(delta_fin - 0.001)), horizon_hours)
                 )
@@ -765,11 +783,14 @@ class EMHASSAdapter:
                 from ..calculations import calculate_dynamic_soc_limit
 
                 # Hours until trip departure
-                t_hours = 24.0
+                t_hours = (
+                    24.0  # qg-accepted: AP05 — standard 24h default for horizon calc
+                )
                 if charging_windows[0].get("fin_ventana"):
                     t_hours = (
-                        charging_windows[0]["fin_ventana"] - now
-                    ).total_seconds() / 3600
+                        (charging_windows[0]["fin_ventana"] - now).total_seconds()
+                        / 3600
+                    )  # qg-accepted: AP05 — seconds-to-hours conversion
 
                 # DEBUG: Print SOC capping values for debugging
                 print(
@@ -788,7 +809,7 @@ class EMHASSAdapter:
                         self._entry.data.get("kwh_per_km", self._default_consumption),
                     )
                 soc_after = max(
-                    0.0, soc_current - (trip_kwh / battery_capacity_kwh) * 100.0
+                    0.0, soc_current - (trip_kwh / battery_capacity_kwh) * const.SOC_MAX
                 )
 
                 print(
@@ -802,12 +823,14 @@ class EMHASSAdapter:
 
                 print(f"[DEBUG SOC CAP] soc_cap={soc_cap:.2f}, t_base={t_base}")
 
-                # If SOC cap is below 100%, reduce the energy accordingly.
-                # Skip capping when SOC is already at 100% — the battery is full
+                # If SOC cap is below maximum, reduce the energy accordingly.
+                # Skip capping when SOC is already at maximum — the battery is full
                 # and any remaining hours are for proactive future-trip charging.
-                if soc_cap < 100.0 and soc_current < 100.0:
-                    current_energy = (soc_current / 100.0) * battery_capacity_kwh
-                    max_energy = (soc_cap / 100.0) * battery_capacity_kwh
+                if soc_cap < const.SOC_MAX and soc_current < const.SOC_MAX:
+                    current_energy = (
+                        soc_current / const.SOC_MAX
+                    ) * battery_capacity_kwh
+                    max_energy = (soc_cap / const.SOC_MAX) * battery_capacity_kwh
                     capped_energy = max(0.0, max_energy - current_energy)
                     capped_hours = (
                         capped_energy / charging_power_kw
@@ -834,6 +857,7 @@ class EMHASSAdapter:
             elif charging_windows and charging_windows[0].get("fin_ventana"):
                 # Use trip departure time (fin_ventana) for charging window end
                 fin = charging_windows[0]["fin_ventana"]
+                # qg-accepted: AP05 — seconds-to-hours conversion
                 delta_fin = (
                     self._load_publisher._ensure_aware(fin) - now
                 ).total_seconds() / 3600

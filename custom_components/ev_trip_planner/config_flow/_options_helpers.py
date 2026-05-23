@@ -8,11 +8,6 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-# US-5 named default constants — mutation-observable, killed by _get_*_opt tests
-_DEFAULT_BATTERY_CAPACITY = 60.0
-_DEFAULT_CHARGING_POWER = 11.0
-_DEFAULT_SOH_SENSOR = ""
-
 
 def _get_option_float(data: Dict[str, Any], key: str, default: float) -> float:
     """Safely get a float option from a dict.

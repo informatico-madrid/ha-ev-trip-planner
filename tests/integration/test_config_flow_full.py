@@ -88,7 +88,6 @@ class TestFullConfigFlow:
             CONF_CHARGING_POWER,
             CONF_CONSUMPTION,
             CONF_PLANNING_HORIZON,
-            CONF_PLUGGED_SENSOR,
             CONF_SAFETY_MARGIN,
             CONF_VEHICLE_NAME,
         )
@@ -158,9 +157,6 @@ class TestFullConfigFlow:
     @pytest.mark.asyncio
     async def test_full_flow_with_notifications(self, mock_hass: HomeAssistant):
         """Walk flow with notification service and devices provided."""
-        from custom_components.ev_trip_planner.config_flow.main import (
-            EVTripPlannerFlowHandler,
-        )
         from custom_components.ev_trip_planner.const import (
             CONF_BATTERY_CAPACITY,
             CONF_CHARGING_POWER,
@@ -206,9 +202,6 @@ class TestFullConfigFlow:
     @pytest.mark.asyncio
     async def test_full_flow_with_emhass_config(self, tmp_path: pathlib.Path):
         """Walk flow with EMHASS config file providing real horizon/load data."""
-        from custom_components.ev_trip_planner.config_flow.main import (
-            EVTripPlannerFlowHandler,
-        )
         from custom_components.ev_trip_planner.const import (
             CONF_BATTERY_CAPACITY,
             CONF_CHARGING_POWER,

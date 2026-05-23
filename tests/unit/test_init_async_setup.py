@@ -339,7 +339,6 @@ class TestHourlyRefreshCallbackExactLogStrings:
         """
         from custom_components.ev_trip_planner import (
             _LOG_HOURLY_CALLBACK_ALL_PRESENT,
-            _LOG_HOURLY_CALLBACK_CACHE_AFTER,
         )
 
         mgr = MagicMock()

@@ -13,8 +13,8 @@ from patch_mutmut_stats import apply
 
 apply()
 
-# Now invoke mutmut's CLI
-import mutmut.__main__
+# Now invoke mutmut's CLI (import after apply() to patch pluginmanager)
+import mutmut.__main__  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(mutmut.__main__.cli())

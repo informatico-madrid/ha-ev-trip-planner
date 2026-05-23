@@ -16,7 +16,6 @@ import pytest
 from custom_components.ev_trip_planner.trip._soc_window import (
     SOCInicioParams,
     SOCWindow,
-    SOCWindowCalculator,
     VentanaCargaParams,
 )
 

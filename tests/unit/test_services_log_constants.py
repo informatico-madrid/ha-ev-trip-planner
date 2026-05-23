@@ -5,7 +5,6 @@ the expected values. These tests kill log_text mutations where
 mutmut replaces string literals in logger calls with None.
 """
 
-import pytest
 
 
 class TestUtilsLogConstants:

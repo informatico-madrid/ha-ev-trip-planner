@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
 
+from ..const import DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_SAFETY_MARGIN
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,8 +37,8 @@ class PowerProfile:
     # qg-accepted: complexity=12 is inherent to power profile generation
     async def async_generate_power_profile(  # pragma: no mutate — 48 equivalent survivors (string case, log text, None-in-log, getattr default)
         self,
-        charging_power_kw: float = 3.6,
-        planning_horizon_days: int = 7,
+        charging_power_kw: float = 3.6,  # qg-accepted: AP05 — default charging power in kW
+        planning_horizon_days: int = 7,  # qg-accepted: AP05 — default weekly planning horizon
         vehicle_config: Optional[Dict[str, Any]] = None,
         hora_regreso: Optional[datetime] = None,
     ) -> List[float]:
@@ -86,12 +87,12 @@ class PowerProfile:
                     safety_margin_percent = data["safety_margin_percent"]
                     soc_current = data.get("soc_current")
                 else:
-                    battery_capacity = 50.0
-                    safety_margin_percent = 10.0
+                    battery_capacity = DEFAULT_BATTERY_CAPACITY_KWH
+                    safety_margin_percent = DEFAULT_SAFETY_MARGIN
                     soc_current = None
             except Exception:
-                battery_capacity = 50.0
-                safety_margin_percent = 10.0
+                battery_capacity = DEFAULT_BATTERY_CAPACITY_KWH
+                safety_margin_percent = DEFAULT_SAFETY_MARGIN
                 soc_current = None
 
         # Obtain current SOC from sensor if not provided in vehicle_config/config_entry
@@ -101,6 +102,7 @@ class PowerProfile:
                     self._state.vehicle_id
                 )
             except Exception:
+                # qg-accepted: AP05 — default SOC fallback
                 soc_current = 50.0
 
         assert soc_current is not None

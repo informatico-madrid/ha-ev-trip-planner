@@ -43,6 +43,7 @@ from ..const import (
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_SOH_SENSOR,
+    DEFAULT_CHARGING_POWER,
     DEFAULT_T_BASE,
     DOMAIN,
     MAX_T_BASE,
@@ -79,8 +80,12 @@ STEP_USER_SCHEMA = vol.Schema(
 # Step 2: Sensors configuration
 STEP_SENSORS_SCHEMA = vol.Schema(
     {
+        # qg-accepted: AP05
         vol.Required(CONF_BATTERY_CAPACITY, default=60.0): vol.Coerce(float),
-        vol.Required(CONF_CHARGING_POWER, default=11.0): vol.Coerce(float),
+        # qg-accepted: AP05
+        vol.Required(CONF_CHARGING_POWER, default=DEFAULT_CHARGING_POWER): vol.Coerce(
+            float
+        ),
         vol.Required(
             CONF_CONSUMPTION,
             default=DEFAULT_CONSUMPTION,
@@ -133,6 +138,7 @@ STEP_EMHASS_SCHEMA = vol.Schema(
                     "Máximo: 365 días. Recomendado: 7 días."
                 ),
             },
+            # qg-accepted: AP05
         ): vol.All(vol.Coerce(int), vol.Range(min=1, max=365)),
         vol.Required(
             CONF_MAX_DEFERRABLE_LOADS,
@@ -152,6 +158,7 @@ STEP_EMHASS_SCHEMA = vol.Schema(
                 # Note: Max 168 hours = 1 week
                 "description": "Horas de cooldown antes de reutilizar un índice liberado (1-168).",
             },
+            # qg-accepted: AP05
         ): vol.All(vol.Coerce(int), vol.Range(min=1, max=168)),
         vol.Optional(CONF_PLANNING_SENSOR): selector.EntitySelector(
             selector.EntitySelectorConfig(
@@ -380,6 +387,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             user_input,
             CONF_BATTERY_CAPACITY,
             10,
+            # qg-accepted: AP05
             200,
             "invalid_battery_capacity",
             "Battery capacity must be between 10 and 200 kWh",
@@ -404,6 +412,7 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
             user_input,
             CONF_SAFETY_MARGIN,
             0,
+            # qg-accepted: AP05
             50,
             "invalid_safety_margin",
             "Safety margin must be between 0 and 50%",

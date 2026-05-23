@@ -13,7 +13,6 @@ from __future__ import annotations
 import math
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 # =============================================================================
 # _helpers — _strip_accents (distinctive data)
@@ -885,7 +884,7 @@ class TestSocAtTripStartsMultiAssert:
             calculate_soc_at_trip_starts,
         )
 
-        ref = datetime(2026, 6, 1, 8, 0, 0, tzinfo=timezone.utc)
+        _ref = datetime(2026, 6, 1, 8, 0, 0, tzinfo=timezone.utc)
         trips = [{"id": "t1"}, {"id": "t2"}]
         windows = [
             {"ventana_horas": 5, "kwh_necesarios": 10.0, "trip": {"id": "t1"}},
@@ -915,7 +914,7 @@ class TestSocAtTripStartsMultiAssert:
             calculate_soc_at_trip_starts,
         )
 
-        ref = datetime(2026, 6, 1, 8, 0, 0, tzinfo=timezone.utc)
+        _ref = datetime(2026, 6, 1, 8, 0, 0, tzinfo=timezone.utc)
         trips = [{"id": "t1"}, {"id": "t2"}]
         windows = [
             {"ventana_horas": 5.5, "kwh_necesarios": 17.3, "trip": {"id": "t1"}},

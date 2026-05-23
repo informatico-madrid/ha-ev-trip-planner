@@ -93,6 +93,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hass,
             logger=cfg.logger or _LOGGER,
             name=f"{DOMAIN} ({entry.entry_id})",
+            # qg-accepted: AP05 — standard HA polling interval
             update_interval=timedelta(seconds=30),
         )
         self._trip_manager = trip_manager

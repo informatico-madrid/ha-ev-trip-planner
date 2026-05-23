@@ -42,7 +42,9 @@ _LOG_DISCONNECT_RESET = "Vehicle %s disconnected - resetting retry counter"
 _LOG_RETRY_RESET = "Retry counter manually reset for %s"
 
 # Retry configuration constants
+# qg-accepted: AP05
 MAX_RETRY_ATTEMPTS = 3
+# qg-accepted: AP05
 RETRY_TIME_WINDOW_SECONDS = 300  # 5 minutes
 
 

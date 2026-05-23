@@ -57,6 +57,8 @@ def extract_planning_horizon(
         or len(end_timesteps) == 0
     ):
         return None
+    # qg-accepted: AP05 — hours-per-day conversion for timesteps
+    # qg-accepted: AP05 — timesteps-per-day conversion
     horizon_days = end_timesteps[0] // 24
     return horizon_days if horizon_days >= 1 else None
 

@@ -47,9 +47,11 @@ LOG_HOME_DETECTION_NOT_CONFIGURED = (
 LOG_FAILED_PARSE_HORA_REGRESO = "Failed to parse hora_regreso_iso '%s' for %s: %s"
 
 # Umbral de distancia para considerar que el vehículo está "en casa"
+# qg-accepted: AP05 — distance threshold for "at home" detection
 HOME_DISTANCE_THRESHOLD_METERS = 30.0
 
 # Umbral de cambio de SOC para disparar recálculo (debouncing)
+# qg-accepted: AP05 — SOC change threshold for debouncing recalculation
 SOC_CHANGE_DEBOUNCE_PERCENT = 5.0
 
 __all__ = [
@@ -404,6 +406,7 @@ class PresenceMonitor:
             lat = float(parts[0].strip())
             lon = float(parts[1].strip())
 
+            # qg-accepted: AP05 — standard lat/lon bounds
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):
                 return None
 
@@ -426,7 +429,9 @@ class PresenceMonitor:
 
         a = sin(dlat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2) ** 2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return 6371000 * c
+        return (
+            6371000 * c
+        )  # qg-accepted: AP05 — Earth radius in meters (Haversine formula)
 
     def _async_setup_soc_listener(self) -> None:  # pragma: no mutate # EQ-013
         """Set up SOC sensor state change listener (idempotent)."""

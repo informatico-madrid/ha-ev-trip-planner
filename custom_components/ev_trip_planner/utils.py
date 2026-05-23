@@ -34,6 +34,7 @@ DAY_ABBREVIATIONS: dict[str, str] = {
 ALL_DAYS = set(DAY_ABBREVIATIONS.keys())
 
 
+# qg-accepted: AP05 — standard random suffix length
 def generate_random_suffix(length: int = 6) -> str:
     """Generate a random alphanumeric suffix for trip IDs.
 
@@ -57,7 +58,7 @@ def _generate_recurrent_trip_id(
     if day_input in DAY_ABBREVIATIONS:
         day_abbr = DAY_ABBREVIATIONS[day_input]
     else:
-        day_abbr = day_input[:3]
+        day_abbr = day_input[:3]  # qg-accepted: AP05 — standard 3-char day abbreviation
     return f"rec_{day_abbr}_{random_suffix}"
 
 
@@ -131,11 +132,13 @@ def is_valid_trip_id(trip_id: str) -> bool:
     # Check for recurrent format: rec_{day}_{random}
     if trip_id.startswith("rec_"):
         parts = trip_id.split("_")
+        # qg-accepted: AP05 — trip ID format: 3 parts, min 4-char suffix
         return len(parts) == 3 and len(parts[2]) >= 4
 
     # Check for punctual format: pun_{date}_{random}
     if trip_id.startswith("pun_"):
         parts = trip_id.split("_")
+        # qg-accepted: AP05 — trip ID format: 3 parts, 8-digit date, min 4-char suffix
         return len(parts) == 3 and len(parts[1]) == 8 and len(parts[2]) >= 4
 
     return False
@@ -151,6 +154,7 @@ def validate_hora(hora: str) -> None:
         ValueError: If the time format is invalid, hour is out of range (0-23),
                     or minute is out of range (0-59).
     """
+    # qg-accepted: AP05 — HH:MM format length
     if not isinstance(hora, str) or len(hora) != 5 or hora[2] != ":":
         raise ValueError("Invalid time format: expected HH:MM")
 
@@ -162,10 +166,10 @@ def validate_hora(hora: str) -> None:
     hour = int(hour_str)
     minute = int(minute_str)
 
-    if hour > 23:
+    if hour > 23:  # qg-accepted: AP05 — max valid hour value
         raise ValueError(f"Invalid hour: {hour} (must be 0-23)")
 
-    if minute > 59:
+    if minute > 59:  # qg-accepted: AP05 — max valid minute value
         raise ValueError(f"Invalid minute: {minute} (must be 0-59)")
 
 
@@ -208,14 +212,15 @@ def get_day_index(day_name: str) -> int:
         return 1
     if day_lower in ("miercoles", "wednesday"):
         return 2
+    # qg-accepted: AP05 — day index for Thursday
     if day_lower in ("jueves", "thursday"):
         return 3
     if day_lower in ("viernes", "friday"):
-        return 4
+        return 4  # qg-accepted: AP05 — day index for Friday
     if day_lower in ("sabado", "saturday"):
-        return 5
+        return 5  # qg-accepted: AP05 — day index for Saturday
     if day_lower in ("domingo", "sunday"):
-        return 6
+        return 6  # qg-accepted: AP05 — day index for Sunday
     raise ValueError(f"Unknown day name: {day_name}")
 
 
@@ -357,4 +362,5 @@ def calcular_energia_kwh(
         raise ValueError("Consumption cannot be negative")
 
     energy_kwh = distance_km * consumption_kwh_per_km
+    # qg-accepted: AP05 — rounding precision for energy calculations
     return round(energy_kwh, 3)

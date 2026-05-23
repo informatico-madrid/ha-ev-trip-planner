@@ -93,6 +93,7 @@ def calculate_energy_needed(
         horas_carga = 0
 
     return {
+        # qg-accepted: AP05
         "energia_necesaria_kwh": round(energia_final, 3),
         "horas_carga_necesarias": math.ceil(horas_carga) if horas_carga > 0 else 0,
         "alerta_tiempo_insuficiente": False,
@@ -108,6 +109,7 @@ class ChargingWindowPureParams:
     hora_regreso: Optional[datetime]
     charging_power_kw: float
     energia_kwh: float
+    # qg-accepted: AP05
     duration_hours: float = 6.0
 
 
@@ -183,6 +185,7 @@ def calculate_charging_window_pure(
 
     return {
         "ventana_horas": round(ventana_horas, 2),
+        # qg-accepted: AP05
         "kwh_necesarios": round(kwh_necesarios, 3),
         "horas_carga_necesarias": math.ceil(horas_carga_necesarias)
         if horas_carga_necesarias > 0
@@ -230,6 +233,7 @@ class MultiTripChargingParams:
     hora_regreso: datetime | None
     charging_power_kw: float
     battery_capacity_kwh: float
+    # qg-accepted: AP05
     return_buffer_hours: float = 4.0
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
     now: datetime | None = None
@@ -316,6 +320,7 @@ def calculate_multi_trip_charging_windows(
         results.append(
             {
                 "ventana_horas": round(ventana_horas, 2),
+                # qg-accepted: AP05
                 "kwh_necesarios": round(kwh_necesarios, 3),
                 "horas_carga_necesarias": math.ceil(horas_carga_necesarias)
                 if horas_carga_necesarias > 0

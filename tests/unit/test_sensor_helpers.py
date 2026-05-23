@@ -22,11 +22,9 @@ truthiness.
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import MagicMock
 
 from custom_components.ev_trip_planner.const import (
     TRIP_EMHASS_ATTR_KEYS,
-    TRIP_TYPE_PUNCTUAL,
 )
 from custom_components.ev_trip_planner.definitions import TripSensorEntityDescription
 from custom_components.ev_trip_planner.sensor._helpers import (

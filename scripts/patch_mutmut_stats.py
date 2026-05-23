@@ -4,8 +4,6 @@ The default StatsCollector inner-class pattern doesn't work with pytest-homeassi
 
 from __future__ import annotations
 
-import os
-from contextlib import contextmanager
 
 import mutmut
 from mutmut.__main__ import change_cwd, unused
@@ -15,13 +13,12 @@ def apply():
     """Monkey-patch mutmut.PytestRunner.run_stats in-place."""
     from mutmut.__main__ import PytestRunner
 
-    original_run_stats = PytestRunner.run_stats
+    _original_run_stats = PytestRunner.run_stats
 
     def patched_run_stats(self, *, tests):
-        import pytest
 
         class StatsCollector:
-            def pytest_runtest_logstart(self, nodeid, location):
+            def pytest_runtest_logstart(self, nodeid):
                 mutmut.duration_by_test[nodeid] = 0
 
             def pytest_runtest_makereport(self, item, call):

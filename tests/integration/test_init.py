@@ -1093,7 +1093,7 @@ class TestInitLifecycle:
             "custom_components.ev_trip_planner.register_services",
         ), patch(
             "custom_components.ev_trip_planner.async_track_time_interval",
-        ) as MockTimer:
+        ):
             MockStorage.return_value = MagicMock()
 
             mock_emhass = MagicMock()
