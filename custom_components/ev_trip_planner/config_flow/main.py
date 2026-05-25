@@ -37,13 +37,13 @@ from ..const import (
     CONF_T_BASE,
     CONF_VEHICLE_NAME,
     CONFIG_VERSION,
+    DEFAULT_CHARGING_POWER,
     DEFAULT_CONSUMPTION,
     DEFAULT_INDEX_COOLDOWN_HOURS,
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_SOH_SENSOR,
-    DEFAULT_CHARGING_POWER,
     DEFAULT_T_BASE,
     DOMAIN,
     MAX_T_BASE,
@@ -106,7 +106,7 @@ STEP_SENSORS_SCHEMA = vol.Schema(
             default=DEFAULT_T_BASE,
             description={
                 "suggested_value": DEFAULT_T_BASE,
-                "placeholder": f"{DEFAULT_T_BASE}",
+                "placeholder": str(DEFAULT_T_BASE),
                 "description": (
                     "Tiempo que puedes mantener la batería a alto SOC sin dañarla. "
                     "Valores más bajos = protección más agresiva de la batería. "

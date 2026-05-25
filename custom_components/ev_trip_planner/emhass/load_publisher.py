@@ -173,7 +173,6 @@ class LoadPublisher(LoadPublisherBase):
 
         if (
             charging_windows
-            and len(charging_windows) > 0
             and charging_windows[0].get("fin_ventana")
         ):
             fin = charging_windows[0]["fin_ventana"]
@@ -295,7 +294,7 @@ class LoadPublisher(LoadPublisherBase):
                 if day_str.isdigit():
                     n = int(day_str)
                     # qg-accepted: AP05 — Sunday is 0 or 7 in numeric format
-                    if n == 0 or n == 7:
+                    if n in (0, 7):
                         # qg-accepted: AP05 — Sunday index
                         target_day = 6
                     # qg-accepted: AP05 — Monday(1) through Saturday(6) range

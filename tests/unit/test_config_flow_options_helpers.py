@@ -6,7 +6,6 @@ options.py. Each test targets killable mutation patterns in the helpers.
 
 from __future__ import annotations
 
-
 from custom_components.ev_trip_planner.config_flow._options_helpers import (
     _get_option_float,
     _get_option_int,

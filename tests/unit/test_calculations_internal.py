@@ -302,8 +302,8 @@ class TestCalculateMultiTripChargingWindows:
     def test_empty_trips_returns_empty(self):
         """Empty trips list returns empty list."""
         from custom_components.ev_trip_planner.calculations.windows import (
-            calculate_multi_trip_charging_windows,
             MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
         )
 
         result = calculate_multi_trip_charging_windows(
@@ -322,8 +322,8 @@ class TestCalculateMultiTripChargingWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
-            calculate_multi_trip_charging_windows,
             MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
         )
 
         trip_dt = datetime(2026, 6, 15, 14, 0, 0, tzinfo=timezone.utc)
@@ -348,8 +348,8 @@ class TestCalculateMultiTripChargingWindows:
         from datetime import datetime, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
-            calculate_multi_trip_charging_windows,
             MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
         )
 
         trip1_dt = datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc)
@@ -377,8 +377,8 @@ class TestCalculateMultiTripChargingWindows:
         from datetime import datetime, timedelta, timezone
 
         from custom_components.ev_trip_planner.calculations.windows import (
-            calculate_multi_trip_charging_windows,
             MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
         )
 
         trip1_dt = datetime(2026, 6, 15, 8, 0, 0, tzinfo=timezone.utc)

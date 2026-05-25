@@ -181,7 +181,7 @@ class PresenceMonitor:
         if not state:
             return True
 
-        return state.state.lower() in ["on", "true", "yes", "connected"]
+        return state.state.lower() in ("on", "true", "yes", "connected")
 
     async def async_handle_return_home(self, soc_value: Optional[float]) -> None:
         """Handle return home event."""
@@ -325,7 +325,7 @@ class PresenceMonitor:
         state = state_obj.state
         if state is None:
             return False
-        return state.lower() in ["on", "true", "yes", "home"]
+        return state.lower() in ("on", "true", "yes", "home")
 
     async def _async_check_home_coordinates(self) -> bool:
         """Check home status using coordinates."""
@@ -456,7 +456,7 @@ class PresenceMonitor:
         if not new_state:
             return
 
-        if new_state.state in ["unavailable", "unknown", "None", ""]:
+        if new_state.state in ("unavailable", "unknown", "None", ""):
             return
 
         try:

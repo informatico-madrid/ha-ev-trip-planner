@@ -175,7 +175,7 @@ def resolve_trip_deadline(  # pragma: no mutate  # EQ-034
     day_str = str(day_raw) if day_raw is not None else None
 
     tipo = trip.get("tipo", "")
-    if tipo == "recurrente" or tipo == "recurring":
+    if tipo in ("recurrente", "recurring"):
         result = calculate_trip_time(
             trip_tipo=tipo,
             hora=canon["time"],

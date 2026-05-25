@@ -10,6 +10,7 @@ with a function that has an explicit default — so that mutating
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -127,17 +128,13 @@ def build_entry_data(entry: Any) -> Dict[str, Any]:
     # Merge options first, then data (data takes precedence)
     options = getattr(entry, "options", None)
     if options is not None:
-        try:
+        with suppress(TypeError, ValueError):
             result.update(dict(options))
-        except (TypeError, ValueError):
-            pass
 
     data = getattr(entry, "data", None)
     if data is not None:
-        try:
+        with suppress(TypeError, ValueError):
             result.update(dict(data))
-        except (TypeError, ValueError):
-            pass
 
     # Handle legacy tests that pass a dict directly as entry
     if isinstance(entry, dict):

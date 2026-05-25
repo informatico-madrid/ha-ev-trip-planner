@@ -76,8 +76,7 @@ def create_control_strategy(  # pragma: no mutate  # EQ-001
                 "script_off": config["charge_script_off"],
             },
         )
-    else:
-        return ExternalStrategy(hass_wrapper, {})
+    return ExternalStrategy(hass_wrapper, {})
 
 
 # qg-accepted: BMAD consensus 2026-05-12 — FALSE POSITIVE: facade pattern (9 public methods,
@@ -169,7 +168,7 @@ class VehicleController:
             )
             return False
 
-        is_charging = state.state.lower() in ["on", "true", "yes", "charging"]
+        is_charging = state.state.lower() in ("on", "true", "yes", "charging")
         _LOGGER.debug(
             _LOG_CHARGING_STATUS, self.vehicle_id, self._charging_sensor, is_charging
         )
@@ -238,7 +237,7 @@ class VehicleController:
         current_charging = await self._async_check_charging_sensor()
 
         # If previously charging and now not charging, reset retry state
-        if self._last_charging_state is True and current_charging is False:
+        if self._last_charging_state and not current_charging:
             _LOGGER.info(_LOG_DISCONNECT_RESET, self.vehicle_id)
             self._retry_state.reset()
 

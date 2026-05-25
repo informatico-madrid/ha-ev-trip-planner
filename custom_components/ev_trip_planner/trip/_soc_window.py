@@ -143,11 +143,7 @@ class SOCWindow:
                 "es_suficiente": True,
             }
 
-        fin_ventana = (
-            trip_departure_time
-            if trip_departure_time
-            else dt_util.now() + timedelta(hours=_DURACION_VIAJE_HORAS)
-        )
+        fin_ventana = trip_departure_time or dt_util.now() + timedelta(hours=_DURACION_VIAJE_HORAS)
         delta = fin_ventana - inicio_ventana
         # qg-accepted: AP05 — seconds-to-hours conversion
         ventana_horas = max(0.0, delta.total_seconds() / 3600)
@@ -197,7 +193,9 @@ class SOCWindow:
             trip_time = self._state._soc._get_trip_time(trip)
             if trip_time:
                 sorted_trips.append((trip_time, trip))
-        sorted_trips.sort(key=lambda x: x[0])
+        import operator
+
+        sorted_trips.sort(key=operator.itemgetter(0))
 
         results: List[Dict[str, Any]] = []
         previous_arrival: Optional[datetime] = None

@@ -8,6 +8,7 @@ profile calculations for EMHASS integration.
 from __future__ import annotations
 
 import logging
+import operator
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -265,7 +266,7 @@ def _assign_priority_indices(
     trips_with_deadlines: List[tuple],
 ) -> None:
     """Assign priority index and sort by deadline ascending."""
-    trips_with_deadlines.sort(key=lambda x: x[0])
+    trips_with_deadlines.sort(key=operator.itemgetter(0))
     for ordered_idx, (_, original_idx, trip) in enumerate(trips_with_deadlines):
         trip["_trip_index"] = ordered_idx
 
@@ -317,7 +318,7 @@ def _populate_profile(
     for h in range(
         params.hora_inicio,
         min(
-            int(params.hora_inicio + params.horas_necesarias),
+            params.hora_inicio + params.horas_necesarias,
             params.horas_hasta_fin,
             params.profile_length,
         ),

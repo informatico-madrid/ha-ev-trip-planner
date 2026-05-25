@@ -119,7 +119,7 @@ def auto_select_sensor(
     entities = scan_entities(hass, domain_prefixes)
     if entities:
         selected = entities[0]
-        user_input = {**user_input, sensor_key: selected}
+        user_input = user_input | {sensor_key: selected}
         _LOGGER.info(_LOG_INFO_AUTO_SELECTED_SENSOR, sensor_key, selected)
     else:
         _LOGGER.error(

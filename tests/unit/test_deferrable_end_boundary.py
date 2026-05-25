@@ -7,14 +7,15 @@ This test will FAIL with current code and PASS after the fix.
 """
 
 from datetime import datetime, timedelta, timezone
-
-from custom_components.ev_trip_planner.calculations.windows import MultiTripChargingParams
 from unittest.mock import patch
 
 import pytest
 
 from custom_components.ev_trip_planner.calculations import (
     calculate_multi_trip_charging_windows,
+)
+from custom_components.ev_trip_planner.calculations.windows import (
+    MultiTripChargingParams,
 )
 from custom_components.ev_trip_planner.const import (
     CONF_CHARGING_POWER,

@@ -71,10 +71,13 @@ class EmhassDeferrableLoadSensor(
         self, per_trip_params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Filter active trips and sort by (def_start_timestep, emhass_index)."""
-        active: List[Dict[str, Any]] = []
-        for params in per_trip_params.values():
-            if params.get("activo", False):
-                active.append(params)
+        import operator
+
+        active: List[Dict[str, Any]] = [
+            params
+            for params in per_trip_params.values()
+            if params.get("activo", False)
+        ]
         active.sort(
             key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
         )

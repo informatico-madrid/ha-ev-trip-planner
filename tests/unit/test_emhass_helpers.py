@@ -8,7 +8,6 @@ flip the asserted output.
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
-
 from custom_components.ev_trip_planner.emhass._helpers import (
     build_entry_data,
     clamp_hours,

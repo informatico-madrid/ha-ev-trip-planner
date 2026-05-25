@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import random
 import string
+from contextlib import suppress
 from datetime import date, datetime
 from typing import Any, Literal
 
@@ -44,7 +45,7 @@ def generate_random_suffix(length: int = 6) -> str:
     Returns:
         A random lowercase string of alphanumeric characters.
     """
-    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))  # nosem: python-random-not-secure  — ID suffix, not crypto
 
 
 def _generate_recurrent_trip_id(
@@ -236,11 +237,9 @@ def sanitize_recurring_trips(trips: dict[str, Any]) -> dict[str, Any]:
     sanitized: dict[str, Any] = {}
     for trip_id, trip in trips.items():
         hora = trip.get("hora", "")
-        try:
+        with suppress(ValueError):
             validate_hora(hora)
             sanitized[trip_id] = trip
-        except ValueError:
-            pass  # Skip invalid trips
     return sanitized
 
 

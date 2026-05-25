@@ -6,6 +6,7 @@ Migrated from _schedule_mixin.py. Plain class (no inheritance).
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -38,7 +39,7 @@ class TripScheduler:
         self,
     ) -> tuple[float, float]:
         """Return (battery_capacity_kwh, safety_margin_percent) from config entry."""
-        try:
+        with suppress(Exception):
             entry_id = self._state.entry_id
             if entry_id is None:
                 return const.DEFAULT_BATTERY_CAPACITY_KWH, const.DEFAULT_SAFETY_MARGIN
@@ -56,8 +57,6 @@ class TripScheduler:
                         const.DEFAULT_SAFETY_MARGIN,
                     ),
                 )
-        except Exception:
-            pass
         return const.DEFAULT_BATTERY_CAPACITY_KWH, const.DEFAULT_SAFETY_MARGIN
 
     async def _load_active_trips(
@@ -136,7 +135,7 @@ class TripScheduler:
             )
 
             for h in range(
-                int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)
+                hora_inicio_carga, min(horas_hasta_viaje, profile_length)
             ):
                 power_profiles[idx][h] = charging_power_watts
 
@@ -203,13 +202,15 @@ class TripScheduler:
         """Publishes all active trips as deferrable loads to EMHASS."""
         if trips is None:
             await self._state._persistence._load_trips()
-            trips = []
-            for trip in self._state.recurring_trips.values():
-                if trip.get("activo", True):
-                    trips.append(trip)
-            for trip in self._state.punctual_trips.values():
-                if trip.get("estado") == "pendiente":
-                    trips.append(trip)
+            trips = [
+                trip
+                for trip in self._state.recurring_trips.values()
+                if trip.get("activo", True)
+            ] + [
+                trip
+                for trip in self._state.punctual_trips.values()
+                if trip.get("estado") == "pendiente"
+            ]
 
         adapter = self._state.emhass_adapter
         if adapter and hasattr(adapter, "async_publish_all_deferrable_loads"):

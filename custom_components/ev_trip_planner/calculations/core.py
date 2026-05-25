@@ -10,6 +10,7 @@ More sub-modules will be created as the decomposition progresses.
 from __future__ import annotations
 
 import unicodedata
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
@@ -193,10 +194,8 @@ def calculate_day_index(day_name: str) -> int:
         return 0  # Monday on invalid index
 
     # Try direct match first
-    try:
+    with suppress(ValueError):
         return DAYS_OF_WEEK.index(day_norm)
-    except ValueError:
-        pass
 
     # If still not found, default to Monday (index 0)
     return 0

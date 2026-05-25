@@ -26,6 +26,9 @@ from .trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
+# qg-accepted: AP05 — standard polling interval for trip planning (2min > HA default 30s)
+UPDATE_INTERVAL_SECONDS = 120
+
 # E2E-DEBUG-CRITICAL: Log string constants — extracted for testability
 # Mutations on these strings are testable via assert on the constant values.
 _LOG_UPDATE_DATA_CALLED = (
@@ -51,6 +54,7 @@ class CoordinatorConfig:
 
     emhass_adapter: EMHASSAdapter | None = None
     logger: logging.Logger | None = None
+    update_interval: timedelta = timedelta(seconds=UPDATE_INTERVAL_SECONDS)
 
 
 class TripPlannerCoordinator(DataUpdateCoordinator):
@@ -60,6 +64,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
     reading from TripManager on each refresh cycle and exposing it via
     coordinator.data for all sensors to consume via CoordinatorEntity pattern.
 
+    update_interval: 120s — balanced for trip planning, not real-time telemetry.
     Data contract (Phase 1 - EMHASS keys as None):
         {
             "recurring_trips": dict of trip_id -> trip_data,
@@ -72,6 +77,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "emhass_status": None,             # "ready" | "computing" | None
         }
     """
+
+    # qg-accepted: AP05 — standard polling interval for trip planning (2min > HA default 30s)
+    update_interval = timedelta(seconds=UPDATE_INTERVAL_SECONDS)  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -93,8 +101,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hass,
             logger=cfg.logger or _LOGGER,
             name=f"{DOMAIN} ({entry.entry_id})",
-            # qg-accepted: AP05 — standard HA polling interval
-            update_interval=timedelta(seconds=30),
+            update_interval=cfg.update_interval,
         )
         self._trip_manager = trip_manager
         self._entry = entry
@@ -188,14 +195,10 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             ),
         )
 
-        return {
-            "recurring_trips": recurring_trips,
-            "punctual_trips": punctual_trips,
-            "kwh_today": kwh_today,
-            "hours_today": hours_today,
-            "next_trip": next_trip,
-            **emhass_data,
-        }
+        return (
+            {"recurring_trips": recurring_trips, "punctual_trips": punctual_trips, "kwh_today": kwh_today, "hours_today": hours_today, "next_trip": next_trip}
+            | emhass_data
+        )
 
     async def async_refresh_trips(self) -> None:
         """Refresh trip data from TripManager.

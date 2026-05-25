@@ -31,7 +31,9 @@ from custom_components.ev_trip_planner.calculations import (
     calculate_power_profile_from_trips,
     generate_deferrable_schedule_from_trips,
 )
-from custom_components.ev_trip_planner.calculations.windows import MultiTripChargingParams
+from custom_components.ev_trip_planner.calculations.windows import (
+    MultiTripChargingParams,
+)
 
 # =============================================================================
 # Test constants: DYNAMIC - computed from current moment

@@ -218,10 +218,11 @@ def extract_active_trips(  # pragma: no mutate  # EQ-102
     Returns:
         Sorted list of active trip param dicts.
     """
-    active: List[Dict[str, Any]] = []
-    for params in per_trip_params.values():
-        if params.get("activo", False):
-            active.append(params)
+    active: List[Dict[str, Any]] = [
+        params
+        for params in per_trip_params.values()
+        if params.get("activo", False)
+    ]
     active.sort(
         key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
     )

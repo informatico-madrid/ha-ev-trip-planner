@@ -179,7 +179,7 @@ class TripPersistence:
             yaml_file = Path(config_dir) / "ev_trip_planner" / f"{storage_key}.yaml"
             yaml_file.parent.mkdir(parents=True, exist_ok=True)
             if yaml_file.exists():
-                with open(yaml_file, "r", encoding="utf-8") as f:
+                with Path(yaml_file).open("r", encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                 if "data" in data:
                     trip_data = data["data"]
@@ -214,7 +214,7 @@ class TripPersistence:
                     "last_update": datetime.now(timezone.utc).isoformat(),
                 }
             }
-            with open(yaml_file, "w", encoding="utf-8") as f:
+            with Path(yaml_file).open("w", encoding="utf-8") as f:
                 yaml.dump(data, f, allow_unicode=True)
         except Exception as err:  # pragma: no cover reason=ha-filesystem-only
             _LOGGER.error(_LOG_SAVE_YAML_FAIL_ERROR, err)

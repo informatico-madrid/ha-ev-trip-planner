@@ -14,7 +14,9 @@ import pytest
 from custom_components.ev_trip_planner.calculations import (
     calculate_multi_trip_charging_windows,
 )
-from custom_components.ev_trip_planner.calculations.windows import MultiTripChargingParams
+from custom_components.ev_trip_planner.calculations.windows import (
+    MultiTripChargingParams,
+)
 
 
 def _make_trip(dt: datetime, km: float = 50.0, kwh: float = 10.0) -> dict:

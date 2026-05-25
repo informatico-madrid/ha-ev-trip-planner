@@ -9,6 +9,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
@@ -28,14 +29,27 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
     Accepts either a directory path (appends /config.json) or a direct file path.
     Returns None if path is None, doesn't exist, or can't be parsed.
     """
-    if not emhass_config_path or not os.path.exists(emhass_config_path):
+    if not emhass_config_path:
         return None
-    if os.path.isfile(emhass_config_path):
+    try:
+        path_exists = Path(emhass_config_path).exists()
+    except OSError:
+        return None
+    if not path_exists:
+        return None
+    try:
+        is_file = Path(emhass_config_path).is_file()
+    except OSError:
+        return None
+    if is_file:
         config_path = emhass_config_path
     else:
         config_path = os.path.join(emhass_config_path, "config.json")
 
-    if not os.path.exists(config_path):
+    try:
+        if not Path(config_path).exists():
+            return None
+    except OSError:
         return None
     try:
         with open(config_path, "r", encoding="utf-8") as f:

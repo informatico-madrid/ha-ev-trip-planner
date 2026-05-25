@@ -150,7 +150,7 @@ async def async_register_panel_for_entry(  # pragma: no mutate — 16 equivalent
             vehicle_id=vehicle_id,
             vehicle_name=vehicle_name,
         )
-        panel_registered = panel_result is True
+        panel_registered = panel_result
         if not panel_registered:
             _LOGGER.error(_LOG_PANEL_REG_FALSE, vehicle_name)
     except Exception as err:

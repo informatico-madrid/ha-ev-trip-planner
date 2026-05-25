@@ -21,7 +21,6 @@ from custom_components.ev_trip_planner.sensor._async_setup import (
     async_remove_trip_sensor,
     async_update_trip_sensor,
 )
-
 from custom_components.ev_trip_planner.sensor._helpers import format_window_time
 
 

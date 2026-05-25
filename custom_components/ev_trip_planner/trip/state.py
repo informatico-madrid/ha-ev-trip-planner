@@ -34,13 +34,15 @@ class TripManagerState:
         Single source of truth for trip gathering — used by both
         PowerProfile.async_generate_power_profile and ScheduleManager.
         """
-        active: list[dict[str, Any]] = []
-        for trip in self.recurring_trips.values():
-            if trip.get("activo", True):
-                active.append(trip)
-        for trip in self.punctual_trips.values():
-            if trip.get("estado") == "pendiente":
-                active.append(trip)
+        active: list[dict[str, Any]] = [
+            trip
+            for trip in self.recurring_trips.values()
+            if trip.get("activo", True)
+        ] + [
+            trip
+            for trip in self.punctual_trips.values()
+            if trip.get("estado") == "pendiente"
+        ]
         return active
 
     last_update: Optional[str] = None

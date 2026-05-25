@@ -7,6 +7,7 @@ All methods are private (prefixed with _).
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -69,7 +70,7 @@ class SOCHelpers:
 
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
-        try:
+        with suppress(Exception):
             entry: Optional[ConfigEntry[Any]] = None
             for config_entry in self._state.hass.config_entries.async_entries(DOMAIN):
                 if config_entry.data.get("vehicle_name") == self._state.vehicle_id:
@@ -79,8 +80,6 @@ class SOCHelpers:
                 power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
                 if isinstance(power, (int, float)) and power > 0:
                     return float(power)
-        except Exception:
-            pass
         return DEFAULT_CHARGING_POWER
 
     def _calcular_tasa_carga_soc(

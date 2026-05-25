@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from contextlib import suppress
 from typing import Any
 
 from homeassistant.components import frontend, panel_custom
@@ -127,15 +128,12 @@ async def async_register_panel(  # pragma: no mutate  # EQ-017
 
     try:
         # First, try to unregister any existing panel to avoid "Overwriting panel" error
-        try:
+        with suppress(Exception):
             # Check if async_remove_panel is available
             remove_fn = getattr(frontend, "async_remove_panel", None)
             if remove_fn is not None and callable(remove_fn):
                 await remove_fn(hass, frontend_url_path)  # pyright: ignore[reportGeneralTypeIssues]
                 _LOGGER.debug(_LOG_REMOVED_EXISTING_PANEL, frontend_url_path)
-        except Exception:
-            # It's OK if there's no existing panel to remove
-            pass
 
         # Use panel_custom.async_register_panel - this is the correct API
         # Note: module_url loads the script as an ES module (<script type="module">)
@@ -231,6 +229,7 @@ def _store_vehicle_panel_mapping(  # pragma: no mutate  # EQ-020
     if VEHICLE_PANEL_MAPPING_KEY not in hass.data:
         hass.data[VEHICLE_PANEL_MAPPING_KEY] = {}
 
+    # guard: VEHICLE_PANEL_MAPPING_KEY checked in if block above
     hass.data[VEHICLE_PANEL_MAPPING_KEY][vehicle_id] = frontend_url_path
     _LOGGER.debug(
         "Stored panel mapping: vehicle_id=%s -> path=%s",

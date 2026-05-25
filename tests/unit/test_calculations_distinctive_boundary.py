@@ -13,7 +13,6 @@ from __future__ import annotations
 import math
 from datetime import datetime, timedelta, timezone
 
-
 # =============================================================================
 # _helpers — _strip_accents (distinctive data)
 # =============================================================================

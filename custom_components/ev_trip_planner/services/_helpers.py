@@ -59,7 +59,7 @@ def get_str_nested(
         return str(data[primary])
     if fallback in data and data[fallback] is not None:
         return str(data[fallback])
-    return str(default)
+    return default
 
 
 def get_vehicle_id(

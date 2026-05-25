@@ -227,7 +227,7 @@ def make_trip_update_handler(hass: HomeAssistant):  # pragma: no mutate  # EQ-00
             for trip in trips:
                 if str(trip.get("id")) == trip_id:
                     await async_update_trip_sensor(
-                        hass, entry.entry_id, {**trip, "id": trip_id}
+                        hass, entry.entry_id, trip.copy() | {"id": trip_id}
                     )
                     break
         except Exception as err:
@@ -437,7 +437,7 @@ def make_import_weekly_pattern_handler(hass: HomeAssistant):
         for dia, items in pattern.items():
             for item in items or []:
                 await mgr._crud.async_add_recurring_trip(
-                    dia_semana=str(dia),
+                    dia_semana=dia,
                     hora=str(item["hora"]),
                     km=float(item["km"]),
                     kwh=float(item["kwh"]),

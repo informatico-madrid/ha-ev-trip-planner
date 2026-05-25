@@ -60,6 +60,10 @@ skips = ["B101"]  # Skip assert_used warnings in tests
 [tool.deptry]
 extend_exclude = ["docs", "scripts"]
 ignore_notebooks = true
+ignore = ["DEP001", "DEP002", "DEP003"]
+# DEP001: custom_components is a HA namespace package (not a pip dependency)
+# DEP002: dev deps (time-machine, hypothesis, flake8-pytest-style) only used in tests
+# DEP003: homeassistant/voluptuous/etc are HA runtime deps, not pip deps
 
 [tool.vulture]
 min_confidence = 80

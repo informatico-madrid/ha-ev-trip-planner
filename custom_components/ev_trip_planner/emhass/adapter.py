@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging  # pragma: no mutate  # EQ-085
 import math
+import operator
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import (
     datetime,  # noqa: F401 — re-export for test mock path (conftest.py:822)
@@ -443,7 +445,7 @@ class EMHASSAdapter:
             deadline_dt = self._calculate_deadline_from_trip(trip)
             if deadline_dt is not None:
                 trip_deadlines.append((deadline_dt, trip))
-        trip_deadlines.sort(key=lambda x: x[0])
+        trip_deadlines.sort(key=operator.itemgetter(0))
         return trip_deadlines
 
     def _compute_charging_windows(
@@ -529,13 +531,11 @@ class EMHASSAdapter:
         """Read planning horizon from config entry."""
         # qg-accepted: AP05 — hours-per-day conversion
         horizon = const.DEFAULT_PLANNING_HORIZON * 24
-        try:
+        with suppress(Exception):
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
             # qg-accepted: AP05 — default planning horizon days + hours-per-day
             horizon = int(entry_data.get("planning_horizon_days", 7)) * 24
-        except Exception:
-            pass
         return horizon
 
     def _build_power_profile_and_schedule(
@@ -547,7 +547,7 @@ class EMHASSAdapter:
         """Build power_profile and deferrables_schedule from cached params."""
         from ..calculations.windows import build_deferrable_matrix_row
 
-        for trip_id, params in self._cached_per_trip_params.items():
+        for params in self._cached_per_trip_params.values():
             watts = params.get("power_watts", 0)
             end = params.get("def_end_timestep", 0)
             def_total = params.get("def_total_hours", 0)
@@ -961,10 +961,11 @@ class EMHASSAdapter:
 
     def _get_active_trips_sorted(self) -> List[Dict[str, Any]]:
         """Return active trips sorted by (start_timestep, index)."""
-        active: List[Dict[str, Any]] = []
-        for params in self._cached_per_trip_params.values():
-            if params.get("activo", False):
-                active.append(params)
+        active: List[Dict[str, Any]] = [
+            params
+            for params in self._cached_per_trip_params.values()
+            if params.get("activo", False)
+        ]
         active.sort(
             key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
         )
@@ -1086,7 +1087,7 @@ class EMHASSAdapter:
 
         # Always populate cache entry for trips with valid IDs, even if publish fails
         # This ensures _cached_per_trip_params reflects attempted publishes
-        try:
+        with suppress(Exception):
             soc_current = await self._get_current_soc()
             if soc_current is None:
                 _LOGGER.error(
@@ -1104,9 +1105,6 @@ class EMHASSAdapter:
                     soc_current=soc_current,
                 ),
             )
-        except Exception:
-            # Cache population failure should not prevent publish attempt
-            pass
 
         # Delegate actual publish to LoadPublisher
         result = await self._load_publisher.publish(trip)

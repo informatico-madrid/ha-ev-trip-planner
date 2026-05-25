@@ -8,6 +8,7 @@ propagation, charging decisions, and recurring datetime calculations.
 from __future__ import annotations  # pragma: no mutate  # EQ-042
 
 import math
+import operator
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -301,7 +302,7 @@ def calculate_deficit_propagation(  # pragma: no mutate  # EQ-048
     if not sorted_trips_with_times:
         return []
 
-    sorted_trips_with_times.sort(key=lambda x: x[0])
+    sorted_trips_with_times.sort(key=operator.itemgetter(0))
 
     ordered_to_idx: Dict[int, int] = {}
     for ordered_idx, (_, original_idx, _) in enumerate(sorted_trips_with_times):
@@ -430,7 +431,7 @@ def calculate_hours_deficit_propagation(
         # No deficits anywhere — no cascade needed.
         results = [{} for _ in range(N)]
         for i in range(N):
-            result = dict(windows[i])
+            result = windows[i].copy()
             result["deficit_hours_propagated"] = 0.0
             result["deficit_hours_to_propagate"] = 0.0
             result["adjusted_def_total_hours"] = round(def_total_hours[i], 2)
@@ -462,7 +463,7 @@ def calculate_hours_deficit_propagation(
 
         if i > deficit_origin:
             # Trips after the origin: no deficit involvement.
-            result = dict(windows[i])
+            result = windows[i].copy()
             result["deficit_hours_propagated"] = 0.0
             result["deficit_hours_to_propagate"] = 0.0
             result["adjusted_def_total_hours"] = round(original_def_total, 2)
@@ -474,7 +475,7 @@ def calculate_hours_deficit_propagation(
         absorbed = min(deficit_carrier, spare)
         deficit_carrier -= absorbed
 
-        result = dict(windows[i])
+        result = windows[i].copy()
         result["deficit_hours_propagated"] = round(absorbed, 2)
         result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
 

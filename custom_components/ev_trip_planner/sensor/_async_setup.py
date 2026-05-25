@@ -7,6 +7,7 @@ Original implementation in sensor_orig.py.
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from typing import Any, Dict, List
 
 from homeassistant.components.sensor import SensorEntity
@@ -99,11 +100,8 @@ async def async_setup_entry(
     result = async_add_entities(entities)
     if result is not None:
         # Await if it returns an awaitable (async callback)
-        try:
-            await result
-        except TypeError:  # pragma: no cover reason=sync callback returns None in HA entity platform, causes TypeError when awaited
-            # Sync callback - result is None, nothing to await
-            pass  # pragma: no cover reason=paired with TypeError above — sync callback result is None
+        with suppress(TypeError):  # pragma: no cover reason=sync callback returns None in HA entity platform, causes TypeError when awaited
+            await result  # pragma: no cover reason=paired with TypeError above — sync callback result is None
 
     # Capture async_add_entities callback for dynamic service use (task 2.3)
     runtime_data.sensor_async_add_entities = async_add_entities
@@ -245,11 +243,8 @@ async def async_create_trip_sensor(
         # Register via async_add_entities so entity appears in registry
         result = async_add_entities([sensor], True)
         if result is not None:
-            try:  # pragma: no mutate  # EQ-098
-                await result
-            except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
-                # Sync callback
-                pass  # pragma: no cover reason=paired with TypeError above — sync callback returns None in HA entity platform
+            with suppress(TypeError):  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
+                await result  # pragma: no cover reason=paired with TypeError above — sync callback result is None
         _LOGGER.debug(_LOG_DEBUG_TRIP_SENSOR_CREATED, trip_id)
         return True
     except Exception as err:  # pragma: no cover reason=requires HA entity platform — error path in real sensor creation
@@ -330,9 +325,8 @@ async def async_update_trip_sensor(  # pragma: no mutate  # EQ-097
 
         _LOGGER.debug(_LOG_DEBUG_TRIP_SENSOR_UPDATED, trip_id)
         return True
-    else:
-        # Sensor doesn't exist, create it
-        return await async_create_trip_sensor(hass, entry_id, trip_data)
+    # Sensor doesn't exist, create it
+    return await async_create_trip_sensor(hass, entry_id, trip_data)
 
 
 async def async_remove_trip_sensor(
@@ -475,11 +469,8 @@ async def async_create_trip_emhass_sensor(
         # Register via async_add_entities so entity appears in registry
         result = async_add_entities([sensor], True)
         if result is not None:
-            try:  # pragma: no mutate  # EQ-098
-                await result
-            except TypeError:  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
-                # Sync callback
-                pass  # pragma: no cover reason=paired with TypeError above — sync callback returns None in EMHASS sensor HA entity platform
+            with suppress(TypeError):  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
+                await result  # pragma: no cover reason=paired with TypeError above — sync callback result is None
         _LOGGER.debug(_LOG_DEBUG_EMHASS_SENSOR_CREATED, trip_id)
         return True
     except Exception as err:  # pragma: no cover reason=requires HA entity platform — error path in real EMHASS sensor creation

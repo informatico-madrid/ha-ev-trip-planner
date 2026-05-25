@@ -295,10 +295,10 @@ class SensorCallbackRegistry:
         Returns:
             List of callback return values.
         """
-        results: list[Any] = []
-        for cb in self._callbacks.get(sensor_id, []):
-            results.append(cb(value))
-        return results
+        return [
+            cb(value)
+            for cb in self._callbacks.get(sensor_id, [])
+        ]
 
     def clear(self, sensor_id: Optional[str] = None) -> None:
         """Remove all callbacks, optionally scoped to one sensor.

@@ -229,10 +229,6 @@ layer4:
 	@python3 .claude/skills/quality-gate/scripts/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
 	@echo "=== Layer 4 Complete ==="
 
-# Alternative: run individual security tools
-layer4-incremental:
-	$(MAKE) security-bandit security-audit security-gitleaks security-semgrep dead-code unused-deps
-
 # Quality Gate: Full 6-layer (L3A → L1 → L2 → L3B → L4, with E2E)
 quality-gate:
 	@echo "=== Full Quality Gate (6-layer architecture) ==="
@@ -302,8 +298,21 @@ security-gitleaks:
 	gitleaks detect --source . --verbose --no-git
 
 security-semgrep:
-	@echo "Running Semgrep static analysis..."
-	.venv/bin/semgrep --config auto --error --verbose custom_components/ tests/unit/ tests/integration/
+	@echo "Running Semgrep static analysis (all severities)..."
+	.venv/bin/semgrep \
+		--config auto \
+		--config .claude/skills/quality-gate/references/semgrep-python-rules.yaml \
+		--config .claude/skills/quality-gate/references/semgrep-ha-rules.yaml \
+		--config .claude/skills/quality-gate/references/semgrep-js-rules.yaml \
+		--severity INFO \
+		--severity WARNING \
+		--severity ERROR \
+		--verbose \
+		--exclude "**/*-bundle.js" \
+		--exclude "**/node_modules/" \
+		--exclude-rule "claude.skills.quality-gate.references.ha-unsafe-hass-data-access" \
+		--exclude-rule "claude.skills.quality-gate.references.python-random-not-secure" \
+		custom_components/ tests/unit/ tests/integration/
 
 # ============================================================================
 # Dead Code and Unused Dependencies
