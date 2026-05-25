@@ -35,9 +35,7 @@ class TripManagerState:
         PowerProfile.async_generate_power_profile and ScheduleManager.
         """
         active: list[dict[str, Any]] = [
-            trip
-            for trip in self.recurring_trips.values()
-            if trip.get("activo", True)
+            trip for trip in self.recurring_trips.values() if trip.get("activo", True)
         ] + [
             trip
             for trip in self.punctual_trips.values()

@@ -143,7 +143,9 @@ class SOCWindow:
                 "es_suficiente": True,
             }
 
-        fin_ventana = trip_departure_time or dt_util.now() + timedelta(hours=_DURACION_VIAJE_HORAS)
+        fin_ventana = trip_departure_time or dt_util.now() + timedelta(
+            hours=_DURACION_VIAJE_HORAS
+        )
         delta = fin_ventana - inicio_ventana
         # qg-accepted: AP05 — seconds-to-hours conversion
         ventana_horas = max(0.0, delta.total_seconds() / 3600)

@@ -100,7 +100,9 @@ async def async_setup_entry(
     result = async_add_entities(entities)
     if result is not None:
         # Await if it returns an awaitable (async callback)
-        with suppress(TypeError):  # pragma: no cover reason=sync callback returns None in HA entity platform, causes TypeError when awaited
+        with suppress(
+            TypeError
+        ):  # pragma: no cover reason=sync callback returns None in HA entity platform, causes TypeError when awaited
             await result  # pragma: no cover reason=paired with TypeError above — sync callback result is None
 
     # Capture async_add_entities callback for dynamic service use (task 2.3)
@@ -243,7 +245,9 @@ async def async_create_trip_sensor(
         # Register via async_add_entities so entity appears in registry
         result = async_add_entities([sensor], True)
         if result is not None:
-            with suppress(TypeError):  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
+            with suppress(
+                TypeError
+            ):  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 await result  # pragma: no cover reason=paired with TypeError above — sync callback result is None
         _LOGGER.debug(_LOG_DEBUG_TRIP_SENSOR_CREATED, trip_id)
         return True
@@ -469,7 +473,9 @@ async def async_create_trip_emhass_sensor(
         # Register via async_add_entities so entity appears in registry
         result = async_add_entities([sensor], True)
         if result is not None:
-            with suppress(TypeError):  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
+            with suppress(
+                TypeError
+            ):  # pragma: no cover reason=HA entity platform async_add_entities sync callback returns None which causes TypeError when awaited
                 await result  # pragma: no cover reason=paired with TypeError above — sync callback result is None
         _LOGGER.debug(_LOG_DEBUG_EMHASS_SENSOR_CREATED, trip_id)
         return True

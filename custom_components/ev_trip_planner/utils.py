@@ -45,7 +45,9 @@ def generate_random_suffix(length: int = 6) -> str:
     Returns:
         A random lowercase string of alphanumeric characters.
     """
-    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))  # nosem: python-random-not-secure  — ID suffix, not crypto
+    return "".join(
+        random.choices(string.ascii_lowercase + string.digits, k=length)
+    )  # nosem: python-random-not-secure  — ID suffix, not crypto
 
 
 def _generate_recurrent_trip_id(

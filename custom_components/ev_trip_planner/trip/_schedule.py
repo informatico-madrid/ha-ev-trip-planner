@@ -134,9 +134,7 @@ class TripScheduler:
                 horas_hasta_viaje, horas_necesarias
             )
 
-            for h in range(
-                hora_inicio_carga, min(horas_hasta_viaje, profile_length)
-            ):
+            for h in range(hora_inicio_carga, min(horas_hasta_viaje, profile_length)):
                 power_profiles[idx][h] = charging_power_watts
 
         return power_profiles, num_trips

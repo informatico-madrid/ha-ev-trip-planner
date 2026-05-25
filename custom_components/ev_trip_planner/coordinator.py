@@ -195,10 +195,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             ),
         )
 
-        return (
-            {"recurring_trips": recurring_trips, "punctual_trips": punctual_trips, "kwh_today": kwh_today, "hours_today": hours_today, "next_trip": next_trip}
-            | emhass_data
-        )
+        return {
+            "recurring_trips": recurring_trips,
+            "punctual_trips": punctual_trips,
+            "kwh_today": kwh_today,
+            "hours_today": hours_today,
+            "next_trip": next_trip,
+        } | emhass_data
 
     async def async_refresh_trips(self) -> None:
         """Refresh trip data from TripManager.

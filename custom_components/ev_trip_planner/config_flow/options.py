@@ -83,8 +83,8 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         # Get current values from config entry with safe defaults
         # Use .get() with safe handling for None data
         # Options take precedence over data for options flow (HA best practice)
-        config_data: dict[str, Any] = (
-            dict(self._config_entry.data or {}) | dict(self._config_entry.options or {})
+        config_data: dict[str, Any] = dict(self._config_entry.data or {}) | dict(
+            self._config_entry.options or {}
         )
         # qg-accepted: AP05
         current_battery = config_data.get(CONF_BATTERY_CAPACITY, 60.0)

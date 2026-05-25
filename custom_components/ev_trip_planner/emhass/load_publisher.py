@@ -171,10 +171,7 @@ class LoadPublisher(LoadPublisherBase):
             # qg-accepted: AP05 — max week-hours (7 * 24)
             _ = max(0, min(int(delta_hours), 168))
 
-        if (
-            charging_windows
-            and charging_windows[0].get("fin_ventana")
-        ):
+        if charging_windows and charging_windows[0].get("fin_ventana"):
             fin = charging_windows[0]["fin_ventana"]
             if isinstance(fin, datetime):
                 # qg-accepted: AP05 — seconds-to-hours conversion
