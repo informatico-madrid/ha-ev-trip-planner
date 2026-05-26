@@ -1,6 +1,6 @@
 """Tests for sensor/_async_setup.py uncovered code paths.
 
-Covers _format_window_time, async_setup_entry error paths,
+Covers format_window_time (imported from _helpers), async_setup_entry error paths,
 async_create_trip_sensor, async_update_trip_sensor,
 async_remove_trip_sensor, async_create_trip_emhass_sensor,
 async_remove_trip_emhass_sensor.
@@ -15,38 +15,38 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.ev_trip_planner.sensor._async_setup import (
-    _format_window_time,
     async_create_trip_emhass_sensor,
     async_create_trip_sensor,
     async_remove_trip_emhass_sensor,
     async_remove_trip_sensor,
     async_update_trip_sensor,
 )
+from custom_components.ev_trip_planner.sensor._helpers import format_window_time
 
 
 class TestFormatWindowTime:
-    """Test _format_window_time edge cases."""
+    """Test format_window_time edge cases."""
 
     def test_none_input(self):
-        """None input returns None (line 57)."""
-        assert _format_window_time(None) is None
+        """None input returns None."""
+        assert format_window_time(None) is None
 
     def test_datetime_object(self):
-        """Datetime object returns HH:MM (line 60-66)."""
+        """Datetime object returns HH:MM."""
         dt = datetime(2026, 5, 14, 9, 30, 0, tzinfo=timezone.utc)
-        assert _format_window_time(dt) == "09:30"
+        assert format_window_time(dt) == "09:30"
 
     def test_iso_string(self):
-        """ISO string returns HH:MM (line 62-63)."""
-        assert _format_window_time("2026-05-14T14:45:00+00:00") == "14:45"
+        """ISO string returns HH:MM."""
+        assert format_window_time("2026-05-14T14:45:00+00:00") == "14:45"
 
     def test_wrong_type(self):
-        """Wrong type (int) returns None (line 64-65)."""
-        assert _format_window_time(42) is None
+        """Wrong type (int) returns None."""
+        assert format_window_time(42) is None
 
     def test_exception_on_parse(self):
-        """Exception on fromisoformat returns None (line 67-68)."""
-        assert _format_window_time("not-a-date") is None
+        """Exception on fromisoformat returns None."""
+        assert format_window_time("not-a-date") is None
 
 
 class TestAsyncSetupEntryError:

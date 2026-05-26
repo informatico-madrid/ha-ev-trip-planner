@@ -1134,3 +1134,53 @@ def mock_hass_calc():
     Store.__init__ = original_store_init
     Store.async_load = original_async_load
     Store.async_save = original_async_save
+
+
+# === Shared test helpers for handler factory tests ===
+
+class _MockConfigEntry:
+    """Minimal config entry for handler factory tests."""
+
+    def __init__(self, vehicle_name="test_vehicle"):
+        self.entry_id = "entry_1"
+        self.data = {"vehicle_name": vehicle_name}
+        self.unique_id = vehicle_name
+
+
+def _build_hass(vehicle_name="test_vehicle", manager_cfg=None):
+    """Build a mock hass with a config entry and optional manager."""
+    from custom_components.ev_trip_planner.__init__ import EVTripRuntimeData
+
+    hass = MagicMock()
+    hass.data = {}
+    hass.config_entries = MagicMock()
+
+    entry = _MockConfigEntry(vehicle_name)
+    coordinator = MagicMock()
+    coordinator.async_refresh_trips = AsyncMock()
+
+    manager: MagicMock = AsyncMock()
+    if manager_cfg:
+        for method_name, cfg in manager_cfg.items():
+            mock_obj = AsyncMock(
+                return_value=cfg.get("return_value"),
+                side_effect=cfg.get("side_effect"),
+            )
+            # Handle dot-separated paths like "_crud.async_add_recurring_trip"
+            parts = method_name.split(".", 1)
+            if len(parts) == 2:
+                parent, attr = parts
+                setattr(getattr(manager, parent), attr, mock_obj)
+            else:
+                setattr(manager, method_name, mock_obj)
+    # Ensure async_setup exists
+    manager.async_setup = AsyncMock(return_value=None)
+
+    entry.runtime_data = EVTripRuntimeData(
+        coordinator=coordinator,
+        trip_manager=manager,
+    )
+
+    hass.config_entries.async_entries = MagicMock(return_value=[entry])
+    hass.config_entries.async_get_entry = MagicMock(return_value=entry)
+    return hass, entry, manager, coordinator

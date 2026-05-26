@@ -13,6 +13,12 @@ from .strategy import HomeAssistantWrapper, VehicleControlStrategy
 
 _LOGGER = logging.getLogger(__name__)
 
+# US-5: Extracted log format strings to constants for mutation-killing tests.
+_LOG_SCRIPT_ACTIVATED = "Activated charging via script: %s"
+_LOG_SCRIPT_ERROR = "Error executing script %s: %s"
+_LOG_SCRIPT_DEACTIVATED = "Deactivated charging via script: %s"
+_LOG_EXTERNAL_NOOP = "External strategy: no action taken"
+
 
 class ScriptStrategy(VehicleControlStrategy):
     """Control via script execution."""
@@ -28,12 +34,10 @@ class ScriptStrategy(VehicleControlStrategy):
             await self.hass_wrapper.async_call_service(
                 "script", self.script_on.replace("script.", ""), {}
             )
-            _LOGGER.info("Activated charging via script: %s", self.script_on)
+            _LOGGER.info(_LOG_SCRIPT_ACTIVATED, self.script_on)
             return True
         except Exception as err:
-            _LOGGER.error(
-                "Error executing script %s: %s", self.script_on, err, exc_info=True
-            )
+            _LOGGER.error(_LOG_SCRIPT_ERROR, self.script_on, err, exc_info=True)
             return False
 
     async def async_deactivate(self) -> bool:
@@ -42,12 +46,10 @@ class ScriptStrategy(VehicleControlStrategy):
             await self.hass_wrapper.async_call_service(
                 "script", self.script_off.replace("script.", ""), {}
             )
-            _LOGGER.info("Deactivated charging via script: %s", self.script_off)
+            _LOGGER.info(_LOG_SCRIPT_DEACTIVATED, self.script_off)
             return True
         except Exception as err:  # pragma: no cover reason=script execution failure requires HA runtime
-            _LOGGER.error(
-                "Error executing script %s: %s", self.script_off, err, exc_info=True
-            )
+            _LOGGER.error(_LOG_SCRIPT_ERROR, self.script_off, err, exc_info=True)
             return False  # pragma: no cover reason=paired with above exception handler
 
     async def async_get_status(self) -> bool:
@@ -60,12 +62,12 @@ class ExternalStrategy(VehicleControlStrategy):
 
     async def async_activate(self) -> bool:
         """No-op."""
-        _LOGGER.info("External strategy: no action taken")
+        _LOGGER.info(_LOG_EXTERNAL_NOOP)
         return True
 
     async def async_deactivate(self) -> bool:
         """No-op."""
-        _LOGGER.info("External strategy: no action taken")
+        _LOGGER.info(_LOG_EXTERNAL_NOOP)
         return True
 
     async def async_get_status(self) -> bool:

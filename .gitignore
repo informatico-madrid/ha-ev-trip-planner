@@ -132,3 +132,5 @@ docs/staging-qa-results.md
 **/.progress.md
 test-results1/
 e2e-diagnosis/
+**/.progress.md
+.mutmut-cache/

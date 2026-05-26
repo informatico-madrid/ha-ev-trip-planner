@@ -105,18 +105,21 @@ def test_compute_trip_trip_time_none_tipo():
 def test_multi_trip_windows_null_window_start():
     """When _compute_window_start returns None, the trip is skipped (continue)."""
     from custom_components.ev_trip_planner.calculations.windows import (
+        MultiTripChargingParams,
         calculate_multi_trip_charging_windows,
     )
 
     # Pass an empty trips list to exercise the early return
     result = calculate_multi_trip_charging_windows(
         trips=[],
-        soc_actual=50.0,
-        hora_regreso=None,
-        charging_power_kw=3.6,
-        battery_capacity_kwh=75.0,
-        return_buffer_hours=2.0,
-        safety_margin_percent=10.0,
+        params=MultiTripChargingParams(
+            soc_actual=50.0,
+            hora_regreso=None,
+            charging_power_kw=3.6,
+            battery_capacity_kwh=75.0,
+            return_buffer_hours=2.0,
+            safety_margin_percent=10.0,
+        ),
     )
     assert result == []
 

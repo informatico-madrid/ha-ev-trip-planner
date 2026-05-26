@@ -19,10 +19,13 @@ from ..calculations import (
     calculate_deficit_propagation,
     calculate_dynamic_soc_limit,
 )
+from ..const import DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_SAFETY_MARGIN
+from ._helpers import get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# qg-accepted: AP05 — standard trip duration in hours
 _DURACION_VIAJE_HORAS = 6
 
 
@@ -34,7 +37,7 @@ class VentanaCargaParams:
     soc_actual: float
     hora_regreso: Optional[datetime]
     charging_power_kw: float
-    safety_margin_percent: float = 10.0
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
 
 
 @dataclass(frozen=True)
@@ -45,8 +48,8 @@ class SOCInicioParams:
     soc_inicial: float
     hora_regreso: Optional[datetime]
     charging_power_kw: float
-    battery_capacity_kwh: float = 50.0
-    safety_margin_percent: float = 10.0
+    battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
 
 
 @dataclass(frozen=True)
@@ -56,8 +59,8 @@ class SOCWindowCalculator:
     trips: List[Dict[str, Any]]
     soc_inicial: float
     charging_power_kw: float
-    battery_capacity_kwh: float = 50.0
-    safety_margin_percent: float = 10.0
+    battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
     soh_sensor_entity_id: Optional[str] = None
     t_base: float = DEFAULT_T_BASE
 
@@ -71,8 +74,10 @@ def _parse_hora_regreso(value: Optional[datetime | str]) -> Optional[datetime]:
             parsed = datetime.fromisoformat(value)
         except (ValueError, TypeError):
             return None
-    else:
+    elif isinstance(value, datetime):
         parsed = value
+    else:
+        return None
     if parsed is not None and parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
@@ -116,7 +121,7 @@ class SOCWindow:
             self._state._soc._get_trip_time(params.trips[0]) if params.trips else None
         )
         if trip_departure_time is None and params.trips:
-            dt_str = params.trips[0].get("datetime")
+            dt_str = get_str(params.trips[0], "datetime", "") or None
             if dt_str:
                 trip_departure_time = self._state._soc._parse_trip_datetime(
                     dt_str, allow_none=True
@@ -138,16 +143,15 @@ class SOCWindow:
                 "es_suficiente": True,
             }
 
-        fin_ventana = (
-            trip_departure_time
-            if trip_departure_time
-            else dt_util.now() + timedelta(hours=_DURACION_VIAJE_HORAS)
+        fin_ventana = trip_departure_time or dt_util.now() + timedelta(
+            hours=_DURACION_VIAJE_HORAS
         )
         delta = fin_ventana - inicio_ventana
+        # qg-accepted: AP05 — seconds-to-hours conversion
         ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
         vehicle_config = {
-            "battery_capacity_kwh": 50.0,
+            "battery_capacity_kwh": DEFAULT_BATTERY_CAPACITY_KWH,
             "charging_power_kw": params.charging_power_kw,
             "soc_current": params.soc_actual,
             "safety_margin_percent": params.safety_margin_percent,
@@ -168,7 +172,9 @@ class SOCWindow:
 
         return {
             "ventana_horas": round(ventana_horas, 2),
-            "kwh_necesarios": round(kwh_necesarios, 3),
+            "kwh_necesarios": round(
+                kwh_necesarios, 3
+            ),  # qg-accepted: AP05 — rounding precision
             "horas_carga_necesarias": round(horas_carga_necesarias, 2),
             "inicio_ventana": inicio_ventana,
             "fin_ventana": fin_ventana,
@@ -189,7 +195,9 @@ class SOCWindow:
             trip_time = self._state._soc._get_trip_time(trip)
             if trip_time:
                 sorted_trips.append((trip_time, trip))
-        sorted_trips.sort(key=lambda x: x[0])
+        import operator
+
+        sorted_trips.sort(key=operator.itemgetter(0))
 
         results: List[Dict[str, Any]] = []
         previous_arrival: Optional[datetime] = None
@@ -207,10 +215,11 @@ class SOCWindow:
 
             trip_arrival = trip_departure_time + timedelta(hours=_DURACION_VIAJE_HORAS)
             delta = trip_arrival - window_start
+            # qg-accepted: AP05 — seconds-to-hours conversion
             ventana_horas = max(0.0, delta.total_seconds() / 3600)
 
             vehicle_config = {
-                "battery_capacity_kwh": 50.0,
+                "battery_capacity_kwh": 50.0,  # qg-accepted: AP05 — domain battery capacity
                 "charging_power_kw": params.charging_power_kw,
                 "soc_current": params.soc_actual,
                 "safety_margin_percent": params.safety_margin_percent,
@@ -230,7 +239,9 @@ class SOCWindow:
             results.append(
                 {
                     "ventana_horas": round(ventana_horas, 2),
-                    "kwh_necesarios": round(kwh_necesarios, 3),
+                    "kwh_necesarios": round(
+                        kwh_necesarios, 3
+                    ),  # qg-accepted: AP05 — rounding precision
                     "horas_carga_necesarias": round(horas_carga, 2),
                     "inicio_ventana": window_start,
                     "fin_ventana": trip_departure_time,
@@ -346,13 +357,19 @@ class SOCWindow:
                     try:
                         if getattr(trip_time, "tzinfo", None) is None:
                             trip_time = trip_time.replace(tzinfo=timezone.utc)
+                        # qg-accepted: AP05 — seconds-to-hours conversion
                         t_hours = (trip_time - now_dt).total_seconds() / 3600.0
                     except Exception:
                         t_hours = 0.0
                 else:
                     t_hours = 0.0
+                # BUG-FIX GAP #2: soc_caps must use projected post-trip SOC per trip,
+                # not hardcoded soc_inicial for all trips. The arrival_soc from
+                # soc_inicio_info[i] is the projected SOC after trip i completes,
+                # properly chained from previous trips (soc_actual accumulates).
+                soc_post_trip = soc_inicio_info[i]["arrival_soc"]
                 soc_caps[i] = calculate_dynamic_soc_limit(
-                    t_hours, params.soc_inicial, real_capacity_kwh, t_base=t_base
+                    t_hours, soc_post_trip, real_capacity_kwh, t_base=t_base
                 )
 
             precomputed_soc_targets = [

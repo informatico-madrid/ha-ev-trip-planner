@@ -418,3 +418,157 @@ class TestTripNavigatorNextTrip:
         }
         result = await tm._navigator.async_get_next_trip()
         assert result is None
+
+
+# ── Targeted mutation-kill tests for TripManager.__init__ and _sanitize_recurring_trips ──
+
+
+class TestInitMutationKills:
+    """Tests targeting specific mutmut survivors in TripManager.__init__.
+
+    These add assertions on exact values that kill number/string/boolean mutations
+    in assignment lines.
+    """
+
+    def test_init_entry_id_defaults_to_empty_string(self):
+        """entry_id='' (not None) kills mutations that change default empty string."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        storage = MagicMock(spec=YamlTripStorage)
+        storage.load_recurring = MagicMock(return_value={})
+        storage.load_punctual = MagicMock(return_value={})
+        storage.async_save = AsyncMock()
+        storage.async_load = AsyncMock(return_value={})
+        config = TripManagerConfig(entry_id=None, storage=storage)
+        tm = TripManager(hass=hass, vehicle_id="test_v", config=config)
+        # Mutant on 'entry_id=cfg.entry_id or ""' changes "" → something else
+        # This assertion kills that mutation
+        assert tm._state.entry_id == ""
+
+    def test_init_vehicle_id_assigned_exact(self):
+        """vehicle_id assigned exactly kills string mutation on parameter."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        storage = MagicMock(spec=YamlTripStorage)
+        storage.load_recurring = MagicMock(return_value={})
+        storage.load_punctual = MagicMock(return_value={})
+        storage.async_save = AsyncMock()
+        storage.async_load = AsyncMock(return_value={})
+        config = TripManagerConfig(entry_id="e1", storage=storage)
+        tm = TripManager(hass=hass, vehicle_id="exact_vid", config=config)
+        assert tm._state.vehicle_id == "exact_vid"
+
+    def test_init_sub_component_refs_wired(self):
+        """All sub-component references wired on state kills mutations in wiring."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        storage = MagicMock(spec=YamlTripStorage)
+        storage.load_recurring = MagicMock(return_value={})
+        storage.load_punctual = MagicMock(return_value={})
+        storage.async_save = AsyncMock()
+        storage.async_load = AsyncMock(return_value={})
+        config = TripManagerConfig(entry_id="e1", storage=storage)
+        tm = TripManager(hass=hass, vehicle_id="v1", config=config)
+        # These kill mutations that change None → value or value → None
+        assert tm._state._crud is not None
+        assert tm._state._persistence is not None
+        assert tm._state._lifecycle is not None
+        assert tm._state._emhass_sync is not None
+        assert tm._state._soc_helpers is not None
+        assert tm._state._soc is not None
+        assert tm._state._soc_window is not None
+        assert tm._state._power is not None
+        assert tm._state._schedule is not None
+        assert tm._state._navigator is not None
+        # Verify async_save_trips is bound to persistence method
+        assert tm._state.async_save_trips is not None
+
+    def test_init_vehicle_controller_created(self):
+        """vehicle_controller exists kills mutation in VC creation."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        storage = MagicMock(spec=YamlTripStorage)
+        storage.load_recurring = MagicMock(return_value={})
+        storage.load_punctual = MagicMock(return_value={})
+        storage.async_save = AsyncMock()
+        storage.async_load = AsyncMock(return_value={})
+        config = TripManagerConfig(entry_id="e1", storage=storage)
+        tm = TripManager(hass=hass, vehicle_id="v1", config=config)
+        assert tm._state.vehicle_controller is not None
+        assert hasattr(tm._state.vehicle_controller, "async_setup")
+
+    def test_init_persistence_created(self):
+        """_persistence exists and has async_save_trips."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        storage = MagicMock(spec=YamlTripStorage)
+        storage.load_recurring = MagicMock(return_value={})
+        storage.load_punctual = MagicMock(return_value={})
+        storage.async_save = AsyncMock()
+        storage.async_load = AsyncMock(return_value={})
+        config = TripManagerConfig(entry_id="e1", storage=storage)
+        tm = TripManager(hass=hass, vehicle_id="v1", config=config)
+        assert tm._state._persistence is not None
+        assert hasattr(tm._state._persistence, "async_save_trips")
+        assert hasattr(tm._state._persistence, "async_setup")
+
+    def test_init_no_config_uses_default(self):
+        """No config → TripManagerConfig() default kills mutation on 'config or TripManagerConfig()'."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        tm = TripManager(hass=hass, vehicle_id="no_config_v")
+        assert tm._state.vehicle_id == "no_config_v"
+        assert tm._state.entry_id == ""
+        assert tm._state._crud is not None
+        assert tm._state._persistence is not None
+
+    def test_init_storage_none_when_not_provided(self):
+        """storage=None when config has no storage kills boolean mutation."""
+        hass = MagicMock()
+        hass.config_entries = MagicMock()
+        config = TripManagerConfig()
+        tm = TripManager(hass=hass, vehicle_id="v1", config=config)
+        assert tm._state.storage is None
+
+
+class TestSanitizeRecurringMutationKills:
+    """Tests targeting _sanitize_recurring_trips mutations (manager.py).
+
+    These kill mutations in:
+    - original_count = len(trips)
+    - removed_count = original_count - len(sanitized)
+    - if removed_count > 0
+    """
+
+    def test_sanitize_exact_removed_count(self):
+        """Exact count kills subtraction mutations in removed_count."""
+        tm = _make_tm()
+        trips = {
+            "bad_1": {"hora": "invalid"},
+            "bad_2": {"hora": "bad"},
+            "good_1": {"hora": "14:00"},
+        }
+        result = tm._sanitize_recurring_trips(trips)
+        # Mutant changing len(sanitized) → 0 would make removed_count=3, not 2
+        assert len(result) == 1
+
+    def test_sanitize_all_clean_unchanged(self):
+        """All clean trips → no removal kills if-branch mutation."""
+        tm = _make_tm()
+        trips = {
+            "r1": {"hora": "08:00"},
+            "r2": {"hora": "22:00"},
+        }
+        result = tm._sanitize_recurring_trips(trips)
+        assert len(result) == 2
+
+    def test_sanitize_all_invalid_empty(self):
+        """All invalid → empty dict kills mutation in return path."""
+        tm = _make_tm()
+        trips = {
+            "bad_1": {"hora": "invalid"},
+            "bad_2": {"hora": "bad"},
+        }
+        result = tm._sanitize_recurring_trips(trips)
+        assert result == {}
+        assert len(result) == 0

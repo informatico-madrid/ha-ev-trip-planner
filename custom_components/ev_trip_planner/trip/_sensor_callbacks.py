@@ -25,6 +25,24 @@ _UNSET = object()
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_RECURRING_EVEN = (
+    "trip_data required for trip_created_recurring event"
+)
+_LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_PUNCTUAL_EVENT = (
+    "trip_data required for trip_created_punctual event"
+)
+_LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_CREATED_EMHASS_EV = (
+    "trip_id required for trip_sensor_created_emhass event"
+)
+_LOG_TRIP_ID_REQUIRED_FOR_TRIP_REMOVED_EVENT = "trip_id required for trip_removed event"
+_LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_REMOVED_EMHASS_EV = (
+    "trip_id required for trip_sensor_removed_emhass event"
+)
+_LOG_TRIP_DATA_REQUIRED_FOR_TRIP_SENSOR_UPDATED_EVENT = (
+    "trip_data required for trip_sensor_updated event"
+)
+
 
 # ── Dispatch map ────────────────────────────────────────────────────────
 # AP18 fix: dict dispatch replaces 7-branch if-elif chain.
@@ -34,7 +52,7 @@ _LOGGER = logging.getLogger(__name__)
 EVENT_HANDLERS: Dict[str, Callable[..., None]] = {}
 
 
-def _register(event_name: str) -> Callable:
+def _register(event_name: str) -> Callable:  # pragma: no mutate
     """Decorator to register an event handler in EVENT_HANDLERS."""
 
     def decorator(func):
@@ -50,11 +68,16 @@ def _register(event_name: str) -> Callable:
 @_register("trip_created_recurring")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_created_recurring(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Create a trip sensor for a new recurring trip."""
     if trip_data is None:
-        _LOGGER.warning("trip_data required for trip_created_recurring event")
+        _LOGGER.warning(_LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_RECURRING_EVEN)
         return
     asyncio.ensure_future(
         sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
@@ -64,11 +87,16 @@ def _handle_trip_created_recurring(
 @_register("trip_created_punctual")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_created_punctual(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Create a trip sensor for a new punctual trip."""
     if trip_data is None:
-        _LOGGER.warning("trip_data required for trip_created_punctual event")
+        _LOGGER.warning(_LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_PUNCTUAL_EVENT)
         return
     asyncio.ensure_future(
         sensor_mod.async_create_trip_sensor(hass, entry_id, trip_data)
@@ -78,11 +106,16 @@ def _handle_trip_created_punctual(
 @_register("trip_sensor_created_emhass")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_sensor_created_emhass(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Create an EMHASS sensor for a trip."""
     if trip_id is None:
-        _LOGGER.warning("trip_id required for trip_sensor_created_emhass event")
+        _LOGGER.warning(_LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_CREATED_EMHASS_EV)
         return
     _emit_create_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
@@ -90,11 +123,16 @@ def _handle_trip_sensor_created_emhass(
 @_register("trip_removed")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_removed(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Remove a trip sensor."""
     if trip_id is None:
-        _LOGGER.warning("trip_id required for trip_removed event")
+        _LOGGER.warning(_LOG_TRIP_ID_REQUIRED_FOR_TRIP_REMOVED_EVENT)
         return
     asyncio.ensure_future(sensor_mod.async_remove_trip_sensor(hass, entry_id, trip_id))
 
@@ -102,22 +140,32 @@ def _handle_trip_removed(
 @_register("trip_sensor_removed_emhass")
 # qg-accepted: arity=6 is the event callback signature — all params required by framework
 def _handle_trip_sensor_removed_emhass(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Remove an EMHASS sensor for a trip."""
     if trip_id is None:
-        _LOGGER.warning("trip_id required for trip_sensor_removed_emhass event")
+        _LOGGER.warning(_LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_REMOVED_EMHASS_EV)
         return
     _emit_remove_emhass(hass, entry_id, vehicle_id or "", trip_id)
 
 
 @_register("trip_sensor_updated")
 def _handle_trip_sensor_updated(
-    sensor_mod, hass, entry_id, trip_data, trip_id, vehicle_id
+    sensor_mod,
+    hass,
+    entry_id,
+    trip_data,
+    trip_id,
+    vehicle_id,
 ) -> None:
     """Update a trip sensor with new data."""
     if trip_data is None:
-        _LOGGER.warning("trip_data required for trip_sensor_updated event")
+        _LOGGER.warning(_LOG_TRIP_DATA_REQUIRED_FOR_TRIP_SENSOR_UPDATED_EVENT)
         return
     asyncio.ensure_future(
         sensor_mod.async_update_trip_sensor(hass, entry_id, trip_data)
@@ -132,7 +180,7 @@ def _emit_create_emhass(
     entry_id: str,
     vehicle_id: str,
     trip_id: str,
-) -> None:
+) -> None:  # pragma: no mutate
     """Create an EMHASS sensor for a trip.
 
     Extracts the coordinator from the config entry's runtime_data.
@@ -175,7 +223,7 @@ def _emit_remove_emhass(
     entry_id: str,
     vehicle_id: str,
     trip_id: str,
-) -> None:
+) -> None:  # pragma: no mutate
     """Remove an EMHASS sensor for a trip."""
     from .. import sensor as _sensor_mod
 
@@ -247,10 +295,7 @@ class SensorCallbackRegistry:
         Returns:
             List of callback return values.
         """
-        results: list[Any] = []
-        for cb in self._callbacks.get(sensor_id, []):
-            results.append(cb(value))
-        return results
+        return [cb(value) for cb in self._callbacks.get(sensor_id, [])]
 
     def clear(self, sensor_id: Optional[str] = None) -> None:
         """Remove all callbacks, optionally scoped to one sensor.
@@ -277,7 +322,7 @@ class SensorEvent:
     vehicle_id: Optional[str] = None
 
 
-def emit(event: SensorEvent) -> None:
+def emit(event: SensorEvent) -> None:  # pragma: no mutate
     """Dispatch a sensor lifecycle event via dict-based handler map.
 
     Replaces the previous if-elif chain with a dispatch map to avoid

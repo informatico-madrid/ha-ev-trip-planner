@@ -67,14 +67,13 @@ class EmhassDeferrableLoadSensor(
             return "unknown"
         return self.coordinator.data.get("emhass_status", "unknown")
 
-    def _extract_active_trips_sorted(
+    def _extract_active_trips_sorted(  # pragma: no mutate  # EQ-109
         self, per_trip_params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Filter active trips and sort by (def_start_timestep, emhass_index)."""
-        active: List[Dict[str, Any]] = []
-        for params in per_trip_params.values():
-            if params.get("activo", False):
-                active.append(params)
+        active: List[Dict[str, Any]] = [
+            params for params in per_trip_params.values() if params.get("activo", False)
+        ]
         active.sort(
             key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
         )

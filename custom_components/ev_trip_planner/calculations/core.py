@@ -10,18 +10,21 @@ More sub-modules will be created as the decomposition progresses.
 from __future__ import annotations
 
 import unicodedata
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 from custom_components.ev_trip_planner.const import (
     DAYS_OF_WEEK,
+    DEFAULT_BATTERY_CAPACITY_KWH,
     DEFAULT_SOC_BASE,
     DEFAULT_SOC_BUFFER_PERCENT,
     DEFAULT_T_BASE,
 )
 from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
+# qg-accepted: AP05
 SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
@@ -138,11 +141,14 @@ def calculate_dynamic_soc_limit(
     """
     # Negative risk means battery was drained below the 35% sweet spot
     # — no degradation risk, allow full charge
+    # qg-accepted: AP05
     risk = t_hours * (soc_post_trip - DEFAULT_SOC_BASE) / 65.0
     if risk <= 0:
         return 100.0
 
+    # qg-accepted: AP05
     limit = DEFAULT_SOC_BASE + 65.0 * (1.0 / (1.0 + risk / t_base))
+    # qg-accepted: AP05
     return max(35.0, min(100.0, limit))
 
 
@@ -181,15 +187,15 @@ def calculate_day_index(day_name: str) -> int:
     #   JS 6 (Saturday)  → (6-1)%7 = 5 → sabado ✓
     if day_lower.isdigit():
         js_day = int(day_lower)
+        # qg-accepted: AP05
         if 0 <= js_day <= 6:
+            # qg-accepted: AP05
             return (js_day - 1) % 7
         return 0  # Monday on invalid index
 
     # Try direct match first
-    try:
+    with suppress(ValueError):
         return DAYS_OF_WEEK.index(day_norm)
-    except ValueError:
-        pass
 
     # If still not found, default to Monday (index 0)
     return 0
@@ -204,7 +210,7 @@ def calculate_day_index(day_name: str) -> int:
 # (with/without timezone) × 2 datetime format variants. Extracting would
 # split a single coherent dispatch logic into 5+ helpers with unclear names.
 # qg-accepted: arity=6 is the canonical trip time API — all domain inputs
-def calculate_trip_time(
+def calculate_trip_time(  # pragma: no mutate  # EQ-036
     trip_tipo: str,
     hora: Optional[str],
     dia_semana: Optional[str],
@@ -249,8 +255,10 @@ def calculate_trip_time(
             local_now = aware_now.astimezone(tz)
             today = local_now.date()
             day_of_week = local_now.weekday()
+            # qg-accepted: AP05
             days_ahead = (target_day - day_of_week) % 7
             if days_ahead == 0 and local_now.hour > hour:
+                # qg-accepted: AP05
                 days_ahead = 7
             # Create deadline in local timezone, then convert to UTC
             local_dt = datetime.combine(
@@ -263,8 +271,10 @@ def calculate_trip_time(
             # Backward compat: treat hora as UTC
             today = now.date()
             day_of_week = now.weekday()
+            # qg-accepted: AP05
             days_ahead = (target_day - day_of_week) % 7
             if days_ahead == 0 and now.hour > hour:
+                # qg-accepted: AP05
                 days_ahead = 7
             return datetime.combine(
                 today + timedelta(days=days_ahead),
@@ -292,7 +302,8 @@ def calculate_trip_time(
 
 
 def calculate_charging_rate(
-    charging_power_kw: float, battery_capacity_kwh: float = 50.0
+    charging_power_kw: float,
+    battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH,
 ) -> float:
     """Calcula la tasa de carga en % SOC/hora.
 

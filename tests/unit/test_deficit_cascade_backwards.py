@@ -41,15 +41,15 @@ class TestDeficitCascadeBackwards:
     """Verify cascading deficit propagates backwards through ALL windows in chain."""
 
     def test_two_trips_cascade_to_first(self):
-        """T3 deficit origin is zeroed out, cascades through T2 → T1 absorbs it.
+        """T3 deficit origin charges ceil(window)=4h, cascades through T2 → T1 absorbs it.
 
         New algorithm: only the FIRST trip with own deficit is the origin.
-        Origin is zeroed out (adjusted=0), deficit cascades backwards.
+        Origin charges ceil(window) if window > 0, deficit cascades backwards.
         Trips after origin are unchanged.
 
         T1: window=10h, needs=2h → spare=8h
         T2: window=4h, needs=4h → spare=0h (passes through)
-        T3: window=4h, needs=6h → deficit=2h (ORIGIN, zeroed out)
+        T3: window=4h, needs=6h → deficit=2h (ORIGIN, adjusted=ceil(4)=4)
         """
         windows = [
             {"ventana_horas": 10, "horas_carga_necesarias": 2},
@@ -58,10 +58,10 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T3: deficit origin — zeroed out
+        # T3: deficit origin — charges ceil(window)=4h
         assert results[2]["deficit_hours_propagated"] == 0.0
         assert results[2]["deficit_hours_to_propagate"] == 2.0
-        assert results[2]["adjusted_def_total_hours"] == 0.0
+        assert results[2]["adjusted_def_total_hours"] == 4.0
 
         # T2: zero spare, passes deficit through unchanged
         assert results[1]["deficit_hours_propagated"] == 0.0
@@ -74,10 +74,10 @@ class TestDeficitCascadeBackwards:
         assert results[0]["adjusted_def_total_hours"] == 4.0
 
     def test_four_trips_chain_cascade(self):
-        """4-trip chain: first deficit trip is origin, zeroed out, cascades backwards.
+        """4-trip chain: first deficit trip is origin, charges ceil(window), cascades backwards.
 
         T1: window=10h, needs=2h → spare=8h
-        T2: window=4h, needs=5h → deficit=1h (ORIGIN, zeroed out)
+        T2: window=4h, needs=5h → deficit=1h (ORIGIN, charges ceil(4)=4h)
         T3: window=4h, needs=4h → spare=0h (unchanged, after origin)
         T4: window=4h, needs=6h → deficit=2h (unchanged, after origin)
 
@@ -92,10 +92,10 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T2: deficit origin — zeroed out, deficit cascades backwards
+        # T2: deficit origin — charges ceil(window)=4h
         assert results[1]["deficit_hours_propagated"] == 0.0
         assert results[1]["deficit_hours_to_propagate"] == 1.0
-        assert results[1]["adjusted_def_total_hours"] == 0.0
+        assert results[1]["adjusted_def_total_hours"] == 4.0
 
         # T3: after origin, unchanged
         assert results[2]["deficit_hours_propagated"] == 0.0
@@ -113,9 +113,9 @@ class TestDeficitCascadeBackwards:
         assert results[0]["adjusted_def_total_hours"] == 3.0
 
     def test_first_trip_also_has_deficit(self):
-        """T1 is deficit origin, zeroed out, no trip before it to absorb.
+        """T1 is deficit origin — charges ceil(window), no trip before it to absorb.
 
-        T1: window=2h, needs=3h → deficit=1h (ORIGIN, zeroed out)
+        T1: window=2h, needs=3h → deficit=1h (ORIGIN, charges ceil(2)=2h)
         T2: window=4h, needs=5h → deficit=1h (after origin, unchanged)
         T3: window=4h, needs=6h → deficit=2h (after origin, unchanged)
 
@@ -128,10 +128,10 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T1: deficit origin — zeroed out, cascades 1h backwards (nowhere)
+        # T1: deficit origin — charges ceil(2)=2h, cascades 1h backwards (nowhere)
         assert results[0]["deficit_hours_propagated"] == 0.0
         assert results[0]["deficit_hours_to_propagate"] == 1.0
-        assert results[0]["adjusted_def_total_hours"] == 0.0
+        assert results[0]["adjusted_def_total_hours"] == 2.0
 
         # T2: after origin, unchanged
         assert results[1]["deficit_hours_propagated"] == 0.0
@@ -255,17 +255,28 @@ class TestAdapterDeficitCascadeIntegration:
                 "def_end_timestep": 109,
                 "charging_window": [{"ventana_horas": 0, "horas_carga_necesarias": 2}],
                 "emhass_index": 2,
+                "p_deferrable_matrix": [[3600.0 if 100 <= i < 102 else 0.0 for i in range(168)]],  # BUG: 2h charging at slots 100-101 BEFORE cascade
             },
         }
 
         adapter._apply_deficit_propagation()
 
-        # Trip C: origin zeroed out
-        assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 0.0
+        # Trip C: origin zeroed out (zero window cannot charge)
+        assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 0
         # Trip B: absorbs 2h from trip C
-        assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4.0
+        assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4
         # Trip A: unaffected
-        assert adapter._cached_per_trip_params["trip_a"]["def_total_hours"] == 2.0
+        assert adapter._cached_per_trip_params["trip_a"]["def_total_hours"] == 2
+
+        # p_deferrable_matrix must be recalculated after deficit propagation.
+        # Origin trip_c with def_total=0 must have all-zeros matrix.
+        trip_c_matrix = adapter._cached_per_trip_params["trip_c"].get("p_deferrable_matrix", [])
+        assert len(trip_c_matrix) > 0, "trip_c should have p_deferrable_matrix"
+        trip_c_row = trip_c_matrix[0]
+        assert all(v == 0 for v in trip_c_row), (
+            f"trip_c p_deferrable_matrix should be all zeros (origin with def_total=0), "
+            f"got non-zero values at indices {[i for i, v in enumerate(trip_c_row) if v != 0]}"
+        )
 
         # Window order preserved (start times must be ordered; end times can share boundary)
         assert (
@@ -375,7 +386,7 @@ class TestAdapterDeficitCascadeIntegration:
 
         # Trip_b absorbed 2h: int=4
         assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4
-        # Trip_c is zeroed: int=0
+        # Trip_c keeps its original: int=0 (CORRECT - zero window has zero charging hours)
         assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 0
 
     @pytest.mark.asyncio

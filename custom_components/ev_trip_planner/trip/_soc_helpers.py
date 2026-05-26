@@ -7,6 +7,7 @@ All methods are private (prefixed with _).
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -14,16 +15,26 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 
 from ..calculations import (
-    calculate_charging_rate,
+    calculate_charging_rate,  # pragma: no mutate  # EQ-129
     calculate_day_index,
     calculate_soc_target,
     calculate_trip_time,
 )
-from ..const import CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER, DOMAIN
+from ..const import (
+    CONF_CHARGING_POWER,
+    DEFAULT_BATTERY_CAPACITY_KWH,
+    DEFAULT_CHARGING_POWER,
+    DOMAIN,
+)
 from ..utils import is_trip_today as pure_is_trip_today
+from ._helpers import get_str
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
+
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_PARSE_FAILED_WARNING = "Failed to parse trip datetime: %s, falling back to now"
+_LOG_PARSE_REPR_WARNING = "Failed to parse trip datetime: %s"
 
 
 class SOCHelpers:
@@ -50,19 +61,16 @@ class SOCHelpers:
             if parsed is not None and parsed.tzinfo is None:
                 parsed = parsed.replace(tzinfo=timezone.utc)
             if parsed is None:
-                _LOGGER.warning(
-                    "Failed to parse trip datetime: %s, falling back to now",
-                    repr(trip_datetime),
-                )
+                _LOGGER.warning(_LOG_PARSE_FAILED_WARNING, repr(trip_datetime))
                 return None if allow_none else datetime.now(timezone.utc)
             return parsed
         except Exception:
-            _LOGGER.warning("Failed to parse trip datetime: %s", repr(trip_datetime))
+            _LOGGER.warning(_LOG_PARSE_REPR_WARNING, repr(trip_datetime))
             return None if allow_none else datetime.now(timezone.utc)
 
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
-        try:
+        with suppress(Exception):
             entry: Optional[ConfigEntry[Any]] = None
             for config_entry in self._state.hass.config_entries.async_entries(DOMAIN):
                 if config_entry.data.get("vehicle_name") == self._state.vehicle_id:
@@ -72,12 +80,12 @@ class SOCHelpers:
                 power = entry.data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
                 if isinstance(power, (int, float)) and power > 0:
                     return float(power)
-        except Exception:
-            pass
         return DEFAULT_CHARGING_POWER
 
     def _calcular_tasa_carga_soc(
-        self, charging_power_kw: float, battery_capacity_kwh: float = 50.0
+        self,
+        charging_power_kw: float,
+        battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH,
     ) -> float:
         """Calcula la tasa de carga en % SOC/hora."""
         return calculate_charging_rate(charging_power_kw, battery_capacity_kwh)
@@ -102,9 +110,9 @@ class SOCHelpers:
             return None
         result = calculate_trip_time(
             tipo,
-            trip.get("hora"),
-            trip.get("dia_semana"),
-            trip.get("datetime"),
+            get_str(trip, "hora", "") or None,
+            get_str(trip, "dia_semana", "") or None,
+            get_str(trip, "datetime", "") or None,
             datetime.now(timezone.utc),
         )
         if result is not None:

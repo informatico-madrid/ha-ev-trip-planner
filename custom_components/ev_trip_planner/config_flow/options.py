@@ -32,6 +32,8 @@ from ..const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_DEBUG_OPTIONS_INIT = "Options flow step init: showing form"
+
 # ---------------------------------------------------------------------------
 # EVTripPlannerOptionsFlowHandler
 # ---------------------------------------------------------------------------
@@ -48,7 +50,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         """Paso inicial del flujo de opciones."""
-        _LOGGER.debug("Options flow step init: showing form")
+        _LOGGER.debug(_LOG_DEBUG_OPTIONS_INIT)
 
         if user_input is not None:
             _LOGGER.debug(
@@ -81,11 +83,12 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
         # Get current values from config entry with safe defaults
         # Use .get() with safe handling for None data
         # Options take precedence over data for options flow (HA best practice)
-        config_data: dict[str, Any] = {
-            **dict(self._config_entry.data or {}),
-            **dict(self._config_entry.options or {}),
-        }
+        config_data: dict[str, Any] = dict(self._config_entry.data or {}) | dict(
+            self._config_entry.options or {}
+        )
+        # qg-accepted: AP05
         current_battery = config_data.get(CONF_BATTERY_CAPACITY, 60.0)
+        # qg-accepted: AP05
         current_charging = config_data.get(CONF_CHARGING_POWER, 11.0)
         current_consumption = config_data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)
         current_safety = config_data.get(CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN)
@@ -115,7 +118,7 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
                         default=current_t_base,
                         description={
                             "suggested_value": current_t_base,
-                            "placeholder": f"{current_t_base}",
+                            "placeholder": str(current_t_base),
                             "description": (
                                 "Tiempo que puedes mantener la batería a alto SOC sin dañarla. "
                                 "Valores más bajos = protección más agresiva de la batería. "

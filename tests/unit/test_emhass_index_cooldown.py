@@ -7,11 +7,13 @@ The SOLID refactor (Spec 3) extracted IndexManager as a separate component.
 If IndexManager doesn't implement the cooldown logic, this is a regression.
 
 Key method names in SOLID code:
-- IndexManager.assign_index(trip_id) → int (was async_assign_index_to_trip)
-- IndexManager.release_index(trip_id) → bool
+- IndexManager.assign_index(trip_id) -> int (was async_assign_index_to_trip)
+- IndexManager.release_index(trip_id) -> bool
 """
 
 from __future__ import annotations
+
+from unittest.mock import patch
 
 from custom_components.ev_trip_planner.emhass.index_manager import IndexManager
 
@@ -97,3 +99,46 @@ class TestIndexManagerCooldowndRegression:
         # With cooldown active, the released index 0 is skipped and 1 is assigned
         idx1 = mgr.assign_index("trip_1")
         assert idx1 == 1, f"Cooldown should skip released index 0, got {idx1}."
+
+    def test_cooldown_skips_index_1_mutation_kill(self):
+        """Mutation kill test: released index 1 must be skipped.
+
+        Kills the mutmut 10 mutant in index_manager.assign_index():
+        `attempt += 1` -> `attempt = 1` creates an infinite loop when
+        index 1 is in cooldown.
+
+        We mock _is_index_in_cooldown to distinguish the mutation from
+        the real code. The real code calls it at most 2 times
+        (check index 1 -> in cooldown, check index 2 -> available).
+        The mutation would call it thousands of times (looping on 1).
+        Using side_effect to raise after 10 calls catches the mutation.
+        """
+        mgr = IndexManager(max_deferrable_loads=5, cooldown_hours=24)
+
+        idx0 = mgr.assign_index("trip_0")
+        assert idx0 == 0
+
+        idx1 = mgr.assign_index("trip_1")
+        assert idx1 == 1
+
+        # Release index 1 — puts it in cooldown
+        released = mgr.release_index("trip_1")
+        assert released is True
+        assert "trip_1" not in mgr._index_map
+
+        call_count = [0]
+
+        def mock_is_in_cooldown(index):
+            call_count[0] += 1
+            if call_count[0] > 10:
+                raise RuntimeError(
+                    "Mutation detected: _is_index_in_cooldown called too many times"
+                )
+            # Return True for index 1 (in cooldown), False for others
+            return index == 1
+
+        with patch.object(
+            mgr, "_is_index_in_cooldown", side_effect=mock_is_in_cooldown
+        ):
+            idx2 = mgr.assign_index("trip_2")
+            assert idx2 == 2

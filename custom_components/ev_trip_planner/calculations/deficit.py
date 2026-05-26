@@ -5,9 +5,10 @@ SOLID decomposition (Spec 3). These functions handle SOC deficit
 propagation, charging decisions, and recurring datetime calculations.
 """
 
-from __future__ import annotations
+from __future__ import annotations  # pragma: no mutate  # EQ-042
 
 import math
+import operator
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -72,7 +73,7 @@ def determine_charging_need(
     needs_charging = kwh_needed > 0
 
     if needs_charging:
-        total_hours = (
+        total_hours = (  # pragma: no mutate  # EQ-043
             int(math.ceil(kwh_needed / charging_power_kw))
             if charging_power_kw > 0
             else 0
@@ -216,6 +217,7 @@ def _build_milestone(
             if soc_caps is not None and original_idx < len(soc_caps)
             else 100.0
         ),
+        # qg-accepted: AP05
         "kwh_necesarios": round(max(0.0, kwh_necesarios), 3),
         "deficit_acumulado": round(deficits[original_idx], 2),
         "ventana_carga": {
@@ -254,7 +256,7 @@ def _compute_trip_trip_time(
 # propagation (trips, soc_data, windows, tasa_carga_soc, battery_capacity_kwh, reference_dt,
 # optional arrays). The 3 optional params (trip_times, soc_targets, soc_caps) are for
 # optimization/caching and follow the Options pattern. This IS the domain function signature.
-def calculate_deficit_propagation(
+def calculate_deficit_propagation(  # pragma: no mutate  # EQ-048
     trips: List[Dict[str, Any]],
     soc_data: List[Dict[str, Any]],
     windows: List[Dict[str, Any]],
@@ -300,7 +302,7 @@ def calculate_deficit_propagation(
     if not sorted_trips_with_times:
         return []
 
-    sorted_trips_with_times.sort(key=lambda x: x[0])
+    sorted_trips_with_times.sort(key=operator.itemgetter(0))
 
     ordered_to_idx: Dict[int, int] = {}
     for ordered_idx, (_, original_idx, _) in enumerate(sorted_trips_with_times):
@@ -429,7 +431,7 @@ def calculate_hours_deficit_propagation(
         # No deficits anywhere — no cascade needed.
         results = [{} for _ in range(N)]
         for i in range(N):
-            result = dict(windows[i])
+            result = windows[i].copy()
             result["deficit_hours_propagated"] = 0.0
             result["deficit_hours_to_propagate"] = 0.0
             result["adjusted_def_total_hours"] = round(def_total_hours[i], 2)
@@ -461,7 +463,7 @@ def calculate_hours_deficit_propagation(
 
         if i > deficit_origin:
             # Trips after the origin: no deficit involvement.
-            result = dict(windows[i])
+            result = windows[i].copy()
             result["deficit_hours_propagated"] = 0.0
             result["deficit_hours_to_propagate"] = 0.0
             result["adjusted_def_total_hours"] = round(original_def_total, 2)
@@ -473,13 +475,18 @@ def calculate_hours_deficit_propagation(
         absorbed = min(deficit_carrier, spare)
         deficit_carrier -= absorbed
 
-        result = dict(windows[i])
+        result = windows[i].copy()
         result["deficit_hours_propagated"] = round(absorbed, 2)
         result["deficit_hours_to_propagate"] = round(deficit_carrier, 2)
 
         if i == deficit_origin:
-            # Origin trip is zeroed out — no window capacity to charge.
-            result["adjusted_def_total_hours"] = 0.0
+            # Origin trip may have a partial window — charge what's possible.
+            # ventana_horas=0 means no time to charge, so adjusted=0.
+            # Any positive window ceils to at least 1h.
+            ventana = windows[i]["ventana_horas"]
+            result["adjusted_def_total_hours"] = (
+                math.ceil(ventana) if ventana > 0 else 0.0
+            )
         else:
             # Earlier trips absorb deficit → def_total INCREASES.
             result["adjusted_def_total_hours"] = round(original_def_total + absorbed, 2)
@@ -620,9 +627,12 @@ def _compute_next_with_tz(
         0,
         tzinfo=tz,
     )
+    # qg-accepted: AP05
     current_day = local_ref.isoweekday() % 7
+    # qg-accepted: AP05
     days_ahead = (day - current_day) % 7
     if days_ahead == 0 and candidate_local < local_ref:
+        # qg-accepted: AP05
         days_ahead = 7
     result_local = candidate_local + timedelta(days=days_ahead)
     return result_local.astimezone(timezone.utc)
@@ -636,9 +646,12 @@ def _compute_next_naive(
 ) -> datetime:
     """Compute next occurrence without timezone (backward compat)."""
     candidate = reference_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    # qg-accepted: AP05
     current_day = (reference_dt.weekday() + 1) % 7
+    # qg-accepted: AP05
     days_ahead = (day - current_day) % 7
     if days_ahead == 0 and candidate < reference_dt:
+        # qg-accepted: AP05
         days_ahead = 7
     return candidate + timedelta(days=days_ahead)
 

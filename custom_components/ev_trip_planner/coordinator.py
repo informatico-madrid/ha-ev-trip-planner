@@ -26,6 +26,27 @@ from .trip import TripManager
 
 _LOGGER = logging.getLogger(__name__)
 
+# qg-accepted: AP05 — standard polling interval for trip planning (2min > HA default 30s)
+UPDATE_INTERVAL_SECONDS = 120
+
+# E2E-DEBUG-CRITICAL: Log string constants — extracted for testability
+# Mutations on these strings are testable via assert on the constant values.
+_LOG_UPDATE_DATA_CALLED = (
+    "E2E-DEBUG coordinator _async_update_data called for vehicle %s"
+)
+_LOG_UPDATE_DATA_TRIPS_BEFORE = (
+    "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
+)
+_LOG_UPDATE_DATA_RETURNING = (
+    "E2E-DEBUG coordinator _async_update_data: returning data with keys=%s"
+)
+_LOG_REFRESH_TRIPS_START = (
+    "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s"
+)
+_LOG_REFRESH_TRIPS_DONE = (
+    "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s"
+)
+
 
 @dataclass(frozen=True)
 class CoordinatorConfig:
@@ -33,6 +54,7 @@ class CoordinatorConfig:
 
     emhass_adapter: EMHASSAdapter | None = None
     logger: logging.Logger | None = None
+    update_interval: timedelta = timedelta(seconds=UPDATE_INTERVAL_SECONDS)
 
 
 class TripPlannerCoordinator(DataUpdateCoordinator):
@@ -42,6 +64,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
     reading from TripManager on each refresh cycle and exposing it via
     coordinator.data for all sensors to consume via CoordinatorEntity pattern.
 
+    update_interval: 120s — balanced for trip planning, not real-time telemetry.
     Data contract (Phase 1 - EMHASS keys as None):
         {
             "recurring_trips": dict of trip_id -> trip_data,
@@ -54,6 +77,9 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "emhass_status": None,             # "ready" | "computing" | None
         }
     """
+
+    # qg-accepted: AP05 — standard polling interval for trip planning (2min > HA default 30s)
+    update_interval = timedelta(seconds=UPDATE_INTERVAL_SECONDS)  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -75,7 +101,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             hass,
             logger=cfg.logger or _LOGGER,
             name=f"{DOMAIN} ({entry.entry_id})",
-            update_interval=timedelta(seconds=30),
+            update_interval=cfg.update_interval,
         )
         self._trip_manager = trip_manager
         self._entry = entry
@@ -109,13 +135,11 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         """
         # E2E-DEBUG-CRITICAL: Log when _async_update_data is called
         _LOGGER.debug(
-            "E2E-DEBUG coordinator _async_update_data called for vehicle %s",
+            _LOG_UPDATE_DATA_CALLED,
             self._vehicle_id,
         )
         # E2E-DEBUG-CRITICAL: Log current trips from trip_manager
-        _LOGGER.debug(
-            "E2E-DEBUG coordinator _async_update_data: trip_manager trips before EMHASS fetch"
-        )
+        _LOGGER.debug(_LOG_UPDATE_DATA_TRIPS_BEFORE)
         # Get recurring trips as list, convert to dict keyed by trip_id
         recurring_list = await self._trip_manager._crud.async_get_recurring_trips()
         recurring_trips = {trip["id"]: trip for trip in recurring_list if "id" in trip}
@@ -151,7 +175,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
 
         # E2E-DEBUG-CRITICAL: Log complete returned coordinator.data structure
         _LOGGER.debug(
-            "E2E-DEBUG coordinator _async_update_data: returning data with keys=%s",
+            _LOG_UPDATE_DATA_RETURNING,
             list(
                 {
                     "recurring_trips": recurring_trips,
@@ -177,8 +201,7 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
             "kwh_today": kwh_today,
             "hours_today": hours_today,
             "next_trip": next_trip,
-            **emhass_data,
-        }
+        } | emhass_data
 
     async def async_refresh_trips(self) -> None:
         """Refresh trip data from TripManager.
@@ -187,13 +210,13 @@ class TripPlannerCoordinator(DataUpdateCoordinator):
         to trigger an immediate refresh of the coordinator data.
         """
         _LOGGER.debug(
-            "E2E-DEBUG async_refresh_trips START for vehicle %s — coordinator.data=%s",
+            _LOG_REFRESH_TRIPS_START,
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
         )
         await self.async_refresh()
         _LOGGER.debug(
-            "E2E-DEBUG async_refresh_trips DONE for vehicle %s — coordinator.data=%s",
+            _LOG_REFRESH_TRIPS_DONE,
             self._vehicle_id,
             "None" if self.data is None else list(self.data.keys()),
         )

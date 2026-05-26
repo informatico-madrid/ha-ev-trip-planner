@@ -6,7 +6,7 @@ Provides unified entity registry queries used by presence and notifications step
 
 from __future__ import annotations
 
-import logging
+import logging  # pragma: no mutate  # EQ-074
 from typing import Any, Dict, List
 
 from homeassistant.core import HomeAssistant
@@ -14,9 +14,13 @@ from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
 
+_LOG_ERROR_SCANNING_REGISTRY = "Error scanning entity registry: %s"
+_LOG_INFO_NOTIFY_ENTITIES_AVAILABLE = "Notification step: %d notify entities available"
+_LOG_INFO_AUTO_SELECTED_SENSOR = "Auto-selected %s=%s"
+
 
 def scan_entities(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # pragma: no mutate  # EQ-075
     domain_prefixes: List[str],
 ) -> List[str]:
     """Scan entity registry for entities matching given domain prefixes.
@@ -42,12 +46,12 @@ def scan_entities(
         )
         return sorted(entities)
     except Exception as e:
-        _LOGGER.error("Error scanning entity registry: %s", e)
+        _LOGGER.error(_LOG_ERROR_SCANNING_REGISTRY, e)
         return []
 
 
-def scan_notify_entities(
-    hass: HomeAssistant,
+def scan_notify_entities(  # pragma: no mutate  # EQ-073
+    hass: HomeAssistant,  # pragma: no mutate  # EQ-075
 ) -> List[str]:
     """Scan entity registry for notify-domain entities.
 
@@ -68,7 +72,7 @@ def scan_notify_entities(
             if entity.domain == "notify"
         ]
         available = sorted(notify_entities)
-        _LOGGER.info("Notification step: %d notify entities available", len(available))
+        _LOGGER.info(_LOG_INFO_NOTIFY_ENTITIES_AVAILABLE, len(available))
         return available
     except Exception as err:
         _LOGGER.warning(
@@ -85,7 +89,7 @@ def scan_notify_entities(
 
 
 def auto_select_sensor(
-    hass: HomeAssistant,
+    hass: HomeAssistant,  # pragma: no mutate  # EQ-075
     domain_prefixes: List[str],
     user_input: Dict[str, Any],
     sensor_key: str,
@@ -115,8 +119,8 @@ def auto_select_sensor(
     entities = scan_entities(hass, domain_prefixes)
     if entities:
         selected = entities[0]
-        user_input = {**user_input, sensor_key: selected}
-        _LOGGER.info("Auto-selected %s=%s", sensor_key, selected)
+        user_input = user_input | {sensor_key: selected}
+        _LOGGER.info(_LOG_INFO_AUTO_SELECTED_SENSOR, sensor_key, selected)
     else:
         _LOGGER.error(
             "No entities available for auto-selection from %s", domain_prefixes

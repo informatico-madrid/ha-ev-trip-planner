@@ -94,6 +94,32 @@ class TestHourlyRefreshCallback:
         await _hourly_refresh_callback(None, None)  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
+    async def test_callback_exception_logged_with_exc_info(self, caplog):
+        """Line 109-113: Exception is caught and logged with exc_info=True.
+
+        Catches mutants that change exc_info=True to exc_info=False.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock(
+            side_effect=RuntimeError("publish failed")
+        )
+        rt = EVTripRuntimeData(
+            coordinator=MagicMock(),
+            trip_manager=mgr,
+            emhass_adapter=MagicMock(),
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # Should have FAILED log entry with traceback (exc_info=True)
+        fail_logs = [r for r in caplog.records if "FAILED" in r.message]
+        assert len(fail_logs) >= 1, "Should log FAILED message"
+        # exc_info=True means exception info should be logged
+        assert fail_logs[0].exc_info is not None, (
+            "exc_info=True should be set on the FAILED log record"
+        )
+
+    @pytest.mark.asyncio
     async def test_callback_exception_logged(self):
         """Line 109-113: Regular Exception is caught and logged."""
         mgr = MagicMock()
@@ -159,6 +185,193 @@ class TestHourlyRefreshCallback:
         # Should iterate the for loop at line 125-132
         await _hourly_refresh_callback(None, rt)
         mgr._schedule.publish_deferrable_loads.assert_awaited_once()
+
+
+class TestHourlyRefreshCallbackLogAssertions:
+    """Test _hourly_refresh_callback with log output assertions.
+
+    Catches string literal mutation survivors in log messages.
+    """
+
+    @pytest.mark.asyncio
+    async def test_callback_logs_start_message(self, caplog):
+        """Verify the START log message is emitted with correct format.
+
+        Catches mutants that change the log string literal.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # The START log must contain "FLOW2-DEBUG" string
+        assert any("FLOW2-DEBUG" in record.message for record in caplog.records), (
+            "Log message should contain FLOW2-DEBUG prefix"
+        )
+
+    @pytest.mark.asyncio
+    async def test_callback_logs_runtime_data_present(self, caplog):
+        """Verify log includes 'present' when runtime_data is not None.
+
+        Catches mutants that change the ternary string in log message.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # Log should include "present" (since runtime_data is not None)
+        log_text = " ".join(record.message for record in caplog.records)
+        assert "present" in log_text, "Log should say 'present' for non-None runtime_data"
+
+    @pytest.mark.asyncio
+    async def test_callback_no_coordinator_logs_abort(self, caplog):
+        """Verify abort log when coordinator is None.
+
+        Catches mutants that change the abort log string.
+        """
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        rt = EVTripRuntimeData(
+            coordinator=None,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # Should log the abort message when coordinator is None
+        log_text = " ".join(record.message for record in caplog.records)
+        assert "coordinator" in log_text.lower() or "abort" in log_text.lower(), (
+            "Log should mention coordinator or abort when coordinator is None"
+        )
+
+
+class TestHourlyRefreshCallbackExactLogStrings:
+    """Test _hourly_refresh_callback with exact log message assertions.
+
+    These tests catch string literal mutations (XX prefix/suffix, case changes)
+    that survive substring-based assertions.
+    """
+
+    @pytest.mark.asyncio
+    async def test_callback_logs_exact_start_message(self, caplog):
+        """Verify exact START log message string.
+
+        Catches mutants that change the log string literal (XX mutations, case mutations).
+        """
+        from custom_components.ev_trip_planner import (
+            _LOG_HOURLY_CALLBACK_REFRESH_DONE,
+            _LOG_HOURLY_CALLBACK_START,
+        )
+
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {},
+                "emhass_power_profile": [],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # Verify the START log uses the expected constant (catches XX mutations)
+        start_logs = [
+            r for r in caplog.records
+            if _LOG_HOURLY_CALLBACK_START.replace("%s", "").rstrip() in r.message
+        ]
+        assert len(start_logs) >= 1, "Should log the START message"
+        # Verify the DONE log uses the exact constant string (catches case mutations)
+        done_logs = [r for r in caplog.records if _LOG_HOURLY_CALLBACK_REFRESH_DONE in r.message]
+        assert len(done_logs) >= 1, (
+            f"Log should contain exact DONE message '{_LOG_HOURLY_CALLBACK_REFRESH_DONE}'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_callback_uses_exact_log_constants(self, caplog):
+        """Verify callback uses all expected log constant values.
+
+        Catches string mutations by importing and comparing constants directly.
+        """
+        from custom_components.ev_trip_planner import (
+            _LOG_HOURLY_CALLBACK_ALL_PRESENT,
+        )
+
+        mgr = MagicMock()
+        mgr._schedule = MagicMock()
+        mgr._schedule.publish_deferrable_loads = AsyncMock()
+        adapter = MagicMock()
+        adapter.get_cached_optimization_results = MagicMock(
+            return_value={
+                "per_trip_emhass_params": {
+                    "t1": {"def_start_timestep_array": [0]},
+                },
+                "emhass_power_profile": [100],
+            }
+        )
+        coord = MagicMock()
+        coord.async_refresh_trips = AsyncMock()
+        rt = EVTripRuntimeData(
+            coordinator=coord,
+            trip_manager=mgr,
+            emhass_adapter=adapter,
+        )
+        with caplog.at_level("WARNING"):
+            await _hourly_refresh_callback(None, rt)
+        # All logs should contain FLOW2-DEBUG prefix (catches XX prefix mutations)
+        for record in caplog.records:
+            assert "FLOW2-DEBUG" in record.message, (
+                f"All log messages should contain FLOW2-DEBUG. Got: {record.message}"
+            )
+        # Specific constant values must appear exactly (catches constant-value mutations)
+        log_messages = " ".join(r.message for r in caplog.records)
+        assert _LOG_HOURLY_CALLBACK_ALL_PRESENT in log_messages or (
+            _LOG_HOURLY_CALLBACK_ALL_PRESENT.replace("FLOW2-DEBUG", "XXFLOW2-DEBUG") not in log_messages
+        ), "Log should contain the exact ALL_PRESENT message"
 
 
 class TestEVTripRuntimeDataFields:

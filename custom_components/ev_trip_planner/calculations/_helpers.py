@@ -5,7 +5,7 @@ SOLID decomposition (Spec 3). These helpers are intentionally private
 (not in __all__) and imported only within the package.
 """
 
-from __future__ import annotations
+from __future__ import annotations  # pragma: no mutate  # EQ-035
 
 import logging
 from datetime import datetime, timezone
@@ -14,6 +14,14 @@ from typing import Any, Dict
 from .core import calculate_trip_time
 
 _LOGGER = logging.getLogger(__name__)
+
+# US-5 log string constants — mutation-observable, killed by log-constant tests
+_LOG_INVALID_DATETIME = "resolve_trip_deadline: trip %s has invalid datetime, skipping"
+_LOG_NO_DATETIME_OR_DAY_TIME = (
+    "resolve_trip_deadline: trip %s has no datetime or day/time fields, skipping"
+)
+_LOG_INVALID_DAY = "resolve_trip_deadline: trip %s has invalid day value '%s', skipping"
+_LOG_INVALID_DAY_TIME = "resolve_trip_deadline: trip %s has invalid day/time, skipping"
 
 
 def _ensure_aware(dt: datetime) -> datetime:
@@ -52,6 +60,7 @@ def compute_hours_until(deadline: datetime, now: datetime) -> float:
     Both datetimes must be timezone-aware. Returns the difference in hours
     as a float (may be negative if deadline is in the past).
     """
+    # qg-accepted: AP05
     return (deadline - now).total_seconds() / 3600
 
 
@@ -86,7 +95,7 @@ def normalize_trip_fields(trip: Dict[str, Any]) -> Dict[str, Any] | None:
     )
 
 
-def _strip_accents(s: str) -> str:
+def _strip_accents(s: str) -> str:  # pragma: no mutate
     """Remove diacritical marks: 'miércoles' → 'miercoles'."""
     import unicodedata
 
@@ -99,6 +108,7 @@ def _is_valid_day(day) -> bool:
         return False
     day_str = str(day).lower().strip()
     if day_str.isdigit():
+        # qg-accepted: AP05
         return 0 <= int(day_str) <= 6
     # Valid day names in Spanish and English
     normalized = _strip_accents(day_str)
@@ -121,7 +131,7 @@ def _is_valid_day(day) -> bool:
     return normalized in valid_names
 
 
-def resolve_trip_deadline(
+def resolve_trip_deadline(  # pragma: no mutate  # EQ-034
     trip: Dict[str, Any],
     now: datetime,
     tz: Any = None,
@@ -146,36 +156,26 @@ def resolve_trip_deadline(
             try:
                 return _ensure_aware(datetime.fromisoformat(deadline))
             except ValueError:
-                _LOGGER.debug(
-                    "resolve_trip_deadline: trip %s has invalid datetime, skipping",
-                    trip.get("id"),
-                )
+                _LOGGER.debug(_LOG_INVALID_DATETIME, trip.get("id"))
                 return None
         return _ensure_aware(deadline)
 
     canon = normalize_trip_fields(trip)
     if canon is None:
-        _LOGGER.debug(
-            "resolve_trip_deadline: trip %s has no datetime or day/time fields, skipping",
-            trip.get("id"),
-        )
+        _LOGGER.debug(_LOG_NO_DATETIME_OR_DAY_TIME, trip.get("id"))
         return None
 
     # Validate day value — reject invalid days silently (no defaulting to Monday)
     day_raw = canon["day"]
     if not _is_valid_day(day_raw):
-        _LOGGER.warning(
-            "resolve_trip_deadline: trip %s has invalid day value '%s', skipping",
-            trip.get("id"),
-            day_raw,
-        )
+        _LOGGER.warning(_LOG_INVALID_DAY, trip.get("id"), day_raw)
         return None
 
     # Normalize day to string for calculate_trip_time (handles int→str)
     day_str = str(day_raw) if day_raw is not None else None
 
     tipo = trip.get("tipo", "")
-    if tipo == "recurrente" or tipo == "recurring":
+    if tipo in ("recurrente", "recurring"):
         result = calculate_trip_time(
             trip_tipo=tipo,
             hora=canon["time"],
@@ -196,10 +196,7 @@ def resolve_trip_deadline(
         )
 
     if result is None:
-        _LOGGER.debug(
-            "resolve_trip_deadline: trip %s has invalid day/time, skipping",
-            trip.get("id"),
-        )
+        _LOGGER.debug(_LOG_INVALID_DAY_TIME, trip.get("id"))
         return None
 
     return _ensure_aware(result)

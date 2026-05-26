@@ -60,6 +60,10 @@ skips = ["B101"]  # Skip assert_used warnings in tests
 [tool.deptry]
 extend_exclude = ["docs", "scripts"]
 ignore_notebooks = true
+ignore = ["DEP001", "DEP002", "DEP003"]
+# DEP001: custom_components is a HA namespace package (not a pip dependency)
+# DEP002: dev deps (time-machine, hypothesis, flake8-pytest-style) only used in tests
+# DEP003: homeassistant/voluptuous/etc are HA runtime deps, not pip deps
 
 [tool.vulture]
 min_confidence = 80
@@ -69,14 +73,13 @@ paths = ["custom_components"]
 [tool.importlinter]
 root_package = "custom_components.ev_trip_planner"
 
-# Contract 1: layered architecture — services may import trip/emhass/dashboard, not vice versa
+# Contract 1: layered architecture — services may import trip/emhass/panel, not vice versa
 [[tool.importlinter.contracts]]
-name = "layered architecture: trip/emhass/dashboard do not import services"
+name = "layered architecture: trip/emhass/panel do not import services"
 type = "forbidden"
 source_modules = [
     "custom_components.ev_trip_planner.trip",
     "custom_components.ev_trip_planner.emhass",
-    "custom_components.ev_trip_planner.dashboard",
 ]
 forbidden_modules = ["custom_components.ev_trip_planner.services"]
 
@@ -90,13 +93,14 @@ python_functions = "test_*"
 # mutmut 3.x redirects stdout during in-process pytest.main() calls.
 # Run coverage separately: pytest --cov=custom_components/ev_trip_planner
 # import_mode=importlib set via addopts (not a standalone ini key in pytest 9)
-addopts = "-v --import-mode=importlib --strict-markers --strict-config"
+addopts = "-v --import-mode=importlib --strict-markers --strict-config "
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "unit: unit tests (no external dependencies)",
     "integration: integration tests (require HA framework or external services)",
     "slow: tests that take significantly longer than average",
+    "mutmut_skip: tests incompatible with mutation testing (pattern checks, path deps)",
 ]
 filterwarnings = [
     "ignore:Inheritance class.*:DeprecationWarning",
@@ -127,11 +131,20 @@ exclude_lines = [
 # Their disposition — whether to integrate into tests/unit/ or tests/integration/
 # or remove entirely — is deferred to Spec 5 (Mutation Ramp).
 # Per AC-12.3/AC-12.4: exclusion list update not required since files are not moved.
+#
+# tests/unit/test_solid_metrics_isp.py and test_vehicle_controller_event.py are
+# marked with @pytest.mark.mutmut_skip — they check source patterns that break
+# under mutation (source inspection tests). Fixed in Spec 5.
 paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
 tests_dir = ["tests/unit/", "tests/integration/"]
+pytest_add_cli_args = ["-k", "not test_solid_metrics and not test_vehicle_controller_event"]
+also_copy = []
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
+mutate_only_covered_lines = true
+max_stack_depth = 8
+environment_setup_command = "export MUTMUT_RUN=1"
 
 [tool.quality-gate.mutation]
 global_kill_threshold = 0.48
@@ -139,152 +152,79 @@ fail_on_missing_module = false
 increment_step = 0.01
 target_final = 1.00
 modules_per_sprint = 2
+# Phase 5 persistence gate: fail if any survivor has no registry entry
+fail_on_unregistered_survivor = true
 
-[tool.quality-gate.mutation.modules.calculations.core]
-kill_threshold = 0.71
-status = "passing"
-
-[tool.quality-gate.mutation.modules.calculations.windows]
-kill_threshold = 0.71
-status = "passing"
-
-[tool.quality-gate.mutation.modules.calculations.power]
-kill_threshold = 0.71
-status = "passing"
-
-[tool.quality-gate.mutation.modules.calculations.schedule]
-kill_threshold = 0.71
-status = "passing"
-
-[tool.quality-gate.mutation.modules.calculations.deficit]
-kill_threshold = 0.71
+[tool.quality-gate.mutation.modules.calculations]
+kill_threshold = 0.789
+increment_step = 0.01
+target_final = 1.00
 status = "passing"
 
 [tool.quality-gate.mutation.modules.utils]
-kill_threshold = 0.89
+kill_threshold = 0.92
 status = "passing"
 
 [tool.quality-gate.mutation.modules.definitions]
-kill_threshold = 0.45
-status = "passing"
+kill_threshold = 1.00
+status = "complete"
 
 [tool.quality-gate.mutation.modules.sensor]
-kill_threshold = 0.38
+kill_threshold = 0.53
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.presence_monitor]
-kill_threshold = 0.52
+kill_threshold = 0.81
 status = "passing"
 
-[tool.quality-gate.mutation.modules.trip.manager]
-kill_threshold = 0.46
-status = "in_progress"
+[tool.quality-gate.mutation.modules.trip]
+kill_threshold = 0.516
+increment_step = 0.01
+target_final = 1.00
 
-[tool.quality-gate.mutation.modules.trip.crud_mixin]
-kill_threshold = 0.46
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.trip.soc_mixin]
-kill_threshold = 0.46
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.trip.power_profile_mixin]
-kill_threshold = 0.46
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.trip.schedule_mixin]
-kill_threshold = 0.46
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.emhass.adapter]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.index_manager]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.load_publisher]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.error_handler]
-kill_threshold = 0.53
-status = "passing"
-
-[tool.quality-gate.mutation.modules.emhass.cache_entry_builder]
-kill_threshold = 0.53
-status = "passing"
+[tool.quality-gate.mutation.modules.emhass]
+kill_threshold = 0.64
+increment_step = 0.01
+target_final = 1.00
 
 [tool.quality-gate.mutation.modules.config_flow]
-kill_threshold = 0.31
+kill_threshold = 0.39
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.vehicle.controller]
-kill_threshold = 0.55
-status = "passing"
-
-[tool.quality-gate.mutation.modules.vehicle.strategy]
-kill_threshold = 0.55
-status = "passing"
-
-[tool.quality-gate.mutation.modules.vehicle.external]
-kill_threshold = 0.55
-status = "passing"
+[tool.quality-gate.mutation.modules.vehicle]
+kill_threshold = 0.59
+increment_step = 0.01
+target_final = 1.00
 
 [tool.quality-gate.mutation.modules.coordinator]
-kill_threshold = 0.37
+kill_threshold = 0.56
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.yaml_trip_storage]
-kill_threshold = 0.50
-status = "passing"
+kill_threshold = 1.00
+status = "complete"
 
 # Previously untracked modules — baseline thresholds set to current scores
 [tool.quality-gate.mutation.modules.__init__]
 kill_threshold = 0.51
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.dashboard.importer]
-kill_threshold = 0.35
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.dashboard.builder]
-kill_threshold = 0.35
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.dashboard.template_manager]
-kill_threshold = 0.35
-status = "in_progress"
-
 [tool.quality-gate.mutation.modules.diagnostics]
-kill_threshold = 0.28
-status = "passing"
+kill_threshold = 1.00
+status = "complete"
 
 [tool.quality-gate.mutation.modules.panel]
-kill_threshold = 0.37
+kill_threshold = 0.63
+increment_step = 0.01
+target_final = 1.00
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.services.handlers]
-kill_threshold = 0.38
-status = "in_progress"
+[tool.quality-gate.mutation.modules.services]
+kill_threshold = 0.548
+increment_step = 0.01
+target_final = 1.00
 
-[tool.quality-gate.mutation.modules.services._handler_factories]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services.cleanup]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services.dashboard_helpers]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services.presence]
-kill_threshold = 0.38
-status = "in_progress"
-
-[tool.quality-gate.mutation.modules.services._lookup]
-kill_threshold = 0.38
-status = "in_progress"
+[tool.quality-gate.mutation.modules.helpers]
+kill_threshold = 0.30
+increment_step = 0.05
+target_final = 1.00

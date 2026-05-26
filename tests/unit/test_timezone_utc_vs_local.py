@@ -31,6 +31,9 @@ from custom_components.ev_trip_planner.calculations import (
     calculate_power_profile_from_trips,
     generate_deferrable_schedule_from_trips,
 )
+from custom_components.ev_trip_planner.calculations.windows import (
+    MultiTripChargingParams,
+)
 
 # =============================================================================
 # Test constants: DYNAMIC - computed from current moment
@@ -398,11 +401,13 @@ class TestChargingWindowsTimezone:
 
         windows = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=50.0,
-            now=LOCAL_NOW,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=50.0,
+                now=LOCAL_NOW,
+            ),
         )
 
         assert len(windows) == 1, "Should have one window"
@@ -428,10 +433,12 @@ class TestChargingWindowsTimezone:
 
         windows = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=3.6,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=3.6,
+                battery_capacity_kwh=50.0,
+            ),
         )
 
         now_after = datetime.now(timezone.utc)

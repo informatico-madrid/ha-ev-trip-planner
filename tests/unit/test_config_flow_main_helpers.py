@@ -78,6 +78,18 @@ class TestReadEmhassConfig:
         assert result is not None
         assert result["end_timesteps_of_each_deferrable_load"] == [168]
 
+    def test_file_path_not_dir(self, tmp_path):
+        """File path (not dir) → reads file directly (line 33, isfile).
+        Kills mutation: isfile → isdir (file is not dir → goes to join path).
+        """
+        config_file = tmp_path / "direct_config.json"
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
+        result = _read_emhass_config(str(config_file))
+        assert result is not None
+        assert result["end_timesteps_of_each_deferrable_load"] == [168]
+
 
 class TestGetEmhassPlanningHorizon:
     """Test _get_emhass_planning_horizon (lines 238-268)."""
@@ -129,6 +141,33 @@ class TestGetEmhassPlanningHorizon:
         )
         assert result is None
 
+    def test_23_timesteps_returns_none(self):
+        """23 timesteps → returns None (23 // 24 = 0).
+        Kills mutation: // 24 → // 23 (23//23=1, original 23//24=0).
+        """
+        result = _get_emhass_planning_horizon(
+            {"end_timesteps_of_each_deferrable_load": [23]}
+        )
+        assert result is None
+
+    def test_47_timesteps_returns_1(self):
+        """47 timesteps → 1 day (47 // 24 = 1).
+        Kills mutation: // 24 → // 23 (47//23=2, original 47//24=1).
+        """
+        result = _get_emhass_planning_horizon(
+            {"end_timesteps_of_each_deferrable_load": [47]}
+        )
+        assert result == 1
+
+    def test_48_timesteps_returns_2(self):
+        """48 timesteps → 2 days (48 // 24 = 2).
+        Kills mutation: // 24 → // 25 (48//25=1, original 48//24=2).
+        """
+        result = _get_emhass_planning_horizon(
+            {"end_timesteps_of_each_deferrable_load": [48]}
+        )
+        assert result == 2
+
 
 class TestGetEmhassMaxDeferrableLoads:
     """Test _get_emhass_max_deferrable_loads (lines 271-289)."""
@@ -166,6 +205,14 @@ class TestGetEmhassMaxDeferrableLoads:
         """100 loads → returns 100."""
         result = _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": 100})
         assert result == 100
+
+    def test_1_load(self):
+        """1 load → returns 1 (1 >= 1 = True).
+        Kills mutation: >= 1 → >= 2 (1 >= 2 = False → returns None).
+        Also kills: >= 1 → > 1 (1 > 1 = False → returns None).
+        """
+        result = _get_emhass_max_deferrable_loads({"number_of_deferrable_loads": 1})
+        assert result == 1
 
 
 class TestEVTripPlannerFlowHandler:
@@ -517,3 +564,31 @@ class TestValidateEmhassInput:
         ctx.user_input["emhass_config_path"] = str(config_file)
         result = validate(ctx, str(config_file))
         assert result is None  # Should reach line 182 return None
+
+    def test_validate_boundary_planning_horizon_min(self, tmp_path):
+        """Lines 111-112: planning_horizon=1 is valid (boundary).
+        Kills mutants: <1→<=1, <1→<2 which would reject horizon=1."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(
+            json.dumps({"end_timesteps_of_each_deferrable_load": [168]})
+        )
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 1, "max_deferrable_loads": 20},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # horizon=1 is at lower bound, should be valid
+
+    def test_validate_boundary_max_loads_min(self, tmp_path):
+        """Lines 160-161: max_loads=10 is valid (boundary).
+        Kills mutant: <10→<11 which would reject loads=10."""
+        config_file = tmp_path / "config.json"
+        config_file.write_text(
+            json.dumps({"number_of_deferrable_loads": 5, "end_timesteps_of_each_deferrable_load": [168]})
+        )
+        ctx, validate, _, _ = self._make_ctx(
+            user_input={"planning_horizon_days": 5, "max_deferrable_loads": 10},
+        )
+        ctx.user_input["emhass_config_path"] = str(config_file)
+        result = validate(ctx, str(config_file))
+        assert result is None  # max_loads=10 is at lower bound, should be valid

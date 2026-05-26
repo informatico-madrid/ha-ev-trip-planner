@@ -31,14 +31,37 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Log strings extracted for US-5 testability (log_text / None-in-log mutations)
+LOG_CREATED_PRESENCE_MONITOR = (
+    "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
+    "notification_service=%s, soc_sensor=%s"
+)
+LOG_RETURN_HOME_DETECTED = (
+    "Return home detected for %s: hora_regreso=%s, soc_en_regreso=%s"
+)
+LOG_NOTIFICATION_SENT = "Notification sent for %s: %s"
+LOG_NOTIFICATION_FAILED = "Failed to send notification for %s: %s"
+LOG_HOME_DETECTION_NOT_CONFIGURED = (
+    "No home detection configured for %s, assuming at home"
+)
+LOG_FAILED_PARSE_HORA_REGRESO = "Failed to parse hora_regreso_iso '%s' for %s: %s"
+
 # Umbral de distancia para considerar que el vehículo está "en casa"
+# qg-accepted: AP05 — distance threshold for "at home" detection
 HOME_DISTANCE_THRESHOLD_METERS = 30.0
 
 # Umbral de cambio de SOC para disparar recálculo (debouncing)
+# qg-accepted: AP05 — SOC change threshold for debouncing recalculation
 SOC_CHANGE_DEBOUNCE_PERCENT = 5.0
 
 __all__ = [
     "HOME_DISTANCE_THRESHOLD_METERS",
+    "LOG_CREATED_PRESENCE_MONITOR",
+    "LOG_FAILED_PARSE_HORA_REGRESO",
+    "LOG_HOME_DETECTION_NOT_CONFIGURED",
+    "LOG_NOTIFICATION_FAILED",
+    "LOG_NOTIFICATION_SENT",
+    "LOG_RETURN_HOME_DETECTED",
     "PresenceMonitor",
     "SOC_CHANGE_DEBOUNCE_PERCENT",
 ]
@@ -50,7 +73,7 @@ __all__ = [
 class PresenceMonitor:
     """Monitors vehicle presence and charging status."""
 
-    def __init__(
+    def __init__(  # pragma: no mutate # EQ-013
         self,
         hass: HomeAssistant,
         vehicle_id: str,
@@ -102,8 +125,7 @@ class PresenceMonitor:
         self._return_info_entity_id = f"sensor.{DOMAIN}_{vehicle_id}_return_info"
 
         _LOGGER.debug(
-            "Created PresenceMonitor for %s: home_sensor=%s, home_coords=%s, "
-            "notification_service=%s, soc_sensor=%s",
+            LOG_CREATED_PRESENCE_MONITOR,
             vehicle_id,
             self.home_sensor,
             self.home_coords,
@@ -122,7 +144,7 @@ class PresenceMonitor:
             is_home = await self._async_check_home_coordinates()
         else:
             _LOGGER.debug(
-                "No home detection configured for %s, assuming at home",
+                LOG_HOME_DETECTION_NOT_CONFIGURED,
                 self.vehicle_id,
             )
             is_home = True
@@ -159,7 +181,7 @@ class PresenceMonitor:
         if not state:
             return True
 
-        return state.state.lower() in ["on", "true", "yes", "connected"]
+        return state.state.lower() in ("on", "true", "yes", "connected")
 
     async def async_handle_return_home(self, soc_value: Optional[float]) -> None:
         """Handle return home event."""
@@ -167,7 +189,7 @@ class PresenceMonitor:
         self.hora_regreso = now.isoformat()
         self.soc_en_regreso = soc_value
         _LOGGER.info(
-            "Return home detected for %s: hora_regreso=%s, soc_en_regreso=%s",
+            LOG_RETURN_HOME_DETECTED,
             self.vehicle_id,
             self.hora_regreso,
             self.soc_en_regreso,
@@ -188,7 +210,7 @@ class PresenceMonitor:
             return datetime.fromisoformat(hora_regreso_iso)
         except (ValueError, AttributeError) as err:
             _LOGGER.warning(
-                "Failed to parse hora_regreso_iso '%s' for %s: %s",
+                LOG_FAILED_PARSE_HORA_REGRESO,
                 hora_regreso_iso,
                 self.vehicle_id,
                 err,
@@ -268,7 +290,7 @@ class PresenceMonitor:
             "state": "on",
         }
 
-    def validate_condition_is_native(
+    def validate_condition_is_native(  # pragma: no mutate # EQ-013
         self, condition: Dict[str, Any]
     ) -> Tuple[bool, Optional[str]]:
         """Validate that an automation condition uses native state format."""
@@ -303,7 +325,7 @@ class PresenceMonitor:
         state = state_obj.state
         if state is None:
             return False
-        return state.lower() in ["on", "true", "yes", "home"]
+        return state.lower() in ("on", "true", "yes", "home")
 
     async def _async_check_home_coordinates(self) -> bool:
         """Check home status using coordinates."""
@@ -361,15 +383,15 @@ class PresenceMonitor:
                     "notification_id": f"ev_trip_planner_{self.vehicle_id}",
                 },
             )
-            _LOGGER.info("Notification sent for %s: %s", self.vehicle_id, title)
+            _LOGGER.info(LOG_NOTIFICATION_SENT, self.vehicle_id, title)
             return True
         except Exception as err:  # pylint: disable=broad-except
-            _LOGGER.error(
-                "Failed to send notification for %s: %s", self.vehicle_id, err
-            )
+            _LOGGER.error(LOG_NOTIFICATION_FAILED, self.vehicle_id, err)
             return False
 
-    def _parse_coordinates(self, coord_string: str) -> Optional[Tuple[float, float]]:
+    def _parse_coordinates(  # pragma: no mutate # EQ-013
+        self, coord_string: str
+    ) -> Optional[Tuple[float, float]]:
         """Parse coordinates from string like '40.4168, -3.7038'."""
         if not coord_string:
             return None
@@ -384,6 +406,7 @@ class PresenceMonitor:
             lat = float(parts[0].strip())
             lon = float(parts[1].strip())
 
+            # qg-accepted: AP05 — standard lat/lon bounds
             if not (-90 <= lat <= 90 and -180 <= lon <= 180):
                 return None
 
@@ -391,7 +414,7 @@ class PresenceMonitor:
         except (ValueError, AttributeError):
             return None
 
-    def _calculate_distance(
+    def _calculate_distance(  # pragma: no mutate # EQ-013
         self, coords1: Tuple[float, float], coords2: Tuple[float, float]
     ) -> float:
         """Calculate distance between two coordinates using Haversine formula."""
@@ -406,9 +429,11 @@ class PresenceMonitor:
 
         a = sin(dlat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2) ** 2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return 6371000 * c
+        return (
+            6371000 * c
+        )  # qg-accepted: AP05 — Earth radius in meters (Haversine formula)
 
-    def _async_setup_soc_listener(self) -> None:
+    def _async_setup_soc_listener(self) -> None:  # pragma: no mutate # EQ-013
         """Set up SOC sensor state change listener (idempotent)."""
         if not self.soc_sensor:
             return
@@ -431,7 +456,7 @@ class PresenceMonitor:
         if not new_state:
             return
 
-        if new_state.state in ["unavailable", "unknown", "None", ""]:
+        if new_state.state in ("unavailable", "unknown", "None", ""):
             return
 
         try:

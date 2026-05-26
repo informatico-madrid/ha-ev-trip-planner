@@ -17,8 +17,8 @@ Este documento narra la transformación de 9 god-class modules (12,400+ líneas 
 | **SOLID Compliance** | 3/5 FAIL | 4/5 PASS (O-OCP 9.6% < 10% threshold) | ✅ |
 | **God Classes** | 4 | 0 | -100% |
 | **Quality Gate** | FAILED | PASS | ✅ |
-| **KISS Complexity** | 60 | 0 | ✅ (qg-accepted markers applied) |
-| **Mutation Kill Rate** | 48.9% | 62.5% | +13.6pp |
+| **KISS Complexity** | 60 | 40 | -33% (qg-accepted markers applied) |
+| **Mutation Kill Rate** | 48.9% | 60.4%* | *Re-baseline on Python 3.12; spec [mutation-score-ramp](../specs/mutation-score-ramp/) achieved effective-100% MSI |
 | **Pyright Errors** | 146 (pre-existing) | 0 | ✅ |
 
 ---
@@ -245,5 +245,24 @@ Esto mantiene la integridad del spec durante toda la ejecución.
 - [`specs/3-solid-refactor/task_review.md`](specs/3-solid-refactor/task_review.md) — 2084 líneas de decisiones de review
 - [`docs/architecture.md`](docs/architecture.md) — Arquitectura post-refactor
 - [`docs/source-tree-analysis.md`](docs/source-tree-analysis.md) — Análisis del árbol de fuentes
+
+---
+
+## Evolución Post-Refactor: Mutation Score Ramp (2026-05-22)
+
+El kill rate de 62.5% reportado al cierre del refactor SOLID fue revisado tras descubrir que:
+
+1. **Python 3.14 bloqueaba mutmut** — incompatibilidad `dbus_fast.service.dbus_property` impedía verificación
+2. **Los números post-iteración-13 eran stale/fabricated** — el external-reviewer detectó FABRICATION en tasks 2.20 y 2.22
+
+La re-baseline autoritativa en Python 3.12 muestra **60.4% literal**. El spec [`mutation-score-ramp`](../specs/mutation-score-ramp/) completó el recorrido con el modelo **effective-100% MSI**:
+
+- **Effective-MSI = killed / (total − registered_equivalent) = 1.00** — target alcanzado
+- **[Equivalent-Mutant Registry](../specs/mutation-score-ramp/equivalent-mutants.md)** — registro persistente con dossiers por mutante (id, file:line, mutación, taxonomía, decision-test, aprobación humana)
+- **5 categorías de taxonomía** — 4 pre-autorizadas (idempotent-arithmetic, log/diagnostic-only, performance-only, type-infeasible-default) + framework-absorbed-arg (aprobación humana)
+- **Persistence gate** — código nuevo debe kill-or-register antes de merge
+- **14/14 módulos pasando el gate**
+
+Este resultado demuestra que el sistema de calidad dual-agent que permitió la descomposición SOLID también fue suficiente para alcanzar honestidad en mutation testing — cuando el target se reformuló de forma auditable.
 
 ---

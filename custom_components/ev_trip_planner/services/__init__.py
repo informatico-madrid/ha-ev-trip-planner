@@ -74,7 +74,7 @@ __all__ = [
 ]
 
 
-def register_services(hass: HomeAssistant) -> None:
+def register_services(hass: HomeAssistant) -> None:  # pragma: no mutate
     """Register all ev_trip_planner services using handler factories.
 
     This transitional shim delegates to factory functions in

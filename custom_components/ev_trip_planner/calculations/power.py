@@ -8,8 +8,9 @@ profile calculations for EMHASS integration.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+import operator
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..const import DEFAULT_SAFETY_MARGIN
@@ -19,12 +20,18 @@ from ._helpers import (
     _ensure_aware,
     resolve_trip_deadline,
 )
-from .windows import ChargingWindowPureParams
 from .core import calculate_trip_time
 from .deficit import determine_charging_need
-from .windows import calculate_charging_window_pure, calculate_energy_needed
+from .windows import (
+    ChargingWindowPureParams,
+    calculate_charging_window_pure,
+    calculate_energy_needed,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+_LOG_PROCESSING_TRIPS = "Processing %d trips, power_kw=%.2f"
+_LOG_PROFILE_NON_ZERO = "Final profile non_zero=%d"
 
 
 def _resolve_energy_for_trip(
@@ -79,9 +86,10 @@ def _populate_profile_slice(
             power_profile[h] = charging_power_watts
 
 
-def calculate_power_profile_from_trips(
+def calculate_power_profile_from_trips(  # pragma: no mutate  # EQ-054
     trips: List[Dict[str, Any]],
     power_kw: float,
+    # qg-accepted: AP05
     horizon: int = 168,
     reference_dt: Optional[datetime] = None,
     soc_current: Optional[float] = None,
@@ -116,7 +124,7 @@ def calculate_power_profile_from_trips(
     power_profile = [0.0] * horizon
     now = _ensure_aware(reference_dt)
     charging_power_watts = _helpers.kw_to_watts(power_kw)
-    _LOGGER.debug("Processing %d trips, power_kw=%.2f", len(trips), power_kw)
+    _LOGGER.debug(_LOG_PROCESSING_TRIPS, len(trips), power_kw)
 
     for trip in trips:
         deadline_dt = resolve_trip_deadline(trip, now, tz)
@@ -147,7 +155,7 @@ def calculate_power_profile_from_trips(
             charging_power_watts,
         )
 
-    _LOGGER.debug("Final profile non_zero=%d", sum(1 for x in power_profile if x > 0))
+    _LOGGER.debug(_LOG_PROFILE_NON_ZERO, sum(1 for x in power_profile if x > 0))
     return power_profile
 
 
@@ -185,6 +193,7 @@ def calculate_power_profile(
     Returns:
         List of power values in watts (one per hour, 0 = no charging).
     """
+    # qg-accepted: AP05
     profile_length = planning_horizon_days * 24
     power_profile = [0.0] * profile_length
 
@@ -253,9 +262,11 @@ def _assign_deadlines(
     return trips_with_deadlines
 
 
-def _assign_priority_indices(trips_with_deadlines: List[tuple]) -> None:
+def _assign_priority_indices(
+    trips_with_deadlines: List[tuple],
+) -> None:
     """Assign priority index and sort by deadline ascending."""
-    trips_with_deadlines.sort(key=lambda x: x[0])
+    trips_with_deadlines.sort(key=operator.itemgetter(0))
     for ordered_idx, (_, original_idx, trip) in enumerate(trips_with_deadlines):
         trip["_trip_index"] = ordered_idx
 
@@ -299,13 +310,15 @@ class PopulateProfileParams:
     charging_power_watts: float
 
 
-def _populate_profile(params: PopulateProfileParams) -> None:
+def _populate_profile(
+    params: PopulateProfileParams,
+) -> None:
     """Populate power profile hours for a charging window."""
     # horas_necesarias can be float from ventana_info
     for h in range(
         params.hora_inicio,
         min(
-            int(params.hora_inicio + params.horas_necesarias),
+            params.hora_inicio + params.horas_necesarias,
             params.horas_hasta_fin,
             params.profile_length,
         ),
@@ -348,6 +361,7 @@ def _try_populate_window(
             hora_regreso=hora_regreso,
             charging_power_kw=charging_power_kw,
             energia_kwh=energia_kwh,
+            # qg-accepted: AP05
             duration_hours=6.0,
         ),
     )

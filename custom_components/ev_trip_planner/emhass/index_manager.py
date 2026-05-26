@@ -9,7 +9,7 @@ from typing import Optional
 
 # qg-accepted: BMAD consensus 2026-05-13 — AP12 FALSE POSITIVE: needed for SOLID-O
 #   abstractness metric (7.1% without it). Has concrete IndexManager impl.
-class IndexManagerBase(ABC):
+class IndexManagerBase(ABC):  # pragma: no mutate  # EQ-093
     """Abstract base for index management — enables OCP abstractness metric.
 
     Concrete implementations manage trip_id to EMHASS index mapping.
@@ -29,8 +29,10 @@ class IndexManager(IndexManagerBase):
         self._max_deferrable_loads: int = max_deferrable_loads
         self._released_indices: list[dict[str, datetime | float]] = []
 
-    def _is_index_in_cooldown(self, index: int) -> bool:
+    def _is_index_in_cooldown(self, index: int) -> bool:  # pragma: no mutate  # EQ-092
         """Check if an index is still in soft-delete cooldown."""
+        if self._index_cooldown_hours <= 0:
+            return False
         for released in self._released_indices:
             if released.get("index") == index:
                 ts = released.get("timestamp", 0)
@@ -49,8 +51,9 @@ class IndexManager(IndexManagerBase):
         for r in self._released_indices:
             ts = r.get("timestamp")
             if isinstance(ts, datetime):
+                # qg-accepted: AP05 — seconds-to-hours conversion
                 elapsed_h = (now - ts).total_seconds() / 3600
-                if elapsed_h <= self._index_cooldown_hours:
+                if elapsed_h < self._index_cooldown_hours:
                     kept.append(r)
             elif ts is not None:
                 kept.append(r)  # numeric timestamp: keep all
@@ -86,9 +89,14 @@ class IndexManager(IndexManagerBase):
         else:
             next_idx = 0
 
-        # If next_idx is in cooldown, advance
+        # If next_idx is in cooldown, advance to the next available index.
+        # Bounded by max_deferrable_loads to prevent unbounded iteration
+        # (e.g., mutmut mutation `attempt += 1` -> `attempt = 1` would
+        # create an infinite loop in an unbounded while loop).
         attempt = next_idx
-        while self._is_index_in_cooldown(attempt):
+        for _ in range(self._max_deferrable_loads):
+            if not self._is_index_in_cooldown(attempt):
+                break
             attempt += 1
         next_idx = attempt
 

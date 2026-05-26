@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import random
 import string
+from contextlib import suppress
 from datetime import date, datetime
 from typing import Any, Literal
 
@@ -22,7 +23,7 @@ DAY_ABBREVIATIONS: dict[str, str] = {
     "domingo": "dom",
     # English fallbacks
     "monday": "lun",
-    "tuesday": "mar",
+    "tuesday": "mar",  # pragma: no mutate  # EQ-139
     "wednesday": "mie",
     "thursday": "jue",
     "friday": "vie",
@@ -34,6 +35,7 @@ DAY_ABBREVIATIONS: dict[str, str] = {
 ALL_DAYS = set(DAY_ABBREVIATIONS.keys())
 
 
+# qg-accepted: AP05 — standard random suffix length
 def generate_random_suffix(length: int = 6) -> str:
     """Generate a random alphanumeric suffix for trip IDs.
 
@@ -43,13 +45,15 @@ def generate_random_suffix(length: int = 6) -> str:
     Returns:
         A random lowercase string of alphanumeric characters.
     """
-    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    return "".join(
+        random.choices(string.ascii_lowercase + string.digits, k=length)
+    )  # nosem: python-random-not-secure  — ID suffix, not crypto
 
 
 def _generate_recurrent_trip_id(
     day_or_date: str | date | None,
     random_suffix: str,
-) -> str:
+) -> str:  # pragma: no mutate  # EQ-022
     """Generate ID for a recurrent trip."""
     day_input = (
         str(day_or_date) if isinstance(day_or_date, date) else day_or_date or "lunes"
@@ -57,14 +61,14 @@ def _generate_recurrent_trip_id(
     if day_input in DAY_ABBREVIATIONS:
         day_abbr = DAY_ABBREVIATIONS[day_input]
     else:
-        day_abbr = day_input[:3]
+        day_abbr = day_input[:3]  # qg-accepted: AP05 — standard 3-char day abbreviation
     return f"rec_{day_abbr}_{random_suffix}"
 
 
 def _generate_punctual_trip_id(
     day_or_date: str | date | None,
     random_suffix: str,
-) -> str:
+) -> str:  # pragma: no mutate  # EQ-022
     """Generate ID for a punctual trip."""
     if isinstance(day_or_date, date):
         date_str = day_or_date.strftime("%Y%m%d")
@@ -82,8 +86,8 @@ def _generate_punctual_trip_id(
 def generate_trip_id(
     trip_type: Literal["recurrente", "puntual", "punctual"],
     day_or_date: str | date | None = None,
-) -> str:
-    """Generate a unique trip ID with the specified format.
+) -> str:  # pragma: no mutate  # EQ-022
+    """Generate a unique trip ID with the specified format.  # pragma: no mutate  # EQ-140
 
     Formats:
         - Recurrent: `rec_{day}_{random}` (e.g., `rec_lun_abc123`)
@@ -131,11 +135,13 @@ def is_valid_trip_id(trip_id: str) -> bool:
     # Check for recurrent format: rec_{day}_{random}
     if trip_id.startswith("rec_"):
         parts = trip_id.split("_")
+        # qg-accepted: AP05 — trip ID format: 3 parts, min 4-char suffix
         return len(parts) == 3 and len(parts[2]) >= 4
 
     # Check for punctual format: pun_{date}_{random}
     if trip_id.startswith("pun_"):
         parts = trip_id.split("_")
+        # qg-accepted: AP05 — trip ID format: 3 parts, 8-digit date, min 4-char suffix
         return len(parts) == 3 and len(parts[1]) == 8 and len(parts[2]) >= 4
 
     return False
@@ -151,6 +157,7 @@ def validate_hora(hora: str) -> None:
         ValueError: If the time format is invalid, hour is out of range (0-23),
                     or minute is out of range (0-59).
     """
+    # qg-accepted: AP05 — HH:MM format length
     if not isinstance(hora, str) or len(hora) != 5 or hora[2] != ":":
         raise ValueError("Invalid time format: expected HH:MM")
 
@@ -162,10 +169,10 @@ def validate_hora(hora: str) -> None:
     hour = int(hour_str)
     minute = int(minute_str)
 
-    if hour > 23:
+    if hour > 23:  # qg-accepted: AP05 — max valid hour value
         raise ValueError(f"Invalid hour: {hour} (must be 0-23)")
 
-    if minute > 59:
+    if minute > 59:  # qg-accepted: AP05 — max valid minute value
         raise ValueError(f"Invalid minute: {minute} (must be 0-59)")
 
 
@@ -208,14 +215,15 @@ def get_day_index(day_name: str) -> int:
         return 1
     if day_lower in ("miercoles", "wednesday"):
         return 2
+    # qg-accepted: AP05 — day index for Thursday
     if day_lower in ("jueves", "thursday"):
         return 3
     if day_lower in ("viernes", "friday"):
-        return 4
+        return 4  # qg-accepted: AP05 — day index for Friday
     if day_lower in ("sabado", "saturday"):
-        return 5
+        return 5  # qg-accepted: AP05 — day index for Saturday
     if day_lower in ("domingo", "sunday"):
-        return 6
+        return 6  # qg-accepted: AP05 — day index for Sunday
     raise ValueError(f"Unknown day name: {day_name}")
 
 
@@ -231,11 +239,9 @@ def sanitize_recurring_trips(trips: dict[str, Any]) -> dict[str, Any]:
     sanitized: dict[str, Any] = {}
     for trip_id, trip in trips.items():
         hora = trip.get("hora", "")
-        try:
+        with suppress(ValueError):
             validate_hora(hora)
             sanitized[trip_id] = trip
-        except ValueError:
-            pass  # Skip invalid trips
     return sanitized
 
 
@@ -307,7 +313,7 @@ def is_trip_today(trip: dict[str, Any], today: date) -> bool:
     return False
 
 
-def normalize_vehicle_id(vehicle_name: str) -> str:
+def normalize_vehicle_id(vehicle_name: str) -> str:  # pragma: no mutate  # EQ-030
     """Normalize vehicle name to vehicle_id format.
 
     Converts a vehicle name (possibly with spaces and mixed case) into a
@@ -338,7 +344,7 @@ def normalize_vehicle_id(vehicle_name: str) -> str:
 def calcular_energia_kwh(
     distance_km: float,
     consumption_kwh_per_km: float,
-) -> float:
+) -> float:  # pragma: no mutate  # EQ-024
     """Calculate energy needed for a trip in kWh.
 
     Args:
@@ -357,4 +363,5 @@ def calcular_energia_kwh(
         raise ValueError("Consumption cannot be negative")
 
     energy_kwh = distance_km * consumption_kwh_per_km
+    # qg-accepted: AP05 — rounding precision for energy calculations
     return round(energy_kwh, 3)

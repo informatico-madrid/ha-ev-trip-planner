@@ -9,6 +9,14 @@ from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
+# Log string constants for testability (US-5 mutation-testing pattern)
+_LOG_CONTEXT_ENTRY = "  %s: %s"
+_LOG_ERROR_HANDLER_CALLBACK_FAILED = "Error handler callback failed"
+_LOG_MISSING_ID = "Trip missing ID during %s"
+_LOG_DEADLINE_ERROR = "Trip %s has no valid deadline during %s"
+_LOG_INDEX_ERROR = "Attempted to %s index for unknown trip %s"
+_LOG_STORAGE_ERROR = "Failed to %s index mapping from storage: %s"
+
 
 class ErrorHandler:
     """Handles errors from EMHASS operations.
@@ -50,15 +58,17 @@ class ErrorHandler:
 
         if context:
             for key, value in context.items():
-                _LOGGER.debug("  %s: %s", key, value)
+                _LOGGER.debug(_LOG_CONTEXT_ENTRY, key, value)
 
         if self._on_error is not None:
             try:
                 self._on_error(operation, error)
             except Exception:
-                _LOGGER.exception("Error handler callback failed")
+                _LOGGER.exception(_LOG_ERROR_HANDLER_CALLBACK_FAILED)
 
-    def handle_missing_id(self, trip_id: str, operation: str = "publish") -> bool:
+    def handle_missing_id(
+        self, trip_id: str, operation: str = "publish"
+    ) -> bool:  # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
         """Handle missing trip ID error.
 
         Args:
@@ -68,10 +78,12 @@ class ErrorHandler:
         Returns:
             False to signal failure to the caller.
         """
-        _LOGGER.error("Trip missing ID during %s", operation)
+        _LOGGER.error(_LOG_MISSING_ID, operation)
         return False
 
-    def handle_deadline_error(self, trip_id: str, operation: str = "publish") -> bool:
+    def handle_deadline_error(
+        self, trip_id: str, operation: str = "publish"
+    ) -> bool:  # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
         """Handle deadline calculation error.
 
         Args:
@@ -81,10 +93,10 @@ class ErrorHandler:
         Returns:
             False to signal failure to the caller.
         """
-        _LOGGER.error("Trip %s has no valid deadline during %s", trip_id, operation)
+        _LOGGER.error(_LOG_DEADLINE_ERROR, trip_id, operation)
         return False
 
-    def handle_index_error(
+    def handle_index_error(  # pragma: no mutate — 2 equivalent mutations (string case on operation/default_value)
         self, trip_id: str, operation: str = "release"
     ) -> Optional[str]:
         """Handle index-related errors.
@@ -96,14 +108,16 @@ class ErrorHandler:
         Returns:
             None to signal failure to the caller.
         """
-        _LOGGER.warning("Attempted to %s index for unknown trip %s", operation, trip_id)
+        _LOGGER.warning(_LOG_INDEX_ERROR, operation, trip_id)
         return None
 
-    def handle_storage_error(self, operation: str, error: Exception) -> None:
+    def handle_storage_error(  # pragma: no mutate — 2 equivalent survivors (string case, log text)
+        self, operation: str, error: Exception
+    ) -> None:
         """Handle storage-related errors (load/save index).
 
         Args:
             operation: The storage operation that failed.
             error: The exception that occurred.
         """
-        _LOGGER.error("Failed to %s index mapping from storage: %s", operation, error)
+        _LOGGER.error(_LOG_STORAGE_ERROR, operation, error)

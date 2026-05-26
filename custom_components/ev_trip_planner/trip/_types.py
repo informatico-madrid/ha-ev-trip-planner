@@ -8,11 +8,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Optional, Protocol, TypedDict
 
 if TYPE_CHECKING:
     from custom_components.ev_trip_planner.emhass import EMHASSAdapter
     from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
+
+
+class TripManagerProtocol(Protocol):
+    """Protocol defining the TripManager facade contract.
+
+    Extension point for OCP compliance — other components depend on
+    this protocol rather than the concrete TripManager class.
+    """
+
+    pass
 
 
 class CargaVentana(TypedDict):

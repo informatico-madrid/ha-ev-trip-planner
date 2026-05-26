@@ -13,6 +13,16 @@ from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_INACTIVE_TRIP_INFO = "Trip %s is inactive, removed from EMHASS"
+_LOG_RECALCULATED_INFO = "Trip %s updated in EMHASS (recalculated): fields=%s"
+_LOG_ATTRIBUTES_INFO = "Trip %s updated in EMHASS (attributes): fields=%s"
+_LOG_SYNC_ERROR = "Error syncing trip %s to EMHASS: %s"
+_LOG_REMOVED_INFO = "Trip %s removed from EMHASS"
+_LOG_REMOVE_ERROR = "Error removing trip %s from EMHASS: %s"
+_LOG_PUBLISHED_INFO = "Published new trip %s to EMHASS"
+_LOG_PUBLISH_ERROR = "Error publishing trip %s to EMHASS: %s"
+
 _RECALC_FIELDS = {
     "km",
     "kwh",
@@ -30,14 +40,17 @@ class EMHASSSync:
     them via state-level references rather than direct calls.
     """
 
-    def __init__(self, state: TripManagerState) -> None:
+    def __init__(self, state: TripManagerState) -> None:  # pragma: no mutate  # EQ-120
         """Initialize with shared state."""
         self._state = state
 
     # ── All private helpers ──────────────────────────────────────
 
     async def _async_sync_trip_to_emhass(
-        self, trip_id: str, old_trip: Dict[str, Any], updates: Dict[str, Any]
+        self,
+        trip_id: str,
+        old_trip: Dict[str, Any],
+        updates: Dict[str, Any],
     ) -> None:
         """Sync trip changes to EMHASS adapter."""
         state = self._state
@@ -54,7 +67,7 @@ class EMHASSSync:
 
             if not is_active:
                 await self._async_remove_trip_from_emhass(trip_id)
-                _LOGGER.info("Trip %s is inactive, removed from EMHASS", trip_id)
+                _LOGGER.info(_LOG_INACTIVE_TRIP_INFO, trip_id)
                 return
 
             trip = None
@@ -73,22 +86,17 @@ class EMHASSSync:
             if needs_recalculate:
                 await adapter.async_update_deferrable_load(trip)
                 await state._schedule.publish_deferrable_loads()
-                _LOGGER.info(
-                    "Trip %s updated in EMHASS (recalculated): fields=%s",
-                    trip_id,
-                    changed_fields,
-                )
+                _LOGGER.info(_LOG_RECALCULATED_INFO, trip_id, changed_fields)
             else:
                 await adapter.async_update_deferrable_load(trip)
-                _LOGGER.debug(
-                    "Trip %s updated in EMHASS (attributes): fields=%s",
-                    trip_id,
-                    changed_fields,
-                )
+                _LOGGER.debug(_LOG_ATTRIBUTES_INFO, trip_id, changed_fields)
         except Exception as err:
-            _LOGGER.error("Error syncing trip %s to EMHASS: %s", trip_id, err)
+            _LOGGER.error(_LOG_SYNC_ERROR, trip_id, err)
 
-    async def _async_remove_trip_from_emhass(self, trip_id: str) -> None:
+    async def _async_remove_trip_from_emhass(
+        self,
+        trip_id: str,
+    ) -> None:
         """Remove a trip from EMHASS deferrable loads."""
         state = self._state
         adapter = state.emhass_adapter
@@ -97,11 +105,14 @@ class EMHASSSync:
         try:
             await adapter.async_remove_deferrable_load(trip_id)
             await state._schedule.publish_deferrable_loads()
-            _LOGGER.info("Trip %s removed from EMHASS", trip_id)
+            _LOGGER.info(_LOG_REMOVED_INFO, trip_id)
         except Exception as err:
-            _LOGGER.error("Error removing trip %s from EMHASS: %s", trip_id, err)
+            _LOGGER.error(_LOG_REMOVE_ERROR, trip_id, err)
 
-    async def _async_publish_new_trip_to_emhass(self, trip: Dict[str, Any]) -> None:
+    async def _async_publish_new_trip_to_emhass(
+        self,
+        trip: Dict[str, Any],
+    ) -> None:
         """Publish a new trip to EMHASS as a deferrable load."""
         state = self._state
         adapter = state.emhass_adapter
@@ -110,7 +121,6 @@ class EMHASSSync:
         try:
             await adapter.async_publish_deferrable_load(trip)
             await state._schedule.publish_deferrable_loads()
-            _LOGGER.info("Published new trip %s to EMHASS", trip.get("id"))
+            _LOGGER.info(_LOG_PUBLISHED_INFO, trip.get("id"))
         except Exception as err:
-            _LOGGER.error("Error publishing trip %s to EMHASS: %s", trip.get("id"), err)
-
+            _LOGGER.error(_LOG_PUBLISH_ERROR, trip.get("id"), err)

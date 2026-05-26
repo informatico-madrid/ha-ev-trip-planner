@@ -1,4 +1,25 @@
-.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
+.PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation mutation-gate mutation-unregistered-check test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
+
+SHELL := /bin/bash
+
+# ============================================================================
+# Variables de entorno para paralelismo (.env)
+# ============================================================================
+ifneq (,$(wildcard .env))
+    -include .env
+endif
+
+# Valores por defecto (sobrescribibles via .env o línea de comandos)
+PYTEST_WORKERS ?= auto
+MUTATION_MAX_CHILDREN ?= 4
+SAFE_PARALLEL ?= safe
+
+# Determinar si el paralelismo está habilitado
+ifeq ($(SAFE_PARALLEL),parallel)
+    PARALLEL_ENABLED := true
+else
+    PARALLEL_ENABLED := false
+endif
 
 help:
 	@echo "Available commands / Comandos disponibles:"
@@ -26,6 +47,11 @@ help:
 	@echo "  make quality-gate    - Full quality gate (with E2E) / Quality gate completo (con E2E)"
 	@echo "  make quality-gate-ci - CI quality gate (without E2E) / Quality gate CI (sin E2E)"
 	@echo ""
+	@echo "Paralelismo ( SAFE_PARALLEL=parallel para habilitar ):"
+	@echo "  make check SAFE_PARALLEL=parallel"
+	@echo "  make quality-gate-ci SAFE_PARALLEL=parallel"
+	@echo "  make quality-gate SAFE_PARALLEL=parallel"
+	@echo ""
 	@echo "Security / Seguridad:"
 	@echo "  make security-bandit    - Run Bandit security linter / Linter de seguridad Bandit"
 	@echo "  make security-audit     - Run pip-audit for vulnerabilities / pip-audit para vulnerabilidades"
@@ -42,6 +68,8 @@ help:
 	@echo "  make import-check    - Check import organization / Verificar organización de imports"
 	@echo "  make refurb          - Python modernization suggestions / Sugerencias de modernización"
 	@echo "  make mutation        - Run mutation testing / Ejecutar pruebas de mutación"
+	@echo "  make mutation-gate   - Run mutation threshold gate / Ejecutar umbral de mutación"
+	@echo "  make mutation-unregistered-check - Check unregistered survivors / Verificar supervivientes sin registrar"
 	@echo ""
 	@echo "Pre-commit Hooks:"
 	@echo "  make pre-commit-install - Install pre-commit hooks / Instalar hooks pre-commit"
@@ -60,10 +88,10 @@ help:
 	@echo "  make staging-reset   - Reset staging HA / Resetear HA staging"
 
 test:
-	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short -n $(PYTEST_WORKERS)
 
 test-cover:
-	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-fail-under=100
+	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-fail-under=100 -n $(PYTEST_WORKERS)
 
 test-verbose:
 	python3 -m pytest tests/unit tests/integration -vv -s --tb=long
@@ -75,7 +103,7 @@ test-dashboard:
 test-e2e:
 	@echo "Ejecutando tests E2E contra http://localhost:8123 ..."
 	@echo "⚠️  E2E uses hass directly (no Docker). See docs/staging-vs-e2e-separation.md"
-	npx playwright test tests/e2e/ --workers=1
+	npx playwright test tests/e2e/ --workers=4
 
 test-e2e-debug:
 	npx playwright test tests/e2e/ --workers=1 --debug
@@ -103,7 +131,20 @@ format:
 	black .
 	isort .
 
-check: test lint typecheck
+check:
+	@echo "Running all checks $(if $(filter true,$(PARALLEL_ENABLED)),in parallel,sequentially)..."
+ifeq ($(PARALLEL_ENABLED),true)
+	@mkdir -p .check-results && \
+	$(MAKE) test & echo $$! > .check-results/test.pid && \
+	$(MAKE) lint & echo $$! > .check-results/lint.pid && \
+	$(MAKE) typecheck & echo $$! > .check-results/typecheck.pid && \
+	wait && \
+	fail=0; for pid in .check-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .check-results; if [ $$fail -eq 1 ]; then exit 1; fi
+else
+	$(MAKE) test
+	$(MAKE) lint
+	$(MAKE) typecheck
+endif
 
 # ============================================================================
 # Type Checking (pyright)
@@ -117,25 +158,35 @@ typecheck:
 # ============================================================================
 # Layer 3A: Smoke Test (fast, deterministic AST-based checks)
 # If this fails, stop immediately — don't run L1/L2/L3B/L4
+# The antipattern checker prints a summary to stderr. The final line reflects it.
 layer3a:
 	@echo "=== Layer 3A: Smoke Test ==="
-	@echo "Running ruff check..."
-	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || echo "WARNING: ruff violations found"
-	@echo "Running pyright type check..."
-	@$(MAKE) typecheck
-	@echo "Running SOLID Tier A (AST-based)..."
+	@echo "Running ruff check (fail-fast)..."
+	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || { echo "FATAL: ruff violations found"; exit 1; }
+	@echo "Running remaining checks $(if $(filter true,$(PARALLEL_ENABLED)),in parallel,sequentially)..."
+ifeq ($(PARALLEL_ENABLED),true)
+	@$(MAKE) -s typecheck
 	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
-	@echo "Running Principles (DRY/KISS/YAGNI/LoD/CoI)..."
 	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
-	@echo "Running Antipatterns Tier A (25 AST patterns)..."
-	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ || echo "WARNING: Antipattern Tier A violations"
+	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ > /tmp/.layer3a_antipattern.json 2>/dev/null
+	@python3 .claude/skills/quality-gate/scripts/layer3a_summary.py /tmp/.layer3a_antipattern.json || true
+	@rm -f /tmp/.layer3a_antipattern.json
+else
+	@$(MAKE) typecheck
+	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
+	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
+	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ > /tmp/.layer3a_antipattern.json 2>/dev/null; \
+	python3 .claude/skills/quality-gate/scripts/layer3a_summary.py /tmp/.layer3a_antipattern.json || true; \
+	rm -f /tmp/.layer3a_antipattern.json
+endif
 	@echo "=== Layer 3A Complete ==="
 
-# Layer 1: Test execution (unit tests + E2E auto-discovery)
+# Layer 1: Test execution (unit tests + E2E suites)
 layer1:
 	$(MAKE) test
 	@echo "Running E2E suites..."
-	@$(MAKE) $(filter-out e2e-headed e2e-debug e2e-soc-headed e2e-soc-debug,$(filter e2e-%,$(.PHONY))) 2>/dev/null || echo "No E2E suites found (e2e-% targets)"
+	@$(MAKE) e2e
+	@$(MAKE) e2e-soc
 
 # Layer 1 CI: Unit tests only (no E2E for CI speed)
 layer1-ci:
@@ -145,11 +196,15 @@ layer1-ci:
 layer2:
 	@echo "Running Layer 2: Test Quality (mutation, weak tests, diversity)..."
 	@echo "  → Mutation gate..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate || echo "WARNING: Mutation gate skipped (no mutmut results — run 'mutmut run' first)" || true
-	@echo "  → Weak test detector..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/
-	@echo "  → Test diversity..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/
+	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate || { echo "ERROR: Mutation gate failed — effective-MSI < 100% or module below threshold" && exit 1; }
+	@echo "  → Weak test detector + Test diversity (running in parallel)..."
+	@mkdir -p .layer2-results
+	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & echo $$! > .layer2-results/weak_test.pid
+	@.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/ > .layer2-results/diversity.out 2>&1 & echo $$! > .layer2-results/diversity.pid
+	@wait
+	@cat .layer2-results/weak_test.out
+	@cat .layer2-results/diversity.out
+	@rm -rf .layer2-results
 	@echo "=== Layer 2 Complete ==="
 
 # Layer 3B: Deep Quality (BMAD Party Mode — SOLID Tier B + Antipatterns Tier B)
@@ -174,32 +229,57 @@ layer4:
 	@python3 .claude/skills/quality-gate/scripts/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
 	@echo "=== Layer 4 Complete ==="
 
-# Alternative: run individual security tools
-layer4-incremental:
-	$(MAKE) security-bandit security-audit security-gitleaks security-semgrep dead-code unused-deps
-
 # Quality Gate: Full 6-layer (L3A → L1 → L2 → L3B → L4, with E2E)
 quality-gate:
 	@echo "=== Full Quality Gate (6-layer architecture) ==="
 	@echo "Phase 1: L3A Smoke Test (fail-fast)"
 	$(MAKE) layer3a
-	@echo "Phase 2: L1 Test Execution"
+	@echo "Phase 2: L1 + L2 + L3B + L4"
+ifeq ($(PARALLEL_ENABLED),true)
+	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
+	@mkdir -p .quality-gate-results && \
+	$(MAKE) layer1 > .quality-gate-results/l1.out 2>&1 & echo $$! > .quality-gate-results/l1.pid && \
+	$(MAKE) layer2 > .quality-gate-results/l2.out 2>&1 & echo $$! > .quality-gate-results/l2.pid && \
+	$(MAKE) layer3b > .quality-gate-results/l3b.out 2>&1 & echo $$! > .quality-gate-results/l3b.pid && \
+	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & echo $$! > .quality-gate-results/l4.pid && \
+	wait && \
+	echo "--- L1 output ---"; cat .quality-gate-results/l1.out && \
+	echo "--- L2 output ---"; cat .quality-gate-results/l2.out && \
+	echo "--- L3B output ---"; cat .quality-gate-results/l3b.out && \
+	echo "--- L4 output ---"; cat .quality-gate-results/l4.out && \
+	fail=0; for pid in .quality-gate-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .quality-gate-results; if [ $$fail -eq 1 ]; then exit 1; fi
+else
+	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
 	$(MAKE) layer1
-	@echo "Phase 3: L2 Test Quality"
 	$(MAKE) layer2
-	@echo "Phase 4: L3B Deep Quality (BMAD)"
 	$(MAKE) layer3b
-	@echo "Phase 5: L4 Security & Defense"
 	$(MAKE) layer4
+endif
 	@echo "=== Quality Gate PASSED ==="
 
 # Quality Gate CI: Fast (excludes E2E + L3B)
 quality-gate-ci:
 	@echo "=== CI Quality Gate (L3A → L1-CI → L2 → L4, no E2E, no BMAD) ==="
+	@echo "Phase 1: L3A Smoke Test (fail-fast)"
 	$(MAKE) layer3a
+	@echo "Phase 2: L1-CI + L2 + L4"
+ifeq ($(PARALLEL_ENABLED),true)
+	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
+	@mkdir -p .quality-gate-results && \
+	$(MAKE) layer1-ci > .quality-gate-results/l1.out 2>&1 & echo $$! > .quality-gate-results/l1.pid && \
+	$(MAKE) layer2 > .quality-gate-results/l2.out 2>&1 & echo $$! > .quality-gate-results/l2.pid && \
+	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & echo $$! > .quality-gate-results/l4.pid && \
+	wait && \
+	echo "--- L1-CI output ---"; cat .quality-gate-results/l1.out && \
+	echo "--- L2 output ---"; cat .quality-gate-results/l2.out && \
+	echo "--- L4 output ---"; cat .quality-gate-results/l4.out && \
+	fail=0; for pid in .quality-gate-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .quality-gate-results; if [ $$fail -eq 1 ]; then exit 1; fi
+else
+	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
 	$(MAKE) layer1-ci
 	$(MAKE) layer2
 	$(MAKE) layer4
+endif
 	@echo "=== CI Quality Gate PASSED ==="
 
 # ============================================================================
@@ -218,8 +298,21 @@ security-gitleaks:
 	gitleaks detect --source . --verbose --no-git
 
 security-semgrep:
-	@echo "Running Semgrep static analysis..."
-	.venv/bin/semgrep --config auto --error --verbose custom_components/ tests/unit/ tests/integration/
+	@echo "Running Semgrep static analysis (all severities)..."
+	.venv/bin/semgrep \
+		--config auto \
+		--config .claude/skills/quality-gate/references/semgrep-python-rules.yaml \
+		--config .claude/skills/quality-gate/references/semgrep-ha-rules.yaml \
+		--config .claude/skills/quality-gate/references/semgrep-js-rules.yaml \
+		--severity INFO \
+		--severity WARNING \
+		--severity ERROR \
+		--verbose \
+		--exclude "**/*-bundle.js" \
+		--exclude "**/node_modules/" \
+		--exclude-rule "claude.skills.quality-gate.references.ha-unsafe-hass-data-access" \
+		--exclude-rule "claude.skills.quality-gate.references.python-random-not-secure" \
+		custom_components/ tests/unit/ tests/integration/
 
 # ============================================================================
 # Dead Code and Unused Dependencies
@@ -242,12 +335,20 @@ refurb:
 	.venv/bin/refurb custom_components/ tests/unit/ tests/integration/
 
 mutation:
-	@echo "Running mutation testing..."
-	.venv/bin/mutmut run --until=100
+	@echo "Running mutation testing (max-children=$(MUTATION_MAX_CHILDREN))..."
+	.venv/bin/mutmut run --max-children=$(MUTATION_MAX_CHILDREN)
 
 mutation-gate:
 	@echo "Running mutation gate (per-module thresholds)..."
-	python3 .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+
+mutation-unregistered-check:
+	@echo "Checking for unregistered survivors..."
+	.venv/bin/python scripts/check_unregistered_survivors.py
+
+# ============================================================================
+# Test Variants
+# ============================================================================
 
 # ============================================================================
 # Test Variants

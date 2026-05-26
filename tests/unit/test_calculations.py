@@ -13,6 +13,7 @@ import pytest
 
 from custom_components.ev_trip_planner.calculations.windows import (
     ChargingWindowPureParams,
+    MultiTripChargingParams,
 )
 
 
@@ -741,10 +742,12 @@ class TestCalculateMultiTripChargingWindows:
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,  # No return event detected
-            charging_power_kw=7.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,  # No return event detected
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert len(result) == 1
         # hora_regreso=None → window starts at now (car is assumed home)
@@ -764,10 +767,12 @@ class TestCalculateMultiTripChargingWindows:
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=0.0,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=0.0,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert len(result) == 1
         assert result[0]["horas_carga_necesarias"] == 0.0
@@ -780,10 +785,12 @@ class TestCalculateMultiTripChargingWindows:
 
         result = calculate_multi_trip_charging_windows(
             trips=[],
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=7.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert result == []
 
@@ -797,10 +804,12 @@ class TestCalculateMultiTripChargingWindows:
         trips = [(departure, {"id": "trip1"})]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 10, 0),
-            charging_power_kw=7.4,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=50.0,
+            ),
         )
         assert len(result) == 1
         # Window: hora_regreso (10am) to trip_departure (18:00) = 8 hours
@@ -828,11 +837,13 @@ class TestCalculateMultiTripChargingWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 7, 0),
-            charging_power_kw=7.4,
-            return_buffer_hours=0.0,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 7, 0),
+                charging_power_kw=7.4,
+                return_buffer_hours=0.0,
+                battery_capacity_kwh=50.0,
+            ),
         )
         # First window: 7am → 8am departure = 1h
         assert result[0]["inicio_ventana"] == datetime(2026, 4, 6, 7, 0)
@@ -858,11 +869,13 @@ class TestCalculateMultiTripChargingWindows:
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 4, 6, 6, 0),
-            charging_power_kw=7.4,
-            return_buffer_hours=3.0,
-            battery_capacity_kwh=50.0,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 6, 0),
+                charging_power_kw=7.4,
+                return_buffer_hours=3.0,
+                battery_capacity_kwh=50.0,
+            ),
         )
         # Second trip's window_start should be capped to trip2 departure (10:00)
         assert result[1]["inicio_ventana"].hour == 10
@@ -3028,7 +3041,7 @@ class TestCalculateHoursDeficitPropagation:
         assert results[2]["adjusted_def_total_hours"] == 1.0  # trip#2
 
     def test_last_trip_deficit_absorbed(self):
-        """Trip #3 is deficit origin (zeroed), T2 absorbs 1h from it."""
+        """Trip #3 is deficit origin — keeps original def_total, T2 absorbs 1h from it."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3062,13 +3075,13 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["deficit_hours_propagated"] == 1.0
         assert results[1]["deficit_hours_to_propagate"] == 0.0
         assert results[1]["adjusted_def_total_hours"] == 3.0
-        # trip#2 (index 2) is deficit origin — zeroed out, cascades 1h backwards
+        # trip#2 (index 2) is deficit origin — charges ceil(2.0)=2h, cascades 1h backwards
         assert results[2]["deficit_hours_propagated"] == 0
         assert results[2]["deficit_hours_to_propagate"] == 1.0
-        assert results[2]["adjusted_def_total_hours"] == 0.0
+        assert results[2]["adjusted_def_total_hours"] == 2.0
 
     def test_chain_propagation(self):
-        """Trip #3 is deficit origin, zeroed out, cascades 3h backwards through #2 to #1."""
+        """Trip #3 is deficit origin — keeps original def_total, cascades 3h backwards through #2 to #1."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3104,13 +3117,13 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["deficit_hours_to_propagate"] == 1.0
         assert results[1]["adjusted_def_total_hours"] == 4.0
 
-        # trip#2 (index 2): deficit origin — zeroed out, cascades 3h backwards
+        # trip#2 (index 2): deficit origin — charges ceil(2.0)=2h, cascades 3h backwards
         assert results[2]["deficit_hours_propagated"] == 0
         assert results[2]["deficit_hours_to_propagate"] == 3.0
-        assert results[2]["adjusted_def_total_hours"] == 0.0
+        assert results[2]["adjusted_def_total_hours"] == 2.0
 
     def test_single_trip_deficit(self):
-        """1 trip is deficit origin — zeroed out, 3h deficit has nowhere to cascade."""
+        """1 trip is deficit origin — charges ceil(2.0)=2h, 3h deficit has nowhere to cascade."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3126,7 +3139,7 @@ class TestCalculateHoursDeficitPropagation:
         results = calculate_hours_deficit_propagation(windows, [5.0])
         assert results[0]["deficit_hours_propagated"] == 0
         assert results[0]["deficit_hours_to_propagate"] == 3.0
-        assert results[0]["adjusted_def_total_hours"] == 0.0
+        assert results[0]["adjusted_def_total_hours"] == 2.0
 
     def test_deficit_hours_propagated_is_not_cumulative(self):
         """deficit_hours_propagated is absorbed from NEXT trip only, not cumulative."""
@@ -3190,7 +3203,7 @@ class TestCalculateHoursDeficitPropagation:
         assert results[1]["fin_ventana"] == "end2"
 
     def test_adjusted_def_total_hours_correct(self):
-        """adjusted = original def_total_hours + absorbed (origin trip is zeroed)."""
+        """adjusted = original def_total_hours + absorbed (origin charges ceil(window))."""
         from custom_components.ev_trip_planner.calculations import (
             calculate_hours_deficit_propagation,
         )
@@ -3211,9 +3224,9 @@ class TestCalculateHoursDeficitPropagation:
         ]
         results = calculate_hours_deficit_propagation(windows, [2.0, 5.0])
         # trip#0 absorbs 3h from deficit origin trip#1: adjusted = 2+3 = 5
-        # trip#1 is deficit origin — zeroed out
+        # trip#1 is deficit origin — charges ceil(2.0)=2h
         assert results[0]["adjusted_def_total_hours"] == 5.0
-        assert results[1]["adjusted_def_total_hours"] == 0.0
+        assert results[1]["adjusted_def_total_hours"] == 2.0
 
     def test_no_spare_capacity(self):
         """Trip has no spare capacity (fully used) → absorbs 0."""
@@ -3265,10 +3278,10 @@ class TestCalculateHoursDeficitPropagation:
         # trip#0 (index 0): spare=5-2=3h, absorbs all 3h from trip#1
         assert results[0]["deficit_hours_propagated"] == 3.0
         assert results[0]["adjusted_def_total_hours"] == 5.0
-        # trip#1 (index 1): deficit origin — zeroed out, cascades 3h backwards
+        # trip#1 (index 1): deficit origin — charges ceil(2.0)=2h, deficit cascades 3h backwards
         assert results[1]["deficit_hours_propagated"] == 0
         assert results[1]["deficit_hours_to_propagate"] == 3.0
-        assert results[1]["adjusted_def_total_hours"] == 0.0
+        assert results[1]["adjusted_def_total_hours"] == 2.0
 
     def test_values_rounded_to_2dp(self):
         """All propagation values are rounded to 2 decimal places."""
@@ -3321,3 +3334,419 @@ class TestCalculateNextRecurringDatetimeTimezone:
         with patch("zoneinfo.ZoneInfo", broken_zoneinfo):
             calculate_next_recurring_datetime(0, "09:00", tz="Europe/Madrid")
             # Should not raise — fallback to None tz (UTC behavior)
+
+
+# =============================================================================
+# Mutation-killing tests for top-survivor functions (task 2.10.3)
+# =============================================================================
+
+
+class TestMutationKillsChargingWindowPure:
+    """Kills mutants in calculate_charging_window_pure by asserting dict structure."""
+
+    def test_return_dict_has_all_keys_no_none(self):
+        """Mutant: return dict values → None. Must assert all keys present and non-None."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            ChargingWindowPureParams,
+            calculate_charging_window_pure,
+        )
+
+        result = calculate_charging_window_pure(
+            ChargingWindowPureParams(
+                trip_departure_time=datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc),
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            )
+        )
+
+        required_keys = (
+            "ventana_horas",
+            "kwh_necesarios",
+            "horas_carga_necesarias",
+            "inicio_ventana",
+            "fin_ventana",
+            "es_suficiente",
+        )
+        for key in required_keys:
+            assert key in result, f"Key {key} missing (mutation: return dict replaced)"
+            assert result[key] is not None, f"Key {key} is None (mutation: value → None)"
+
+    def test_es_suficiente_type_assertion(self):
+        """Mutant: es_suficiente boolean flip. Must assert type."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            ChargingWindowPureParams,
+            calculate_charging_window_pure,
+        )
+
+        result = calculate_charging_window_pure(
+            ChargingWindowPureParams(
+                trip_departure_time=datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc),
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            )
+        )
+        assert isinstance(result["es_suficiente"], bool), (
+            "es_suficiente must be bool (mutation: value → None/str)"
+        )
+
+    def test_ventana_horas_is_float(self):
+        """Mutant: ventana_horas round → 0. Must assert type and positive."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            ChargingWindowPureParams,
+            calculate_charging_window_pure,
+        )
+
+        result = calculate_charging_window_pure(
+            ChargingWindowPureParams(
+                trip_departure_time=datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc),
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            )
+        )
+        assert isinstance(result["ventana_horas"], (int, float))
+        assert result["ventana_horas"] >= 0, "ventana_horas must be non-negative"
+
+    def test_kwh_necesarios_type_assertion(self):
+        """Mutant: kwh_necesarios → 0. Must assert positive float."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            ChargingWindowPureParams,
+            calculate_charging_window_pure,
+        )
+
+        result = calculate_charging_window_pure(
+            ChargingWindowPureParams(
+                trip_departure_time=datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc),
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            )
+        )
+        assert isinstance(result["kwh_necesarios"], (int, float))
+        assert result["kwh_necesarios"] > 0, "kwh_necesarios must be positive"
+
+    def test_none_inputs_return_zero_window(self):
+        """Mutant: both branches of None check flipped. Must assert 0.0 window."""
+        from custom_components.ev_trip_planner.calculations.windows import (
+            ChargingWindowPureParams,
+            calculate_charging_window_pure,
+        )
+
+        result = calculate_charging_window_pure(
+            ChargingWindowPureParams(
+                trip_departure_time=None,
+                soc_actual=50.0,
+                hora_regreso=None,
+                charging_power_kw=7.4,
+                energia_kwh=20.0,
+            )
+        )
+        assert result["ventana_horas"] == 0.0
+        assert result["kwh_necesarios"] == 0.0
+        assert result["inicio_ventana"] is None
+        assert result["fin_ventana"] is None
+
+
+class TestMutationKillsMultiTripWindows:
+    """Kills mutants in calculate_multi_trip_charging_windows."""
+
+    def test_result_is_list_of_dicts(self):
+        """Mutant: return → None or wrong type. Must assert list of dicts."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
+        )
+
+        trips = [
+            (datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc), {"id": "t1", "kwh": 10.0})
+        ]
+        result = calculate_multi_trip_charging_windows(
+            trips=trips,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
+        )
+
+        assert isinstance(result, list)
+        assert len(result) > 0
+        for item in result:
+            assert isinstance(item, dict)
+            assert "ventana_horas" in item
+            assert item["ventana_horas"] is not None
+
+    def test_multiple_trips_give_multiple_results(self):
+        """Mutant: loop mutation → single or zero results."""
+        from datetime import datetime, timedelta, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
+        )
+
+        base = datetime(2026, 4, 6, 10, 0, 0, tzinfo=timezone.utc)
+        trips = [
+            (base + timedelta(hours=8), {"id": "t1", "kwh": 10.0}),
+            (base + timedelta(hours=20), {"id": "t2", "kwh": 15.0}),
+        ]
+        result = calculate_multi_trip_charging_windows(
+            trips=trips,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=base,
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
+        )
+        assert len(result) == 2, "Must have one result per trip"
+
+    def test_empty_trips_returns_empty_list(self):
+        """Mutant: early return guard flipped. Empty must return []."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
+        )
+
+        result = calculate_multi_trip_charging_windows(
+            trips=[],
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
+        )
+        assert result == []
+
+    def test_result_dict_has_required_keys(self):
+        """Mutant: dict keys replaced with None. Must assert all keys present."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.windows import (
+            MultiTripChargingParams,
+            calculate_multi_trip_charging_windows,
+        )
+
+        trips = [
+            (datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc), {"id": "t1", "kwh": 10.0})
+        ]
+        result = calculate_multi_trip_charging_windows(
+            trips=trips,
+            params=MultiTripChargingParams(
+                soc_actual=50.0,
+                hora_regreso=datetime(2026, 4, 6, 10, 0, tzinfo=timezone.utc),
+                charging_power_kw=7.4,
+                battery_capacity_kwh=75.0,
+            ),
+        )
+
+        required = (
+            "ventana_horas",
+            "kwh_necesarios",
+            "horas_carga_necesarias",
+            "inicio_ventana",
+            "fin_ventana",
+            "es_suficiente",
+            "trip",
+        )
+        for key in required:
+            assert key in result[0], f"Key {key} missing in result dict"
+
+
+class TestMutationKillsSocAtTripStarts:
+    """Kills mutants in calculate_soc_at_trip_starts."""
+
+    def test_return_is_list_of_dicts(self):
+        """Mutant: return → None. Must assert list of dicts."""
+        from custom_components.ev_trip_planner.calculations.deficit import (
+            calculate_soc_at_trip_starts,
+        )
+
+        trips = [{"id": "trip1"}]
+        windows = [
+            {"ventana_horas": 6.0, "kwh_necesarios": 15.0, "trip": trips[0]}
+        ]
+        result = calculate_soc_at_trip_starts(
+            trips=trips,
+            soc_inicial=50.0,
+            windows=windows,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        item = result[0]
+        assert isinstance(item, dict)
+        assert "soc_inicio" in item
+        assert "trip" in item
+        assert "arrival_soc" in item
+
+    def test_soc_increases_with_charging(self):
+        """Mutant: charging math flipped → soc decreases. Assert increase."""
+        from custom_components.ev_trip_planner.calculations.deficit import (
+            calculate_soc_at_trip_starts,
+        )
+
+        trips = [{"id": "trip1"}]
+        windows = [
+            {"ventana_horas": 6.0, "kwh_necesarios": 15.0, "trip": trips[0]}
+        ]
+        result = calculate_soc_at_trip_starts(
+            trips=trips,
+            soc_inicial=50.0,
+            windows=windows,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+        # kwh_a_cargar = min(15, 7.4*6) = min(15, 44.4) = 15
+        # soc_delta = 15/50*100 = 30%
+        # arrival = 50 + 30 = 80%
+        assert result[0]["soc_inicio"] == 50.0
+        assert result[0]["arrival_soc"] > result[0]["soc_inicio"]
+
+    def test_soc_clamped_to_100(self):
+        """Mutant: min(100.0, soc_llegada) → no clamp. Assert 100 cap."""
+        from custom_components.ev_trip_planner.calculations.deficit import (
+            calculate_soc_at_trip_starts,
+        )
+
+        trips = [{"id": "trip1"}]
+        windows = [
+            {"ventana_horas": 12.0, "kwh_necesarios": 100.0, "trip": trips[0]}
+        ]
+        result = calculate_soc_at_trip_starts(
+            trips=trips,
+            soc_inicial=80.0,
+            windows=windows,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+        # kwh_a_cargar = min(100, 7.4*12) = min(100, 88.8) = 88.8
+        # soc_delta = 88.8/50*100 = 177.6%
+        # arrival = 80 + 177.6 = 257.6, clamped to 100
+        assert result[0]["arrival_soc"] <= 100.0
+
+    def test_multiple_trips_chaining_soc(self):
+        """Mutant: soc_actual assignment mutated → same soc for all. Assert chaining."""
+        from custom_components.ev_trip_planner.calculations.deficit import (
+            calculate_soc_at_trip_starts,
+        )
+
+        trips = [{"id": "t1"}, {"id": "t2"}, {"id": "t3"}]
+        windows = [
+            {"ventana_horas": 4.0, "kwh_necesarios": 10.0, "trip": trips[0]},
+            {"ventana_horas": 4.0, "kwh_necesarios": 10.0, "trip": trips[1]},
+            {"ventana_horas": 4.0, "kwh_necesarios": 10.0, "trip": trips[2]},
+        ]
+        result = calculate_soc_at_trip_starts(
+            trips=trips,
+            soc_inicial=50.0,
+            windows=windows,
+            charging_power_kw=7.4,
+            battery_capacity_kwh=50.0,
+        )
+        assert len(result) == 3
+        # Each trip gets charged ~10kWh = 20% SOC
+        for i in range(1, 3):
+            assert result[i]["soc_inicio"] == result[i - 1]["arrival_soc"], (
+                "SOC must chain between trips"
+            )
+
+
+class TestMutationKillsPowerProfile:
+    """Kills mutants in calculate_power_profile_from_trips."""
+
+    def test_returns_list_of_floats(self):
+        """Mutant: return → None or wrong type. Must assert list of floats."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.power import (
+            calculate_power_profile_from_trips,
+        )
+
+        trips = [
+            {
+                "id": "t1",
+                "datetime": "2026-04-07T06:00:00+00:00",
+                "kwh": 10.0,
+            }
+        ]
+        result = calculate_power_profile_from_trips(
+            trips=trips,
+            power_kw=3.6,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 12, 0, 0, tzinfo=timezone.utc),
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 24
+        for val in result:
+            assert isinstance(val, (int, float))
+
+    def test_non_empty_profile_for_valid_trip(self):
+        """Mutant: power_profile → all zeros. Must assert some non-zero."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.power import (
+            calculate_power_profile_from_trips,
+        )
+
+        trips = [
+            {
+                "id": "t1",
+                "datetime": "2026-04-07T06:00:00+00:00",
+                "kwh": 10.0,
+            }
+        ]
+        result = calculate_power_profile_from_trips(
+            trips=trips,
+            power_kw=3.6,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 12, 0, 0, tzinfo=timezone.utc),
+        )
+        assert any(x > 0 for x in result), (
+            "Some hours must have power > 0 for a valid trip"
+        )
+
+    def test_empty_trips_returns_zeros(self):
+        """Mutant: early return guard flipped. Empty → non-zero profile."""
+        from datetime import datetime, timezone
+
+        from custom_components.ev_trip_planner.calculations.power import (
+            calculate_power_profile_from_trips,
+        )
+
+        result = calculate_power_profile_from_trips(
+            trips=[],
+            power_kw=3.6,
+            horizon=24,
+            reference_dt=datetime(2026, 4, 6, 12, 0, 0, tzinfo=timezone.utc),
+        )
+        assert result == [0.0] * 24
+
+
+# =============================================================================
+# Mutation-killing tests for top-survivor functions (task 2.10.3)
+# =============================================================================
+

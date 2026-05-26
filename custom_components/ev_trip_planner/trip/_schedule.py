@@ -6,15 +6,21 @@ Migrated from _schedule_mixin.py. Plain class (no inheritance).
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from homeassistant.util import dt as dt_util
 
+from .. import const
 from ..calculations import _helpers
+from ._helpers import get_number
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
+
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_DEFFERABLES_PUBLISH_ERROR = "Error publishing deferrable loads to EMHASS"
 
 
 # qg-accepted: BMAD consensus 2026-05-13 — FALSE POSITIVE: max_arity=6 proxy for
@@ -29,23 +35,33 @@ class TripScheduler:
         """Initialize the schedule mixin with shared state."""
         self._state = state
 
-    def _read_battery_config(self) -> tuple[float, float]:
+    def _read_battery_config(  # pragma: no mutate  # EQ-125
+        self,
+    ) -> tuple[float, float]:
         """Return (battery_capacity_kwh, safety_margin_percent) from config entry."""
-        try:
+        with suppress(Exception):
             entry_id = self._state.entry_id
             if entry_id is None:
-                return 50.0, 10.0
+                return const.DEFAULT_BATTERY_CAPACITY_KWH, const.DEFAULT_SAFETY_MARGIN
             config_entry = self._state.hass.config_entries.async_get_entry(entry_id)
             if config_entry is not None and config_entry.data is not None:
                 return (
-                    config_entry.data.get("battery_capacity_kwh", 50.0),
-                    config_entry.data.get("safety_margin_percent", 10.0),
+                    get_number(
+                        config_entry.data,
+                        "battery_capacity_kwh",
+                        const.DEFAULT_BATTERY_CAPACITY_KWH,
+                    ),
+                    get_number(
+                        config_entry.data,
+                        "safety_margin_percent",
+                        const.DEFAULT_SAFETY_MARGIN,
+                    ),
                 )
-        except Exception:
-            pass
-        return 50.0, 10.0
+        return const.DEFAULT_BATTERY_CAPACITY_KWH, const.DEFAULT_SAFETY_MARGIN
 
-    async def _load_active_trips(self) -> List[Dict[str, Any]]:
+    async def _load_active_trips(
+        self,
+    ) -> List[Dict[str, Any]]:
         """Load active trips, compute deadlines, and sort by urgency."""
         all_trips = await self._state._persistence._load_trips()
         all_trips = self._state.get_active_trips()
@@ -56,6 +72,7 @@ class TripScheduler:
             if trip_time:
                 trip["_deadline"] = trip_time
                 delta = trip_time - now
+                # qg-accepted: AP05 — seconds-to-hours conversion
                 trip["_hours_until_deadline"] = max(0, delta.total_seconds() / 3600)
             else:
                 trip["_deadline"] = datetime.max
@@ -74,7 +91,9 @@ class TripScheduler:
     ) -> tuple[List[List[float]], int]:
         """Build per-trip power profile matrix. Returns (profiles, num_trips)."""
         num_trips = len(trips)
-        profile_length = planning_horizon_days * 24
+        profile_length = (
+            planning_horizon_days * 24
+        )  # qg-accepted: AP05 — hours-to-days conversion
         charging_power_watts = _helpers.kw_to_watts(charging_power_kw)
 
         power_profiles: List[List[float]] = [
@@ -105,6 +124,7 @@ class TripScheduler:
                 continue
 
             delta = trip_time - now
+            # qg-accepted: AP05 — seconds-to-hours conversion
             horas_hasta_viaje = int(delta.total_seconds() / 3600)
 
             if horas_hasta_viaje < 0:
@@ -114,9 +134,7 @@ class TripScheduler:
                 horas_hasta_viaje, horas_necesarias
             )
 
-            for h in range(
-                int(hora_inicio_carga), min(int(horas_hasta_viaje), profile_length)
-            ):
+            for h in range(hora_inicio_carga, min(horas_hasta_viaje, profile_length)):
                 power_profiles[idx][h] = charging_power_watts
 
         return power_profiles, num_trips
@@ -132,9 +150,11 @@ class TripScheduler:
         now_dt = dt_util.now()
 
         for day in range(planning_horizon_days):
-            for hour in range(24):
+            for hour in range(24):  # qg-accepted: AP05 — hours per day
                 timestamp = now_dt + timedelta(days=day, hours=hour)
-                profile_idx = day * 24 + hour
+                profile_idx = (
+                    day * 24 + hour
+                )  # qg-accepted: AP05 — hours-to-days conversion
 
                 entry: Dict[str, Any] = {"date": timestamp.isoformat()}
 
@@ -155,8 +175,8 @@ class TripScheduler:
 
     async def async_generate_deferrables_schedule(
         self,
-        charging_power_kw: float = 3.6,
-        planning_horizon_days: int = 7,
+        charging_power_kw: float = 3.6,  # qg-accepted: AP05 — default charging power in kW
+        planning_horizon_days: int = 7,  # qg-accepted: AP05 — default weekly planning horizon
     ) -> List[Dict[str, Any]]:
         """Genera el calendario de cargas diferibles para EMHASS."""
         trips = await self._load_active_trips()
@@ -174,18 +194,21 @@ class TripScheduler:
         return schedule
 
     async def publish_deferrable_loads(
-        self, trips: Optional[List[Dict[str, Any]]] = None
+        self,
+        trips: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """Publishes all active trips as deferrable loads to EMHASS."""
         if trips is None:
             await self._state._persistence._load_trips()
-            trips = []
-            for trip in self._state.recurring_trips.values():
-                if trip.get("activo", True):
-                    trips.append(trip)
-            for trip in self._state.punctual_trips.values():
-                if trip.get("estado") == "pendiente":
-                    trips.append(trip)
+            trips = [
+                trip
+                for trip in self._state.recurring_trips.values()
+                if trip.get("activo", True)
+            ] + [
+                trip
+                for trip in self._state.punctual_trips.values()
+                if trip.get("estado") == "pendiente"
+            ]
 
         adapter = self._state.emhass_adapter
         if adapter and hasattr(adapter, "async_publish_all_deferrable_loads"):

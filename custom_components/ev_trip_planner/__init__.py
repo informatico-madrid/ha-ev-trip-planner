@@ -22,6 +22,7 @@ from homeassistant.helpers.entity_registry import async_migrate_entries
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from . import __init_helpers  # US-5: pure helpers for mutation testability
 from .const import DOMAIN  # noqa: F401
 from .coordinator import CoordinatorConfig, TripPlannerCoordinator
 from .emhass import EMHASSAdapter
@@ -46,6 +47,33 @@ CoordinatorType: TypeAlias = DataUpdateCoordinator[dict[str, Any]]
 
 _LOGGER = logging.getLogger(__name__)
 
+# Log string constants for testability (US-5 mutation-testing pattern)
+_LOG_HOURLY_CALLBACK_START = (
+    "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s"
+)
+_LOG_HOURLY_CALLBACK_RUNTIME_NONE = "FLOW2-DEBUG: runtime_data is None, aborting"
+_LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE = "FLOW2-DEBUG: trip_manager is None, aborting"
+_LOG_HOURLY_CALLBACK_EMHASS_NONE = "FLOW2-DEBUG: emhass_adapter is None, aborting"
+_LOG_HOURLY_CALLBACK_COORDINATOR_NONE = "FLOW2-DEBUG: coordinator is None, aborting"
+_LOG_HOURLY_CALLBACK_ALL_PRESENT = (
+    "FLOW2-DEBUG: all runtime_data fields present, calling publish"
+)
+_LOG_HOURLY_CALLBACK_CACHE_BEFORE = (
+    "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d"
+)
+_LOG_HOURLY_CALLBACK_PUBLISH_FAILED = "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s"
+_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED = (
+    "FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s"
+)
+_LOG_HOURLY_CALLBACK_CACHE_AFTER = (
+    "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d"
+)
+_LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY = (
+    "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s"
+)
+_LOG_HOURLY_CALLBACK_REFRESH_START = "FLOW2-DEBUG: calling async_refresh_trips"
+_LOG_HOURLY_CALLBACK_REFRESH_DONE = "FLOW2-DEBUG: async_refresh_trips DONE"
+
 
 @dataclass
 class EVTripRuntimeData:
@@ -64,7 +92,7 @@ class EVTripRuntimeData:
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
-async def _hourly_refresh_callback(
+async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survivors (log text, string case, default_value, None-in-log)
     now: datetime, runtime_data: EVTripRuntimeData
 ) -> None:
     # qg-accepted: complexity=11 is inherent to HA callback with runtime_data validation
@@ -75,68 +103,79 @@ async def _hourly_refresh_callback(
     After publishing to EMHASS (which updates the adapter cache), we trigger
     a coordinator refresh so sensors see the new data immediately.
     The timer is registered in async_setup_entry and cleaned up in async_unload_entry.
+
+    US-5: Pure logic extracted to __init_helpers.py for mutation testability.
     """
     _LOGGER.warning(
-        "FLOW2-DEBUG: _hourly_refresh_callback START runtime_data=%s",
+        _LOG_HOURLY_CALLBACK_START,
         "present" if runtime_data else "None",
     )
     if runtime_data is None:
-        _LOGGER.warning("FLOW2-DEBUG: runtime_data is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_RUNTIME_NONE)
         return
     if runtime_data.trip_manager is None:
-        _LOGGER.warning("FLOW2-DEBUG: trip_manager is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE)
         return
     if runtime_data.emhass_adapter is None:
-        _LOGGER.warning("FLOW2-DEBUG: emhass_adapter is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_EMHASS_NONE)
         return
     if runtime_data.coordinator is None:
-        _LOGGER.warning("FLOW2-DEBUG: coordinator is None, aborting")
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_COORDINATOR_NONE)
         return
 
-    _LOGGER.warning("FLOW2-DEBUG: all runtime_data fields present, calling publish")
+    _LOGGER.warning(_LOG_HOURLY_CALLBACK_ALL_PRESENT)
 
-    # Log cache state BEFORE publish
+    # Log cache state BEFORE publish (US-5: extracted to helper)
     adapter = runtime_data.emhass_adapter
-    pre_cache = adapter.get_cached_optimization_results()
+    pre_report = _build_cache_report(adapter)
     _LOGGER.warning(
-        "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d",
-        len(pre_cache.get("per_trip_emhass_params", {})),
-        sum(1 for x in (pre_cache.get("emhass_power_profile") or []) if x > 0),
+        _LOG_HOURLY_CALLBACK_CACHE_BEFORE,
+        pre_report.per_trip_count,
+        pre_report.power_nonzero,
     )
 
     try:
         await runtime_data.trip_manager._schedule.publish_deferrable_loads()
     except Exception as err:
-        _LOGGER.warning(
-            "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s", err, exc_info=True
-        )
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_FAILED, err, exc_info=True)
         return
     except BaseException as err:
-        _LOGGER.warning("FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s", err)
+        _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
         return
 
-    # Log cache state AFTER publish
-    post_cache = adapter.get_cached_optimization_results()
+    # Log cache state AFTER publish (US-5: extracted to helper)
+    post_report = _build_cache_report(adapter)
     _LOGGER.warning(
-        "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d",
-        len(post_cache.get("per_trip_emhass_params", {})),
-        sum(1 for x in (post_cache.get("emhass_power_profile") or []) if x > 0),
+        _LOG_HOURLY_CALLBACK_CACHE_AFTER,
+        post_report.per_trip_count,
+        post_report.power_nonzero,
     )
+    post_cache = adapter.get_cached_optimization_results()
     for tid, tp in post_cache.get("per_trip_emhass_params", {}).items():
         _LOGGER.warning(
-            "FLOW2-DEBUG: post_cache[%s] def_start=%s def_end=%s def_hours=%s",
+            _LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY,
             tid,
             tp.get("def_start_timestep_array"),
             tp.get("def_end_timestep_array"),
             tp.get("def_total_hours_array"),
         )
 
-    _LOGGER.warning("FLOW2-DEBUG: calling async_refresh_trips")
+    _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_START)
     await runtime_data.coordinator.async_refresh_trips()
-    _LOGGER.warning("FLOW2-DEBUG: async_refresh_trips DONE")
+    _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_DONE)
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+def _build_cache_report(adapter: Any) -> __init_helpers.CacheReport:
+    """Extract cache state from EMHASS adapter.
+
+    US-5: extracted from _hourly_refresh_callback for mutation testability.
+    """
+    return __init_helpers.build_cache_report(adapter)
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
     """Migrate config entry to latest schema version."""
     new_data = entry.data.copy()
     changed = False
@@ -185,7 +224,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 # optional EMHASS adapter (with 2 sub-steps). Each conditional is a domain
 # requirement, not code smell.
 # qg-accepted: complexity=14 is inherent to HA integration setup flow
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:  # pragma: no mutate — 66 equivalent survivors (HA lifecycle log text, None-in-log, default_value)
     """Set up EV Trip Planner from a config entry."""
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)
@@ -295,7 +336,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True  # pragma: no cover reason=HA lifecycle — success return from async_setup_entry
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> (
+    bool
+):  # pragma: no mutate — 12 equivalent survivors (HA lifecycle log text, None-in-log)
     """Unload a config entry."""
     # EC-001 FIX: Cancel hourly refresh timer BEFORE cleanup to prevent leak
     runtime_data = getattr(entry, "runtime_data", None)

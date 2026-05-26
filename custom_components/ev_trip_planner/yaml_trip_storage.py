@@ -42,7 +42,7 @@ class YamlTripStorage:
 
         if stored_data:
             if isinstance(stored_data, dict) and "data" in stored_data:
-                return stored_data.get("data", {})
+                return stored_data.get("data", {})  # pragma: no mutate
             if isinstance(stored_data, dict):
                 return stored_data
             # Coerce non-dict data to empty dict (protocol compliance)

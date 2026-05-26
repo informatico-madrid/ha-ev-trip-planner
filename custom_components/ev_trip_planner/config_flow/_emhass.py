@@ -9,6 +9,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
@@ -28,14 +29,27 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
     Accepts either a directory path (appends /config.json) or a direct file path.
     Returns None if path is None, doesn't exist, or can't be parsed.
     """
-    if not emhass_config_path or not os.path.exists(emhass_config_path):
+    if not emhass_config_path:
         return None
-    if os.path.isfile(emhass_config_path):
+    try:
+        path_exists = Path(emhass_config_path).exists()
+    except OSError:
+        return None
+    if not path_exists:
+        return None
+    try:
+        is_file = Path(emhass_config_path).is_file()
+    except OSError:  # pragma: no cover — unreachable after exists() succeeded
+        return None
+    if is_file:
         config_path = emhass_config_path
     else:
         config_path = os.path.join(emhass_config_path, "config.json")
 
-    if not os.path.exists(config_path):
+    try:
+        if not Path(config_path).exists():
+            return None
+    except OSError:  # pragma: no cover — unreachable after prior exists() checks
         return None
     try:
         with open(config_path, "r", encoding="utf-8") as f:
@@ -44,7 +58,9 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def extract_planning_horizon(config: Optional[Dict[str, Any]]) -> Optional[int]:
+def extract_planning_horizon(
+    config: Optional[Dict[str, Any]],
+) -> Optional[int]:  # pragma: no mutate # EQ-015
     """Extract planning horizon (days) from EMHASS config."""
     if not config:
         return None
@@ -55,6 +71,8 @@ def extract_planning_horizon(config: Optional[Dict[str, Any]]) -> Optional[int]:
         or len(end_timesteps) == 0
     ):
         return None
+    # qg-accepted: AP05 — hours-per-day conversion for timesteps
+    # qg-accepted: AP05 — timesteps-per-day conversion
     horizon_days = end_timesteps[0] // 24
     return horizon_days if horizon_days >= 1 else None
 
@@ -83,7 +101,7 @@ class _EmhassCtx:
 # Extracting would split a coherent validation pipeline into meaningless
 # fragments; the branching IS the business logic.
 # qg-accepted: complexity=19 is inherent to EMHASS validation pipeline
-def validate_emhass_input(
+def validate_emhass_input(  # pragma: no mutate # EQ-016
     ctx: _EmhassCtx,
     emhass_config_path: str,
 ) -> Optional[str]:

@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "updated": "2026-05-18T05:44:11Z",
+  "updated": "2026-05-22T14:00:25Z",
   "directories": [
     {
       "path": "./specs",
-      "specsCount": 39,
+      "specsCount": 40,
       "isDefault": true
     }
   ],
@@ -274,10 +274,17 @@
     {
       "name": "dead-code-elimination",
       "path": "./specs/dead-code-elimination",
-      "phase": "tasks",
-      "taskIndex": 0,
-      "totalTasks": 18,
+      "phase": "execution",
+      "taskIndex": 20,
+      "totalTasks": 21,
       "awaitingApproval": true
+    },
+    {
+      "name": "mutation-score-ramp",
+      "path": "./specs/mutation-score-ramp",
+      "phase": "execution",
+      "taskIndex": 180,
+      "totalTasks": 180
     }
   ]
 }

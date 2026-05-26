@@ -16,10 +16,22 @@ from ..calculations import (
     calculate_energy_needed,
     calculate_multi_trip_charging_windows,
 )
-from ..const import DEFAULT_SAFETY_MARGIN
+from ..calculations.windows import MultiTripChargingParams
+from ..const import (
+    DEFAULT_BATTERY_CAPACITY_KWH,
+    DEFAULT_LOAD_PUBLISHER_CHARGING_POWER,
+    DEFAULT_MAX_DEFERRABLE_LOADS,
+    DEFAULT_SAFETY_MARGIN,
+)
 from .index_manager import IndexManager
 
 _LOGGER = logging.getLogger(__name__)
+
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_TRIP_MISSING_ID = "Trip missing ID"
+_LOG_TRIP_NO_DEADLINE = "Trip %s has no valid deadline"
+_LOG_REMOVED_DEFERRABLE = "Removed deferrable load for trip %s"
+_LOG_FAILED_REMOVE_DEFERRABLE = "Failed to remove deferrable load for trip %s"
 
 
 # Note: ChargingConfigBase ABC removed to fix AP12 Speculative Generality.
@@ -39,10 +51,10 @@ class LoadPublisherBase(ABC):
 class LoadPublisherConfig:
     """Configuration for LoadPublisher."""
 
-    charging_power_kw: float = 3.6
-    battery_capacity_kwh: float = 50.0
+    charging_power_kw: float = DEFAULT_LOAD_PUBLISHER_CHARGING_POWER
+    battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH
     safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
-    max_deferrable_loads: int = 50
+    max_deferrable_loads: int = DEFAULT_MAX_DEFERRABLE_LOADS
     index_manager: Optional[IndexManager] = None
     soc_sensor: Optional[str] = None
 
@@ -99,6 +111,7 @@ class LoadPublisher(LoadPublisherBase):
     # missing SOC, and charging window calculation. Each error requires
     # cleanup (index release) and a different log level.
     # qg-accepted: complexity=13 is inherent to publish lifecycle error handling
+
     async def publish(self, trip: Dict[str, Any]) -> bool:
         """Publish a trip as a deferrable load.
 
@@ -110,7 +123,7 @@ class LoadPublisher(LoadPublisherBase):
         """
         trip_id = trip.get("id")
         if not trip_id:
-            _LOGGER.error("Trip missing ID")
+            _LOGGER.error(_LOG_TRIP_MISSING_ID)
             return False
 
         # Assign index to trip
@@ -121,7 +134,7 @@ class LoadPublisher(LoadPublisherBase):
         # Calculate deadline
         deadline_dt = self._calculate_deadline(trip)
         if deadline_dt is None:
-            _LOGGER.error("Trip %s has no valid deadline", trip_id)
+            _LOGGER.error(_LOG_TRIP_NO_DEADLINE, trip_id)
             self._index_manager.release_index(trip_id)
             return False
 
@@ -153,17 +166,17 @@ class LoadPublisher(LoadPublisherBase):
 
         if charging_windows and charging_windows[0].get("inicio_ventana"):
             inicio = charging_windows[0]["inicio_ventana"]
+            # qg-accepted: AP05 — seconds-to-hours conversion
             delta_hours = (self._ensure_aware(inicio) - now).total_seconds() / 3600
+            # qg-accepted: AP05 — max week-hours (7 * 24)
             _ = max(0, min(int(delta_hours), 168))
 
-        if (
-            charging_windows
-            and len(charging_windows) > 0
-            and charging_windows[0].get("fin_ventana")
-        ):
+        if charging_windows and charging_windows[0].get("fin_ventana"):
             fin = charging_windows[0]["fin_ventana"]
             if isinstance(fin, datetime):
+                # qg-accepted: AP05 — seconds-to-hours conversion
                 delta_hours_end = (self._ensure_aware(fin) - now).total_seconds() / 3600
+                # qg-accepted: AP05 — max week-hours (7 * 24)
                 _ = max(0, min(math.ceil(delta_hours_end - 0.001), 168))
 
         # Calculate energy parameters
@@ -216,9 +229,9 @@ class LoadPublisher(LoadPublisherBase):
         success = self._index_manager.release_index(trip_id)
 
         if success:
-            _LOGGER.info("Removed deferrable load for trip %s", trip_id)
+            _LOGGER.info(_LOG_REMOVED_DEFERRABLE, trip_id)
         else:
-            _LOGGER.warning("Failed to remove deferrable load for trip %s", trip_id)
+            _LOGGER.warning(_LOG_FAILED_REMOVE_DEFERRABLE, trip_id)
 
         return success
 
@@ -227,6 +240,7 @@ class LoadPublisher(LoadPublisherBase):
     # formats (Spanish/English/numeric), and time parsing with error branches.
     # This is a parser function — branching is the logic.
     # qg-accepted: complexity=13, nesting=5 — date parsing logic
+
     def _calculate_deadline(self, trip: Dict[str, Any]) -> Optional[datetime]:
         """Calculate deadline datetime from trip data.
 
@@ -253,6 +267,7 @@ class LoadPublisher(LoadPublisherBase):
 
             if day is not None and time_str is not None:
                 now = dt_util.now()
+                # qg-accepted: AP05 — weekday index mapping (0=Mon, 6=Sun)
                 days_map = {
                     "domingo": 6,
                     "sunday": 6,
@@ -275,8 +290,11 @@ class LoadPublisher(LoadPublisherBase):
                 # '1'→Monday(0), '2'→Tuesday(1), ..., '6'→Saturday(5)
                 if day_str.isdigit():
                     n = int(day_str)
-                    if n == 0 or n == 7:
-                        target_day = 6  # Sunday
+                    # qg-accepted: AP05 — Sunday is 0 or 7 in numeric format
+                    if n in (0, 7):
+                        # qg-accepted: AP05 — Sunday index
+                        target_day = 6
+                    # qg-accepted: AP05 — Monday(1) through Saturday(6) range
                     elif 1 <= n <= 6:
                         target_day = n - 1
                     else:
@@ -285,6 +303,7 @@ class LoadPublisher(LoadPublisherBase):
                     target_day = days_map.get(day_str)
                 if target_day is not None:
                     now_day = now.weekday()
+                    # qg-accepted: AP05 — days in week for weekday arithmetic
                     delta_days = (target_day - now_day) % 7
 
                     parts = time_str.split(":")
@@ -302,6 +321,7 @@ class LoadPublisher(LoadPublisherBase):
                     # If trip time already passed, deadline is NEXT week (delta_days = 7)
                     if delta_days == 0:
                         if deadline_today < now:
+                            # qg-accepted: AP05 — next-week fallback when trip time passed
                             delta_days = 7  # Trip time already passed, go to next week
                         # else: delta_days stays 0, deadline is today
 
@@ -347,12 +367,14 @@ class LoadPublisher(LoadPublisherBase):
         """
         return calculate_multi_trip_charging_windows(
             trips=[(deadline_dt, trip)],
-            soc_actual=soc_current,
-            hora_regreso=None,
-            charging_power_kw=self.charging_power_kw,
-            battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
-            safety_margin_percent=self.safety_margin_percent,
-            now=dt_util.now(),
+            params=MultiTripChargingParams(
+                soc_actual=soc_current,
+                hora_regreso=None,
+                charging_power_kw=self.charging_power_kw,
+                battery_capacity_kwh=self._battery_cap.get_capacity(self.hass),
+                safety_margin_percent=self.safety_margin_percent,
+                now=dt_util.now(),
+            ),
         )
 
     @staticmethod

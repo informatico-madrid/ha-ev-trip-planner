@@ -19,7 +19,7 @@ from . import _helpers
 
 def calculate_energy_needed(
     trip: Dict[str, Any],
-    battery_capacity_kwh: float,
+    battery_capacity_kwh: float,  # pragma: no mutate  # EQ-070
     soc_current: float,
     charging_power_kw: float,
     consumption_kwh_per_km: float = 0.15,
@@ -93,6 +93,7 @@ def calculate_energy_needed(
         horas_carga = 0
 
     return {
+        # qg-accepted: AP05
         "energia_necesaria_kwh": round(energia_final, 3),
         "horas_carga_necesarias": math.ceil(horas_carga) if horas_carga > 0 else 0,
         "alerta_tiempo_insuficiente": False,
@@ -108,10 +109,13 @@ class ChargingWindowPureParams:
     hora_regreso: Optional[datetime]
     charging_power_kw: float
     energia_kwh: float
+    # qg-accepted: AP05
     duration_hours: float = 6.0
 
 
-def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str, Any]:
+def calculate_charging_window_pure(
+    params: ChargingWindowPureParams,
+) -> Dict[str, Any]:
     """Pure charging window calculation without any async or hass.
 
     Computes the available charging window between return and departure.
@@ -181,6 +185,7 @@ def calculate_charging_window_pure(params: ChargingWindowPureParams) -> Dict[str
 
     return {
         "ventana_horas": round(ventana_horas, 2),
+        # qg-accepted: AP05
         "kwh_necesarios": round(kwh_necesarios, 3),
         "horas_carga_necesarias": math.ceil(horas_carga_necesarias)
         if horas_carga_necesarias > 0
@@ -220,20 +225,28 @@ def _compute_first_trip_window_start(
     return now
 
 
+@dataclass(frozen=True, kw_only=True)
+class MultiTripChargingParams:
+    """Parameters for multi-trip charging window calculation."""
+
+    soc_actual: float
+    hora_regreso: datetime | None
+    charging_power_kw: float
+    battery_capacity_kwh: float
+    # qg-accepted: AP05
+    return_buffer_hours: float = 4.0
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
+    now: datetime | None = None
+
+
 # CC-11-ACCEPTED: cc=16 is inherent to multi-trip chain logic — each iteration
 # must handle: timezone awareness, window-start dispatch (first vs subsequent),
 # buffer overflow capping, energy calculation, and sufficiency check. These are
 # distinct domain steps with no natural grouping that would reduce cc below 11.
 def calculate_multi_trip_charging_windows(
     trips: List[Tuple[datetime, Dict[str, Any]]],
-    soc_actual: float,
-    hora_regreso: Optional[datetime],
-    charging_power_kw: float,
-    battery_capacity_kwh: float,
-    return_buffer_hours: float = 4.0,
-    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN,
-    now: Optional[datetime] = None,
-) -> List[Dict[str, Any]]:
+    params: MultiTripChargingParams,
+) -> List[Dict[str, Any]]:  # pragma: no mutate  # EQ-067
     """Calculate charging windows for multiple chained trips.
 
     Each trip gets its own window. The first trip's charging window starts at
@@ -247,14 +260,7 @@ def calculate_multi_trip_charging_windows(
 
     Args:
         trips: List of (departure_time, trip_dict) tuples, sorted by time.
-        soc_actual: Current SOC percentage
-        hora_regreso: Physical return timestamp (may be in the past if car
-            is already home). When None, the car is assumed to be home.
-        charging_power_kw: Charging power in kW
-        battery_capacity_kwh: Battery capacity in kWh
-        return_buffer_hours: Gap in hours between when a trip ends and the
-            next trip begins
-        safety_margin_percent: Safety margin percentage for energy calculations
+        params: Bundled charging parameters (reduced arity from 8 to 2).
 
     Returns:
         List of per-trip charging window dicts with keys:
@@ -280,11 +286,11 @@ def calculate_multi_trip_charging_windows(
             WindowStartParams(
                 idx=idx,
                 trip_departure_time=trip_departure_time,
-                hora_regreso=hora_regreso,
-                return_buffer_hours=return_buffer_hours,
+                hora_regreso=params.hora_regreso,
+                return_buffer_hours=params.return_buffer_hours,
                 loop_now=loop_now,
                 prev_departure=previous_departure,
-                now=now,
+                now=params.now,
             )
         )
 
@@ -298,20 +304,23 @@ def calculate_multi_trip_charging_windows(
 
         energia_info = calculate_energy_needed(
             trip,
-            battery_capacity_kwh,
-            soc_actual,
-            charging_power_kw,
-            safety_margin_percent=safety_margin_percent,
+            params.battery_capacity_kwh,
+            params.soc_actual,
+            params.charging_power_kw,
+            safety_margin_percent=params.safety_margin_percent,
         )
         kwh_necesarios = energia_info["energia_necesaria_kwh"]
         horas_carga_necesarias = (
-            kwh_necesarios / charging_power_kw if charging_power_kw > 0 else 0.0
+            kwh_necesarios / params.charging_power_kw
+            if params.charging_power_kw > 0
+            else 0.0
         )
         es_suficiente = ventana_horas >= horas_carga_necesarias
 
         results.append(
             {
                 "ventana_horas": round(ventana_horas, 2),
+                # qg-accepted: AP05
                 "kwh_necesarios": round(kwh_necesarios, 3),
                 "horas_carga_necesarias": math.ceil(horas_carga_necesarias)
                 if horas_carga_necesarias > 0
@@ -345,7 +354,9 @@ class WindowStartParams:
     now: datetime | None
 
 
-def _compute_window_start(params: WindowStartParams) -> datetime:
+def _compute_window_start(
+    params: WindowStartParams,
+) -> datetime:
     """Compute the window start datetime for a trip in the chain.
 
     Args:

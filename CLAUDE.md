@@ -148,3 +148,19 @@ User: "let's brainstorm the new authentication feature"
 - Always run them via the Makefile
 - API calls are strictly prohibited
 - Must replicate real user behavior. If the test cannot replicate real user behavior, it is invalid, indicating either a flaw in the test design or an error in the application code.
+
+## Mutation Testing & Effective-MSI
+
+> See `docs/mutation-testing.md` for full details.
+
+**Rule:** Any surviving mutant must be either killed by tests or registered in
+`specs/mutation-score-ramp/equivalent-mutants.md` with justification. Never add
+`# pragma: no mutate` without a corresponding registry entry.
+
+```bash
+# Check for unregistered survivors (persistence gate)
+make mutation-unregistered-check
+```
+
+The registry tracks `REGISTERED-AUTO` (pre-authorized intrinsics) and
+`HUMAN-APPROVED` (framework-absorbed) equivalents.

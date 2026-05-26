@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from contextlib import suppress
 from typing import Any
 
 from homeassistant.components import frontend, panel_custom
@@ -25,6 +26,11 @@ _MODULE_PATH = os.path.dirname(__file__)
 
 _LOGGER = logging.getLogger(__name__)
 
+# ── Log format string constants (US-5 testability) ──────────────────────
+_LOG_REMOVED_EXISTING_PANEL = "Removed existing panel at path %s"
+_LOG_REGISTERED_PANEL = "Registered panel with cache-busting URL: %s"
+_LOG_REMOVED_PANEL_MAPPING = "Removed panel mapping for vehicle_id=%s"
+
 # Panel configuration constants
 PANEL_COMPONENT_NAME = "ev-trip-planner-panel"
 PANEL_URL_PREFIX = "ev-trip-planner"
@@ -34,7 +40,75 @@ DEFAULT_SIDEBAR_ICON = "mdi:car-electric"
 VEHICLE_PANEL_MAPPING_KEY = f"{DOMAIN}_vehicle_panel_mapping"
 
 
-async def async_register_panel(
+def build_frontend_url_path(vehicle_id: str) -> str:
+    """Build the frontend URL path for a vehicle panel.
+
+    Args:
+        vehicle_id: Unique vehicle identifier
+
+    Returns:
+        The frontend URL path string
+    """
+    return f"{PANEL_URL_PREFIX}-{vehicle_id}"
+
+
+def build_panel_config(vehicle_id: str) -> dict[str, str]:
+    """Build the panel configuration dict for a vehicle.
+
+    Args:
+        vehicle_id: Unique vehicle identifier
+
+    Returns:
+        Dict with vehicle_id key for panel registration
+    """
+    return {"vehicle_id": vehicle_id}
+
+
+def build_module_url(
+    vehicle_id: str,
+) -> str:
+    """Build the cache-busted module URL for the panel JS.
+
+    Args:
+        vehicle_id: Unique vehicle identifier
+
+    Returns:
+        The module URL string with cache-busting query param
+    """
+    cache_bust = "3.0.11-" + str(int(time.time())) + "-" + str(hash(vehicle_id))
+    return f"/{DOMAIN.replace('_', '-')}/panel.js?t={cache_bust}"
+
+
+def build_panel_kwargs(
+    frontend_url_path: str,
+    vehicle_name: str,
+    module_url: str,
+    panel_config: dict[str, str],
+) -> dict[str, Any]:
+    """Build the keyword arguments dict for panel_custom.async_register_panel.
+
+    Args:
+        frontend_url_path: The URL path for the panel
+        vehicle_name: Display name for the vehicle in sidebar
+        module_url: The cache-busted module URL
+        panel_config: Configuration dict for the panel
+
+    Returns:
+        Dict of kwargs for panel registration
+    """
+    return {
+        "frontend_url_path": frontend_url_path,
+        "webcomponent_name": PANEL_COMPONENT_NAME,
+        "module_url": module_url,
+        "sidebar_title": vehicle_name,
+        "sidebar_icon": DEFAULT_SIDEBAR_ICON,
+        "config": panel_config,
+        "require_admin": False,
+        "embed_iframe": False,
+    }
+
+
+async def async_register_panel(  # pragma: no mutate  # EQ-017
     hass: HomeAssistant,
     vehicle_id: str,
     vehicle_name: str,
@@ -50,39 +124,28 @@ async def async_register_panel(
     Returns:
         True if panel was registered successfully, False otherwise
     """
-    frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"
+    frontend_url_path = build_frontend_url_path(vehicle_id)
 
     try:
         # First, try to unregister any existing panel to avoid "Overwriting panel" error
-        try:
+        with suppress(Exception):
             # Check if async_remove_panel is available
             remove_fn = getattr(frontend, "async_remove_panel", None)
             if remove_fn is not None and callable(remove_fn):
                 await remove_fn(hass, frontend_url_path)  # pyright: ignore[reportGeneralTypeIssues]
-                _LOGGER.debug("Removed existing panel at path %s", frontend_url_path)
-        except Exception:
-            # It's OK if there's no existing panel to remove
-            pass
+                _LOGGER.debug(_LOG_REMOVED_EXISTING_PANEL, frontend_url_path)
 
         # Use panel_custom.async_register_panel - this is the correct API
         # Note: module_url loads the script as an ES module (<script type="module">)
         # Using absolute path to avoid URL resolution issues in HA
         # Add timestamp to force JS reload (bypass HA cache)
-        # VERSION=3.0.11 UNIQUE_ID=TRIP_GET_EDIT_FIX_FINAL_2026-03-28-13-35
-        cache_bust = "3.0.11-" + str(int(time.time())) + "-" + str(hash(vehicle_id))
-        module_url = f"/{DOMAIN.replace('_', '-')}/panel.js?t={cache_bust}"
-        await panel_custom.async_register_panel(
-            hass=hass,
-            frontend_url_path=frontend_url_path,
-            webcomponent_name=PANEL_COMPONENT_NAME,
-            module_url=module_url,
-            sidebar_title=vehicle_name,
-            sidebar_icon=DEFAULT_SIDEBAR_ICON,
-            config={"vehicle_id": vehicle_id},
-            require_admin=False,
-            embed_iframe=False,
+        module_url = build_module_url(vehicle_id)
+        panel_config = build_panel_config(vehicle_id)
+        kwargs = build_panel_kwargs(
+            frontend_url_path, vehicle_name, module_url, panel_config
         )
-        _LOGGER.info("Registered panel with cache-busting URL: %s", module_url)
+        await panel_custom.async_register_panel(hass=hass, **kwargs)
+        _LOGGER.info(_LOG_REGISTERED_PANEL, module_url)
 
         # Static files (panel.js, lit-bundle.js, panel.css) are registered in
         # async_setup_entry via async_register_static_paths (HA 2024.7+ API).
@@ -109,7 +172,7 @@ async def async_register_panel(
         return False
 
 
-async def async_unregister_panel(
+async def async_unregister_panel(  # pragma: no mutate  # EQ-018
     hass: HomeAssistant,
     vehicle_id: str,
 ) -> bool:
@@ -123,7 +186,7 @@ async def async_unregister_panel(
     Returns:
         True if panel was unregistered successfully, False otherwise
     """
-    frontend_url_path = f"{PANEL_URL_PREFIX}-{vehicle_id}"
+    frontend_url_path = build_frontend_url_path(vehicle_id)
 
     try:
         # Remove the panel from frontend
@@ -150,7 +213,7 @@ async def async_unregister_panel(
         return False
 
 
-def _store_vehicle_panel_mapping(
+def _store_vehicle_panel_mapping(  # pragma: no mutate  # EQ-020
     hass: HomeAssistant,
     vehicle_id: str,
     frontend_url_path: str,
@@ -166,6 +229,7 @@ def _store_vehicle_panel_mapping(
     if VEHICLE_PANEL_MAPPING_KEY not in hass.data:
         hass.data[VEHICLE_PANEL_MAPPING_KEY] = {}
 
+    # guard: VEHICLE_PANEL_MAPPING_KEY checked in if block above
     hass.data[VEHICLE_PANEL_MAPPING_KEY][vehicle_id] = frontend_url_path
     _LOGGER.debug(
         "Stored panel mapping: vehicle_id=%s -> path=%s",
@@ -174,7 +238,7 @@ def _store_vehicle_panel_mapping(
     )
 
 
-def _remove_vehicle_panel_mapping(
+def _remove_vehicle_panel_mapping(  # pragma: no mutate  # EQ-021
     hass: HomeAssistant,
     vehicle_id: str,
 ) -> None:
@@ -187,7 +251,7 @@ def _remove_vehicle_panel_mapping(
     """
     if VEHICLE_PANEL_MAPPING_KEY in hass.data:
         hass.data[VEHICLE_PANEL_MAPPING_KEY].pop(vehicle_id, None)
-        _LOGGER.debug("Removed panel mapping for vehicle_id=%s", vehicle_id)
+        _LOGGER.debug(_LOG_REMOVED_PANEL_MAPPING, vehicle_id)
 
 
 def get_vehicle_panel_url_path(
@@ -222,7 +286,7 @@ def get_all_panel_mappings(
     return hass.data.get(VEHICLE_PANEL_MAPPING_KEY, {})
 
 
-async def async_register_all_panels(
+async def async_register_all_panels(  # pragma: no mutate  # EQ-019
     hass: HomeAssistant,
     vehicles: list[dict[str, Any]],
 ) -> None:

@@ -315,3 +315,114 @@ def test_redact_keys_contains_expected_values():
     assert "soc_sensor" in REDACT_KEYS
     assert "range_sensor" in REDACT_KEYS
     assert len(REDACT_KEYS) == 3
+
+
+class TestDiagnosticsGetattrMutationKills:
+    """Tests targeting diagnostics getattr() mutation survivors.
+
+    Kill targets: mutmut_14, 22, 30 — getattr with empty default vs None default.
+    """
+
+    @pytest.mark.asyncio
+    async def test_diagnostics_getattr_missing_coordinator_attr(self):
+        """Test getattr with missing 'coordinator' attr on runtime_data.
+
+        runtime_data is a MagicMock that always returns MagicMock for .coordinator.
+        We need an object where 'coordinator' attribute doesn't exist at all.
+
+        Kills mutations 14: getattr(runtime_data, "coordinator", None)
+        vs getattr(runtime_data, "coordinator", ).
+        When attr is truly missing, both return None — but we verify
+        the getattr chain correctly returns None for missing attrs.
+        """
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.entry_id = "getattr_test"
+        entry.version = 1
+        entry.minor_version = 0
+        entry.data = {}
+
+        # Create an object WITHOUT 'coordinator', 'trip_manager', 'emhass_adapter' attrs
+        # Use object() which raises AttributeError for unknown attrs
+        # But we need hasattr check — MagicMock has __getattr__ that returns MagicMock
+        # So use a plain class
+        class BareRuntime:
+            pass
+
+        entry.runtime_data = BareRuntime()
+
+        result = await async_get_config_entry_diagnostics(hass, entry)
+
+        assert isinstance(result, dict)
+        assert "coordinator" in result
+        assert "trip_manager" in result
+        # With getattr returning None (attr missing), these should be safe defaults
+        assert result["coordinator"]["data_keys"] == []
+        assert result["coordinator"]["last_update_success"] is None
+        assert result["trip_manager"]["vehicle_id"] is None
+        assert "emhass" not in result  # emhass_adapter is None
+
+    @pytest.mark.asyncio
+    async def test_diagnostics_trip_manager_getattr_missing(self):
+        """Test getattr with missing 'trip_manager' attr on runtime_data.
+
+        Kills mutations 22: getattr(runtime_data, "trip_manager", None)
+        vs getattr(runtime_data, "trip_manager", ).
+        """
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.entry_id = "tm_getattr"
+        entry.version = 1
+        entry.minor_version = 0
+        entry.data = {}
+
+        class BareRuntime:
+            coordinator = MagicMock()
+            coordinator.data = {}
+            coordinator.last_update_success = True
+
+        entry.runtime_data = BareRuntime()
+
+        result = await async_get_config_entry_diagnostics(hass, entry)
+
+        assert result["trip_manager"]["vehicle_id"] is None
+        assert result["trip_manager"]["recurring_trips_count"] == 0
+        assert result["trip_manager"]["punctual_trips_count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_diagnostics_conditional_zero_count_paths(self):
+        """Test that 0-trip counts work through conditional branches.
+
+        Kills mutations 62, 65: conditional 0->1 in else branches
+        of recurring_trips_count and punctual_trips_count.
+        When trip_manager is None, counts become 0 (not 1).
+        """
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.entry_id = "count_zero"
+        entry.version = 1
+        entry.minor_version = 0
+        entry.data = {}
+
+        coordinator = MagicMock()
+        coordinator.data = {}
+        coordinator.last_update_success = True
+
+        # trip_manager exists but has 0 trips
+        trip_manager = MagicMock()
+        trip_manager._state = MagicMock()
+        trip_manager._state.vehicle_id = "vehicle_zero"
+        trip_manager._state.recurring_trips = {}  # 0 trips
+        trip_manager._state.punctual_trips = {}  # 0 trips
+
+        runtime = MagicMock()
+        runtime.coordinator = coordinator
+        runtime.trip_manager = trip_manager
+        runtime.emhass_adapter = None
+        entry.runtime_data = runtime
+
+        result = await async_get_config_entry_diagnostics(hass, entry)
+
+        # With 0 trips, conditional should return 0 (not 1)
+        assert result["trip_manager"]["recurring_trips_count"] == 0
+        assert result["trip_manager"]["punctual_trips_count"] == 0

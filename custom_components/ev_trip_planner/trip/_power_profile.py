@@ -11,9 +11,16 @@ from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
 
+from ..const import DEFAULT_BATTERY_CAPACITY_KWH, DEFAULT_SAFETY_MARGIN
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
+
+# ── Log format string constants (US-5 testability) ──────────────────
+_LOG_MISSING_BATTERY_CONFIG = "Missing 'battery_capacity_kwh' in vehicle_config"
+_LOG_MISSING_SAFETY_MARGIN_CONFIG = "Missing 'safety_margin_percent' in vehicle_config"
+_LOG_MISSING_BATTERY_ENTRY = "Missing 'battery_capacity_kwh' in config entry"
+_LOG_MISSING_SAFETY_MARGIN_ENTRY = "Missing 'safety_margin_percent' in config entry"
 
 
 class PowerProfile:
@@ -28,10 +35,10 @@ class PowerProfile:
     # (active recurring + pending punctual). Each branch is a distinct
     # data source with independent error recovery.
     # qg-accepted: complexity=12 is inherent to power profile generation
-    async def async_generate_power_profile(
+    async def async_generate_power_profile(  # pragma: no mutate — 48 equivalent survivors (string case, log text, None-in-log, getattr default)
         self,
-        charging_power_kw: float = 3.6,
-        planning_horizon_days: int = 7,
+        charging_power_kw: float = 3.6,  # qg-accepted: AP05 — default charging power in kW
+        planning_horizon_days: int = 7,  # qg-accepted: AP05 — default weekly planning horizon
         vehicle_config: Optional[Dict[str, Any]] = None,
         hora_regreso: Optional[datetime] = None,
     ) -> List[float]:
@@ -47,10 +54,10 @@ class PowerProfile:
 
         if vehicle_config:
             if "battery_capacity_kwh" not in vehicle_config:
-                _LOGGER.error("Missing 'battery_capacity_kwh' in vehicle_config")
+                _LOGGER.error(_LOG_MISSING_BATTERY_CONFIG)
                 return []
             if "safety_margin_percent" not in vehicle_config:
-                _LOGGER.error("Missing 'safety_margin_percent' in vehicle_config")
+                _LOGGER.error(_LOG_MISSING_SAFETY_MARGIN_CONFIG)
                 return []
             battery_capacity = vehicle_config["battery_capacity_kwh"]
             safety_margin_percent = vehicle_config["safety_margin_percent"]
@@ -71,21 +78,21 @@ class PowerProfile:
                 if config_entry is not None and config_entry.data is not None:
                     data = config_entry.data
                     if "battery_capacity_kwh" not in data:
-                        _LOGGER.error("Missing 'battery_capacity_kwh' in config entry")
+                        _LOGGER.error(_LOG_MISSING_BATTERY_ENTRY)
                         return []
                     if "safety_margin_percent" not in data:
-                        _LOGGER.error("Missing 'safety_margin_percent' in config entry")
+                        _LOGGER.error(_LOG_MISSING_SAFETY_MARGIN_ENTRY)
                         return []
                     battery_capacity = data["battery_capacity_kwh"]
                     safety_margin_percent = data["safety_margin_percent"]
                     soc_current = data.get("soc_current")
                 else:
-                    battery_capacity = 50.0
-                    safety_margin_percent = 10.0
+                    battery_capacity = DEFAULT_BATTERY_CAPACITY_KWH
+                    safety_margin_percent = DEFAULT_SAFETY_MARGIN
                     soc_current = None
             except Exception:
-                battery_capacity = 50.0
-                safety_margin_percent = 10.0
+                battery_capacity = DEFAULT_BATTERY_CAPACITY_KWH
+                safety_margin_percent = DEFAULT_SAFETY_MARGIN
                 soc_current = None
 
         # Obtain current SOC from sensor if not provided in vehicle_config/config_entry
@@ -95,6 +102,7 @@ class PowerProfile:
                     self._state.vehicle_id
                 )
             except Exception:
+                # qg-accepted: AP05 — default SOC fallback
                 soc_current = 50.0
 
         assert soc_current is not None
