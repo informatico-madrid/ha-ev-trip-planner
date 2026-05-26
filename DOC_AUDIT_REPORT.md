@@ -433,4 +433,78 @@ plans/                          ← Condensar (33 → ~10 archivos)
 
 ---
 
-*Este informe es de solo lectura — no se ha modificado ningún archivo del proyecto.*
+## 12. Registro de Acciones Ejecutadas (2026-05-26)
+
+### Acciones Prioridad Alta completadas
+
+| # | Acción | Estado |
+|---|--------|--------|
+| A1 | Borrar 16 archivos basura de git y disco | ✅ Completado |
+| A2 | Quitar de git (mantener en disco): `configuration.yaml`, `docs/simulation_trace_def_total_hours.py`, `bmalph/config.json` | ✅ Completado |
+| B | Quitar 69 archivos de estado temporal de specs/ de git | ✅ Completado |
+| E1 | Condensar RELEASE_NOTES en CHANGELOG (eliminados archivos obsoletos) | ✅ Completado |
+| E2 | Condensar TODO.md en ROADMAP.md (archivo eliminado) | ✅ Completado |
+| E3 | Integrar doc/ en docs/ (directorio eliminado) | ✅ Completado |
+| E4 | Crear docs/archive/ y mover 13 archivos históricos | ✅ Completado |
+
+### Archivos Eliminados/Movidos
+
+**Eliminados de git:**
+- `.git-commit.lock`, `.progress.md`, `QWEN.md`, `skills-lock.json`, `jest.config.js`
+- `panel.js.bak`, `panel.js.fixed`, `panel.js.old`, `conftest.py.bak`
+- `.ralph/backup_claude_logs_monitor.sh.original`, `.ralph/claude_logs_monitor.sh.backup`, `.ralph/recipes/ralph-loop copy.sh`
+- `gito-report/classification.json`, `report/jscpd-report.json`, `docs/project-scan-report.json`, `bmalph/state/current-phase.json`
+- `RELEASE_NOTES_v0.5.9.md`, `RELEASE_NOTES_v0.5.16.md`, `RELEASE_NOTES_v0.5.17.md`, `TODO.md`
+
+**Movidos a docs/archive/:**
+- `BUG-ANALYSIS-def_total_hours-7-6.md`, `DOCS_DEEP_AUDIT.md`, `e2e-date-diagnosis-final.md`
+- `EXECUTIVE_SUMMARY.md`, `MILESTONE_4_1_PLANNING.md`, `MILESTONE_4_POWER_PROFILE.md`
+- `perfildiferible.yml`, `perfildiferibletemplateejemplo.yml`, `promptspecrfactor.md`
+- `source-tree-analysis.md`, `staging-manual-verification.md`, `staging-vehicle-5-trips-snapshot.md`
+
+### Archivos Eliminados de git (solo en disco, quitados de tracking)
+- `configuration.yaml` - Config local de HA development
+- `docs/simulation_trace_def_total_hours.py` - Script de simulación local
+- `bmalph/config.json` - Config local de BMad Alpha
+
+### Archivos de specs/ eliminados de git (69 archivos)
+- 23× `.progress.md`, 12× `chat.md`, 7× `chat.md.lock`, 13× `task_review.md`
+- 6× `.metrics.jsonl`, 2× `signals.jsonl`, 1× `.ralph-state.json`
+- 2× `.current-spec`, 1× `.current-epic`, 1× `error-context.txt`
+- 1× `fullinterview.txt`, 1× `chatarchived.md`
+
+### .gitignore actualizado
+```gitignore
+# Archivos de estado temporal de specs (quitados de git)
+specs/*/chat.md
+specs/*/chat.md.lock
+specs/*/task_review.md
+specs/*/.metrics.jsonl
+specs/*/signals.jsonl
+specs/*/error-context.txt
+specs/*/fullinterview.txt
+specs/*/chatarchived.md
+
+# Config local de herramientas
+configuration.yaml
+bmalph/config.json
+
+# Reportes temporales
+staging-qa-results.md
+```
+
+### docs/index.md actualizado
+- Nueva sección "Archived (Historical)" con referencia a `archive/`
+- Enlaces a archivos históricos en `docs/archive/`
+- Enlace a `_ai/index.md` para documentación de IA
+
+### Pendiente (Prioridad Media/Baja)
+- [ ] Condensar `_ai/` (evaluar documentos históricos vs activos)
+- [ ] Condensar `plans/` (33 archivos, evaluar duplicación con otros docs)
+- [ ] Evaluar `_bmad-output/` (35 archivos de output históricos)
+- [ ] Limpiar categorías C/D de tool directories (559 archivos trackeados en git)
+
+---
+
+*Este informe fue actualizado tras la ejecución de las mejoras de documentación (2026-05-26).*
+*102 archivos modificados, 53,259 líneas eliminadas según `git diff --cached --stat`.*

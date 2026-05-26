@@ -134,3 +134,20 @@ test-results1/
 e2e-diagnosis/
 **/.progress.md
 .mutmut-cache/
+
+# Archivos de estado temporal de specs (quitados de git)
+specs/*/chat.md
+specs/*/chat.md.lock
+specs/*/task_review.md
+specs/*/.metrics.jsonl
+specs/*/signals.jsonl
+specs/*/error-context.txt
+specs/*/fullinterview.txt
+specs/*/chatarchived.md
+
+# Config local de herramientas
+configuration.yaml
+bmalph/config.json
+
+# Reportes temporales
+staging-qa-results.md

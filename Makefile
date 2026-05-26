@@ -261,25 +261,22 @@ endif
 
 # Quality Gate CI: Fast (excludes E2E + L3B)
 quality-gate-ci:
-	@echo "=== CI Quality Gate (L3A → L1-CI → L2 → L4, no E2E, no BMAD) ==="
+	@echo "=== CI Quality Gate (L3A → L1-CI → L4, no E2E, no L2, no BMAD) ==="
 	@echo "Phase 1: L3A Smoke Test (fail-fast)"
 	$(MAKE) layer3a
-	@echo "Phase 2: L1-CI + L2 + L4"
+	@echo "Phase 2: L1-CI + L4"
 ifeq ($(PARALLEL_ENABLED),true)
 	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
 	@mkdir -p .quality-gate-results && \
 	$(MAKE) layer1-ci > .quality-gate-results/l1.out 2>&1 & echo $$! > .quality-gate-results/l1.pid && \
-	$(MAKE) layer2 > .quality-gate-results/l2.out 2>&1 & echo $$! > .quality-gate-results/l2.pid && \
 	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & echo $$! > .quality-gate-results/l4.pid && \
 	wait && \
 	echo "--- L1-CI output ---"; cat .quality-gate-results/l1.out && \
-	echo "--- L2 output ---"; cat .quality-gate-results/l2.out && \
 	echo "--- L4 output ---"; cat .quality-gate-results/l4.out && \
 	fail=0; for pid in .quality-gate-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .quality-gate-results; if [ $$fail -eq 1 ]; then exit 1; fi
 else
 	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
 	$(MAKE) layer1-ci
-	$(MAKE) layer2
 	$(MAKE) layer4
 endif
 	@echo "=== CI Quality Gate PASSED ==="

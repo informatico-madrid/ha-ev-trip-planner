@@ -21,7 +21,18 @@ docs/index.md
 | [api-contracts.md](api-contracts.md) | API contracts |
 | [data-models.md](data-models.md) | Data models |
 | [development-guide.md](development-guide.md) | Development guide |
-| [source-tree-analysis.md](source-tree-analysis.md) | Source tree structure |
+| [mutation-testing.md](mutation-testing.md) | Mutation testing guide |
+
+## Archived (Historical)
+
+Documents from completed milestones and past analysis. See [`archive/`](archive/) for historical references.
+
+| Document | Description |
+|----------|-------------|
+| [archive/source-tree-analysis.md](archive/source-tree-analysis.md) | Source tree structure (outdated) |
+| [archive/BUG-ANALYSIS-def_total_hours-7-6.md](archive/BUG-ANALYSIS-def_total_hours-7-6.md) | Bug analysis (resolved) |
+| [archive/e2e-date-diagnosis-final.md](archive/e2e-date-diagnosis-final.md) | E2E diagnosis (resolved) |
+| [archive/DOCS_DEEP_AUDIT.md](archive/DOCS_DEEP_AUDIT.md) | Previous docs audit |
 
 ## AI Documentation
 
@@ -29,6 +40,6 @@ For AI agent context and technical documentation, see [`../_ai/index.md`](../_ai
 
 ## Project Overview
 
-- **Version**: 0.5.20
+- **Version**: 0.5.24
 - **Platform**: Home Assistant custom component
 - **Repository**: [informatico-madrid/ha-ev-trip-planner](https://github.com/informatico-madrid/ha-ev-trip-planner)
