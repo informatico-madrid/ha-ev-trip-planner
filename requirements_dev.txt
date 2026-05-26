@@ -16,3 +16,4 @@ refurb>=2.0.0
 pytest-randomly>=3.15.0
 pytest-xdist>=3.6.0
 pre-commit>=3.5.0
+ruff>=0.11.0
