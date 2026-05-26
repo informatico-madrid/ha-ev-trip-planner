@@ -37,7 +37,7 @@ help:
 	@echo "  make e2e-lint        - Lint E2E test files / Lintear archivos E2E"
 	@echo ""
 	@echo "Quality Gate Layers (6-layer architecture):"
-	@echo "  make layer3a         - Layer 3A: Smoke test (ruff, pyright, SOLID-TA, principles, anti-TA)"
+	@echo "  make layer3a         - Layer 3A: Smoke test (ruff, pylint, pyright, SOLID-TA, principles, anti-TA)"
 	@echo "  make layer1          - Layer 1: Test execution (unit + E2E) / Capa 1: Ejecución de tests"
 	@echo "  make layer1-ci       - Layer 1 CI: Unit + integration tests, no E2E (fast) / Capa 1 CI: Unit + integration (sin E2E, rápido)"
 	@echo "  make layer2          - Layer 2: Test quality (mutation) / Capa 2: Calidad de tests (mutación)"
@@ -163,6 +163,8 @@ layer3a:
 	@echo "=== Layer 3A: Smoke Test ==="
 	@echo "Running ruff check (fail-fast)..."
 	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || { echo "FATAL: ruff violations found"; exit 1; }
+	@echo "Running pylint (fail-fast)..."
+	@.venv/bin/pylint custom_components/ tests/unit/ tests/integration/ || { echo "FATAL: pylint violations found"; exit 1; }
 	@echo "Running remaining checks $(if $(filter true,$(PARALLEL_ENABLED)),in parallel,sequentially)..."
 ifeq ($(PARALLEL_ENABLED),true)
 	@$(MAKE) -s typecheck
