@@ -46,7 +46,7 @@ test.describe('Panel EMHASS Sensor Entity ID Match', () => {
 
     // Step 4: Wait for the states page to load
     await expect(
-      page.getByText(/developer tools/i),
+      page.locator('ha-panel-developer-tools').getByText('Developer tools'),
     ).toBeVisible({ timeout: 10000 });
 
     // Step 5: Find the filter/search input

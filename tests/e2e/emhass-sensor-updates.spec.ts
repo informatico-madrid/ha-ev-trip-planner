@@ -177,7 +177,7 @@ test.describe('EMHASS Sensor Updates', () => {
     // Step 4: Wait for the states page to load
     // The page should have the "Developer tools" header
     await expect(
-      page.getByText(/developer tools/i),
+      page.locator('ha-panel-developer-tools').getByText('Developer tools'),
     ).toBeVisible({ timeout: 10000 });
 
     // Step 5: Find the filter/search input
@@ -237,7 +237,7 @@ test.describe('EMHASS Sensor Updates', () => {
     await page.waitForTimeout(1000);
 
     // Step 4: Wait for the states page to load
-    await expect(page.getByText(/developer tools/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('ha-panel-developer-tools').getByText('Developer tools')).toBeVisible({ timeout: 10000 });
 
     // Step 5: Find the filter/search input and filter for EMHASS sensor
     const searchInput = page.getByRole('textbox', { name: /filter entities/i }).first();
@@ -297,7 +297,7 @@ test.describe('EMHASS Sensor Updates', () => {
 
     // Step 2: Wait for the page to load
     await expect(
-      page.getByText(/developer tools/i),
+      page.locator('ha-panel-developer-tools').getByText('Developer tools'),
     ).toBeVisible({ timeout: 10000 });
 
     // Step 3: Click on the States tab
@@ -347,7 +347,7 @@ test.describe('EMHASS Sensor Updates', () => {
       await page.goto('/developer-tools/state');
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
-      await expect(page.getByText(/developer tools/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('ha-panel-developer-tools').getByText('Developer tools')).toBeVisible({ timeout: 10000 });
 
       const searchInput = page.getByRole('textbox', { name: /filter/i }).first();
       if (await searchInput.isVisible({ timeout: 5000 }).catch(() => false)) {

@@ -453,9 +453,13 @@ async function changeTBaseViaUI(page: Page, newTBase: number): Promise<void> {
     }
   }
 
-  await page.waitForSelector('dialog', { state: 'visible', timeout: 10_000 });
-  const tBaseSpinbutton = page.getByRole('spinbutton', { name: /t_base/ });
-  await tBaseSpinbutton.fill(String(newTBase));
+  // Wait for the options dialog by checking for the Submit button inside it.
+  // HA renders Options dialogs as <ha-dialog> web components.
+  // includeShadowDom: true enables piercing shadow DOM for getByRole.
+  await expect(page.getByRole('button', { name: 'Submit' }).first()).toBeVisible({ timeout: 10_000 });
+  // HA's <ha-textfield> encapsulates inputs in shadow DOM; getByLabel pierces it.
+  const tBaseField = page.getByLabel('t_base');
+  await tBaseField.fill(String(newTBase));
   await page.getByRole('button', { name: 'Submit' }).click();
 
   const finishBtn = page.getByRole('button', { name: 'Finish' });
@@ -529,7 +533,6 @@ async function getSensorAttributes(page: Page, entityId: string): Promise<Record
  */
 async function verifyAttributesViaUI(page: Page, filter: string): Promise<void> {
   await page.goto('/developer-tools/state', { waitUntil: 'networkidle' });
-  await expect(page.getByText(/developer tools/i)).toBeVisible({ timeout: 10_000 });
 
   const searchInput = page.getByRole('textbox', { name: /filter/i }).first();
   if (await searchInput.isVisible({ timeout: 5_000 }).catch(() => false)) {

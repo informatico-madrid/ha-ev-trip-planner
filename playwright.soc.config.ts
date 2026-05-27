@@ -19,6 +19,7 @@ export default defineConfig({
   globalSetup: './auth.setup.soc.ts',
   use: {
     baseURL: 'http://localhost:8123',
+    includeShadowDom: true,
     storageState: 'playwright/.auth/user-soc.json',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
