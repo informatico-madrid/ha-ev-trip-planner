@@ -7,7 +7,6 @@ Covers:
 - trip/_power_profile.py: Power profile generation
 - trip/_schedule.py: Schedule generation
 - trip/_trip_navigator.py: Trip navigation
-- trip/_soc_window.py: SOC window calculations
 - trip/_soc_helpers.py: SOC helper utilities
 - trip/_sensor_callbacks.py: Sensor callback registry
 - trip/_types.py: TypedDict definitions
@@ -19,26 +18,18 @@ of each module's public API.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import get_type_hints
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.ev_trip_planner.trip import (
-    CargaVentana,
     SensorCallbackRegistry,
-    SOCMilestoneResult,
     TripManager,
     TripManagerConfig,
 )
 from custom_components.ev_trip_planner.trip._sensor_callbacks import (
     SensorEvent,
     emit,
-)
-from custom_components.ev_trip_planner.trip._soc_window import (
-    SOCInicioParams,
-    SOCWindowCalculator,
-    VentanaCargaParams,
 )
 from custom_components.ev_trip_planner.yaml_trip_storage import YamlTripStorage
 
@@ -590,78 +581,6 @@ class TestSOCMixin:
         soc = await tm._soc_query.async_get_vehicle_soc("test_vehicle")
         assert soc == 75.5
 
-    async def test_calcular_ventana_carga_no_hora_regreso(self, mock_hass):
-        """Without hora_regreso, falls back to trip_departure - 6h."""
-        tm = _make_tm(mock_hass)
-        trip = {
-            "tipo": "recurrente",
-            "dia_semana": "lunes",
-            "hora": "08:00",
-            "km": 50.0,
-            "kwh": 7.5,
-        }
-        result = await tm._soc_window.calcular_ventana_carga(
-            VentanaCargaParams(
-                trips=[trip], soc_actual=50.0, hora_regreso=None, charging_power_kw=3.6
-            )
-        )
-        assert "ventana_horas" in result
-        assert "kwh_necesarios" in result
-        assert result["es_suficiente"] in (True, False)
-
-    async def test_calcular_ventana_carga_with_next_trip(self, mock_hass):
-        """When there's a next trip, uses hora_regreso as window start."""
-        tm = _make_tm(mock_hass)
-        tm._state.punctual_trips = {
-            "p1": {
-                "id": "p1",
-                "tipo": "puntual",
-                "datetime": "2026-05-12T09:00:00",
-                "estado": "pendiente",
-            }
-        }
-        trip = {
-            "tipo": "recurrente",
-            "dia_semana": "lunes",
-            "hora": "07:00",
-            "km": 30.0,
-            "kwh": 4.0,
-        }
-        result = await tm._soc_window.calcular_ventana_carga(
-            VentanaCargaParams(
-                trips=[trip],
-                soc_actual=80.0,
-                hora_regreso=datetime(2026, 5, 11, 18, 0, 0, tzinfo=timezone.utc),
-                charging_power_kw=3.6,
-            )
-        )
-        assert "ventana_horas" in result
-
-    async def test_calcular_ventana_carga_multitrip_empty(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        result = await tm._soc_window.calcular_ventana_carga_multitrip(
-            VentanaCargaParams(
-                trips=[], soc_actual=50.0, hora_regreso=None, charging_power_kw=3.6
-            )
-        )
-        assert result == []
-
-    async def test_calcular_soc_inicio_trips_empty(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        result = await tm._soc_window.calcular_soc_inicio_trips(
-            SOCInicioParams(
-                trips=[], soc_inicial=50.0, hora_regreso=None, charging_power_kw=3.6
-            )
-        )
-        assert result == []
-
-    async def test_calcular_hitos_soc_empty(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        result = await tm._soc_window.calcular_hitos_soc(
-            SOCWindowCalculator(trips=[], soc_inicial=50.0, charging_power_kw=3.6)
-        )
-        assert result == []
-
     async def test_async_get_kwh_needed_today_no_trips(self, mock_hass):
         tm = _make_tm(mock_hass)
         result = await tm._soc_query.async_get_kwh_needed_today()
@@ -913,50 +832,6 @@ class TestSensorCallbackRegistry:
 
 
 # ---------------------------------------------------------------------------
-# _types.py TypedDict tests
-# ---------------------------------------------------------------------------
-
-
-class TestTypes:
-    """Tests for trip/_types.py TypedDict definitions."""
-
-    def test_carga_ventana_has_expected_keys(self):
-        expected_keys = {
-            "ventana_horas",
-            "kwh_necesarios",
-            "horas_carga_necesarias",
-            "inicio_ventana",
-            "fin_ventana",
-            "es_suficiente",
-        }
-        assert set(CargaVentana.__annotations__.keys()) == expected_keys
-
-    def test_soc_milestone_result_has_expected_keys(self):
-        expected_keys = {
-            "trip_id",
-            "soc_objetivo",
-            "kwh_necesarios",
-            "deficit_acumulado",
-            "ventana_carga",
-        }
-        assert set(SOCMilestoneResult.__annotations__.keys()) == expected_keys
-
-    def test_carga_ventana_types(self):
-        hints = get_type_hints(CargaVentana)
-        assert hints["ventana_horas"] is float
-        assert hints["es_suficiente"] is bool
-
-    def test_soc_milestone_result_has_nested_carga(self):
-        hints = get_type_hints(SOCMilestoneResult)
-        assert "ventana_carga" in hints
-
-    def test_carga_ventana_optional_fields(self):
-        hints = get_type_hints(CargaVentana)
-        # Optional fields are float|None or datetime|None
-        assert "inicio_ventana" in hints
-        assert "fin_ventana" in hints
-
-
 # ---------------------------------------------------------------------------
 # TripNavigator tests
 # ---------------------------------------------------------------------------
@@ -1068,23 +943,6 @@ class TestTripManagerPublicMethods:
 
 class TestCrudSocInteraction:
     """Tests for cross-component interaction in TripManager."""
-
-    async def test_calcular_hitos_soc_requires_vehicle_config(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        trips = [
-            {
-                "id": "r1",
-                "tipo": "recurrente",
-                "dia_semana": "lunes",
-                "hora": "08:00",
-                "km": 50.0,
-                "kwh": 7.5,
-            }
-        ]
-        result = await tm._soc_window.calcular_hitos_soc(
-            SOCWindowCalculator(trips=trips, soc_inicial=50.0, charging_power_kw=3.6)
-        )
-        assert isinstance(result, list)
 
     async def test_energy_calculation_with_vehicle_config(self, mock_hass):
         tm = _make_tm(mock_hass)

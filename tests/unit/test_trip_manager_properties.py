@@ -476,7 +476,6 @@ class TestInitMutationKills:
         assert tm._state._emhass_sync is not None
         assert tm._state._soc_helpers is not None
         assert tm._state._soc is not None
-        assert tm._state._soc_window is not None
         assert tm._state._power is not None
         assert tm._state._schedule is not None
         assert tm._state._navigator is not None

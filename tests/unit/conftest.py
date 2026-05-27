@@ -514,24 +514,6 @@ def mock_hass_panel_with_mapping(mock_frontend_module):
 
 
 # ============================================================================
-# test_propagate_charge_integration.py - mock_hass with config + config_dir + services
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_propagate(tmp_path):
-    hass = MagicMock()
-    hass.config = MagicMock()
-    hass.config.config_dir = str(tmp_path)
-    hass.config.time_zone = "UTC"
-    hass.data = {}
-    hass.services = MagicMock()
-    hass.services.async_call = AsyncMock()
-    hass.services.has_service = MagicMock(return_value=True)
-    return hass
-
-
-# ============================================================================
 # test_sensor_aggregation.py - mock_hass with config + config_dir + services
 # ============================================================================
 
@@ -584,21 +566,6 @@ def mock_hass_soc_cap(tmp_path):
     hass.services.async_call = AsyncMock()
     hass.services.has_service = MagicMock(return_value=True)
     hass.states.async_set = MagicMock()
-    return hass
-
-
-# ============================================================================
-# test_soc_milestone.py - mock_hass with config_entries + config_dir
-# ============================================================================
-
-
-@pytest.fixture
-def mock_hass_soc_milestone(tmp_path):
-    hass = MagicMock()
-    mock_entry = MagicMock()
-    mock_entry.entry_id = "test_entry"
-    hass.config_entries.async_get_entry = MagicMock(return_value=mock_entry)
-    hass.config.config_dir = str(tmp_path)
     return hass
 
 

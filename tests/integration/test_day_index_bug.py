@@ -12,53 +12,11 @@ from datetime import datetime, timezone
 from custom_components.ev_trip_planner.calculations.core import (
     calculate_trip_time,
 )
-from custom_components.ev_trip_planner.calculations.deficit import (
-    calculate_next_recurring_datetime,
-)
 from custom_components.ev_trip_planner.const import TRIP_TYPE_RECURRING
 
 
 class TestSaturdayTripBug:
     """Test that Saturday trips are correctly identified as today's trip."""
-
-    def test_saturday_trip_should_be_today_on_saturday(self):
-        """BUG REPRODUCTION: On Saturday, the Saturday trip should be TODAY.
-
-        Staging has trip rec_6_c4ngiu with dia_semana="6" (Saturday), hora="11:50".
-        When today is Saturday 2026-05-16 at 09:26, the next occurrence should be
-        TODAY at 11:50, NOT in 6 days.
-        """
-        # Reference: Saturday 2026-05-16 09:26 UTC
-        # (user reported issue at ~09:26 on Saturday)
-        saturday_morning = datetime(2026, 5, 16, 9, 26, 0, tzinfo=timezone.utc)
-
-        # Trip: Saturday, 11:50 - day stored as JS getDay() format (6=Saturday)
-        # Note: calculate_next_recurring_datetime expects JS getDay() format (0=Sunday)
-        day_js = 6  # Saturday in JS getDay()
-        time_str = "11:50"
-
-        result = calculate_next_recurring_datetime(
-            day=day_js,
-            time_str=time_str,
-            reference_dt=saturday_morning,
-            tz=None,  # UTC
-        )
-
-        # The result should be TODAY (Saturday) at 11:50
-        # NOT Saturday next week
-        expected = datetime(2026, 5, 16, 11, 50, 0, tzinfo=timezone.utc)
-
-        # Calculate days difference
-        days_diff = (result.date() - saturday_morning.date()).days
-
-        assert result == expected, (
-            f"Saturday trip at 11:50 should be TODAY (May 16) at 11:50 UTC, "
-            f"but got {result}. Days ahead: {days_diff}"
-        )
-        assert days_diff == 0, (
-            f"BUG: Saturday trip shows {days_diff} days ahead instead of 0! "
-            f"Expected today, got {result.date()} ({(result - saturday_morning)} after reference)"
-        )
 
     def test_calculate_trip_time_with_staging_data(self):
         """Test calculate_trip_time with the actual staging trip data.

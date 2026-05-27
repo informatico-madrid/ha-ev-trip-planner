@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-# 16 names from calculations.py __all__ + 4 additional public symbols
+# Live public names from calculations/ package
 ALL_PUBLIC_NAMES: tuple[str, ...] = (
     # From __all__
     "BatteryCapacity",
@@ -31,8 +31,6 @@ ALL_PUBLIC_NAMES: tuple[str, ...] = (
     "calculate_charging_window_pure",
     "calculate_multi_trip_charging_windows",
     "calculate_hours_deficit_propagation",
-    "calculate_soc_at_trip_starts",
-    "calculate_deficit_propagation",
     "calculate_power_profile_from_trips",
     "calculate_deferrable_parameters",
     "generate_deferrable_schedule_from_trips",

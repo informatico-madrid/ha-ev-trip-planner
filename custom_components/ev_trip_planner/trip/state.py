@@ -62,7 +62,6 @@ class TripManagerState:
     _navigator: Any = None  # TripNavigator
     _emhass_sync: Any = None  # EMHASSSync
     _lifecycle: Any = None  # TripLifecycle
-    _soc_window: Any = None  # SOCWindow
     _soc_helpers: Any = None  # SOCHelpers
 
     # ── Delegates needed by sub-components ────────────────────────

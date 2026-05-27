@@ -84,21 +84,6 @@ def test_assign_deadlines_filters_none_tipo():
     assert result[0][2]["id"] == "good"
 
 
-# === _get_trip_time: trip with tipo=None returns None (deficit.py:236) ===
-
-
-def test_compute_trip_trip_time_none_tipo():
-    """_compute_trip_trip_time returns None when tipo is None."""
-    from custom_components.ev_trip_planner.calculations.deficit import (
-        _compute_trip_trip_time,
-    )
-
-    ref = datetime(2099, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    trip = {"id": "t1", "tipo": None, "kwh": 5.0}
-    result = _compute_trip_trip_time(trip, None, ref)
-    assert result is None
-
-
 # === calculate_multi_trip_charging_windows: window_start=None skipped (windows.py:286) ===
 
 

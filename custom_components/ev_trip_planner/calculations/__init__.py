@@ -32,11 +32,8 @@ from .core import (
 # Deficit functions extracted to their own module.
 from .deficit import (
     ChargingDecision,
-    calculate_deficit_propagation,
     calculate_energy_needed,
     calculate_hours_deficit_propagation,
-    calculate_next_recurring_datetime,
-    calculate_soc_at_trip_starts,
     determine_charging_need,
 )
 
@@ -64,14 +61,12 @@ __all__ = [
     "calculate_charging_window_pure",
     "calculate_day_index",
     "calculate_deferrable_parameters",
-    "calculate_deficit_propagation",
     "calculate_dynamic_soc_limit",
     "calculate_energy_needed",
     "calculate_hours_deficit_propagation",
     "calculate_multi_trip_charging_windows",
     "calculate_power_profile",
     "calculate_power_profile_from_trips",
-    "calculate_soc_at_trip_starts",
     "calculate_soc_target",
     "calculate_trip_time",
     "ChargingDecision",
@@ -79,7 +74,6 @@ __all__ = [
     "DAYS_OF_WEEK",
     "determine_charging_need",
     "generate_deferrable_schedule_from_trips",
-    "calculate_next_recurring_datetime",
     "DEFAULT_T_BASE",
     "SOH_CACHE_TTL_SECONDS",
 ]

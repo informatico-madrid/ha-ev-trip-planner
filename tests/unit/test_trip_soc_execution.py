@@ -1,4 +1,4 @@
-"""Execution tests for SOCHelpers, SOCQuery, and SOCWindow.
+"""Execution tests for SOCHelpers and SOCQuery.
 
 Covers _get_charging_power, _get_day_index, async_get_vehicle_soc
 paths, and exception handling.
@@ -7,16 +7,13 @@ paths, and exception handling.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.ev_trip_planner.const import DEFAULT_CHARGING_POWER
 from custom_components.ev_trip_planner.trip._soc_helpers import SOCHelpers
 from custom_components.ev_trip_planner.trip._soc_query import SOCQuery
-from custom_components.ev_trip_planner.trip._soc_window import (
-    SOCWindow,
-    VentanaCargaParams,
-)
 from custom_components.ev_trip_planner.trip.state import TripManagerState
 
 
@@ -165,7 +162,6 @@ class TestSOCHelpers:
         """Exception during parse → warning logged, returns now (lines 59-61)."""
         sm = SOCHelpers(_make_state())
         # dt_util.parse_datetime may raise on very specific malformed input
-        # Even if it doesn't, the test exercises the exception handler path
         result = sm._parse_trip_datetime(object())  # Non-string type may raise
         assert result is not None
 
@@ -438,281 +434,11 @@ class TestSOCQuery:
         assert result == 5.0
 
 
-class TestSOCWindow:
-    """Test SOCWindow methods using dataclass-based params."""
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_next_trip_none(self):
-        """No next trip after hora_regreso -> returns zeros."""
-        state = _make_state()
-        # Need to mock state._navigator since calcular_ventana_carga uses it
-        state._navigator = MagicMock()
-        state._navigator.async_get_next_trip_after = AsyncMock(return_value=None)
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=None)
-        sw = SOCWindow(state)
-        future = datetime(2099, 1, 1, 18, 0, 0, tzinfo=timezone.utc)
-        params = VentanaCargaParams(
-            trips=[{"tipo": "punctual"}],
-            soc_actual=50.0,
-            hora_regreso=future,
-            charging_power_kw=3.6,
-            safety_margin_percent=10.0,
-        )
-        result = await sw.calcular_ventana_carga(params)
-        assert result["ventana_horas"] == 0
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_non_string_hora_regreso(self):
-        """Non-string (datetime) hora_regreso passed directly."""
-        state = _make_state()
-        state._navigator = MagicMock()
-        state._navigator.async_get_next_trip_after = AsyncMock(return_value=None)
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=None)
-        sw = SOCWindow(state)
-        future = datetime(2099, 1, 1, 18, 0, 0, tzinfo=timezone.utc)
-        params = VentanaCargaParams(
-            trips=[{"tipo": "punctual"}],
-            soc_actual=50.0,
-            hora_regreso=future,
-            charging_power_kw=3.6,
-            safety_margin_percent=10.0,
-        )
-        result = await sw.calcular_ventana_carga(params)
-        assert result is not None
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_multitrip_with_trip_tipo_datetime(self):
-        """multitrip: trip with tipo + datetime."""
-        state = _make_state()
-        sw = SOCWindow(state)
-        future = datetime(2099, 1, 1, 18, 0, 0, tzinfo=timezone.utc)
-        trips = [
-            {
-                "id": "t1",
-                "tipo": "punctual",
-                "datetime": "2099-01-01T18:00:00",
-                "kwh": 10.0,
-            }
-        ]
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=future)
-        state._soc.async_calcular_energia_necesaria = AsyncMock(
-            return_value={"energia_necesaria_kwh": 10.0, "horas_carga_necesarias": 3.0}
-        )
-        params = VentanaCargaParams(
-            trips=trips,
-            soc_actual=50.0,
-            hora_regreso=future,
-            charging_power_kw=3.6,
-            safety_margin_percent=10.0,
-        )
-        result = await sw.calcular_ventana_carga_multitrip(params)
-        assert isinstance(result, list)
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_multitrip_charging_power_zero(self):
-        """multitrip: charging_power_kw <= 0 -> horas_carga = 0."""
-        state = _make_state()
-        sw = SOCWindow(state)
-        trips = [{"id": "t1", "kwh": 10.0, "tipo": "punctual"}]
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=None)
-        params = VentanaCargaParams(
-            trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime.now(timezone.utc),
-            charging_power_kw=0,
-            safety_margin_percent=10.0,
-        )
-        result = await sw.calcular_ventana_carga_multitrip(params)
-        assert isinstance(result, list)
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_multitrip_exception_caught(self):
-        """multitrip: KeyError/ValueError/TypeError is silently caught."""
-        state = _make_state()
-        sw = SOCWindow(state)
-        trips = [{"id": "t1", "kwh": "not-a-number"}]
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=None)
-        params = VentanaCargaParams(
-            trips=trips,
-            soc_actual=50.0,
-            hora_regreso=datetime.now(timezone.utc),
-            charging_power_kw=3.6,
-            safety_margin_percent=10.0,
-        )
-        result = await sw.calcular_ventana_carga_multitrip(params)
-        assert isinstance(result, list)
-
-
-class TestParseHoraRegreso:
-    """Test _parse_hora_regreso standalone function."""
-
-    def test_parse_none_returns_none(self):
-        """None input returns None."""
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            _parse_hora_regreso,
-        )
-
-        assert _parse_hora_regreso(None) is None
-
-    def test_parse_datetime_unchanged(self):
-        """Already tz-aware datetime returns unchanged."""
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            _parse_hora_regreso,
-        )
-
-        dt = datetime(2026, 6, 1, 14, 0, 0, tzinfo=timezone.utc)
-        result = _parse_hora_regreso(dt)
-        assert result is dt
-
-    def test_parse_naive_datetime_gets_tz(self):
-        """Naive datetime gets UTC tz (line 77)."""
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            _parse_hora_regreso,
-        )
-
-        dt = datetime(2026, 6, 1, 14, 0, 0)  # naive
-        result = _parse_hora_regreso(dt)
-        assert result.tzinfo is timezone.utc
-
-    def test_parse_valid_iso_string(self):
-        """Valid ISO string is parsed (lines 70-71)."""
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            _parse_hora_regreso,
-        )
-
-        result = _parse_hora_regreso("2026-06-01T14:00:00+02:00")
-        assert result is not None
-        assert result.hour == 14
-
-    def test_parse_invalid_iso_string_returns_none(self):
-        """Invalid ISO string returns None (lines 72-73)."""
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            _parse_hora_regreso,
-        )
-
-        result = _parse_hora_regreso("not-a-date")
-        assert result is None
-
-
-class TestSOCWindowEdgePaths:
-    """Test edge-case paths in SOCWindow methods."""
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_early_return_no_parsed_no_trip_time(
-        self,
-    ):
-        """Both parsed and trip_departure_time are None → early return (line 128)."""
-        state = _make_state()
-        from custom_components.ev_trip_planner.trip._soc_window import SOCWindow
-
-        sw = SOCWindow(state)
-        trips = [{"id": "t1"}]
-        state._soc = MagicMock()
-        # _get_trip_time returns None, _parse_trip_datetime returns None
-        state._soc._get_trip_time = MagicMock(return_value=None)
-        state._soc._parse_trip_datetime = MagicMock(return_value=None)
-        params = VentanaCargaParams(
-            trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,  # no parsed time
-            charging_power_kw=3.6,
-        )
-        result = await sw.calcular_ventana_carga(params)
-        assert result["ventana_horas"] == 0.0
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_carga_datetime_fallback(self):
-        """No parsed time, falls back to _parse_trip_datetime from datetime string (lines 115-117)."""
-        state = _make_state()
-        from custom_components.ev_trip_planner.trip._soc_window import SOCWindow
-
-        sw = SOCWindow(state)
-        trips = [{"id": "t1", "datetime": "2026-06-01T14:00:00"}]
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=None)
-        state._soc._parse_trip_datetime = MagicMock(
-            return_value=datetime(2026, 6, 1, 14, 0, 0, tzinfo=timezone.utc)
-        )
-        state._soc.async_calcular_energia_necesaria = AsyncMock(
-            return_value={"energia_necesaria_kwh": 5.0, "horas_carga_necesarias": 1.5}
-        )
-        params = VentanaCargaParams(
-            trips=trips,
-            soc_actual=50.0,
-            hora_regreso=None,
-            charging_power_kw=3.6,
-        )
-        result = await sw.calcular_ventana_carga(params)
-        assert "ventana_horas" in result
-
-    @pytest.mark.asyncio
-    async def test_calcular_ventana_multitrip_idx_gt_0(self):
-        """idx > 0 in multitrip uses previous_arrival (lines 201-202)."""
-        state = _make_state()
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            SOCWindow,
-            VentanaCargaParams,
-        )
-
-        sw = SOCWindow(state)
-        future = datetime(2026, 6, 1, 10, 0, 0, tzinfo=timezone.utc)
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=future)
-        state._soc.async_calcular_energia_necesaria = AsyncMock(
-            return_value={"energia_necesaria_kwh": 5.0, "horas_carga_necesarias": 1.5}
-        )
-        params = VentanaCargaParams(
-            trips=[
-                {"id": "t1", "kwh": 5.0},
-                {"id": "t2", "kwh": 5.0},
-            ],
-            soc_actual=50.0,
-            hora_regreso=datetime(2026, 6, 1, 8, 0, 0, tzinfo=timezone.utc),
-            charging_power_kw=3.6,
-        )
-        result = await sw.calcular_ventana_carga_multitrip(params)
-        assert len(result) == 2
-
-    @pytest.mark.asyncio
-    async def test_calcular_soc_inicio_trips_zero_charging_hours(self):
-        """When charging_power_kw is 0, kwh_a_cargar=0 at line 271."""
-        state = _make_state()
-        from custom_components.ev_trip_planner.trip._soc_window import (
-            SOCInicioParams,
-            SOCWindow,
-        )
-
-        sw = SOCWindow(state)
-        future = datetime(2026, 6, 1, 14, 0, 0, tzinfo=timezone.utc)
-        state._soc = MagicMock()
-        state._soc._get_trip_time = MagicMock(return_value=future)
-        state._soc.async_calcular_energia_necesaria = AsyncMock(
-            return_value={"energia_necesaria_kwh": 5.0, "horas_carga_necesarias": 2.0}
-        )
-        params = SOCInicioParams(
-            trips=[{"id": "t1", "kwh": 5.0}],
-            soc_inicial=50.0,
-            hora_regreso=None,
-            charging_power_kw=0.0,  # zero charging power → line 271 else branch
-            battery_capacity_kwh=50.0,
-        )
-        result = await sw.calcular_soc_inicio_trips(params)
-        assert isinstance(result, list)
-        assert len(result) == 1  # Window calculated, loop executed
-
-
 class TestSOCQueryExceptionPath:
     """Test _get_charging_power exception path."""
 
     def test_get_charging_power_exception_falls_to_default(self):
         """Exception in _get_charging_power returns DEFAULT_CHARGING_POWER (lines 182-183)."""
-        from custom_components.ev_trip_planner.const import DEFAULT_CHARGING_POWER
-
         state = _make_state()
         sq = SOCQuery(state)
         state._soc = sq  # self-reference for consistency

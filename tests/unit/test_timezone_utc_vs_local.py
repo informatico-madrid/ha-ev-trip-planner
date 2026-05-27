@@ -1,4 +1,4 @@
-"""Tests for timezone UTC vs local time bug across all affected functions.
+"""Tests for timezone UTC vs local time across all affected functions.
 
 BUG: Multiple functions use datetime.now(timezone.utc) as default reference,
 causing timestamps and hour calculations to be in UTC instead of local time.
@@ -27,7 +27,6 @@ import pytest
 from custom_components.ev_trip_planner.calculations import (
     calculate_deferrable_parameters,
     calculate_multi_trip_charging_windows,
-    calculate_next_recurring_datetime,
     calculate_power_profile_from_trips,
     generate_deferrable_schedule_from_trips,
 )
@@ -59,6 +58,7 @@ TOMORROW_00_30_LOCAL = datetime(
     0,
     30,
     0,
+    0,
     tzinfo=MADRID_TZ,
 ) + timedelta(days=1)
 TOMORROW_00_30_UTC = TOMORROW_00_30_LOCAL.astimezone(timezone.utc)
@@ -69,6 +69,7 @@ TODAY_01_00_LOCAL = datetime(
     LOCAL_NOW.month,
     LOCAL_NOW.day,
     1,
+    0,
     0,
     0,
     tzinfo=MADRID_TZ,
@@ -283,97 +284,6 @@ class TestPowerProfileTimezone:
 
 
 # =============================================================================
-# BUG 3: calculate_next_recurring_datetime without tz treats time as UTC
-# =============================================================================
-class TestRecurringDatetimeTimezone:
-    """Bug: Recurring trip times treated as UTC instead of local.
-
-    When tz=None, calculate_next_recurring_datetime treats time_str as UTC.
-    A trip with hora="08:00" (meaning 8am local) is calculated as 08:00 UTC
-    = 10:00 CEST, which is wrong.
-    """
-
-    def test_recurring_trip_8am_should_be_local_8am(self):
-        """With tz parameter, 08:00 is correctly treated as local time.
-
-        The FIX is in emhass_adapter._calculate_deadline_from_trip which
-        now passes tz=self.hass.config.time_zone.
-        This test verifies the pure function works correctly with tz.
-        """
-        # Trip: tomorrow at 08:00
-        result_local = calculate_next_recurring_datetime(
-            day=JS_TOMORROW, time_str="08:00", reference_dt=UTC_NOW, tz=MADRID_TZ
-        )
-
-        assert result_local is not None, "Local result should not be None"
-
-        # Convert to Madrid time for verification
-        result_local_local = result_local.astimezone(MADRID_TZ)
-
-        # With tz: result is tomorrow 08:00 local (correct)
-        assert result_local_local.hour == 8, (
-            f"With tz, result should be 08:00 local, got {result_local_local.hour}:00"
-        )
-
-    def test_recurring_trip_day_boundary_mismatch(self):
-        """After local midnight, UTC is still previous day → day-of-week mismatch.
-
-        When it's tomorrow 00:30 local = today 22:30 UTC (for CEST):
-        - Without tz: reference is still "today" in UTC, trip for "tomorrow"
-          is the NEXT day from UTC's perspective
-        - With tz: correctly identifies it's already "tomorrow" locally,
-          so trip for "tomorrow" is TODAY from local perspective
-        """
-        # Use dynamic tomorrow at 00:30 local
-        # UTC will be today at 22:30 (for CEST, UTC+2)
-        local_ref = TOMORROW_00_30_LOCAL
-        utc_ref = TOMORROW_00_30_UTC
-
-        # What "tomorrow" is in JS day format from each perspective
-        js_tomorrow_local = local_ref.isoweekday() % 7  # tomorrow's weekday
-        _js_today_utc = utc_ref.isoweekday() % 7  # noqa: F841 — today's weekday in UTC
-
-        # If the timezone offset makes the UTC date differ from local date
-        if utc_ref.date() == local_ref.date():
-            pytest.skip(
-                "Timezone offset doesn't cause date difference at this time. "
-                "This test requires UTC+X where X > 0 and local time just after midnight."
-            )
-
-        # Trip: "tomorrow" from local perspective (JS day)
-        result_local = calculate_next_recurring_datetime(
-            day=js_tomorrow_local,
-            time_str="08:00",
-            reference_dt=utc_ref,
-            tz=MADRID_TZ,
-        )
-
-        result_utc = calculate_next_recurring_datetime(
-            day=js_tomorrow_local,
-            time_str="08:00",
-            reference_dt=utc_ref,
-            tz=None,
-        )
-
-        assert result_local is not None
-        assert result_utc is not None
-
-        # With tz: local is tomorrow 00:30, trip for tomorrow 08:00 is ~7.5h away
-        local_delta = (result_local - utc_ref).total_seconds() / 3600
-
-        # Without tz: UTC is still today, trip for "tomorrow" is further away
-        utc_delta = (result_utc - utc_ref).total_seconds() / 3600
-
-        # The deltas should differ significantly
-        assert abs(local_delta - utc_delta) > 1, (
-            f"BUG: Local delta={local_delta:.1f}h, UTC delta={utc_delta:.1f}h. "
-            f"They should differ significantly because at 00:30 local it's "
-            f"already tomorrow, but at {utc_ref.hour}:{utc_ref.minute:02d} UTC "
-            f"(same instant) it's still today."
-        )
-
-
-# =============================================================================
 # BUG 4: calculate_multi_trip_charging_windows uses datetime.now(timezone.utc)
 # =============================================================================
 class TestChargingWindowsTimezone:
@@ -529,8 +439,8 @@ class TestMidnightBoundaryTimezone:
         # So at 00:30 local, UTC is 22:30 previous day
         if utc_before_midnight.date() == local_after_midnight.date():
             pytest.skip(
-                "Timezone offset doesn't cause date difference. "
-                "This test requires a positive UTC offset (e.g., CEST)."
+                "Timezone offset doesn't cause date difference at this time. "
+                "This test requires UTC+X where X > 0 and local time just after midnight."
             )
 
         assert utc_before_midnight.date() != local_after_midnight.date(), (
@@ -693,77 +603,34 @@ class TestTimezoneSummary:
            IMPACT: Power profile positions offset by timezone hours
            SEVERITY: HIGH (EMHASS may misinterpret charging windows)
 
-        3. calculate_next_recurring_datetime() - calculations.py:924-935
-           IMPACT: Without tz param, treats trip time as UTC not local
-           SEVERITY: HIGH (recurring trips at wrong time)
-           CALLED FROM: emhass_adapter.py:524, trip_manager.py:245
-
-        4. calculate_multi_trip_charging_windows() - calculations.py:519
+        3. calculate_multi_trip_charging_windows() - calculations.py:519
            IMPACT: inicio_ventana/fin_ventana in UTC, not local
            SEVERITY: MEDIUM (propagates to def_start/end_timestep)
 
-        5. _populate_per_trip_cache_entry() - emhass_adapter.py:574
+        4. _populate_per_trip_cache_entry() - emhass_adapter.py:574
            IMPACT: def_start_timestep/def_end_timestep from UTC reference
            SEVERITY: MEDIUM (may cause EMHASS offset)
 
-        6. async_publish_deferrable_load() - emhass_adapter.py:367
+        5. async_publish_deferrable_load() - emhass_adapter.py:367
            IMPACT: hours_available calculated from UTC now
            SEVERITY: LOW (internally consistent)
 
-        7. publish_deferrable_loads() - emhass_adapter.py:1203
+        6. publish_deferrable_loads() - emhass_adapter.py:1203
            IMPACT: Recurring trip enrichment uses UTC reference
            SEVERITY: HIGH (same as #3)
 
-        8. trip_manager.publish_deferrable_loads() - trip_manager.py:245
+        7. trip_manager.publish_deferrable_loads() - trip_manager.py:245
            IMPACT: Recurring trip rotation uses UTC reference
            SEVERITY: HIGH (same as #3)
 
-        9. async_get_kwh_needed_today() - trip_manager.py:1197
+        8. async_get_kwh_needed_today() - trip_manager.py:1197
            IMPACT: Uses UTC date, wrong around midnight
            SEVERITY: MEDIUM (edge case)
 
-        10. async_get_next_trip() - trip_manager.py:1293
-            IMPACT: Uses UTC now for comparison
-            SEVERITY: LOW (internally consistent)
+        9. async_get_next_trip() - trip_manager.py:1293
+           IMPACT: Uses UTC now for comparison
+           SEVERITY: LOW (internally consistent)
         """
         # This test always passes - it's documentation
-        affected_count = 10
-        assert affected_count == 10
-
-
-class TestInvalidTimezoneFallback:
-    """Test that invalid timezone strings fall back to UTC behavior."""
-
-    def test_invalid_timezone_string_falls_back_to_utc(self):
-        """When tz is an invalid string, calculate_next_recurring_datetime falls back to UTC."""
-        from datetime import datetime, timezone
-
-        reference = datetime(2026, 4, 30, 15, 0, 0, tzinfo=timezone.utc)
-        # Pass an invalid timezone string - should fall back to UTC behavior
-        result = calculate_next_recurring_datetime(
-            1,  # Monday
-            "08:00",
-            reference_dt=reference,
-            tz="Invalid/Timezone",
-        )
-        # Should still return a result (falling back to UTC behavior)
-        assert result is not None
-        # Should be treated as UTC time (no timezone conversion)
-        assert result.tzinfo == timezone.utc
-
-    def test_non_tzinfo_object_falls_back_to_utc(self):
-        """When tz is a non-tzinfo object (e.g., MagicMock), falls back to UTC behavior."""
-        from datetime import datetime, timezone
-        from unittest.mock import MagicMock
-
-        reference = datetime(2026, 4, 30, 15, 0, 0, tzinfo=timezone.utc)
-        mock_tz = MagicMock()  # Not a tzinfo subclass
-        result = calculate_next_recurring_datetime(
-            1,  # Monday
-            "08:00",
-            reference_dt=reference,
-            tz=mock_tz,
-        )
-        # Should still return a result (falling back to UTC behavior)
-        assert result is not None
-        assert result.tzinfo == timezone.utc
+        affected_count = 9
+        assert affected_count == 9

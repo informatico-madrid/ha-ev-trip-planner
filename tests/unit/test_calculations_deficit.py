@@ -1,39 +1,17 @@
-"""Test that calculations.deficit exports deficit/scheduling functions.
+"""Test that calculations.deficit exports live functions.
 
-During SOLID decomposition, deficit functions must be re-exported
-from calculations.deficit so callers can use:
-    from custom_components.ev_trip_planner.calculations.deficit import (
-        calculate_deficit_propagation,
-        calculate_next_recurring_datetime,
-        determine_charging_need,
-        ChargingDecision,
-        calculate_energy_needed,
-    )
-
-This test verifies the import path exists before implementation.
+Verifies:
+- determine_charging_need
+- ChargingDecision
+- calculate_energy_needed
+- calculate_hours_deficit_propagation
 """
 
 from __future__ import annotations
 
 
 class TestDeficitModuleExports:
-    """Verify calculations.deficit re-exports deficit functions."""
-
-    def test_calculate_deficit_propagation_importable(self):
-        """calculate_deficit_propagation must be importable from calculations.deficit."""
-        from custom_components.ev_trip_planner.calculations.deficit import (
-            calculate_deficit_propagation,
-        )
-
-        assert callable(calculate_deficit_propagation)
-
-    def test_calculate_next_recurring_datetime_importable(self):
-        """calculate_next_recurring_datetime must be importable from calculations.deficit."""
-        from custom_components.ev_trip_planner.calculations.deficit import (
-            calculate_next_recurring_datetime,
-        )
-
-        assert callable(calculate_next_recurring_datetime)
+    """Verify calculations.deficit re-exports live functions."""
 
     def test_determine_charging_need_importable(self):
         """determine_charging_need must be importable from calculations.deficit."""
@@ -58,6 +36,14 @@ class TestDeficitModuleExports:
         )
 
         assert callable(calculate_energy_needed)
+
+    def test_calculate_hours_deficit_propagation_importable(self):
+        """calculate_hours_deficit_propagation must be importable."""
+        from custom_components.ev_trip_planner.calculations.deficit import (
+            calculate_hours_deficit_propagation,
+        )
+
+        assert callable(calculate_hours_deficit_propagation)
 
     def test_determine_charging_need_no_charging_needed(self):
         """Determine charging need when trip has zero energy → kwh_needed=0."""
@@ -108,22 +94,3 @@ class TestDeficitModuleExports:
             charging_power_kw=3.6,
         )
         assert result["energia_necesaria_kwh"] == 0.0
-
-    def test_next_recurring_datetime_candidate_in_past(self):
-        """days_ahead=7 when candidate is in the past for target day."""
-        from datetime import datetime, timezone
-
-        from custom_components.ev_trip_planner.calculations.deficit import (
-            calculate_next_recurring_datetime,
-        )
-
-        # Monday (1 in JS getDay format), reference is Monday in the past
-        # This exercises the days_ahead = 7 path
-        reference = datetime(2026, 5, 11, 9, 30, 0, tzinfo=timezone.utc)  # Monday 09:30
-        result = calculate_next_recurring_datetime(
-            day=1,  # Monday in JS getDay format
-            time_str="09:00",
-            reference_dt=reference,
-            tz="UTC",
-        )
-        assert result is not None

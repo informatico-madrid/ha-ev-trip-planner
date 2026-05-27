@@ -23,7 +23,6 @@ from ._power_profile import PowerProfile
 from ._schedule import TripScheduler
 from ._soc_helpers import SOCHelpers
 from ._soc_query import SOCQuery
-from ._soc_window import SOCWindow
 from ._trip_lifecycle import TripLifecycle
 from ._trip_navigator import TripNavigator
 from ._types import TripManagerConfig
@@ -72,7 +71,6 @@ class TripManager:
         self._emhass_sync = EMHASSSync(self._state)
         self._soc_helpers = SOCHelpers(self._state)
         self._soc_query = SOCQuery(self._state)
-        self._soc_window = SOCWindow(self._state)
         self._power = PowerProfile(self._state)
         self._schedule = TripScheduler(self._state)
         self._navigator = TripNavigator(self._state)
@@ -87,7 +85,6 @@ class TripManager:
         self._state._emhass_sync = self._emhass_sync
         self._state._soc_helpers = self._soc_helpers
         self._state._lifecycle = self._lifecycle
-        self._state._soc_window = self._soc_window
 
         # Delegates needed by sub-components during operation
         self._state.async_save_trips = self._persistence.async_save_trips
