@@ -1248,8 +1248,8 @@ class TestHourlyRefreshCallbackMultiAssert:
         assert no_post_cache, "No post_cache logs in exception flow"
 
     @pytest.mark.asyncio
-    async def test_cancelled_error_logs_without_exc_info(self, caplog):
-        """asyncio.CancelledError flow: logs CANCELLED without exc_info."""
+    async def test_cancelled_error_propagates(self):
+        """asyncio.CancelledError is re-raised so the HA task is properly cancelled."""
         import asyncio
 
         mgr = MagicMock()
@@ -1267,17 +1267,8 @@ class TestHourlyRefreshCallbackMultiAssert:
             emhass_adapter=adapter,
         )
 
-        with caplog.at_level("INFO"):
+        with pytest.raises(asyncio.CancelledError):
             await _hourly_refresh_callback(None, rt)
-
-        cancel_records = [r for r in caplog.records if "CANCELLED" in r.message]
-        assert len(cancel_records) >= 1, "CANCELLED log present"
-        assert "publish_deferrable_loads" in cancel_records[0].message, (
-            "Log mentions publish_deferrable_loads"
-        )
-        # Verify NO post-cache or refresh logs (early return)
-        no_post_cache = all("post_cache" not in r.message for r in caplog.records)
-        assert no_post_cache, "No post_cache logs in BaseException flow"
 
     @pytest.mark.asyncio
     async def test_each_missing_field_logs_correct_abort_message(self, caplog):

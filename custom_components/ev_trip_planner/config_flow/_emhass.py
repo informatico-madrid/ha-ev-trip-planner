@@ -39,7 +39,7 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
         return None
     try:
         is_file = Path(emhass_config_path).is_file()
-    except OSError:  # pragma: no cover — unreachable after exists() succeeded
+    except OSError:
         return None
     if is_file:
         config_path = emhass_config_path
@@ -49,7 +49,7 @@ def read_emhass_config(emhass_config_path: str) -> Optional[Dict[str, Any]]:
     try:
         if not Path(config_path).exists():
             return None
-    except OSError:  # pragma: no cover — unreachable after prior exists() checks
+    except OSError:
         return None
     try:
         with open(config_path, "r", encoding="utf-8") as f:

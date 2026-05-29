@@ -63,9 +63,6 @@ _LOG_HOURLY_CALLBACK_CACHE_BEFORE = (
     "FLOW2-DEBUG: cache BEFORE publish per_trip=%d power_nonzero=%d"
 )
 _LOG_HOURLY_CALLBACK_PUBLISH_FAILED = "FLOW2-DEBUG: publish_deferrable_loads FAILED: %s"
-_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED = (
-    "FLOW2-DEBUG: publish_deferrable_loads CANCELLED: %s"
-)
 _LOG_HOURLY_CALLBACK_CACHE_AFTER = (
     "FLOW2-DEBUG: cache AFTER publish per_trip=%d power_nonzero=%d"
 )
@@ -137,11 +134,10 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
 
     try:
         await runtime_data.trip_manager._schedule.publish_deferrable_loads()
+    except asyncio.CancelledError:
+        raise
     except Exception as err:
         _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_FAILED, err, exc_info=True)
-        return
-    except asyncio.CancelledError as err:
-        _LOGGER.info(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
         return
 
     # Log cache state AFTER publish (US-5: extracted to helper)

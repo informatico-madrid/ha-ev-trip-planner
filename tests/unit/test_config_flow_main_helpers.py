@@ -102,6 +102,17 @@ class TestReadEmhassConfig:
              patch.object(Path, "is_file", side_effect=OSError("permission denied")):
             assert _read_emhass_config("/some/path") is None
 
+    def test_config_path_exists_raises_oserror(self):
+        """TOCTOU: config_path.exists() OSError → returns None (line 52).
+
+        First exists() returns True (emhass_config_path present), is_file() returns
+        False (it's a directory, so config_path becomes .../config.json), second
+        exists() raises OSError simulating a race condition.
+        """
+        with patch.object(Path, "exists", side_effect=[True, OSError("race condition")]), \
+             patch.object(Path, "is_file", return_value=False):
+            assert _read_emhass_config("/some/path") is None
+
 
 class TestGetEmhassPlanningHorizon:
     """Test _get_emhass_planning_horizon (lines 238-268)."""

@@ -136,8 +136,8 @@ class TestHourlyRefreshCallback:
         await _hourly_refresh_callback(None, rt)
 
     @pytest.mark.asyncio
-    async def test_callback_cancelled_error_logged(self):
-        """asyncio.CancelledError is caught and logged (not raised)."""
+    async def test_callback_cancelled_error_propagates(self):
+        """asyncio.CancelledError is re-raised so the task is properly cancelled."""
         import asyncio
 
         mgr = MagicMock()
@@ -150,8 +150,8 @@ class TestHourlyRefreshCallback:
             trip_manager=mgr,
             emhass_adapter=MagicMock(),
         )
-        # Should not raise — asyncio.CancelledError is caught separately
-        await _hourly_refresh_callback(None, rt)
+        with pytest.raises(asyncio.CancelledError):
+            await _hourly_refresh_callback(None, rt)
 
     @pytest.mark.asyncio
     async def test_callback_with_post_cache_entries(self):
