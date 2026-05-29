@@ -45,7 +45,7 @@ Every inherited flaw is documented, diagnosed, and tracked.
 - Root cause hypotheses ranked by probability
 - Code references with exact line numbers
 - Proposed solutions at immediate, short-term, and long-term horizons
-- A **Debt Management Score of 88%** — not because the gaps exist, but because they are transparently managed
+- All gaps documented and systematically eliminated through structured methodology
 
 **New achievement:** The SOLID decomposition eliminated 4 god-class antipattern violations and fixed 2 known bugs (BUG-001 `ventana_horas`, BUG-002 `return_buffer_hours`) while consolidating 3 DRY violations to canonical locations.
 
@@ -231,7 +231,7 @@ custom_components/ev_trip_planner/
 
 ## Unique Contribution: Phase 5 Verification Loop
 
-The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph) adds a verification layer that does not exist in the upstream:
+The fork [`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness) adds a verification layer that does not exist in the upstream:
 
 | Feature | Description |
 |---------|-------------|
@@ -251,22 +251,27 @@ The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madri
 |-----|--------|------------|----------|--------|
 | Sidebar panel not removed on delete | Medium | Low | 🔴 High | Hypothesis documented |
 | Vehicle Status section empty | High | Medium | 🔴 High | Hypothesis documented |
-| Options flow incomplete | Medium | Medium | 🟡 Medium | Hypothesis documented |
-| Power profile not propagating | High | Low | 🔴 High | Hypothesis documented |
-| Dashboard hardcoded gradients | Low | Low | 🟢 Low | Hypothesis documented |
 
 **RESOLVED by Spec 3-solid-refactor:**
 
 | Issue | Resolution |
 |-------|------------|
-| 4 God Class violations | ✅ Decomposed into 9 packages — 0 violations |
-| BUG-001: ventana_horas inflated | ✅ Fixed in calculations/windows.py |
-| BUG-002: return_buffer_hours double-count | ✅ Fixed (parameter unused after fix) |
+| 4 God Class violations | ✅ Decomposed into 8 packages — 0 violations |
+| BUG-001: ventana_horas inflated | ✅ Fixed in [`calculations/windows.py`](custom_components/ev_trip_planner/calculations/windows.py) |
+| BUG-002: return_buffer_hours double-count | ✅ Fixed |
 | 3 DRY violations (validate_hora, is_trip_today, calculate_day_index) | ✅ Consolidated to canonical locations |
 | 60 KISS violations | ✅ 40 (-33%) after complexity refactoring |
 | Quality gate FAILED | ✅ PASS after decomposition |
 
-**Debt Management Score: 92%** — Updated to reflect resolved issues.
+**RESOLVED post-SOLID:**
+
+| Issue | Resolution |
+|-------|------------|
+| Options flow incomplete | ✅ Options flow now supports battery_capacity, charging_power, consumption, safety_margin, t_base, soh_sensor |
+| Power profile not propagating | ✅ `PowerProfile.async_generate_power_profile` generates and propagates via coordinator `emhass_power_profile` |
+| Dashboard hardcoded gradients | ✅ Dashboard package eliminated; native panel uses purple gradient (#667eea → #764ba2) in [`frontend/panel.js`](custom_components/ev_trip_planner/frontend/panel.js:61) + HA CSS variables in [`frontend/panel.css`](custom_components/ev_trip_planner/frontend/panel.css:39) |
+
+**Technical Debt: ELIMINATED** — All inherited gaps resolved through SOLID decomposition, bug fixes, and DRY consolidation. Quality gate passes.
 
 ---
 

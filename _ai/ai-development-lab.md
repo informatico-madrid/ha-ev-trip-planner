@@ -167,7 +167,7 @@ The project has evolved through **7 methodological phases**, each leaving artifa
 
 ### Phase 5: Smart Ralph Fork (2026-Q1)
 
-**Description:** Migration to `informatico-madrid/smart-ralph`, a fork of `tzachbon/smart-ralph` that adds **Phase 5: Agentic Verification Loop**.
+**Description:** Migration to `informatico-madrid/ralph-harness`, a fork of `tzachbon/smart-ralph` that adds **Phase 5: Agentic Verification Loop**.
 
 **Characteristics:**
 - Free descriptive naming (no numeric prefixes)
@@ -596,7 +596,7 @@ The following problems were introduced during the Live Coding phase and persist 
 
 ### Smart Ralph Fork
 
-The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph) adds **Phase 5: Agentic Verification Loop** that does not exist in the upstream.
+The fork [`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness) adds **Phase 5: Agentic Verification Loop** that does not exist in the upstream.
 
 **Unique contributions:**
 
@@ -680,7 +680,7 @@ This block shows **Phase 5 in action**: the QA Engineer operates parallel to the
 - **NOT a Python expert** — all code was IA-generated
 - **ZERO lines of code written manually**
 - Specialized in directing specialized IA agents
-- Creator of the `informatico-madrid/smart-ralph` fork
+- Creator of the `informatico-madrid/ralph-harness` fork
 - Contributor to the AI-assisted development ecosystem
 
 ### Why Does This Project Matter?
@@ -704,7 +704,7 @@ This project demonstrates that an experienced architect can:
 
 ## References
 
-- [Smart Ralph Fork](https://github.com/informatico-madrid/smart-ralph)
+- [Smart Ralph Fork (RALPH Harness)](https://github.com/informatico-madrid/ralph-harness)
 - [Smart Ralph Upstream](https://github.com/tzachbon/smart-ralph)
 - [Ralph Agentic Loop](https://ghuntley.com/ralph/)
 - [BMad Method](https://github.com/bmad-code-method)

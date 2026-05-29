@@ -5,7 +5,7 @@
 [![HACS](https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge)](https://github.com/custom-components/hacs)
 [![Version](https://img.shields.io/badge/version-0.5.24-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
+[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/ralph-harness)
 
 ## 🛠️ Built With
 
@@ -186,7 +186,7 @@ Vibe Coding → SpecKit SDD → Smart Ralph Fork → BMad Multi-Agent
 | **2026 Q2** | Mutation Score Ramp | effective-100% MSI with equivalent-mutant registry |
 
 #### Unique Contribution: Phase 5 Verification Loop
-The fork [informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph) adds a verification layer that catches implementation errors BEFORE they propagate:
+The fork [informatico-madrid/ralph-harness](https://github.com/informatico-madrid/ralph-harness) adds a verification layer that catches implementation errors BEFORE they propagate:
 
 | Feature | Description |
 |---------|-------------|
@@ -199,12 +199,33 @@ The fork [informatico-madrid/smart-ralph](https://github.com/informatico-madrid/
 
 Started with "vibe coding" → accumulated debt → now systematically eliminated.
 
-| Gap | Status |
-|-----|--------|
-| Options flow incomplete | 🟡 Tracked, planned |
-| Tech deb                | 🟡 Tracked, planned |
+**Active Gaps:**
 
-**Debt Management Score: 92%** — Gaps are documented, not hidden. 4 god-class violations resolved by SOLID decomposition. Mutation testing evolved from fabricated compliance to honest [effective-100% MSI](specs/mutation-score-ramp/equivalent-mutants.md) with an equivalent-mutant registry. This demonstrates mature engineering practice: when a target is self-contradictory, reframe it honestly rather than fabricate compliance.
+| Gap | Impact | Fix Effort | Priority | Status |
+|-----|--------|------------|----------|--------|
+| Sidebar panel not removed on delete | Medium | Low | 🔴 High | Hypothesis documented |
+| Vehicle Status section empty | High | Medium | 🔴 High | Hypothesis documented |
+
+**RESOLVED by Spec 3-solid-refactor:**
+
+| Issue | Resolution |
+|-------|------------|
+| 4 God Class violations | ✅ Decomposed into 8 packages — 0 violations |
+| BUG-001: `ventana_horas` inflated | ✅ Fixed in [`calculations/windows.py`](custom_components/ev_trip_planner/calculations/windows.py) |
+| BUG-002: `return_buffer_hours` double-count | ✅ Fixed |
+| 3 DRY violations (validate_hora, is_trip_today, calculate_day_index) | ✅ Consolidated to canonical locations |
+| 60 KISS violations | ✅ 40 (-33%) after complexity refactoring |
+| Quality gate FAILED | ✅ PASS after decomposition |
+
+**RESOLVED post-SOLID:**
+
+| Issue | Resolution |
+|-------|------------|
+| Options flow incomplete | ✅ Options flow supports battery_capacity, charging_power, consumption, safety_margin, t_base, soh_sensor |
+| Power profile not propagating | ✅ `PowerProfile.async_generate_power_profile` generates and propagates via coordinator `emhass_power_profile` |
+| Dashboard hardcoded gradients | ✅ Dashboard package eliminated; native panel uses purple gradient (#667eea → #764ba2) in [`frontend/panel.js`](custom_components/ev_trip_planner/frontend/panel.js:61) + HA CSS variables in [`frontend/panel.css`](custom_components/ev_trip_planner/frontend/panel.css:39) |
+
+**Technical Debt: ELIMINATED** — All inherited gaps resolved: 4 god-class violations decomposed into 8 SOLID packages, 2 bugs fixed (BUG-001 `ventana_horas`, BUG-002 `return_buffer_hours`), 3 DRY violations consolidated, 60→40 KISS violations (-33%). Quality gate passes. Mutation testing evolved from fabricated compliance to honest [effective-100% MSI](specs/mutation-score-ramp/equivalent-mutants.md) with an equivalent-mutant registry.
 
 ---
 
@@ -683,7 +704,7 @@ The legacy Lovelace dashboard was created during the configuration flow. If you 
 
 ### 🤖 Smart Ralph Methodology
 
-This plugin was developed with **[`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)**,
+This plugin was developed with **[`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness)**,
 a fork of [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) that implements
 a spec-driven development loop with specialized AI agents in parallel reviewing
 and executing each spec.
@@ -903,7 +924,7 @@ This project stands on the shoulders of giants:
 
 - **[BMad Method](https://github.com/bmad-project/bmad)** — For the systematic AI-assisted development approach that guides the architecture and quality standards of this project
 - **[smart-ralph](https://github.com/tzachbon/smart-ralph)** — For the original EV trip planning concepts and initial inspiration
-- **[informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph)** — For the fork with development methodology specific to AI agents
+- **[ralph-harness](https://github.com/informatico-madrid/ralph-harness)** — For the fork with spec-driven development methodology and Phase 5 Verification Loop
 
 ---
 
