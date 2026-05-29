@@ -39,7 +39,7 @@
 - Extended config flow with EMHASS and presence detection steps
 - 3 new sensors: `active_trips`, `presence_status`, `charging_readiness`
 - Migration service from sliders: `ev_trip_planner.import_from_sliders`
-- ⚠️ **NOTE**: `schedule_monitor.py` exists but is NOT connected — EMHASS-based automatic charge control does NOT work end-to-end
+- ⚠️ **NOTE**: Presence monitor logic in `presence_monitor/__init__.py` is NOT connected to vehicle control — EMHASS-based automatic charge control does NOT work end-to-end
 - 156 tests with 93.6% pass rate
 
 ### Milestone 3.1: UX Improvements — Configuration Clarity (Dec 8, 2025)
@@ -99,21 +99,19 @@
 
 | Component | File | Lines | Status |
 |-----------|------|-------|--------|
-| `VehicleControlStrategy` ABC | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | 430 | ✅ Implemented |
-| `SwitchStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
-| `ServiceStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
-| `ScriptStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
-| `ExternalStrategy` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
-| `VehicleController` | [`vehicle/`](custom_components/ev_trip_planner/vehicle/) | — | ✅ Implemented |
-| `PresenceMonitor` | [`presence_monitor/`](custom_components/ev_trip_planner/presence_monitor/) | 770 | ✅ Implemented |
-| `ScheduleMonitor` | [`presence_monitor/`](custom_components/ev_trip_planner/presence_monitor/) | 324 | ✅ File exists, NEVER instantiated |
-| `VehicleScheduleMonitor` | [`presence_monitor/`](custom_components/ev_trip_planner/presence_monitor/) | — | ✅ File exists, NEVER used |
+| `VehicleControlStrategy` ABC | [`vehicle/strategy.py`](custom_components/ev_trip_planner/vehicle/strategy.py) | ~100 | ✅ Implemented |
+| `SwitchStrategy` | [`vehicle/strategy.py`](custom_components/ev_trip_planner/vehicle/strategy.py) | — | ✅ Implemented |
+| `ServiceStrategy` | [`vehicle/strategy.py`](custom_components/ev_trip_planner/vehicle/strategy.py) | — | ✅ Implemented |
+| `ScriptStrategy` | [`vehicle/strategy.py`](custom_components/ev_trip_planner/vehicle/strategy.py) | — | ✅ Implemented |
+| `ExternalStrategy` | [`vehicle/external.py`](custom_components/ev_trip_planner/vehicle/external.py) | ~70 | ✅ Implemented |
+| `VehicleController` | [`vehicle/controller.py`](custom_components/ev_trip_planner/vehicle/controller.py) | ~300 | ✅ Implemented |
+| `PresenceMonitor` | [`presence_monitor/__init__.py`](custom_components/ev_trip_planner/presence_monitor/__init__.py) | ~450 | ✅ Implemented |
 
-**Gap**: `presence_monitor/schedule_monitor.py` is **never imported** in the package. The `control_strategy` / `control_type` configuration is **NOT exposed** in the config flow. Users cannot select a vehicle control strategy through the UI.
+**Gap**: The `control_strategy` / `control_type` configuration is **NOT exposed** in the config flow. Users cannot select a vehicle control strategy through the UI. The `presence_monitor/` package contains only `__init__.py` (PresenceMonitor) — schedule monitoring logic was never separated into a dedicated file.
 
 **Impact**: The core "smart charging control" feature (automatic charge start/stop based on EMHASS schedules) does NOT work end-to-end, even though all the code exists.
 
-**Required fix**: Wire `ScheduleMonitor` into `__init__.py` async_setup, add `control_strategy` step to config flow, connect `VehicleController` to the hourly refresh callback.
+**Required fix**: Add `control_strategy` step to config flow, connect `VehicleController` to the presence monitor callback, wire the strategy pattern to Home Assistant services.
 
 ---
 
@@ -293,12 +291,12 @@ After Milestone 4 production validation, critical issues were documented in [`do
 
 #### P0 — Critical (blocks core functionality)
 
-- **🔧 ScheduleMonitor exists but is NEVER instantiated** (NEW — discovered 2026-04-25)
-  - **Problem**: `schedule_monitor.py` (324 lines) contains `ScheduleMonitor` and `VehicleScheduleMonitor` classes with complete vehicle control logic
-  - **Status**: File exists in `custom_components/ev_trip_planner/` but is **never imported** in `__init__.py`
-  - **Impact**: The core "automatic charge control based on EMHASS schedules" feature does NOT work — users cannot set up automatic charging control even though the code exists
-  - **Files**: `schedule_monitor.py`, `vehicle_controller.py`, `__init__.py`
-  - **Required**: Wire into `async_setup_entry`, add `control_strategy` step to config flow
+- **🔧 PresenceMonitor exists but vehicle control is NEVER wired** (NEW — discovered 2026-04-25)
+   - **Problem**: `presence_monitor/__init__.py` (~450 lines) contains `PresenceMonitor` class with complete presence detection logic
+   - **Status**: File exists in `custom_components/ev_trip_planner/presence_monitor/` but vehicle control strategies are **never connected** to the presence callback
+   - **Impact**: The core "automatic charge control based on EMHASS schedules" feature does NOT work — users cannot set up automatic charging control even though the VehicleController code exists
+   - **Files**: `presence_monitor/__init__.py`, `vehicle/controller.py`, `vehicle/strategy.py`, `__init__.py`
+   - **Required**: Wire `VehicleController` into `async_setup_entry`, add `control_strategy` step to config flow, connect presence monitor callback to vehicle controller
 
 #### P1 — High (UX)
 
@@ -388,9 +386,9 @@ P_deferrable:
 
 These limitations are documented and are deliberate design decisions for v1.0:
 
-1. **⚠️ EMHASS automatic charge control NOT WORKING (P0 Critical)**: `schedule_monitor.py` (324 lines) exists but is **never instantiated**. The vehicle controller (4 strategies in `vehicle_controller.py`, 510 lines) is fully implemented but never activated because `ScheduleMonitor` is never wired into `__init__.py`. The config flow has NO step for `control_strategy`. **This is the single biggest gap in the project** — the code exists, it just needs to be connected. See [Vehicle Control section](#-vehicle-control--implemented-but-not-wired-to-ui) above.
+1. **⚠️ EMHASS automatic charge control NOT WORKING (P0 Critical)**: `presence_monitor/__init__.py` (~450 lines) contains `PresenceMonitor` class but vehicle control strategies are **never wired** to it. The VehicleController (4 strategies in `vehicle/controller.py`, ~300 lines) is fully implemented but never activated because the presence monitor callback is never connected to `VehicleController`. The config flow has NO step for `control_strategy`. **This is the single biggest gap in the project** — the code exists, it just needs to be connected. See [Vehicle Control section](#-vehicle-control--implemented-but-not-wired-to-ui) above.
 
-2. **⚠️ Lovelace deprecated code still executes on every setup**: `async_import_dashboard_for_entry()` is still called in `__init__.py:187`. The `dashboard.py` module (1262 lines) contains full Lovelace import logic that runs on every integration setup. This is DEPRECATED — the native panel is the primary interface. The Lovelace code should be removed or gated behind a feature flag.
+2. **⚠️ Lovelace deprecated code still executes on every setup**: `async_import_dashboard_for_entry()` is still called in `__init__.py:187`. The `services/dashboard_helpers.py` module (506 lines) contains Lovelace import logic that runs on every integration setup. This is DEPRECATED — the native panel is the primary interface. The Lovelace code should be removed or gated behind a feature flag.
 
 3. **⚠️ Panel cleanup may silently fail on some HA versions**: `async_unregister_panel` IS called in `services.py:1471`, but it depends on `frontend.async_remove_panel` which may not exist in all HA versions. If missing, the try/except silently swallows the error, leaving orphaned panel entries.
 
@@ -551,7 +549,7 @@ _ai/
 ### Code Cleanup + Dead Code Elimination
 - Systematic removal of all dead code using .roo quality-gate scripts (antipattern_checker, solid_metrics, weak_test_detector)
 - Target: Zero unreachable code paths
-- Focus areas: deprecated dashboard.py code, unused vehicle_controller strategies, orphaned schedule_monitor references
+- Focus areas: eliminated dashboard/ package, unused vehicle_controller strategies, orphaned presence_monitor references
 
 ### Mutation Testing Integration
 - Configure mutation testing thresholds per-module (mutmut)

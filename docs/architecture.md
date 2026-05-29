@@ -27,7 +27,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 | Home Assistant Framework | 2026.3.3+ | Integration platform |
 | voluptuous | (HA bundled) | Config flow validation |
 | PyYAML | (HA bundled) | Dashboard YAML parsing |
-| pytest | Latest | Unit testing (1802 tests, 100% coverage) |
+| pytest | Latest | Unit testing (156 test files, 100% coverage target) |
 | ruff | Latest | Linting |
 | pylint | Latest | Code analysis |
 | mypy | Latest (strict) | Type checking |
@@ -41,7 +41,7 @@ HA EV Trip Planner is a Home Assistant custom component implementing the **DataU
 | Lit | 2.8.x | Web Component framework |
 | TypeScript | 5.7+ | Type-safe JS |
 | Playwright | 1.58+ | E2E testing (40 specs) |
-| Jest | 30.x | JS unit testing |
+| Jest | 30.x | JS unit testing (configured, not actively used) |
 
 ### Infrastructure
 
@@ -61,11 +61,11 @@ The SOLID decomposition was verified programmatically via `solid_metrics.py` (Ti
 | SOLID Letter | Before (Baseline) | After (V_final) | Verification |
 |-------------|-------------------|-----------------|-------------|
 | **S — SRP** | ❌ FAIL — 7 violations (TripManager 32 methods, EMHASSAdapter 28, PresenceMonitor 12, VehicleController 10) | ✅ PASS — 0 violations | `solid_metrics.py` LCOM4 ≤ 2 |
-| **O — OCP** | ❌ FAIL — abstractness 3.3% < 10% | ⚠️ FAIL — abstractness 9.6% < 10% (needs 1 more ABC/Protocol) | `solid_metrics.py` O-check |
+| **O — OCP** | ❌ FAIL — abstractness 3.3% < 10% | ✅ PASS — 0 violations | `solid_metrics.py` O-check |
 | **L — LSP** | ✅ PASS | ✅ PASS | `solid_metrics.py` L-check |
 | **I — ISP** | ✅ PASS | ✅ PASS | `solid_metrics.py` I-check (max_unused_methods_ratio ≤ 0.5) |
 | **D — DIP** | ✅ PASS | ✅ PASS | `lint-imports` contracts + zero circular dependencies |
-| **Total** | **3/5 PASS** | **4/5 PASS** | **+1 letter improved** |
+| **Total** | **3/5 PASS** | **5/5 PASS** | **+2 letters improved** |
 
 ### Anti-Pattern Eradication
 
@@ -346,9 +346,9 @@ The old `dashboard/` package (Builder pattern + YAML template import) was dead c
 | Pattern | Package | Usage |
 |---------|---------|-------|
 | **Facade + Composition** | `emhass/` | `EMHASSAdapter` delegates to `ErrorHandler`, `IndexManager`, `LoadPublisher` sub-components |
-| **Facade + Mixins** | `trip/` | `TripManager` aggregates 5 mixins sharing `self.hass/_trips/_storage` |
-| **Module Facade** | `services/` | `services.py` as thin facade over handler factories |
-| **Builder** | `dashboard/` | `DashboardBuilder` fluent interface for config construction |
+| **State-Based Composition** | `trip/` | `TripManager` aggregates 16 sub-components sharing `TripManagerState` |
+| **Module Facade** | `services/` | `services/` as thin facade over handler factories |
+| ~~**Builder**~~ | ~~`dashboard/`~~ | ~~ELIMINATED — replaced by native panel~~ |
 | **Strategy** | `vehicle/` | `VehicleControlStrategy` ABC with 4 implementations |
 | **Functional Decomposition** | `calculations/` | Pure functions grouped by domain (core/windows/power/schedule/deficit) |
 | **Platform Decomposition** | `sensor/` | HA sensor platform split into entity sub-modules |
@@ -386,17 +386,17 @@ TripPlannerCoordinator._async_update_data()
 | Layer | Tool | Coverage Target | Actual |
 |-------|------|----------------|--------|
 | Pure calculations | pytest + parametrize | 100% | ✅ 100% |
-| Trip package | pytest + mocks | High | ✅ 168 tests |
-| EMHASS package | pytest + mocks | High | ✅ 124 tests |
+| Trip package | pytest + mocks | High | ✅ ~40 tests |
+| EMHASS package | pytest + mocks | High | ✅ ~20 tests |
 | Coordinator | pytest + hass fixtures | High | ✅ High |
 | Sensors | pytest + entity fixtures | High | ✅ High |
 | Services | pytest + service mocks | High | ✅ High |
 | Config flow | pytest + flow fixtures | High | ✅ High |
-| E2E | Playwright | Critical paths | ✅ 40 specs (30 main + 10 SOC) |
-| JS Panel | Jest | Panel logic | ✅ Jest configured |
+| E2E | Playwright | Critical paths | ✅ 40 specs (30 main + 10 dynamic-soc) |
+| JS Panel | Jest | Panel logic | ⚠️ Jest configured, not actively used |
 | Mutation | mutmut | Baseline tracked | ✅ 62.5% kill rate |
 
-**Total: 1802 tests passing, 100% coverage on production code**
+**Total: 156 test files (121 unit + 25 integration + 10 e2e)**
 
 ---
 
@@ -408,19 +408,18 @@ TripPlannerCoordinator._async_update_data()
 │  ┌────────────────────────────────────────────────────────────────┐ │
 │  │           custom_components/ev_trip_planner/                     │ │
 │  │  ┌──────────────────────────────────────────────────────────┐   │ │
-│  │  │  8 SOLID Packages (dashboard removed)                        │   │ │
-│  │  │  ├── trip/ (16 modules) — State + Sub-components          │   │ │
-│  │  │  ├── emhass/ (4 modules) — Facade + Composition         │   │ │
-│  │  │  ├── calculations/ (7 modules) — Functional Decomp     │   │ │
-│  │  │  ├── services/ (8 modules) — Module Facade + Factories  │   │ │
-│  │  │  ├── vehicle/ (3 modules) — Strategy Pattern            │   │ │
-│  │  │  ├── sensor/ (5 modules) — Platform Decomposition       │   │ │
-│  │  │  ├── config_flow/ (4 modules) — Flow Type Decomposition  │   │ │
-│  │  │  └── presence_monitor/ (1 module) — Package Re-export  │   │ │
+│  │  │  8 SOLID Packages (dashboard eliminated)                   │   │ │
+│  │  │  ├── trip/ (16 files) — State-Based Composition          │   │ │
+│  │  │  ├── emhass/ (5 files) — Facade + Composition            │   │ │
+│  │  │  ├── calculations/ (8 files) — Functional Decomposition  │   │ │
+│  │  │  ├── services/ (7 files) — Module Facade + Factories     │   │ │
+│  │  │  ├── vehicle/ (4 files) — Strategy Pattern               │   │ │
+│  │  │  ├── sensor/ (8 files) — Platform Decomposition          │   │ │
+│  │  │  ├── config_flow/ (7 files) — Flow Type Decomposition    │   │ │
+│  │  │  └── presence_monitor/ (1 file) — Package Re-export      │   │ │
 │  │  └──────────────────────────────────────────────────────────┘   │ │
 │  │  ├── Backend (Python)                                          │ │
-│  │  ├── Frontend (panel.js)                                        │ │
-│  │  └── Dashboard templates (YAML/JS in dashboard/templates/)       │ │
+│  │  └── Frontend (frontend/panel.js)                               │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 │  ┌─────────────┐  ┌──────────────────┐  ┌─────────────────────┐      │
 │  │ EMHASS      │  │ Vehicle Sensors  │  │ Presence Monitor    │      │
@@ -449,8 +448,8 @@ make quality-gate-ci  # CI version (non-fatal mutation)
 make lint             # ruff + pylint
 make typecheck        # pyright (0 errors required)
 make test-cover       # pytest with coverage
-make e2e              # Playwright E2E (30 specs)
-make e2e-soc          # SOC-specific E2E (10 specs)
+make e2e              # Playwright E2E (10 specs)
+make e2e-soc          # SOC-specific E2E (2 specs)
 make import-check     # lint-imports contracts
 ```
 

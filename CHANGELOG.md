@@ -50,11 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New Files**:
   - `tests/test_trip_emhass_sensor.py` - Per-trip sensor tests (8 tests)
   - `tests/test_propagate_charge_deficit.py` - Deficit propagation tests
-- **Modified Files**:
-  - `sensor.py` - TripEmhassSensor class (9 attributes, device_info)
-  - `sensor.py` - Enhanced EmhassDeferrableLoadSensor (p_deferrable_matrix)
-  - `emhass_adapter.py` - Per-trip cache, Gap #5 fixes, deficit propagation
-  - `trip_manager.py` - Sensor CRUD integration, entry_id parameter
+- **Modified Files** (post-decomposition paths):
+  - `sensor/entity_trip_emhass.py` - TripEmhassSensor class (9 attributes, device_info)
+  - `sensor/entity_emhass_deferrable.py` - Enhanced EmhassDeferrableLoadSensor (p_deferrable_matrix)
+  - `emhass/adapter.py` - Per-trip cache, Gap #5 fixes, deficit propagation
+  - `trip/manager.py` - Sensor CRUD integration, entry_id parameter
   - `__init__.py` - setup_config_entry_listener() activated
   - `frontend/panel.js` - EMHASS config section with copy button
   - `docs/emhass-setup.md` - Complete configuration guide with templates

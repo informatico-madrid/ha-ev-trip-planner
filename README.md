@@ -3,7 +3,7 @@
 **Plan electric trips and optimize your vehicle's energy consumption**
 
 [![HACS](https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge)](https://github.com/custom-components/hacs)
-[![Version](https://img.shields.io/badge/version-0.5.23-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
+[![Version](https://img.shields.io/badge/version-0.5.24-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
 
@@ -706,98 +706,125 @@ The complete E2E testing guide is at [_ai/TESTING_E2E.md](_ai/TESTING_E2E.md).
 ```
 ha-ev-trip-planner/
 ├── custom_components/ev_trip_planner/
-│   ├── __init__.py              # Entry point and setup
-│   ├── const.py                 # Constants
-│   ├── coordinator.py           # Data coordinator
-│   ├── definitions.py            # Entity definitions
-│   ├── diagnostics.py            # HA diagnostics support
-│   ├── panel.py                  # Custom UI panel
-│   ├── yaml_trip_storage.py      # Optional YAML storage
-│   ├── utils.py                  # Utilities
-│   ├── translations/             # Translations (en.json, es.json)
+│   ├── __init__.py                    # Entry point and setup
+│   ├── __init_helpers.py              # Init helpers
+│   ├── const.py                       # Constants
+│   ├── coordinator.py                 # Data coordinator
+│   ├── definitions.py                 # Entity definitions
+│   ├── diagnostics.py                 # HA diagnostics support
+│   ├── panel.py                       # Custom UI panel (Lit)
+│   ├── yaml_trip_storage.py           # Optional YAML storage
+│   ├── utils.py                       # Utilities
+│   ├── strings.json                   # Localizable strings
+│   ├── quality_scale.yaml             # HA quality scale config
+│   ├── translations/                  # Translations (en.json, es.json)
 │   │
-│   ├── emhass/                   # EMHASS adapter package (Facade + Composition)
-│   │   ├── __init__.py           # EMHASSAdapter facade
-│   │   ├── adapter.py            # Main adapter
-│   │   ├── index_manager.py      # Index pool management
-│   │   ├── load_publisher.py      # Deferrable load publishing
-│   │   └── error_handler.py       # Error handling
+│   ├── emhass/                        # EMHASS adapter package (Facade + Composition)
+│   │   ├── __init__.py                # EMHASSAdapter facade
+│   │   ├── adapter.py                 # Main adapter
+│   │   ├── index_manager.py           # Index pool management
+│   │   ├── load_publisher.py          # Deferrable load publishing
+│   │   ├── error_handler.py           # Error handling
+│   │   └── _helpers.py                # Internal helpers
 │   │
-│   ├── trip/                     # Trip management package (Facade + Mixins)
-│   │   ├── __init__.py           # TripManager facade
-│   │   ├── manager.py            # Main trip manager
-│   │   ├── _crud_mixin.py        # CRUD operations
-│   │   ├── _soc_mixin.py          # SOC calculations
-│   │   ├── _power_profile_mixin.py # Power profile generation
-│   │   └── _schedule_mixin.py     # Deferrable schedule
+│   ├── trip/                          # Trip management package (State-Based Composition)
+│   │   ├── __init__.py                # TripManager facade
+│   │   ├── manager.py                 # Main trip manager
+│   │   ├── state.py                   # Trip state definitions
+│   │   ├── _crud.py                   # CRUD operations
+│   │   ├── _soc_helpers.py            # SOC calculations
+│   │   ├── _power_profile.py          # Power profile generation
+│   │   ├── _schedule.py               # Deferrable schedule
+│   │   ├── _emhass_sync.py            # EMHASS synchronization
+│   │   ├── _sensor_callbacks.py       # Sensor callbacks
+│   │   ├── _trip_lifecycle.py         # Trip lifecycle management
+│   │   ├── _trip_navigator.py         # Trip navigation
+│   │   ├── _soc_query.py              # SOC query helpers
+│   │   ├── _persistence.py            # Persistence layer
+│   │   ├── _types.py                  # Type definitions
+│   │   └── _helpers.py                # General helpers
 │   │
-│   ├── calculations/             # Pure functions package (Functional Decomposition)
+│   ├── calculations/                  # Pure functions package (Functional Decomposition)
 │   │   ├── __init__.py
-│   │   ├── windows.py             # Charging window calculations
-│   │   ├── soc.py                 # SOC calculations
-│   │   ├── deferrable.py          # Deferrable hours logic
-│   │   └── battery.py             # Battery capacity (SOH-aware)
+│   │   ├── core.py                    # Core calculation engine
+│   │   ├── power.py                   # Power calculations
+│   │   ├── windows.py                 # Charging window calculations
+│   │   ├── deficit.py                 # Deficit propagation
+│   │   ├── schedule.py                # Schedule calculations
+│   │   └── _helpers.py                # Internal helpers
 │   │
-│   ├── services/                 # Service handlers package (Module Facade)
-│   │   ├── __init__.py           # Service registry
-│   │   ├── _handler_factories.py  # Handler factories
-│   │   ├── handlers.py            # Service handlers
-│   │   └── cleanup.py             # Cleanup operations
+│   ├── services/                      # Service handlers package (Module Facade + Handler Factories)
+│   │   ├── __init__.py                # Service registry
+│   │   ├── _handler_factories.py      # Handler factories
+│   │   ├── cleanup.py                 # Cleanup operations
+│   │   ├── dashboard_helpers.py       # Dashboard helper functions
+│   │   ├── _helpers.py                # Internal helpers
+│   │   └── _utils.py                  # Utility functions
 │   │
-│   ├── dashboard/               # Dashboard package (Facade + Builder)
-│   │   ├── __init__.py           # Dashboard facade
-│   │   ├── template_manager.py    # Template loading
-│   │   └── _paths.py             # Path resolution
+│   ├── vehicle/                       # Vehicle control package (Strategy Pattern)
+│   │   ├── __init__.py                # VehicleController + strategies
+│   │   ├── controller.py              # Vehicle controller
+│   │   ├── external.py                # External vehicle API
+│   │   └── strategy.py                # Strategy interface + implementations
 │   │
-│   ├── vehicle/                  # Vehicle control package (Strategy Pattern)
-│   │   ├── __init__.py           # VehicleController + strategies
-│   │   └── strategies.py          # Switch/Service/Script/External strategies
+│   ├── sensor/                        # Sensor platform package (Platform Decomposition)
+│   │   ├── __init__.py                # Sensor platform
+│   │   ├── _async_setup.py            # Async platform setup
+│   │   ├── _helpers.py                # Sensor helpers
+│   │   ├── entity_trip_planner.py     # Main trip planner sensor
+│   │   ├── entity_trip.py             # Trip data sensor
+│   │   ├── entity_trip_emhass.py      # EMHASS trip sensor
+│   │   └── entity_emhass_deferrable.py # EMHASS deferrable sensor
 │   │
-│   ├── sensor/                   # Sensor platform package
-│   │   ├── __init__.py           # Sensor platform
-│   │   └── entities.py            # Sensor entities
+│   ├── config_flow/                   # Config flow package (Flow Type Decomposition)
+│   │   ├── __init__.py                # Config flow entry
+│   │   ├── main.py                    # Main config flow
+│   │   ├── options.py                 # Options flow
+│   │   ├── _emhass.py                 # EMHASS config helpers
+│   │   ├── _entities.py               # Entity config helpers
+│   │   └── _options_helpers.py        # Options helpers
 │   │
-│   ├── config_flow/             # Config flow package (Flow Type Decomposition)
-│   │   ├── __init__.py           # Config flow entry
-│   │   └── steps.py               # Multi-step config flow
+│   ├── presence_monitor/              # Presence detection package
+│   │   ├── __init__.py                # PresenceMonitor
+│   │   └── README.md                  # Package documentation
 │   │
-│   ├── presence_monitor/        # Presence detection package
-│   │   ├── __init__.py           # PresenceMonitor
-│   │   └── schedule_monitor.py    # Schedule monitoring
+│   ├── frontend/                      # Native Panel (Lit web components)
+│   │   ├── panel.js                   # Panel bundle (compiled)
+│   │   └── panel.css                  # Panel styles
 │   │
-│   └── services.yaml             # YAML service definition
-├── frontend/                     # Native Panel (Lit web components)
-│   ├── panel.js
-│   └── panel.css
-├── dashboard/                    # DEPRECATED: Legacy Lovelace Dashboard YAMLs (use native panel)
-├── tests/                        # Layered test architecture
-│   ├── unit/                # Unit tests (~1,000+ tests, fast, no HA)
-│   ├── integration/         # Integration tests (~30+ tests, HA fixtures)
-│   ├── e2e/                 # E2E Tests (Playwright)
-│       ├── create-trip.spec.ts
-│       ├── delete-trip.spec.ts
-│       └── ...
-├── specs/                   # Smart Ralph specs history
-├── docs/                    # User/developer documentation
-│   ├── index.md            # Documentation index
-│   ├── architecture.md     # System architecture
-│   ├── api-contracts.md    # API contracts
-│   ├── data-models.md      # Data models
-│   ├── development-guide.md # Development guide
-│   └── *.md                # Other documentation
-├── _ai/                     # AI agent documentation (dense/technical)
-│   ├── index.md           # AI documentation index
-│   ├── RALPH_METHODOLOGY.md # Smart Ralph methodology
-│   ├── TESTING_E2E.md      # E2E testing guide
-│   ├── PORTFOLIO.md        # Project portfolio
-│   └── *.md                # Technical guides for AI agents
-├── plans/                   # Active development plans
-├── _roo/skills/             # Roo agent skills
-├── .agents/skills/          # BMad agent skills
-├── .github/workflows/       # CI/CD
-├── hacs.json                # HACS metadata
-├── manifest.json            # HA metadata
-└── README.md               # This file
+│   └── services.yaml                  # YAML service definition
+├── tests/                             # Layered test architecture (170+ test files)
+│   ├── unit/                      # Unit tests (~120 tests, fast, no HA)
+│   ├── integration/               # Integration tests (~28 tests, HA fixtures)
+│   ├── e2e/                       # E2E Tests (Playwright)
+│   │   ├── create-trip.spec.ts
+│   │   ├── delete-trip.spec.ts
+│   │   ├── edit-trip.spec.ts
+│   │   ├── trip-list-view.spec.ts
+│   │   └── ...
+│   └── fixtures/                  # Test fixtures and helpers
+├── specs/                           # Smart Ralph specs history
+├── docs/                            # User/developer documentation
+│   ├── index.md                     # Documentation index
+│   ├── architecture.md              # System architecture
+│   ├── api-contracts.md             # API contracts
+│   ├── data-models.md               # Data models
+│   ├── development-guide.md         # Development guide
+│   ├── mutation-testing.md          # Mutation testing guide
+│   ├── REGLAS_DE_NEGOCIO.md         # Business rules
+│   └── *.md                         # Other documentation
+├── _ai/                             # AI agent documentation (dense/technical)
+│   ├── index.md                     # AI documentation index
+│   ├── PORTFOLIO.md                 # Project portfolio
+│   ├── SOLID_REFACTORING_CASE_STUDY.md
+│   └── *.md                         # Technical guides for AI agents
+├── plans/                           # Active development plans
+├── .roo/skills/                     # Roo agent skills
+├── .agents/skills/                  # BMad agent skills
+├── .github/workflows/               # CI/CD
+├── hacs.json                        # HACS metadata
+├── manifest.json                    # HA metadata
+└── README.md                        # This file
 ```
 
 ### Run Tests
@@ -852,7 +879,7 @@ npx playwright test tests/e2e/
 |---------------|-------------|
 | [📖 docs/index.md](docs/index.md) | Documentation for users and developers |
 | [🤖 _ai/index.md](_ai/index.md) | Technical documentation for AI agents |
-| [📋 plans/DOCS_AUDIT_REPORT.md](plans/DOCS_AUDIT_REPORT.md) | Complete documentation audit report |
+| [📋 DOC_AUDIT_REPORT.md](DOC_AUDIT_REPORT.md) | Complete documentation audit report |
 
 ---
 

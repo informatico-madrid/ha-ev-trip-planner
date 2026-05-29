@@ -22,10 +22,10 @@ This is not a demo. This is not a toy. This is a **documented journey from chaos
 | Metric | Value | Verified | Note |
 |--------|-------|----------|------|
 | **Lines of Code** | ~12,400 (Python backend) | 2026-05-14 | Post-decomposition |
-| **Python Modules** | **27+** production modules | 2026-05-14 | 9 packages with 45+ sub-modules |
+| **Python Modules** | **61** production modules | 2026-05-29 | 8 SOLID packages with 61 sub-modules |
 | **Domain Skills** | **12** domain skills + **11** framework skills + **117** .roo agent skills | 2026-05-03 | |
-| **Unit Tests** | **1,802** Python tests (100% coverage) | 2026-05-14 | Zero regressions |
-| **E2E Tests** | **40** Playwright specifications (30 main + 10 SOC) | 2026-05-14 | All passing |
+| **Unit Tests** | **2,658** Python tests (100% coverage) | 2026-05-29 | Zero regressions |
+| **E2E Tests** | **41** Playwright specifications (31 main + 10 SOC) | 2026-05-29 | All passing |
 | **Specifications Executed** | **33** across 6 methodology arcs | 2026-05-22 | +1 from Arc 6 (mutation-score-ramp) |
 | **SOLID Compliance** | **5/5 PASS** | 2026-05-14 | Was 3/5 FAIL |
 | **God Classes** | **0 violations** | 2026-05-14 | Was 4 violations |
@@ -213,18 +213,17 @@ flowchart TB
 3. Anti-evasion policy prevents spec integrity degradation (external reviewer)
 4. Quality gates measure progress (solid_metrics.py Tier A)
 
-### Post-Decomposition Architecture (9 SOLID Packages)
+### Post-Decomposition Architecture (8 SOLID Packages)
 
 ```
 custom_components/ev_trip_planner/
-├── trip/         (14 modules) — Facade + Mixins — TripManager 31→3 public methods
-├── emhass/       (4 modules) — Facade + Composition — EMHASSAdapter 28→19 public methods  
+├── trip/         (15 modules) — Facade + Mixins — TripManager 31→3 public methods
+├── emhass/       (6 modules) — Facade + Composition — EMHASSAdapter 28→19 public methods
 ├── calculations/ (7 modules) — Functional Decomposition — Pure functions, DRY canonicals
-├── services/     (8 modules) — Module Facade + Handler Factories — register_services 688→~80 LOC
-├── dashboard/    (4 modules) — Facade + Builder — import_dashboard preserved
-├── vehicle/      (3 modules) — Strategy Pattern — 4 control strategies
-├── sensor/      (5 modules) — Platform Decomposition — HA sensor entry
-├── config_flow/  (4 modules) — Flow Type Decomposition — 5-step wizard
+├── services/     (6 modules) — Module Facade + Handler Factories — register_services 688→~80 LOC
+├── vehicle/      (4 modules) — Strategy Pattern — 4 control strategies
+├── sensor/      (7 modules) — Platform Decomposition — HA sensor entry
+├── config_flow/  (6 modules) — Flow Type Decomposition — 5-step wizard
 └── presence_monitor/ (1 module) — Package Re-export — dual detection
 ```
 

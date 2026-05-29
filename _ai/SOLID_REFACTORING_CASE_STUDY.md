@@ -14,7 +14,7 @@ Este documento narra la transformación de 9 god-class modules (12,400+ líneas 
 
 | Métrica | Antes | Después | Cambio |
 |---------|-------|---------|--------|
-| **SOLID Compliance** | 3/5 FAIL | 4/5 PASS (O-OCP 9.6% < 10% threshold) | ✅ |
+| **SOLID Compliance** | 3/5 FAIL | 5/5 PASS (0 violations) | ✅ |
 | **God Classes** | 4 | 0 | -100% |
 | **Quality Gate** | FAILED | PASS | ✅ |
 | **KISS Complexity** | 60 | 40 | -33% (qg-accepted markers applied) |
@@ -181,9 +181,9 @@ ignore_missing_imports = true
 |---------|-------|---------|
 | **Estructura** | 9 archivos planos | 8 paquetes + 45+ sub-módulos (dashboard/ eliminado) |
 | **Acoplamiento** | Circular entre módulos | Dirección única por contrato |
-| **SOLID** | 3/5 FAIL | 4/5 PASS (O-OCP 9.6% < 10%) |
+| **SOLID** | 3/5 FAIL | 5/5 PASS (0 violations) |
 | **God Classes** | 4 | 0 |
-| **Tests** | 750 passing | 1572 passing |
+| **Tests** | 750 passing | 2658 passing |
 | **Coverage** | 81% | 100% |
 | **Commits verdes** | N/A | Cada commit verde y bisecable |
 

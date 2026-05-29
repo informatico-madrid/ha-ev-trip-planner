@@ -15,8 +15,8 @@ Documentation for AI agents working on this codebase.
 | **Version** | 0.5.24 | After spec 3-solid-refactor completion |
 | **SOLID Compliance** | **5/5 PASS** | From 3/5 FAIL (before) |
 | **God Classes** | **0 violations** | From 4 violations (before) |
-| **Test Count** | 1,802 | 100% coverage |
-| **E2E Tests** | 40 specs | 30 main + 10 SOC |
+| **Test Count** | 156 files | 121 unit + 25 integration + 10 e2e |
+| **E2E Tests** | 10 specs | 8 main + 2 dynamic-soc |
 | **Mutation Kill Rate** | 62.5% | +13.6 pp from baseline |
 | **Quality Gate** | ✅ PASS | CI green (PR #47) |
 
@@ -61,19 +61,19 @@ The architecture has been transformed from monolithic god-classes to SOLID packa
 
 ### 9 SOLID Packages (Replacing 9 God-Class Modules)
 
-| Old Monolith | New Package | Pattern | LOC |
-|-------------|-------------|---------|-----|
-| `emhass_adapter.py` (2,733 LOC) | `emhass/` | Facade + Composition | 4 sub-modules |
-| `trip_manager.py` (2,503 LOC) | `trip/` | Facade + Mixins | 14 sub-modules |
-| `services.py` (1,635 LOC) | `services/` | Module Facade + Factories | 8 sub-modules |
-| `dashboard.py` (1,285 LOC) | `dashboard/` | Facade + Builder | 4 sub-modules + templates/ |
-| `calculations.py` (1,690 LOC) | `calculations/` | Functional Decomposition | 7 sub-modules |
-| `vehicle_controller.py` (537 LOC) | `vehicle/` | Strategy Pattern | 3 sub-modules |
-| `sensor.py` (1,041 LOC) | `sensor/` | Platform Decomposition | 5 sub-modules |
-| `config_flow.py` (1,038 LOC) | `config_flow/` | Flow Type Decomposition | 4 sub-modules |
-| `presence_monitor.py` (806 LOC) | `presence_monitor/` | Package Re-export | 1 module |
+| Old Monolith | New Package | Pattern | Files |
+|-------------|-------------|---------|-------|
+| `emhass_adapter.py` (2,733 LOC) | `emhass/` | Facade + Composition | 5 files |
+| `trip_manager.py` (2,503 LOC) | `trip/` | State-Based Composition | 16 files |
+| `services.py` (1,635 LOC) | `services/` | Module Facade + Factories | 7 files |
+| ~~`dashboard.py` (1,285 LOC)~~ | ~~`dashboard/`~~ | ~~Facade + Builder~~ | **ELIMINATED** |
+| `calculations.py` (1,690 LOC) | `calculations/` | Functional Decomposition | 8 files |
+| `vehicle_controller.py` (537 LOC) | `vehicle/` | Strategy Pattern | 4 files |
+| `sensor.py` (1,041 LOC) | `sensor/` | Platform Decomposition | 8 files |
+| `config_flow.py` (1,038 LOC) | `config_flow/` | Flow Type Decomposition | 7 files |
+| `presence_monitor.py` (806 LOC) | `presence_monitor/` | Package Re-export | 1 file |
 
-**Backward Compatibility**: `trip_manager.py` exists as a 5-line transitional shim re-exporting from `trip/` package. Other old module names have been removed.
+**Backward Compatibility**: `trip_manager.py` exists as a 5-line transitional shim re-exporting from `trip/` package. Other old module names have been removed. The `dashboard/` package was eliminated in commit 8924d98 (native panel replaced it).
 
 ### Critical Import Paths
 
@@ -83,11 +83,13 @@ The architecture has been transformed from monolithic god-classes to SOLID packa
 | `emhass/` | `from custom_components.ev_trip_planner.emhass import EMHASSAdapter` |
 | `services/` | `from custom_components.ev_trip_planner.services import register_services` |
 | `calculations/` | `from custom_components.ev_trip_planner.calculations import calculate_power_profile_from_trips` |
-| `dashboard/` | `from custom_components.ev_trip_planner.dashboard import import_dashboard` |
+| ~~`dashboard/`~~ | ~~`from custom_components.ev_trip_planner.dashboard import import_dashboard`~~ |
 | `vehicle/` | `from custom_components.ev_trip_planner.vehicle import VehicleController` |
 | `sensor/` | `from custom_components.ev_trip_planner.sensor import async_setup_entry` |
 | `config_flow/` | `from custom_components.ev_trip_planner.config_flow import EVTripPlannerFlowHandler` |
 | `presence_monitor/` | `from custom_components.ev_trip_planner.presence_monitor import PresenceMonitor` |
+
+> **Note**: `dashboard/` package was eliminated. Native panel (`frontend/panel.js`) replaced it.
 
 ### DRY Canonical Locations
 
@@ -124,8 +126,8 @@ make quality-gate     # Full gate: lint + typecheck + tests + e2e + import-check
 make quality-gate-ci  # CI version (non-fatal mutation)
 make lint             # ruff + pylint (0 errors)
 make typecheck        # pyright (0 errors)
-make test-cover       # pytest (1802 tests, 100% coverage)
-make e2e              # Playwright (30 specs)
+make test-cover       # pytest (2658 tests, 100% coverage)
+make e2e              # Playwright (31 specs)
 make e2e-soc          # SOC E2E (10 specs)
 make import-check     # lint-imports (7 contracts)
 ```
@@ -161,7 +163,7 @@ The SOLID decomposition resolved several original gaps:
 
 | Gap | Status | Note |
 |-----|--------|------|
-| `schedule_monitor.py` never imported | ⚠️ Still exists | Not connected to config flow |
+| Presence monitor not wired to UI | ⚠️ Still exists | `PresenceMonitor` exists but not connected to config flow |
 | Vehicle control not wired to UI | ⚠️ Still exists | Control strategy not exposed in config flow |
 | SOH (State of Health) not in UI | ⚠️ Still exists | Code infrastructure exists, no UI selector |
 
