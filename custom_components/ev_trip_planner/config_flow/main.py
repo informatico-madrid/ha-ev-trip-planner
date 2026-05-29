@@ -80,7 +80,9 @@ STEP_USER_SCHEMA = vol.Schema(
 STEP_SENSORS_SCHEMA = vol.Schema(
     {
         # qg-accepted: AP05
-        vol.Required(CONF_BATTERY_CAPACITY, default=DEFAULT_BATTERY_CAPACITY_KWH): vol.Coerce(float),
+        vol.Required(
+            CONF_BATTERY_CAPACITY, default=DEFAULT_BATTERY_CAPACITY_KWH
+        ): vol.Coerce(float),
         # qg-accepted: AP05
         vol.Required(CONF_CHARGING_POWER, default=DEFAULT_CHARGING_POWER): vol.Coerce(
             float

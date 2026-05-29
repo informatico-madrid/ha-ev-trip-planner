@@ -89,7 +89,9 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
             self._config_entry.options or {}
         )
         # qg-accepted: AP05
-        current_battery = config_data.get(CONF_BATTERY_CAPACITY, DEFAULT_BATTERY_CAPACITY_KWH)
+        current_battery = config_data.get(
+            CONF_BATTERY_CAPACITY, DEFAULT_BATTERY_CAPACITY_KWH
+        )
         # qg-accepted: AP05
         current_charging = config_data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
         current_consumption = config_data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)
