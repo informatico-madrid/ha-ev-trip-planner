@@ -134,12 +134,14 @@ format:
 check:
 	@echo "Running all checks $(if $(filter true,$(PARALLEL_ENABLED)),in parallel,sequentially)..."
 ifeq ($(PARALLEL_ENABLED),true)
-	@mkdir -p .check-results && \
-	$(MAKE) test & echo $$! > .check-results/test.pid && \
-	$(MAKE) lint & echo $$! > .check-results/lint.pid && \
-	$(MAKE) typecheck & echo $$! > .check-results/typecheck.pid && \
-	wait && \
-	fail=0; for pid in .check-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .check-results; if [ $$fail -eq 1 ]; then exit 1; fi
+	@$(MAKE) test & test_pid=$$! ; \
+	$(MAKE) lint & lint_pid=$$! ; \
+	$(MAKE) typecheck & tc_pid=$$! ; \
+	fail=0 ; \
+	wait $$test_pid || fail=1 ; \
+	wait $$lint_pid || fail=1 ; \
+	wait $$tc_pid || fail=1 ; \
+	[ $$fail -eq 0 ] || exit 1
 else
 	$(MAKE) test
 	$(MAKE) lint
@@ -162,7 +164,7 @@ typecheck:
 layer3a:
 	@echo "=== Layer 3A: Smoke Test ==="
 	@echo "Running ruff check (fail-fast)..."
-	`@command` -v .venv/bin/ruff >/dev/null 2>&1 || { echo "FATAL: ruff not found in .venv/bin/"; exit 1; }
+	@command -v .venv/bin/ruff >/dev/null 2>&1 || { echo "FATAL: ruff not found in .venv/bin/"; exit 1; }
 	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || { echo "FATAL: ruff violations found"; exit 1; }
 	@echo "Running pylint (fail-fast)..."
 	@.venv/bin/pylint custom_components/ tests/unit/ tests/integration/ || { echo "FATAL: pylint violations found"; exit 1; }
@@ -201,13 +203,16 @@ layer2:
 	@echo "  → Mutation gate..."
 	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate || { echo "ERROR: Mutation gate failed — effective-MSI < 100% or module below threshold" && exit 1; }
 	@echo "  → Weak test detector + Test diversity (running in parallel)..."
-	@mkdir -p .layer2-results
-	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & echo $$! > .layer2-results/weak_test.pid
-	@.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/ > .layer2-results/diversity.out 2>&1 & echo $$! > .layer2-results/diversity.pid
-	@wait
-	@cat .layer2-results/weak_test.out
-	@cat .layer2-results/diversity.out
-	@rm -rf .layer2-results
+	@mkdir -p .layer2-results ; \
+	.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & weak_pid=$$! ; \
+	.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/ > .layer2-results/diversity.out 2>&1 & div_pid=$$! ; \
+	fail=0 ; \
+	wait $$weak_pid || fail=1 ; \
+	wait $$div_pid || fail=1 ; \
+	cat .layer2-results/weak_test.out ; \
+	cat .layer2-results/diversity.out ; \
+	rm -rf .layer2-results ; \
+	[ $$fail -eq 0 ] || exit 1
 	@echo "=== Layer 2 Complete ==="
 
 # Layer 3B: Deep Quality (BMAD Party Mode — SOLID Tier B + Antipatterns Tier B)
@@ -240,17 +245,22 @@ quality-gate:
 	@echo "Phase 2: L1 + L2 + L3B + L4"
 ifeq ($(PARALLEL_ENABLED),true)
 	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
-	@mkdir -p .quality-gate-results && \
-	$(MAKE) layer1 > .quality-gate-results/l1.out 2>&1 & echo $$! > .quality-gate-results/l1.pid && \
-	$(MAKE) layer2 > .quality-gate-results/l2.out 2>&1 & echo $$! > .quality-gate-results/l2.pid && \
-	$(MAKE) layer3b > .quality-gate-results/l3b.out 2>&1 & echo $$! > .quality-gate-results/l3b.pid && \
-	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & echo $$! > .quality-gate-results/l4.pid && \
-	wait && \
-	echo "--- L1 output ---"; cat .quality-gate-results/l1.out && \
-	echo "--- L2 output ---"; cat .quality-gate-results/l2.out && \
-	echo "--- L3B output ---"; cat .quality-gate-results/l3b.out && \
-	echo "--- L4 output ---"; cat .quality-gate-results/l4.out && \
-	fail=0; for pid in .quality-gate-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .quality-gate-results; if [ $$fail -eq 1 ]; then exit 1; fi
+	@mkdir -p .quality-gate-results ; \
+	$(MAKE) layer1 > .quality-gate-results/l1.out 2>&1 & l1_pid=$$! ; \
+	$(MAKE) layer2 > .quality-gate-results/l2.out 2>&1 & l2_pid=$$! ; \
+	$(MAKE) layer3b > .quality-gate-results/l3b.out 2>&1 & l3b_pid=$$! ; \
+	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & l4_pid=$$! ; \
+	fail=0 ; \
+	wait $$l1_pid || fail=1 ; \
+	wait $$l2_pid || fail=1 ; \
+	wait $$l3b_pid || fail=1 ; \
+	wait $$l4_pid || fail=1 ; \
+	echo "--- L1 output ---" ; cat .quality-gate-results/l1.out ; \
+	echo "--- L2 output ---" ; cat .quality-gate-results/l2.out ; \
+	echo "--- L3B output ---" ; cat .quality-gate-results/l3b.out ; \
+	echo "--- L4 output ---" ; cat .quality-gate-results/l4.out ; \
+	rm -rf .quality-gate-results ; \
+	[ $$fail -eq 0 ] || exit 1
 else
 	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
 	$(MAKE) layer1
@@ -268,13 +278,16 @@ quality-gate-ci:
 	@echo "Phase 2: L1-CI + L4"
 ifeq ($(PARALLEL_ENABLED),true)
 	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
-	@mkdir -p .quality-gate-results && \
-	$(MAKE) layer1-ci > .quality-gate-results/l1.out 2>&1 & echo $$! > .quality-gate-results/l1.pid && \
-	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & echo $$! > .quality-gate-results/l4.pid && \
-	wait && \
-	echo "--- L1-CI output ---"; cat .quality-gate-results/l1.out && \
-	echo "--- L4 output ---"; cat .quality-gate-results/l4.out && \
-	fail=0; for pid in .quality-gate-results/*.pid; do kill -0 $$pid 2>/dev/null && fail=1; done; rm -rf .quality-gate-results; if [ $$fail -eq 1 ]; then exit 1; fi
+	@mkdir -p .quality-gate-results ; \
+	$(MAKE) layer1-ci > .quality-gate-results/l1.out 2>&1 & l1_pid=$$! ; \
+	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & l4_pid=$$! ; \
+	fail=0 ; \
+	wait $$l1_pid || fail=1 ; \
+	wait $$l4_pid || fail=1 ; \
+	echo "--- L1-CI output ---" ; cat .quality-gate-results/l1.out ; \
+	echo "--- L4 output ---" ; cat .quality-gate-results/l4.out ; \
+	rm -rf .quality-gate-results ; \
+	[ $$fail -eq 0 ] || exit 1
 else
 	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
 	$(MAKE) layer1-ci

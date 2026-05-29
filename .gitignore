@@ -151,3 +151,4 @@ bmalph/config.json
 
 # Reportes temporales
 staging-qa-results.md
+.layer2-results/*
