@@ -162,6 +162,7 @@ typecheck:
 layer3a:
 	@echo "=== Layer 3A: Smoke Test ==="
 	@echo "Running ruff check (fail-fast)..."
+	`@command` -v .venv/bin/ruff >/dev/null 2>&1 || { echo "FATAL: ruff not found in .venv/bin/"; exit 1; }
 	@.venv/bin/ruff check custom_components/ && .venv/bin/ruff format --check custom_components/ || { echo "FATAL: ruff violations found"; exit 1; }
 	@echo "Running pylint (fail-fast)..."
 	@.venv/bin/pylint custom_components/ tests/unit/ tests/integration/ || { echo "FATAL: pylint violations found"; exit 1; }
