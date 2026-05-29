@@ -24,7 +24,6 @@ from .core import (
     calculate_charging_rate,
     calculate_day_index,
     calculate_dynamic_soc_limit,
-    calculate_soc_target,
     calculate_trip_time,
     compute_safe_delta,
 )
@@ -67,7 +66,6 @@ __all__ = [
     "calculate_multi_trip_charging_windows",
     "calculate_power_profile",
     "calculate_power_profile_from_trips",
-    "calculate_soc_target",
     "calculate_trip_time",
     "ChargingDecision",
     "compute_safe_delta",

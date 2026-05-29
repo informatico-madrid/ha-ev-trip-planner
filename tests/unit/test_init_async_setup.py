@@ -109,7 +109,7 @@ class TestHourlyRefreshCallback:
             trip_manager=mgr,
             emhass_adapter=MagicMock(),
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         # Should have FAILED log entry with traceback (exc_info=True)
         fail_logs = [r for r in caplog.records if "FAILED" in r.message]
@@ -136,19 +136,21 @@ class TestHourlyRefreshCallback:
         await _hourly_refresh_callback(None, rt)
 
     @pytest.mark.asyncio
-    async def test_callback_base_exception_logged(self):
-        """Line 114-116: BaseException (non-Exception) is caught and logged."""
+    async def test_callback_cancelled_error_logged(self):
+        """asyncio.CancelledError is caught and logged (not raised)."""
+        import asyncio
+
         mgr = MagicMock()
         mgr._schedule = MagicMock()
         mgr._schedule.publish_deferrable_loads = AsyncMock(
-            side_effect=BaseException("cancelled")
+            side_effect=asyncio.CancelledError("cancelled")
         )
         rt = EVTripRuntimeData(
             coordinator=MagicMock(),
             trip_manager=mgr,
             emhass_adapter=MagicMock(),
         )
-        # Should not raise — BaseException is caught separately from Exception
+        # Should not raise — asyncio.CancelledError is caught separately
         await _hourly_refresh_callback(None, rt)
 
     @pytest.mark.asyncio
@@ -216,7 +218,7 @@ class TestHourlyRefreshCallbackLogAssertions:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         # The START log must contain "FLOW2-DEBUG" string
         assert any("FLOW2-DEBUG" in record.message for record in caplog.records), (
@@ -246,7 +248,7 @@ class TestHourlyRefreshCallbackLogAssertions:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         # Log should include "present" (since runtime_data is not None)
         log_text = " ".join(record.message for record in caplog.records)
@@ -273,7 +275,7 @@ class TestHourlyRefreshCallbackLogAssertions:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         # Should log the abort message when coordinator is None
         log_text = " ".join(record.message for record in caplog.records)
@@ -317,7 +319,7 @@ class TestHourlyRefreshCallbackExactLogStrings:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         # Verify the START log uses the expected constant (catches XX mutations)
         start_logs = [
@@ -360,7 +362,7 @@ class TestHourlyRefreshCallbackExactLogStrings:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         # All logs should contain FLOW2-DEBUG prefix (catches XX prefix mutations)
         for record in caplog.records:

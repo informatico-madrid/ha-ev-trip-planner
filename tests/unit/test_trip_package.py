@@ -537,19 +537,6 @@ class TestSOCMixin:
         rate = tm._state._soc._calcular_tasa_carga_soc(0.0, 50.0)
         assert rate == 0.0
 
-    def test_calcular_soc_objetivo_base_from_kwh(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        trip = {"kwh": 10.0}
-        target = tm._state._soc._calcular_soc_objetivo_base(trip, 50.0)
-        # 10 kWh / 50 kWh * 100 = 20% + buffer
-        assert target > 0
-
-    def test_calcular_soc_objetivo_base_from_km(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        trip = {"km": 100.0, "consumo": 0.15}
-        target = tm._state._soc._calcular_soc_objetivo_base(trip, 50.0)
-        assert target > 0
-
     def test_get_day_index(self, mock_hass):
         tm = _make_tm(mock_hass)
         assert tm._state._soc_helpers._get_day_index("lunes") == 0
@@ -668,6 +655,15 @@ class TestScheduleMixin:
         tm = _make_tm(mock_hass)
         assert hasattr(tm._schedule, "async_generate_deferrables_schedule")
         assert hasattr(tm._schedule, "publish_deferrable_loads")
+
+    def test_parse_deadline_non_datetime_returns_none(self):
+        """_parse_deadline returns None for non-string, non-datetime types."""
+        from custom_components.ev_trip_planner.calculations.schedule import (
+            _parse_deadline,
+        )
+
+        result = _parse_deadline(42)
+        assert result is None
 
     async def test_async_generate_deferrables_schedule_empty(self, mock_hass):
         tm = _make_tm(mock_hass)

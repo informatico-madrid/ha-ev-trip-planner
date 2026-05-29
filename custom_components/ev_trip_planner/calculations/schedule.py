@@ -131,11 +131,12 @@ def _parse_deadline(
             return deadline_dt
         except ValueError:
             return None
-    else:
+    elif isinstance(deadline, datetime):
         deadline_dt = deadline
         if getattr(deadline_dt, "tzinfo", None) is None:
             deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
         return deadline_dt
+    return None
 
 
 def _check_charging_window(

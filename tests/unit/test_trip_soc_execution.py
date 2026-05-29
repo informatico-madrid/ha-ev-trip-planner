@@ -171,12 +171,6 @@ class TestSOCHelpers:
         result = sm._calcular_tasa_carga_soc(3.6, 50.0)
         assert result > 0
 
-    def test_calcular_soc_objetivo_base(self):
-        """_calcular_soc_objetivo_base returns target percentage."""
-        sm = SOCHelpers(_make_state())
-        result = sm._calcular_soc_objetivo_base({"km": 50}, 50.0)
-        assert result > 0
-
     def test_is_trip_today_true(self):
         """_is_trip_today returns True for today's trip."""
         from datetime import date

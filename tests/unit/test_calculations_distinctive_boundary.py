@@ -1075,53 +1075,6 @@ class TestCalculateDynamicSocLimitDistinctive:
 
 
 # =============================================================================
-# core — calculate_soc_target (distinctive data)
-# =============================================================================
-
-
-class TestCalculateSocTargetDistinctive:
-    """Kill mutations on SOC target calculation."""
-
-    def test_non_round_battery(self):
-        """battery_capacity_kwh=73.5 → energy_soc=27.21... + buffer."""
-        from custom_components.ev_trip_planner.calculations.core import (
-            calculate_soc_target,
-        )
-
-        result = calculate_soc_target(
-            trip={"kwh": 20.0},
-            battery_capacity_kwh=73.5,
-        )
-        # energy_soc = 20/73.5 * 100 = 27.21... + buffer = 37.21...
-        assert result > 37.0
-        assert result < 38.0
-
-    def test_non_round_consumption(self):
-        """km=150, consumption=0.13 → 19.5 kWh → non-round SOC."""
-        from custom_components.ev_trip_planner.calculations.core import (
-            calculate_soc_target,
-        )
-
-        result = calculate_soc_target(
-            trip={"km": 150},
-            battery_capacity_kwh=75.0,
-            consumption_kwh_per_km=0.13,
-        )
-        assert result > 25.0
-
-    def test_empty_trip_defaults(self):
-        from custom_components.ev_trip_planner.calculations.core import (
-            calculate_soc_target,
-        )
-
-        result = calculate_soc_target(
-            trip={},
-            battery_capacity_kwh=75.0,
-        )
-        assert result > 0
-
-
-# =============================================================================
 # core — calculate_charging_rate (boundary)
 # =============================================================================
 

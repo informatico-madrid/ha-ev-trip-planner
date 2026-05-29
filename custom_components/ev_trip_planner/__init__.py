@@ -6,6 +6,7 @@ Supports recurring weekly routines and one-time punctual trips.
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import logging
 from dataclasses import dataclass
@@ -106,29 +107,29 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
 
     US-5: Pure logic extracted to __init_helpers.py for mutation testability.
     """
-    _LOGGER.warning(
+    _LOGGER.info(
         _LOG_HOURLY_CALLBACK_START,
         "present" if runtime_data else "None",
     )
     if runtime_data is None:
-        _LOGGER.warning(_LOG_HOURLY_CALLBACK_RUNTIME_NONE)
+        _LOGGER.info(_LOG_HOURLY_CALLBACK_RUNTIME_NONE)
         return
     if runtime_data.trip_manager is None:
-        _LOGGER.warning(_LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE)
+        _LOGGER.info(_LOG_HOURLY_CALLBACK_TRIP_MANAGER_NONE)
         return
     if runtime_data.emhass_adapter is None:
-        _LOGGER.warning(_LOG_HOURLY_CALLBACK_EMHASS_NONE)
+        _LOGGER.info(_LOG_HOURLY_CALLBACK_EMHASS_NONE)
         return
     if runtime_data.coordinator is None:
-        _LOGGER.warning(_LOG_HOURLY_CALLBACK_COORDINATOR_NONE)
+        _LOGGER.info(_LOG_HOURLY_CALLBACK_COORDINATOR_NONE)
         return
 
-    _LOGGER.warning(_LOG_HOURLY_CALLBACK_ALL_PRESENT)
+    _LOGGER.info(_LOG_HOURLY_CALLBACK_ALL_PRESENT)
 
     # Log cache state BEFORE publish (US-5: extracted to helper)
     adapter = runtime_data.emhass_adapter
     pre_report = _build_cache_report(adapter)
-    _LOGGER.warning(
+    _LOGGER.info(
         _LOG_HOURLY_CALLBACK_CACHE_BEFORE,
         pre_report.per_trip_count,
         pre_report.power_nonzero,
@@ -139,20 +140,20 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
     except Exception as err:
         _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_FAILED, err, exc_info=True)
         return
-    except BaseException as err:
-        _LOGGER.warning(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
+    except asyncio.CancelledError as err:
+        _LOGGER.info(_LOG_HOURLY_CALLBACK_PUBLISH_CANCELLED, err)
         return
 
     # Log cache state AFTER publish (US-5: extracted to helper)
     post_report = _build_cache_report(adapter)
-    _LOGGER.warning(
+    _LOGGER.info(
         _LOG_HOURLY_CALLBACK_CACHE_AFTER,
         post_report.per_trip_count,
         post_report.power_nonzero,
     )
     post_cache = adapter.get_cached_optimization_results()
     for tid, tp in post_cache.get("per_trip_emhass_params", {}).items():
-        _LOGGER.warning(
+        _LOGGER.info(
             _LOG_HOURLY_CALLBACK_POST_CACHE_ENTRY,
             tid,
             tp.get("def_start_timestep_array"),
@@ -160,9 +161,9 @@ async def _hourly_refresh_callback(  # pragma: no mutate — 48 equivalent survi
             tp.get("def_total_hours_array"),
         )
 
-    _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_START)
+    _LOGGER.info(_LOG_HOURLY_CALLBACK_REFRESH_START)
     await runtime_data.coordinator.async_refresh_trips()
-    _LOGGER.warning(_LOG_HOURLY_CALLBACK_REFRESH_DONE)
+    _LOGGER.info(_LOG_HOURLY_CALLBACK_REFRESH_DONE)
 
 
 def _build_cache_report(adapter: Any) -> __init_helpers.CacheReport:

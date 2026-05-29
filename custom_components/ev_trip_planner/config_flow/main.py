@@ -43,7 +43,6 @@ from ..const import (
     DEFAULT_MAX_DEFERRABLE_LOADS,
     DEFAULT_PLANNING_HORIZON,
     DEFAULT_SAFETY_MARGIN,
-    DEFAULT_SOH_SENSOR,
     DEFAULT_T_BASE,
     DOMAIN,
     MAX_T_BASE,
@@ -54,7 +53,6 @@ from . import _entities
 
 _LOGGER = logging.getLogger(__name__)
 
-_LOG_INFO_MIGRATED = "Config entry migrated to version %d"
 _LOG_DEBUG_STEP_USER = "Config flow step 1 (user): showing form"
 _LOG_DEBUG_STEP_EMHASS = "Config flow step 3 (emhass): showing form"
 _LOG_DEBUG_STEP_NOTIFICATIONS = "Config flow step 5 (notifications): showing form"
@@ -237,34 +235,6 @@ class EVTripPlannerFlowHandler(config_entries.ConfigFlow):
 
     VERSION = CONFIG_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
-
-    @staticmethod
-    async def async_migrate_entry(hass: Any, entry: config_entries.ConfigEntry) -> bool:
-        """Migrar entrada de configuración de versión anterior.
-
-        v2 -> v3: Add battery health config (t_base, soh_sensor).
-        """
-        _LOGGER.info(
-            "Migrating config entry from version %s to %s",
-            entry.version,
-            CONFIG_VERSION,
-        )
-
-        if entry.version == 2:
-            # Add new v3 fields with safe defaults
-            new_data = dict(entry.data)
-            new_data[CONF_T_BASE] = DEFAULT_T_BASE
-            new_data[CONF_SOH_SENSOR] = DEFAULT_SOH_SENSOR
-            await hass.config_entries.async_update_entry(
-                entry, data=new_data, version=CONFIG_VERSION
-            )
-            _LOGGER.info(_LOG_INFO_MIGRATED, CONFIG_VERSION)
-            return True
-
-        _LOGGER.warning(
-            "Unknown config entry version %s, cannot migrate", entry.version
-        )
-        return False
 
     def __init__(self) -> None:
         """Inicializa el flujo de configuración."""

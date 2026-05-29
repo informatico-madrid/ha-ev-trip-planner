@@ -12,7 +12,6 @@ Functions under test:
     - calculate_day_index
     - calculate_trip_time
     - calculate_charging_rate
-    - calculate_soc_target
 
 See: FR-1.1, Design §3.6 (calculations functional decomposition)
 """
@@ -37,12 +36,10 @@ def test_core_re_exports_functions():
         calculate_charging_rate,
         calculate_day_index,
         calculate_dynamic_soc_limit,
-        calculate_soc_target,
         calculate_trip_time,
     )
 
     assert callable(calculate_charging_rate)
     assert callable(calculate_day_index)
     assert callable(calculate_dynamic_soc_limit)
-    assert callable(calculate_soc_target)
     assert callable(calculate_trip_time)

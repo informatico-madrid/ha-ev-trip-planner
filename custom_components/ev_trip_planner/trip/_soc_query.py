@@ -185,20 +185,6 @@ class SOCQuery:
             charging_power_kw, battery_capacity_kwh
         )
 
-    def _calcular_soc_objetivo_base(  # pragma: no mutate  # EQ-132
-        self,
-        trip: Dict[str, Any],
-        battery_capacity_kwh: float,
-        consumption_kwh_per_km: float = 0.15,
-    ) -> float:
-        """Calculates the base SOC target percentage for a trip.
-
-        Delegates to SOCHelpers — implementation lives in one place (SOCHelpers).
-        """
-        return self._state._soc_helpers._calcular_soc_objetivo_base(
-            trip, battery_capacity_kwh, consumption_kwh_per_km
-        )
-
     def _is_trip_today(self, trip: Dict[str, Any], today: date) -> bool:
         """Verifica si un viaje ocurre hoy."""
         return self._state._soc_helpers._is_trip_today(trip, today)

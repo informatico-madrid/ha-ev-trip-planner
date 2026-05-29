@@ -299,40 +299,6 @@ class TestCalculateChargingRate:
         assert abs(result - expected) < 0.0001
 
 
-class TestCalculateSocTarget:
-    """Tests for calculate_soc_target."""
-
-    @pytest.mark.parametrize(
-        "trip,capacity,expected_min",
-        [
-            # 10 kWh trip / 50 kWh battery = 20% + 10% buffer = 30%
-            ({"kwh": 10.0}, 50.0, 30.0),
-            # 0 kWh trip: 0% + 10% buffer = 10%
-            ({"kwh": 0.0}, 50.0, 10.0),
-            # Using km: 100*0.15/50*100 = 30% + 10% buffer = 40%
-            ({"km": 100.0}, 50.0, 40.0),
-            # Empty trip: 0% + 10% buffer = 10%
-            ({}, 50.0, 10.0),
-        ],
-    )
-    def test_soc_target_with_buffer(
-        self, trip: dict, capacity: float, expected_min: float
-    ):
-        """Parametrized: SOC target = (energy/capacity)*100 + buffer (10%)."""
-        from custom_components.ev_trip_planner.calculations import calculate_soc_target
-
-        result = calculate_soc_target(trip, capacity)
-        assert result >= expected_min
-
-    def test_zero_battery_returns_buffer_only(self):
-        """Zero battery capacity returns buffer only (no division by zero)."""
-        from custom_components.ev_trip_planner.calculations import calculate_soc_target
-
-        result = calculate_soc_target({"kwh": 10.0}, 0.0)
-        # energia_soc = 0 (no division), then + DEFAULT_SOC_BUFFER_PERCENT (10)
-        assert result == 10.0  # DEFAULT_SOC_BUFFER_PERCENT
-
-
 class TestCalculateEnergyNeeded:
     """Tests for calculate_energy_needed."""
 

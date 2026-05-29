@@ -13,16 +13,14 @@ import unicodedata
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from custom_components.ev_trip_planner.const import (
     DAYS_OF_WEEK,
     DEFAULT_BATTERY_CAPACITY_KWH,
     DEFAULT_SOC_BASE,
-    DEFAULT_SOC_BUFFER_PERCENT,
     DEFAULT_T_BASE,
 )
-from custom_components.ev_trip_planner.utils import calcular_energia_kwh
 
 # qg-accepted: AP05
 SOH_CACHE_TTL_SECONDS = 300  # 5 minutes
@@ -319,40 +317,3 @@ def calculate_charging_rate(
     if battery_capacity_kwh <= 0:
         return 0.0
     return (charging_power_kw / battery_capacity_kwh) * 100
-
-
-def calculate_soc_target(
-    trip: Dict[str, Any],
-    battery_capacity_kwh: float,
-    consumption_kwh_per_km: float = 0.15,
-    soc_buffer_percent: float = DEFAULT_SOC_BUFFER_PERCENT,
-) -> float:
-    """Calculates the base SOC target percentage for a trip.
-
-    Pure version of TripManager._calcular_soc_objetivo_base.
-
-    Args:
-        trip: Dictionary with trip data (kwh or km, consumo)
-        battery_capacity_kwh: Battery capacity in kWh
-        consumption_kwh_per_km: Energy consumption in kWh/km (default 0.15)
-        soc_buffer_percent: Buffer to add to target SOC (default from const)
-
-    Returns:
-        Base SOC target percentage for the trip (energy + buffer)
-    """
-    # Calculate energy needed for trip
-    if "kwh" in trip and trip["kwh"]:
-        energia_kwh = trip["kwh"]
-    else:
-        distance_km = trip.get("km", 0.0)
-        energia_kwh = calcular_energia_kwh(distance_km, consumption_kwh_per_km)
-
-    # Convert to SOC percentage
-    if battery_capacity_kwh > 0:
-        energia_soc = (energia_kwh / battery_capacity_kwh) * 100
-    else:
-        energia_soc = 0.0
-
-    # Add buffer
-    soc_objetivo_base = energia_soc + soc_buffer_percent
-    return soc_objetivo_base

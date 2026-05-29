@@ -25,7 +25,6 @@ ALL_PUBLIC_NAMES: tuple[str, ...] = (
     "calculate_dynamic_soc_limit",
     "calculate_trip_time",
     "calculate_charging_rate",
-    "calculate_soc_target",
     "determine_charging_need",
     "calculate_energy_needed",
     "calculate_charging_window_pure",

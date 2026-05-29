@@ -7,7 +7,8 @@ _get_emhass_max_deferrable_loads, EVTripPlannerFlowHandler basic paths.
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
@@ -89,6 +90,17 @@ class TestReadEmhassConfig:
         result = _read_emhass_config(str(config_file))
         assert result is not None
         assert result["end_timesteps_of_each_deferrable_load"] == [168]
+
+    def test_path_exists_raises_oserror(self):
+        """Path.exists() OSError → returns None (lines 36-37)."""
+        with patch.object(Path, "exists", side_effect=OSError("permission denied")):
+            assert _read_emhass_config("/some/path") is None
+
+    def test_is_file_raises_oserror(self):
+        """Path.is_file() OSError → returns None (line 42)."""
+        with patch.object(Path, "exists", return_value=True), \
+             patch.object(Path, "is_file", side_effect=OSError("permission denied")):
+            assert _read_emhass_config("/some/path") is None
 
 
 class TestGetEmhassPlanningHorizon:
@@ -354,34 +366,6 @@ class TestEVTripPlannerFlowHandler:
         result = await handler.async_step_notifications()
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "notifications"
-
-    @pytest.mark.asyncio
-    async def test_async_migrate_entry_version_2(self):
-        """Version 2 → migrates to v3, returns True."""
-        hass = MagicMock()
-        hass.config_entries.async_update_entry = AsyncMock(return_value=None)
-        entry = MagicMock()
-        entry.version = 2
-        entry.data = {
-            "battery_capacity_kwh": 50.0,
-            "charging_power_kw": 3.6,
-            "safety_margin_percent": 10.0,
-            "vehicle_name": "test",
-        }
-
-        result = await EVTripPlannerFlowHandler.async_migrate_entry(hass, entry)
-        assert result is True
-        hass.config_entries.async_update_entry.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_async_migrate_entry_unknown_version(self):
-        """Unknown version → returns False."""
-        hass = MagicMock()
-        entry = MagicMock()
-        entry.version = 99
-
-        result = await EVTripPlannerFlowHandler.async_migrate_entry(hass, entry)
-        assert result is False
 
     @pytest.mark.asyncio
     async def test_async_get_options_flow(self):

@@ -877,7 +877,7 @@ class TestHourlyRefreshCallbackStringMutations:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         log_text = " ".join(record.message for record in caplog.records)
         assert "cache" in log_text.lower() and "before" in log_text.lower(), (
@@ -907,7 +907,7 @@ class TestHourlyRefreshCallbackStringMutations:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         log_text = " ".join(record.message for record in caplog.records)
         assert "cache" in log_text.lower() and "after" in log_text.lower(), (
@@ -937,7 +937,7 @@ class TestHourlyRefreshCallbackStringMutations:
             trip_manager=mgr,
             emhass_adapter=adapter,
         )
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
         log_text = " ".join(record.message for record in caplog.records)
         assert "async_refresh_trips" in log_text, (
@@ -1192,7 +1192,7 @@ class TestHourlyRefreshCallbackMultiAssert:
             emhass_adapter=adapter,
         )
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
 
         log_text = " ".join(r.message for r in caplog.records)
@@ -1233,7 +1233,7 @@ class TestHourlyRefreshCallbackMultiAssert:
             emhass_adapter=adapter,
         )
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
 
         # Multi-assert: FAILED message AND exc_info flag
@@ -1248,12 +1248,14 @@ class TestHourlyRefreshCallbackMultiAssert:
         assert no_post_cache, "No post_cache logs in exception flow"
 
     @pytest.mark.asyncio
-    async def test_base_exception_logs_cancelled_without_exc_info(self, caplog):
-        """BaseException flow: logs CANCELLED without exc_info."""
+    async def test_cancelled_error_logs_without_exc_info(self, caplog):
+        """asyncio.CancelledError flow: logs CANCELLED without exc_info."""
+        import asyncio
+
         mgr = MagicMock()
         mgr._schedule = MagicMock()
         mgr._schedule.publish_deferrable_loads = AsyncMock(
-            side_effect=KeyboardInterrupt("stop")
+            side_effect=asyncio.CancelledError("stop")
         )
         adapter = MagicMock()
         adapter.get_cached_optimization_results = MagicMock(
@@ -1265,7 +1267,7 @@ class TestHourlyRefreshCallbackMultiAssert:
             emhass_adapter=adapter,
         )
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             await _hourly_refresh_callback(None, rt)
 
         cancel_records = [r for r in caplog.records if "CANCELLED" in r.message]
@@ -1290,7 +1292,7 @@ class TestHourlyRefreshCallbackMultiAssert:
         coord = MagicMock()
         coord.async_refresh_trips = AsyncMock()
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             # trip_manager None
             rt = EVTripRuntimeData(
                 coordinator=coord, trip_manager=None, emhass_adapter=adapter
@@ -1299,7 +1301,7 @@ class TestHourlyRefreshCallbackMultiAssert:
             tm_logs = [r for r in caplog.records if "trip_manager" in r.message.lower()]
             assert len(tm_logs) >= 1, "trip_manager abort message"
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             # emhass_adapter None
             mgr = MagicMock()
             mgr._schedule = MagicMock()
@@ -1310,7 +1312,7 @@ class TestHourlyRefreshCallbackMultiAssert:
             emhass_logs = [r for r in caplog.records if "emhass" in r.message.lower()]
             assert len(emhass_logs) >= 1, "emhass_adapter abort message"
 
-        with caplog.at_level("WARNING"):
+        with caplog.at_level("INFO"):
             # coordinator None
             mgr = MagicMock()
             mgr._schedule = MagicMock()
