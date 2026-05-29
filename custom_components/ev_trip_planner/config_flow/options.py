@@ -22,6 +22,8 @@ from ..const import (
     CONF_SAFETY_MARGIN,
     CONF_SOH_SENSOR,
     CONF_T_BASE,
+    DEFAULT_BATTERY_CAPACITY_KWH,
+    DEFAULT_CHARGING_POWER,
     DEFAULT_CONSUMPTION,
     DEFAULT_SAFETY_MARGIN,
     DEFAULT_SOH_SENSOR,
@@ -87,9 +89,9 @@ class EVTripPlannerOptionsFlowHandler(config_entries.OptionsFlow):
             self._config_entry.options or {}
         )
         # qg-accepted: AP05
-        current_battery = config_data.get(CONF_BATTERY_CAPACITY, 60.0)
+        current_battery = config_data.get(CONF_BATTERY_CAPACITY, DEFAULT_BATTERY_CAPACITY_KWH)
         # qg-accepted: AP05
-        current_charging = config_data.get(CONF_CHARGING_POWER, 11.0)
+        current_charging = config_data.get(CONF_CHARGING_POWER, DEFAULT_CHARGING_POWER)
         current_consumption = config_data.get(CONF_CONSUMPTION, DEFAULT_CONSUMPTION)
         current_safety = config_data.get(CONF_SAFETY_MARGIN, DEFAULT_SAFETY_MARGIN)
         current_t_base = config_data.get(CONF_T_BASE, DEFAULT_T_BASE)

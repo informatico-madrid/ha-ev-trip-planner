@@ -22,6 +22,7 @@ from custom_components.ev_trip_planner.const import (
     CONF_SAFETY_MARGIN,
     CONF_SOH_SENSOR,
     CONF_T_BASE,
+    DEFAULT_BATTERY_CAPACITY_KWH,
 )
 
 
@@ -75,7 +76,7 @@ class TestOptionsFlowHandler:
         schema_map: dict[str, float] = {}
         for key, _value in result["data_schema"].schema.items():
             schema_map[str(key)] = key.default()  # type: ignore[union-attr]
-        assert schema_map[CONF_BATTERY_CAPACITY] == 60.0
+        assert schema_map[CONF_BATTERY_CAPACITY] == DEFAULT_BATTERY_CAPACITY_KWH
 
     @pytest.mark.asyncio
     async def test_show_form_defaults_from_entry_data(self):

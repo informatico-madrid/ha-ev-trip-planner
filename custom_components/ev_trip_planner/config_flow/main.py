@@ -37,6 +37,7 @@ from ..const import (
     CONF_T_BASE,
     CONF_VEHICLE_NAME,
     CONFIG_VERSION,
+    DEFAULT_BATTERY_CAPACITY_KWH,
     DEFAULT_CHARGING_POWER,
     DEFAULT_CONSUMPTION,
     DEFAULT_INDEX_COOLDOWN_HOURS,
@@ -79,7 +80,7 @@ STEP_USER_SCHEMA = vol.Schema(
 STEP_SENSORS_SCHEMA = vol.Schema(
     {
         # qg-accepted: AP05
-        vol.Required(CONF_BATTERY_CAPACITY, default=60.0): vol.Coerce(float),
+        vol.Required(CONF_BATTERY_CAPACITY, default=DEFAULT_BATTERY_CAPACITY_KWH): vol.Coerce(float),
         # qg-accepted: AP05
         vol.Required(CONF_CHARGING_POWER, default=DEFAULT_CHARGING_POWER): vol.Coerce(
             float
