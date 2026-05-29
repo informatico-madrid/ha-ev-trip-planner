@@ -1,9 +1,0 @@
-{
-  "source": "spec",
-  "name": "e2e-ux-tests-fix",
-  "basePath": "specs/e2e-ux-tests-fix",
-  "phase": "tasks",
-  "totalTasks": 0,
-  "awaitingApproval": false,
-  "granularity": "fine"
-}

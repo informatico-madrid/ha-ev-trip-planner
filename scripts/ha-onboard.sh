@@ -12,6 +12,7 @@
 set -euo pipefail
 
 HA_URL="${1:-${HA_URL:-http://localhost:8123}}"
+HA_CONFIG_DIR="${2:-/tmp/ha-e2e-config}"
 CLIENT_ID="${HA_URL}/"
 
 echo "🏠 Checking Home Assistant at ${HA_URL} ..."
@@ -106,6 +107,26 @@ curl -s -X POST "${HA_URL}/api/onboarding/integration" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
   -d "{\"client_id\": \"${CLIENT_ID}\", \"redirect_uri\": \"${HA_URL}/?auth_callback=1\"}" > /dev/null 2>&1 || true
+
+# Step 6: Set language to English in HA storage (core_config API ignores it)
+python3 -c "
+import json, os, sys
+config_dir = '${HA_CONFIG_DIR}'
+storage = os.path.join(config_dir, '.storage')
+os.makedirs(storage, exist_ok=True)
+path = os.path.join(storage, 'core.default_config')
+# Read existing or create new
+if os.path.exists(path):
+    with open(path) as f:
+        data = json.load(f)
+else:
+    data = {'version': 1, 'minor_version': 1, 'key': 'core.default_config', 'data': {}}
+data['data']['language'] = 'en'
+data['data']['time_zone'] = 'UTC'
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2)
+print('  Set language=en in HA storage')
+" 2>/dev/null || echo "  ⚠️ Could not set language in HA storage"
 
 echo "✅ Onboarding complete! HA user: dev / pass: dev"
 echo "   Open ${HA_URL} in your browser to verify."

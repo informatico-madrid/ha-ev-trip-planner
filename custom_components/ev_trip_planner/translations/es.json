@@ -24,14 +24,18 @@
           "battery_capacity": "Capacidad de Batería (kWh)",
           "charging_power": "Potencia de Carga (kW)",
           "range_sensor": "Sensor de Autonomía (opcional)",
-          "charging_status": "Estado de Carga (opcional)"
+          "charging_status": "Estado de Carga (opcional)",
+          "t_base": "Ventana de protección de batería (horas)",
+          "soh_sensor": "Sensor de Salud de Batería (opcional)"
         },
         "data_description": {
           "soc_sensor": "Sensor que indica el % de batería del vehículo (ej: sensor.ovms_soc)",
           "battery_capacity": "Capacidad total de batería en kWh (ej: 40 para batería de 40kWh, 62 para 62kWh). Verifica las especificaciones de tu vehículo. Ejemplo: 40",
           "charging_power": "Potencia máxima de carga en kW (ej: 7.2 para 7.2kW, 22 para 22kW trifásico). Verifica las especificaciones de tu wallbox. Ejemplo: 7.2",
           "range_sensor": "Opcional: Sensor que muestra la autonomía restante en km. Busca sensores que terminen en '_range', '_range_est' o '_car_range_remaining'. Ejemplo: sensor.ovms_chispitas_metric_v_b_range_est o sensor.renault_range",
-          "charging_status": "Opcional: Sensor binario que muestra 'on' cuando el vehículo está cargando. Busca sensores con 'charging', 'charge' o 'plugged' en el nombre. Ejemplo: binary_sensor.ovms_chispitas_charging o binary_sensor.renault_charging"
+          "charging_status": "Opcional: Sensor binario que muestra 'on' cuando el vehículo está cargando. Busca sensores con 'charging', 'charge' o 'plugged' en el nombre. Ejemplo: binary_sensor.ovms_chispitas_charging o binary_sensor.renault_charging",
+          "t_base": "Tiempo que puedes mantener la batería a alto SOC sin dañarla. Valores más bajos = protección más agresiva de la batería. Rango: 6-48h. Ejemplo: 24 (balance entre protección y flexibilidad)",
+          "soh_sensor": "Opcional: Sensor que indica el estado de salud de la batería como porcentaje (ej: 87 para 87%). Se usa para calcular la capacidad real de la batería. Busca sensores con 'soh', 'health' o 'capacity' en el nombre. Ejemplo: sensor.ovms_soh"
         }
       },
       "consumption": {

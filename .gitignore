@@ -27,6 +27,7 @@ logs/
 .coverage
 coverage.xml
 coverage.json
+*,cover
 .specify/templates/constitution-template.md
 mcp-shell.log
 progress.txt
@@ -63,6 +64,8 @@ tests/test-ha-config/
 
 # MagicMock artifacts - debugging/testing temp files from scripts
 MagicMock/
+# Corrupt test artifacts (when mock.config.path() returns MagicMock repr)
+*.corrupt.*
 
 # Test HA backup folders (created by Docker volume issues)
 test-ha/config/custom_components/ev_trip_planner.bak/
@@ -92,6 +95,7 @@ playwright-env.local.md
 .qwen/settings.json.orig
 .claude/settings copy.json
 specs/.current-spec
+specs/.current-epic
 .claude/
 .cursor/
 .qwen/
@@ -119,3 +123,33 @@ gito-classification-final-v2.md
 quality-gate-checkpoint.json
 .progress.md
 docs/staging-qa-results.md
+
+# Ralph/Spec harness state files (anywhere in repo)
+**/.ralph-state.json
+**/.progress-task-*.md
+**/references/.ralph-field-baseline.json
+**/references/.ralph-field-baseline.json.lock
+**/.progress.md
+test-results1/
+e2e-diagnosis/
+**/.progress.md
+.mutmut-cache/
+
+# Archivos de estado temporal de specs (quitados de git)
+specs/*/chat.md
+specs/*/chat.md.lock
+specs/*/task_review.md
+specs/*/.metrics.jsonl
+specs/*/signals.jsonl
+specs/*/error-context.txt
+specs/*/fullinterview.txt
+specs/*/chatarchived.md
+
+# Config local de herramientas
+configuration.yaml
+bmalph/config.json
+
+# Reportes temporales
+staging-qa-results.md
+.layer2-results/
+.quality-gate-results/

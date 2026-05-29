@@ -25,7 +25,7 @@ import { navigateToPanel, cleanupTestTrips } from './trips-helpers';
  * Pattern from zzz-integration-deletion-cleanup.spec.ts:
  * Navigate directly to the integration config URL, wait for page,
  * then find the Configure button within the test_vehicle section.
- * HA uses native <dialog> element for options flow.
+ * HA uses <app-dialog> web component for options flow.
  * Form fields use spinbutton elements with labels like "t_base*".
  */
 async function openOptionsDialog(page: Page): Promise<void> {
@@ -49,8 +49,10 @@ async function openOptionsDialog(page: Page): Promise<void> {
 
   await allConfigureBtns.first().click({ force: true });
 
-  // Wait for the options dialog to appear (HA native <dialog>)
-  await expect(page.locator('dialog')).toBeVisible({ timeout: 10_000 });
+  // Wait for the options dialog to appear by checking for the first form field.
+  // HA renders Options dialogs as <ha-dialog> web components which are hard to
+  // target directly with CSS selectors or ARIA roles due to shadow DOM encapsulation.
+  await expect(page.getByLabel('t_base')).toBeVisible({ timeout: 10_000 });
 }
 
 /**
@@ -81,7 +83,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     await openOptionsDialog(page);
 
     // Verify the t_base spinbutton field is visible with a numeric value
-    const tBaseSpinbutton = page.getByRole('spinbutton', { name: /t_base/ });
+    const tBaseSpinbutton = page.getByLabel('t_base');
     await expect(tBaseSpinbutton).toBeVisible({ timeout: 5_000 });
     const tBaseValue = await tBaseSpinbutton.inputValue();
     expect(Number(tBaseValue)).toBeGreaterThanOrEqual(6);
@@ -104,7 +106,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     await openOptionsDialog(page);
 
     // Try to set t_base to 5 (below minimum of 6)
-    const tBaseSpinbutton = page.getByRole('spinbutton', { name: /t_base/ });
+    const tBaseSpinbutton = page.getByLabel('t_base');
     await tBaseSpinbutton.fill('5');
 
     // Click submit
@@ -124,7 +126,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     await openOptionsDialog(page);
 
     // Fill with maximum valid value
-    const tBaseSpinbutton2 = page.getByRole('spinbutton', { name: /t_base/ });
+    const tBaseSpinbutton2 = page.getByLabel('t_base');
     await tBaseSpinbutton2.fill('48');
 
     // Click submit
@@ -134,9 +136,8 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     // Should save successfully — dialog should close
     await waitForFormSubmit(page);
 
-    // Verify we're back on the integration page (no dialogs open)
-    const dialogCount = await page.locator('dialog').count().catch(() => 0);
-    expect(dialogCount).toBe(0);
+    // Verify we're back on the integration page (dialog closed — Submit button gone)
+    await expect(page.getByRole('button', { name: 'Submit' })).not.toBeVisible({ timeout: 5_000 });
   });
 
   test('options flow should accept t_base at minimum boundary (6 hours)', async ({
@@ -145,7 +146,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     await openOptionsDialog(page);
 
     // Fill with minimum valid value
-    const tBaseSpinbutton = page.getByRole('spinbutton', { name: /t_base/ });
+    const tBaseSpinbutton = page.getByLabel('t_base');
     await tBaseSpinbutton.fill('6');
 
     // Click submit
@@ -155,8 +156,7 @@ test.describe('Options Flow SOH and T_BASE Validation', () => {
     // Should save successfully
     await waitForFormSubmit(page);
 
-    // Verify we're back on the integration page
-    const dialogCount = await page.locator('dialog').count().catch(() => 0);
-    expect(dialogCount).toBe(0);
+    // Verify we're back on the integration page (dialog closed)
+    await expect(page.getByRole('button', { name: 'Submit' })).not.toBeVisible({ timeout: 5_000 });
   });
 });

@@ -6,9 +6,9 @@ Analyzes HA configuration files for structure, dependencies, and best practices.
 Usage: python3 check_config.py <directory_or_file> [--verbose]
 """
 
-import sys
-import re
 import json
+import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Set
 

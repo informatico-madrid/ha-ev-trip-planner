@@ -77,9 +77,9 @@ HA will be available at `http://localhost:8123` (started by `scripts/run-e2e.sh`
 | `make e2e` | Auto-start HA + run E2E tests |
 | `make e2e-headed` | Auto-start HA + E2E with browser |
 | `make lint` | Run ruff + pylint |
-| `make mypy` | Run type checking |
+| `make typecheck` | Run type checking (pyright) |
 | `make format` | Format with black + isort |
-| `make check` | Run all checks (test + lint + mypy) |
+| `make check` | Run all checks (test + lint + typecheck) |
 | `make clean` | Clean generated files |
 
 ### Direct Commands
@@ -99,7 +99,7 @@ ruff check .
 pylint custom_components/ tests/
 
 # Type checking
-mypy custom_components/
+pyright custom_components/
 
 # Formatting
 black .
@@ -128,7 +128,6 @@ custom_components/ev_trip_planner/
 ├── config_flow.py       # Config flow
 ├── vehicle_controller.py # Charging control strategies
 ├── presence_monitor.py  # Presence detection
-├── schedule_monitor.py  # Schedule monitoring
 ├── panel.py             # Native panel registration
 ├── dashboard.py         # Dashboard auto-deploy
 ```
@@ -155,7 +154,7 @@ tests/
 - **Formatter**: black (88 char line length)
 - **Import sorting**: isort (black profile)
 - **Linter**: ruff + pylint
-- **Type checking**: mypy (strict mode)
+- **Type checking**: pyright (Python 3.14 target)
 - **Naming**: snake_case for functions/variables, PascalCase for classes
 - **Docstrings**: Google-style docstrings on all public functions/classes
 - **Language**: Code in English, user-facing strings in Spanish/English (via translations/)
@@ -266,6 +265,39 @@ Staging is already implemented via `docker-compose.staging.yml` and runs HA in D
 3. Add parametrized tests in `test_calculations.py`
 4. TripManager delegates to calculation functions
 
+## Quality Gate
+
+This project includes a comprehensive quality gate that runs all checks in layers.
+
+### Quality Gate Commands
+
+| Command | Description |
+|---------|-------------|
+| `make quality-gate` | Run full quality gate (layers 1-4) |
+| `make quality-baseline` | Create baseline snapshot |
+| `make layer1` | Layer 1: Test execution (unit + E2E) |
+| `make layer1-ci` | Layer 1: Tests only (no E2E) |
+| `make layer2` | Layer 2: Test quality (mutation analysis) |
+| `make layer3` | Layer 3: Code quality (lint, typecheck, deptry, vulture) |
+| `make layer4` | Layer 4: Security (bandit, semgrep, gitleaks, pip-audit) |
+
+### Security Commands
+
+| Command | Description |
+|---------|-------------|
+| `make security` | Run all security scans |
+| `make security-bandit` | Bandit security linter |
+| `make security-audit` | pip-audit dependency scanner |
+| `make security-gitleaks` | Gitleaks secret detection |
+| `make security-semgrep` | Semgrep static analysis |
+
+### Quality Layers
+
+1. **Layer 1: Test Execution** - pytest unit tests + E2E tests
+2. **Layer 2: Test Quality** - mutation analysis gate
+3. **Layer 3: Code Quality** - ruff, pylint, pyright, deptry, vulture
+4. **Layer 4: Security** - bandit, semgrep, gitleaks, pip-audit
+
 ## Debugging
 
 ### HA Logs
@@ -293,3 +325,59 @@ make test-e2e-debug
 make test-dashboard
 # Opens htmlcov/index.html in browser
 ```
+
+## Mutation Testing
+
+Mutation testing validates test quality by introducing small bugs ("mutants") into
+the source code and checking if the test suite kills them.
+
+### Make Targets
+
+```bash
+make mutation        # Run mutation testing (mutmut)
+make mutation-gate   # Check per-module kill rate thresholds
+make mutation-unregistered-check  # Phase 5 persistence gate: fail if any survivor has no registry entry
+```
+
+### Phase 5: Effective-100% MSI
+
+Starting 2026-05-22, the project uses **effective-MSI** (Mutant Score Index) instead of
+raw mutation score:
+
+```
+effective_MSI = killed / (total_mutants - registered_equivalent)
+```
+
+- `killed` = mutants killed by tests
+- `total_mutants` = total generated (includes unchanged)
+- `registered_equivalent` = mutants in `specs/mutation-score-ramp/equivalent-mutants.md`
+  with status `REGISTERED-AUTO` or `HUMAN-APPROVED`
+
+### Equivalent-Mutant Registry
+
+See `specs/mutation-score-ramp/equivalent-mutants.md` for the full registry of genuine
+equivalent mutants. Each entry has a dossier justifying why it's unkillable.
+
+**Categories:**
+- `REGISTERED-AUTO`: Pre-authorized (idempotent-arithmetic, log/diagnostic-only,
+  performance-only, type-infeasible-default). Auto-registered with `# pragma: no mutate`.
+- `HUMAN-APPROVED`: Framework-absorbed or ambiguous — reviewed and approved by human.
+- `CANDIDATE-PENDING-APPROVAL`: Parked for human review at task 5.6.
+- `REJECTED`: Returned to kill queue after human rejection.
+
+### Persistence Gate (Task 5.5)
+
+The persistence gate ensures no new unregistered survivors slip through:
+
+```bash
+make mutation-unregistered-check
+# Fails if any survived mutant has no corresponding entry in equivalent-mutants.md
+```
+
+When adding new code/tests, any new surviving mutant must be either:
+1. **Killed** — strengthen existing tests or add new ones
+2. **Registered** — add a dossier to `equivalent-mutants.md` with justification
+
+**Never** add `# pragma: no mutate` without a corresponding registry entry and
+approval. This prevents the mass-pragma gaming that failed before (153 unapproved
+pragmas in the prior approach).

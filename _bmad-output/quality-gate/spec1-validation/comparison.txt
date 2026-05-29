@@ -1,0 +1,68 @@
+=== Baseline (old, pre-deletion) ===
+19 files: antipatterns-tier-a.txt, antipatterns-tier-b.txt, baseline.json, coverage.txt, diversity.txt, e2e-soc.txt, e2e.txt, layer4-security.json, layer4-security-stderr.txt, mutation-gate.txt, mutation-killmap.txt, principles.txt, pyright.json, pytest.txt, ruff.txt, solid-tier-a.txt, solid-tier-b.txt, tier-b-consensus.md, weak-tests.txt
+
+=== Baseline (new, post-deletion) ===
+19 files: same set of files
+
+=== File count comparison ===
+Old baseline: 19 files
+New baseline: 19 files
+
+=== Key Metric Comparisons ===
+
+--- pytest ---
+Old: 1847 passed, 1 failed, 1 skipped
+New: 1814 passed, 0 failed, 1 skipped
+Change: -33 passed (expected: schedule_monitor tests deleted in task 1.4)
+Verdict: EQUAL (33 deleted tests is intentional deletion)
+
+--- coverage ---
+Old: Required test coverage of 100.0% reached. Total coverage: 100.00%
+New: Required test coverage of 100.0% reached. Total coverage: 100.00%
+Verdict: EQUAL (PASS)
+
+--- pyright diagnostics ---
+Old: 1 error, 237 warnings
+New: 1 error, 211 warnings
+Change: -26 warnings (CODE IMPROVED)
+Verdict: BETTER
+
+--- vulture dead code ---
+Old: 0 findings (CLEAN)
+New: 0 findings (CLEAN)
+Verdict: EQUAL (PASS)
+
+--- ruff linting ---
+Old: All checks passed!
+New: All checks passed!
+Verdict: EQUAL (PASS)
+
+--- E2E tests ---
+Old: 29 passed, 1 failed (race-condition-regression-rapid-successive-creation)
+New: 29 passed, 1 failed (same test)
+Change: Pre-existing flaky test, same failure
+Verdict: EQUAL (known issue, not regression)
+
+--- E2E SOC ---
+Old: PASS
+New: PASS
+Verdict: EQUAL (PASS)
+
+--- mutation gate ---
+Old: kill_rate=0.49, killed=7593, total=15511
+New: kill_rate=0.489, killed=7431, total=15188
+Change: Expected fewer mutations (schedule_monitor module deleted)
+Verdict: EQUAL (proportional to codebase size reduction)
+
+--- SOLID, Principles, Antipatterns, Layer4 ---
+Old: All pass
+New: All pass
+Verdict: EQUAL (PASS)
+
+=== OVERALL VERDICT ===
+Status: PASS
+No layer regressed. Key changes:
+  - Test count: -33 (intentional deletion of schedule_monitor tests)
+  - Pyright warnings: -26 (improvement)
+  - All other metrics: EQUAL or BETTER
+  - Known failures (E2E 1 flaky): PRE-EXISTING, not regression

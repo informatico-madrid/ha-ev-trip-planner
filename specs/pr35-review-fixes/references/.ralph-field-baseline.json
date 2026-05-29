@@ -1,6 +1,0 @@
-{
-  "chat.executor.lastReadLine": "spec-executor",
-  "chat.reviewer.lastReadLine": "external-reviewer",
-  "external_unmarks": "external-reviewer",
-  "awaitingApproval": ["coordinator", "architect-reviewer", "product-manager", "research-analyst", "task-planner"]
-}

@@ -19,6 +19,9 @@ REDACT_KEYS = [
 ]
 
 
+# CC-N-ACCEPTED: cc=11 — diagnostic collector that must handle multiple optional
+# data sources (runtime_data, coordinator, trip_manager, emhass_adapter) each
+# with their own None paths. Each conditional is a data source, not code smell.
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -59,11 +62,11 @@ async def async_get_config_entry_diagnostics(
             else None,
         },
         "trip_manager": {
-            "vehicle_id": trip_manager.vehicle_id if trip_manager else None,
-            "recurring_trips_count": len(trip_manager._recurring_trips)
+            "vehicle_id": trip_manager._state.vehicle_id if trip_manager else None,
+            "recurring_trips_count": len(trip_manager._state.recurring_trips)
             if trip_manager
             else 0,
-            "punctual_trips_count": len(trip_manager._punctual_trips)
+            "punctual_trips_count": len(trip_manager._state.punctual_trips)
             if trip_manager
             else 0,
         },
@@ -74,7 +77,7 @@ async def async_get_config_entry_diagnostics(
         diagnostics_data["emhass"] = {
             "vehicle_id": emhass_adapter.vehicle_id,
             "index_map": emhass_adapter._index_map,
-            "available_indices": emhass_adapter._available_indices,
+            "available_indices": emhass_adapter.get_available_indices(),
         }
 
     return diagnostics_data

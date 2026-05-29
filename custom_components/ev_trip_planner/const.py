@@ -10,11 +10,12 @@ Note: All CONF_* keys are used in the config flow and entity configuration.
 Default values are optimized for typical EV/PHEV usage patterns.
 """
 
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 DOMAIN = "ev_trip_planner"
 
 # Config entry version for migrations
+# qg-accepted: AP05
 CONFIG_VERSION = 3
 
 # Dispatcher signal for reactive updates
@@ -58,15 +59,24 @@ CONTROL_TYPE_SCRIPT = "script"
 CONTROL_TYPE_EXTERNAL = "external"
 
 # Defaults
+# These are form display defaults ONLY. Never use as runtime fallbacks.
 DEFAULT_CONSUMPTION = 0.15  # kWh per km (typical EV efficiency)
+# qg-accepted: AP05 — typical home charger power
 DEFAULT_CHARGING_POWER = 11.0  # kW (typical home charger)
+# qg-accepted: AP05 — 16A single-phase charger for EMHASS
+DEFAULT_LOAD_PUBLISHER_CHARGING_POWER = 3.6  # kW (16A single-phase charger for EMHASS)
 DEFAULT_SAFETY_MARGIN = 10  # percent (prevents depletion during unplanned stops)
+# qg-accepted: AP05
+DEFAULT_BATTERY_CAPACITY_KWH = 50.0  # kWh (typical EV battery capacity)
 DEFAULT_SOC_BUFFER_PERCENT = (
     10  # percent (minimum SOC buffer for backward deficit propagation)
 )
 DEFAULT_CONTROL_TYPE = CONTROL_TYPE_NONE
+# qg-accepted: AP05
 DEFAULT_PLANNING_HORIZON = 7  # days (standard weekly planning window)
+# qg-accepted: AP05
 DEFAULT_MAX_DEFERRABLE_LOADS = 50  # Max simultaneous trips (EMHASS limit)
+# qg-accepted: AP05
 DEFAULT_INDEX_COOLDOWN_HOURS = 24  # hours (soft delete cooldown before index reuse)
 DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 
@@ -74,13 +84,19 @@ DEFAULT_NOTIFICATION_SERVICE = "persistent_notification.create"
 CONF_T_BASE = "t_base"
 CONF_SOC_BASE = "soc_base"
 CONF_SOH_SENSOR = "soh_sensor"
+# qg-accepted: AP05
 DEFAULT_T_BASE = 24.0  # hours (user-configurable via slider)
+# qg-accepted: AP05
 DEFAULT_SOC_BASE = 35.0  # percent (NMC/NCA chemistry sweet spot, internal-only)
+SOC_MAX = 100.0  # percent (maximum SOC)
+# qg-accepted: AP05
 MIN_T_BASE = 6.0  # hours (minimum slider value)
+# qg-accepted: AP05
 MAX_T_BASE = 48.0  # hours (maximum slider value)
 DEFAULT_SOH_SENSOR = ""  # empty = use nominal capacity
 
 # Fixed buffer between sequential trip charging windows (hours)
+# qg-accepted: AP05
 RETURN_BUFFER_HOURS = 4.0
 
 # Trip types
@@ -108,3 +124,26 @@ DAYS_OF_WEEK = [
     "sabado",
     "domingo",
 ]
+
+# TripEmhassSensor documented attribute keys
+# Prevents data leak of internal cache keys (activo, *_array, p_deferrable_matrix, etc.)
+TRIP_EMHASS_ATTR_KEYS: frozenset[str] = frozenset(
+    {
+        "def_total_hours",
+        "P_deferrable_nom",
+        "def_start_timestep",
+        "def_end_timestep",
+        "power_profile_watts",
+        "trip_id",
+        "emhass_index",
+        "kwh_needed",
+        "deadline",
+    }
+)
+
+
+class ConfigEntryProtocol(Protocol):
+    """Protocol for Home Assistant config entries."""
+
+    entry_id: str
+    data: dict[str, Any]

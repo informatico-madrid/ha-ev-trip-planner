@@ -1,3 +1,10 @@
+[project.optional-dependencies]
+dev = [
+    "time-machine>=2.10.0",
+    "hypothesis>=6.0.0",
+    "flake8-pytest-style>=1.7.0",
+]
+
 [tool.black]
 line-length = 88
 target-version = ['py311']
@@ -19,7 +26,7 @@ ensure_newline_before_comments = true
 line_length = 88
 
 [tool.pylint.MASTER]
-py-version = "3.11"
+py-version = "3.14"
 ignore = ["tests"]
 
 [tool.pylint.FORMAT]
@@ -30,22 +37,54 @@ disable = [
     "too-few-public-methods",
     "too-many-instance-attributes",
     "too-many-arguments",
+    "C0200",  # consider-using-enumerate: style preference, not critical
+    "W0404",  # reimport: common in test files, not a real issue
 ]
 
-[tool.mypy]
-python_version = "3.11"
-show_error_codes = true
-follow_imports = "silent"
-ignore_missing_imports = true
-strict_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-disallow_any_generics = true
-check_untyped_defs = true
-no_implicit_reexport = true
+[tool.pyright]
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
+
+exclude = [
+    "**/__pycache__",
+    "**/.*",
+    "**/tests/**",
+    ".venv/**",
+    "**/node_modules/**",
+]
+
+[tool.bandit]
+exclude_dirs = ["/tests"]
+skips = ["B101"]  # Skip assert_used warnings in tests
+
+[tool.deptry]
+extend_exclude = ["docs", "scripts"]
+ignore_notebooks = true
+ignore = ["DEP001", "DEP002", "DEP003"]
+# DEP001: custom_components is a HA namespace package (not a pip dependency)
+# DEP002: dev deps (time-machine, hypothesis, flake8-pytest-style) only used in tests
+# DEP003: homeassistant/voluptuous/etc are HA runtime deps, not pip deps
+
+[tool.vulture]
+min_confidence = 80
+exclude = ["tests/", "docs/"]
+paths = ["custom_components"]
+
+[tool.importlinter]
+root_package = "custom_components.ev_trip_planner"
+
+# Contract 1: layered architecture — services may import trip/emhass/panel, not vice versa
+[[tool.importlinter.contracts]]
+name = "layered architecture: trip/emhass/panel do not import services"
+type = "forbidden"
+source_modules = [
+    "custom_components.ev_trip_planner.trip",
+    "custom_components.ev_trip_planner.emhass",
+]
+forbidden_modules = ["custom_components.ev_trip_planner.services"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit", "tests/integration"]
 pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = "Test*"
@@ -53,9 +92,16 @@ python_functions = "test_*"
 # NOTE: --cov removed from addopts because pytest-cov causes a deadlock when
 # mutmut 3.x redirects stdout during in-process pytest.main() calls.
 # Run coverage separately: pytest --cov=custom_components/ev_trip_planner
-addopts = "-v"
+# import_mode=importlib set via addopts (not a standalone ini key in pytest 9)
+addopts = "-v --import-mode=importlib --strict-markers --strict-config "
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: unit tests (no external dependencies)",
+    "integration: integration tests (require HA framework or external services)",
+    "slow: tests that take significantly longer than average",
+    "mutmut_skip: tests incompatible with mutation testing (pattern checks, path deps)",
+]
 filterwarnings = [
     "ignore:Inheritance class.*:DeprecationWarning",
     "ignore::pytest.PytestDeprecationWarning",
@@ -63,7 +109,9 @@ filterwarnings = [
 
 [tool.coverage.run]
 source = ["custom_components/ev_trip_planner"]
-omit = ["tests/*"]
+omit = [
+    "tests/*",
+]
 
 [tool.coverage.report]
 fail_under = 100
@@ -78,84 +126,105 @@ exclude_lines = [
 ]
 
 [tool.mutmut]
+# NOTE: tests_excluded_from_mutmut/ directory (2 files) remains in its current
+# location. These files are NOT being moved as part of Spec 2 test reorganization.
+# Their disposition — whether to integrate into tests/unit/ or tests/integration/
+# or remove entirely — is deferred to Spec 5 (Mutation Ramp).
+# Per AC-12.3/AC-12.4: exclusion list update not required since files are not moved.
+#
+# tests/unit/test_solid_metrics_isp.py and test_vehicle_controller_event.py are
+# marked with @pytest.mark.mutmut_skip — they check source patterns that break
+# under mutation (source inspection tests). Fixed in Spec 5.
 paths_to_mutate = ["custom_components/ev_trip_planner"]
 runner = "pytest"
-tests_dir = ["tests/"]
+tests_dir = ["tests/unit/", "tests/integration/"]
+pytest_add_cli_args = ["-k", "not test_solid_metrics and not test_vehicle_controller_event"]
+also_copy = []
 dict_synonyms = ["Dict", "Optional"]
 timeout = 600
+mutate_only_covered_lines = true
+max_stack_depth = 8
+environment_setup_command = "export MUTMUT_RUN=1"
 
 [tool.quality-gate.mutation]
 global_kill_threshold = 0.48
 fail_on_missing_module = false
 increment_step = 0.01
-target_final = 0.80
+target_final = 1.00
 modules_per_sprint = 2
+# Phase 5 persistence gate: fail if any survivor has no registry entry
+fail_on_unregistered_survivor = true
 
 [tool.quality-gate.mutation.modules.calculations]
-kill_threshold = 0.71
+kill_threshold = 0.789
+increment_step = 0.01
+target_final = 1.00
 status = "passing"
 
 [tool.quality-gate.mutation.modules.utils]
-kill_threshold = 0.89
+kill_threshold = 0.92
 status = "passing"
 
 [tool.quality-gate.mutation.modules.definitions]
-kill_threshold = 0.45
-status = "passing"
+kill_threshold = 1.00
+status = "complete"
 
 [tool.quality-gate.mutation.modules.sensor]
-kill_threshold = 0.38
+kill_threshold = 0.53
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.presence_monitor]
-kill_threshold = 0.52
+kill_threshold = 0.81
 status = "passing"
 
-[tool.quality-gate.mutation.modules.trip_manager]
-kill_threshold = 0.46
-status = "in_progress"
+[tool.quality-gate.mutation.modules.trip]
+kill_threshold = 0.516
+increment_step = 0.01
+target_final = 1.00
 
-[tool.quality-gate.mutation.modules.emhass_adapter]
-kill_threshold = 0.53
-status = "passing"
+[tool.quality-gate.mutation.modules.emhass]
+kill_threshold = 0.64
+increment_step = 0.01
+target_final = 1.00
 
 [tool.quality-gate.mutation.modules.config_flow]
-kill_threshold = 0.31
+kill_threshold = 0.39
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.vehicle_controller]
-kill_threshold = 0.55
-status = "passing"
+[tool.quality-gate.mutation.modules.vehicle]
+kill_threshold = 0.59
+increment_step = 0.01
+target_final = 1.00
 
 [tool.quality-gate.mutation.modules.coordinator]
-kill_threshold = 0.37
+kill_threshold = 0.56
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.schedule_monitor]
-kill_threshold = 0.50
-status = "passing"
-
 [tool.quality-gate.mutation.modules.yaml_trip_storage]
-kill_threshold = 0.50
-status = "passing"
+kill_threshold = 1.00
+status = "complete"
 
 # Previously untracked modules — baseline thresholds set to current scores
 [tool.quality-gate.mutation.modules.__init__]
 kill_threshold = 0.51
 status = "in_progress"
 
-[tool.quality-gate.mutation.modules.dashboard]
-kill_threshold = 0.35
-status = "in_progress"
-
 [tool.quality-gate.mutation.modules.diagnostics]
-kill_threshold = 0.28
-status = "passing"
+kill_threshold = 1.00
+status = "complete"
 
 [tool.quality-gate.mutation.modules.panel]
-kill_threshold = 0.37
+kill_threshold = 0.63
+increment_step = 0.01
+target_final = 1.00
 status = "in_progress"
 
 [tool.quality-gate.mutation.modules.services]
-kill_threshold = 0.38
-status = "in_progress"
+kill_threshold = 0.548
+increment_step = 0.01
+target_final = 1.00
+
+[tool.quality-gate.mutation.modules.helpers]
+kill_threshold = 0.30
+increment_step = 0.05
+target_final = 1.00

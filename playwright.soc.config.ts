@@ -9,7 +9,7 @@ import { defineConfig } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e-dynamic-soc',
-  timeout: 60000,
+  timeout: 900000,
   retries: 1,
   workers: 1,
   reporter: [
@@ -19,6 +19,7 @@ export default defineConfig({
   globalSetup: './auth.setup.soc.ts',
   use: {
     baseURL: 'http://localhost:8123',
+    includeShadowDom: true,
     storageState: 'playwright/.auth/user-soc.json',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

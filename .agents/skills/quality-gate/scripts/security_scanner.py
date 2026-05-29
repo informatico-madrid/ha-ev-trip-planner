@@ -41,7 +41,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
@@ -335,6 +334,8 @@ class ScanResult:
     findings_false_positive: int = 0
     findings_confirmed: int = 0
     findings_uncertain: int = 0
+    # Reason for FAIL when no blocking findings: REQUIRED tool skip/error
+    failure_reason: str | None = None
 
     @property
     def total_findings(self) -> int:
@@ -490,7 +491,7 @@ def run_bandit(project_root: str, verbose: bool = False, config: dict | None = N
         return result
 
     cmd = [
-        sys.executable, "-m", "bandit",
+        ".venv/bin/bandit",
         "-r", *targets,
         "-f", "json",
         "--severity-level", "low",
@@ -1049,7 +1050,7 @@ def determine_pass_fail(
     severity_threshold: Severity,
     confidence_threshold: float = 0.7,
     config: dict | None = None,
-) -> bool:
+) -> tuple[bool, str | None]:
     """Determine if the overall scan passes based on findings, severity, and confidence.
 
     A finding blocks the gate if:
@@ -1058,6 +1059,9 @@ def determine_pass_fail(
     - It is not a duplicate, AND
     - It has not been marked as FALSE_POSITIVE by LLM triage, AND
     - It comes from a REQUIRED or RECOMMENDED tool
+
+    Returns:
+        (pass, reason) — reason is None on pass, or explains WHY on fail.
     """
     threshold_weight = severity_threshold.weight
 
@@ -1065,13 +1069,13 @@ def determine_pass_fail(
         if result.status == "SKIPPED":
             # REQUIRED tools that are skipped = FAIL
             if result.priority == ToolPriority.REQUIRED:
-                return False
+                return False, f"REQUIRED tool '{result.tool}' was SKIPPED"
             continue
 
         if result.status == "ERROR":
             # REQUIRED tools that errored = FAIL
             if result.priority == ToolPriority.REQUIRED:
-                return False
+                return False, f"REQUIRED tool '{result.tool}' had an ERROR"
             continue
 
         # Check findings against severity + confidence thresholds
@@ -1085,9 +1089,9 @@ def determine_pass_fail(
             # Check severity + confidence
             if finding.severity.weight >= threshold_weight and finding.confidence_score >= confidence_threshold:
                 if result.priority in (ToolPriority.REQUIRED, ToolPriority.RECOMMENDED):
-                    return False
+                    return False, f"Finding severity={finding.severity.value} confidence={finding.confidence_score:.2f} rule={finding.rule_id} file={finding.file}:{finding.line}"
 
-    return True
+    return True, None
 
 
 def _get_config_value(config: dict | None, *keys: str, default: Any = None) -> Any:
@@ -1183,14 +1187,12 @@ def run_all_scans(
         known_pattern_bonus=known_pattern_bonus,
     )
 
-    # Determine overall pass/fail (using confidence-aware logic)
-    scan_result.overall_pass = determine_pass_fail(
-        scan_result.tools, threshold, confidence_threshold, config
-    )
-
     # Update individual tool statuses based on findings (confidence-aware)
+    # Note: runners default to SKIPPED even when findings exist, so we always update
+    # status for tools that have findings or ran successfully. This MUST run before
+    # determine_pass_fail so SKIPPED→PASS transitions are visible.
     for result in scan_result.tools:
-        if result.status not in ("SKIPPED", "ERROR"):
+        if result.status in ("SKIPPED", "PASS", "FAIL"):
             has_blocking = any(
                 f.severity.weight >= threshold.weight
                 and f.confidence_score >= confidence_threshold
@@ -1199,6 +1201,13 @@ def run_all_scans(
                 for f in result.findings
             )
             result.status = "FAIL" if has_blocking else "PASS"
+
+    # Determine overall pass/fail (using confidence-aware logic)
+    passed, failure_reason = determine_pass_fail(
+        scan_result.tools, threshold, confidence_threshold, config
+    )
+    scan_result.overall_pass = passed
+    scan_result.failure_reason = failure_reason
 
     # Count findings above confidence threshold (for Phase 3 escalation info)
     high_conf_findings = get_unique_findings(scan_result.tools, min_confidence=confidence_threshold)
@@ -1306,7 +1315,11 @@ def main():
     print(f"{'='*60}", file=sys.stderr)
     overall = "PASS" if scan_result.overall_pass else "FAIL"
     print(f" OVERALL: {overall}", file=sys.stderr)
-    print(f" By severity: {scan_result.findings_by_severity}", file=sys.stderr)
+    if scan_result.failure_reason:
+        # FAIL caused by REQUIRED tool skip/error, not by findings
+        print(f" FAIL reason: {scan_result.failure_reason}", file=sys.stderr)
+    else:
+        print(f" By severity: {scan_result.findings_by_severity}", file=sys.stderr)
     print(f" Phases completed: {', '.join(scan_result.phases_completed)}", file=sys.stderr)
     print(f"{'='*60}", file=sys.stderr)
 
