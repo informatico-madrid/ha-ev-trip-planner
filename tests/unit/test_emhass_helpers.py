@@ -515,4 +515,9 @@ class TestClampHours:
     def test_max_value_hundred(self):
         """Custom max 100 → clamped to 100."""
         assert clamp_hours(150.0, max_value=100) == 100
+
+    def test_value_just_above_one(self):
+        """1.001 → adjusted=1.0 → ceil=1 → must return 1 not 0.
+        Kills mutmut_6: (adjusted <= 0) → (adjusted <= 1) changes 1.0 to return 0."""
+        assert clamp_hours(1.001) == 1
         assert clamp_hours(50.0, max_value=100) == 50  # ceil(50 - 0.001) = 50

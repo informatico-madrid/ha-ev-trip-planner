@@ -11,7 +11,7 @@ endif
 
 # Valores por defecto (sobrescribibles via .env o línea de comandos)
 PYTEST_WORKERS ?= auto
-MUTATION_MAX_CHILDREN ?= 4
+MUTATION_MAX_CHILDREN ?= $(shell nproc)
 SAFE_PARALLEL ?= safe
 
 # Determinar si el paralelismo está habilitado
@@ -200,18 +200,20 @@ layer1-ci:
 # Layer 2: Test Quality (mutation, weak tests, diversity)
 layer2:
 	@echo "Running Layer 2: Test Quality (mutation, weak tests, diversity)..."
+	@rm -rf .layer2-results ; mkdir -p .layer2-results
+	@echo "  → Mutation run (max-children=$(MUTATION_MAX_CHILDREN))..."
+	@rm -rf mutants/ .mutmut-cache/
+	@.venv/bin/mutmut run --max-children=$(MUTATION_MAX_CHILDREN) 2>&1 | tee .layer2-results/mutation_run.out
 	@echo "  → Mutation gate..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate || { echo "ERROR: Mutation gate failed — effective-MSI < 100% or module below threshold" && exit 1; }
+	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate 2>&1 | tee .layer2-results/mutation.out ; [ $${PIPESTATUS[0]} -eq 0 ] || { echo "ERROR: Mutation gate failed — effective-MSI < 100% or module below threshold"; exit 1; }
 	@echo "  → Weak test detector + Test diversity (running in parallel)..."
-	@mkdir -p .layer2-results ; \
-	.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & weak_pid=$$! ; \
+	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & weak_pid=$$! ; \
 	.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/ > .layer2-results/diversity.out 2>&1 & div_pid=$$! ; \
 	fail=0 ; \
 	wait $$weak_pid || fail=1 ; \
 	wait $$div_pid || fail=1 ; \
 	cat .layer2-results/weak_test.out ; \
 	cat .layer2-results/diversity.out ; \
-	rm -rf .layer2-results ; \
 	[ $$fail -eq 0 ] || exit 1
 	@echo "=== Layer 2 Complete ==="
 
@@ -245,7 +247,7 @@ quality-gate:
 	@echo "Phase 2: L1 + L2 + L3B + L4"
 ifeq ($(PARALLEL_ENABLED),true)
 	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
-	@mkdir -p .quality-gate-results ; \
+	@rm -rf .quality-gate-results ; mkdir -p .quality-gate-results ; \
 	$(MAKE) layer1 > .quality-gate-results/l1.out 2>&1 & l1_pid=$$! ; \
 	$(MAKE) layer2 > .quality-gate-results/l2.out 2>&1 & l2_pid=$$! ; \
 	$(MAKE) layer3b > .quality-gate-results/l3b.out 2>&1 & l3b_pid=$$! ; \
@@ -259,7 +261,6 @@ ifeq ($(PARALLEL_ENABLED),true)
 	echo "--- L2 output ---" ; cat .quality-gate-results/l2.out ; \
 	echo "--- L3B output ---" ; cat .quality-gate-results/l3b.out ; \
 	echo "--- L4 output ---" ; cat .quality-gate-results/l4.out ; \
-	rm -rf .quality-gate-results ; \
 	[ $$fail -eq 0 ] || exit 1
 else
 	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
@@ -278,7 +279,7 @@ quality-gate-ci:
 	@echo "Phase 2: L1-CI + L4"
 ifeq ($(PARALLEL_ENABLED),true)
 	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
-	@mkdir -p .quality-gate-results ; \
+	@rm -rf .quality-gate-results ; mkdir -p .quality-gate-results ; \
 	$(MAKE) layer1-ci > .quality-gate-results/l1.out 2>&1 & l1_pid=$$! ; \
 	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & l4_pid=$$! ; \
 	fail=0 ; \
@@ -286,7 +287,6 @@ ifeq ($(PARALLEL_ENABLED),true)
 	wait $$l4_pid || fail=1 ; \
 	echo "--- L1-CI output ---" ; cat .quality-gate-results/l1.out ; \
 	echo "--- L4 output ---" ; cat .quality-gate-results/l4.out ; \
-	rm -rf .quality-gate-results ; \
 	[ $$fail -eq 0 ] || exit 1
 else
 	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
@@ -349,6 +349,7 @@ refurb:
 
 mutation:
 	@echo "Running mutation testing (max-children=$(MUTATION_MAX_CHILDREN))..."
+	@rm -rf mutants/ .mutmut-cache/
 	.venv/bin/mutmut run --max-children=$(MUTATION_MAX_CHILDREN)
 
 mutation-gate:

@@ -7,6 +7,9 @@ which indicates low-value test duplication.
 
 Usage:
     python3 diversity_metric.py <tests_dir>
+    # For layered test structure, run per layer:
+    python3 diversity_metric.py tests/unit
+    python3 diversity_metric.py tests/integration
 
 Output:
     JSON with diversity_score, min/max edit distance, and similar pairs.
@@ -14,7 +17,9 @@ Output:
 
 import ast
 import json
+import os
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -71,6 +76,36 @@ def analyze_test_file(filepath: Path) -> list[dict[str, Any]]:
     return tests
 
 
+def _compare_pairs_chunk(
+    pairs: list[tuple[dict[str, Any], dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], int, int]:
+    """Compare a chunk of (t1, t2) pairs. Runs in a worker process."""
+    similar_pairs: list[dict[str, Any]] = []
+    min_dist = 10**9
+    max_dist = 0
+
+    for t1, t2 in pairs:
+        if t1["body_length"] < 20 or t2["body_length"] < 20:
+            continue
+        dist = levenshtein_distance(t1["body_text"], t2["body_text"])
+        max_len = max(t1["body_length"], t2["body_length"])
+        if max_len == 0:
+            continue
+        similarity = 1.0 - (dist / max_len)
+        min_dist = min(min_dist, dist)
+        max_dist = max(max_dist, dist)
+        if similarity > 0.8:
+            similar_pairs.append({
+                "file": t1["file"],
+                "test1": t1["name"],
+                "test2": t2["name"],
+                "edit_distance": dist,
+                "similarity": round(similarity, 3),
+            })
+
+    return similar_pairs, min_dist, max_dist
+
+
 def main(tests_dir: str) -> None:
     tests_path = Path(tests_dir)
 
@@ -83,43 +118,33 @@ def main(tests_dir: str) -> None:
             t["file"] = str(test_file.relative_to(tests_path))
             all_tests.append(t)
 
-    # Calculate pairwise Levenshtein distances within same file
-    min_distance = float("inf")
-    max_distance = 0
-    similar_pairs: list[dict[str, Any]] = []
-
-    # Group tests by file for efficiency
     tests_by_file: dict[str, list[dict[str, Any]]] = {}
     for t in all_tests:
         tests_by_file.setdefault(t["file"], []).append(t)
 
+    # Generate all within-file pairs upfront, then split into even chunks
+    all_pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for file_tests in tests_by_file.values():
         for i, t1 in enumerate(file_tests):
             for t2 in file_tests[i + 1:]:
-                # Skip very short tests (not meaningful to compare)
-                if t1["body_length"] < 20 or t2["body_length"] < 20:
-                    continue
+                all_pairs.append((t1, t2))
 
-                dist = levenshtein_distance(t1["body_text"], t2["body_text"])
-                max_len = max(t1["body_length"], t2["body_length"])
-                if max_len == 0:
-                    continue
+    cpu_count = os.cpu_count() or 4
+    chunk_size = max(1, len(all_pairs) // (cpu_count * 4))
+    chunks = [all_pairs[i:i + chunk_size] for i in range(0, len(all_pairs), chunk_size)]
 
-                # Normalize distance to 0-1 range (0 = identical, 1 = completely different)
-                similarity = 1.0 - (dist / max_len)
+    min_distance = float("inf")
+    max_distance = 0
+    similar_pairs: list[dict[str, Any]] = []
 
-                min_distance = min(min_distance, dist)
-                max_distance = max(max_distance, dist)
-
-                # Flag tests that are >80% similar (edit distance < 20% of length)
-                if similarity > 0.8:
-                    similar_pairs.append({
-                        "file": t1["file"],
-                        "test1": t1["name"],
-                        "test2": t2["name"],
-                        "edit_distance": dist,
-                        "similarity": round(similarity, 3),
-                    })
+    with ProcessPoolExecutor() as executor:
+        futures = [executor.submit(_compare_pairs_chunk, chunk) for chunk in chunks]
+        for future in as_completed(futures):
+            pairs, fmin, fmax = future.result()
+            similar_pairs.extend(pairs)
+            if pairs or fmin < 10**9:
+                min_distance = min(min_distance, fmin)
+                max_distance = max(max_distance, fmax)
 
     if min_distance == float("inf"):
         min_distance = 0

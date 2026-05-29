@@ -134,6 +134,7 @@ class TestLoadPublisherPublish:
     async def test_publish_index_none_returns_false(self):
         """assign_index returns None → returns False (line 105)."""
         pub, idx_mgr = _make_publisher()
+        assert idx_mgr is not None
         # Mock assign_index to return None (simulates already-assigned trip)
         idx_mgr.assign_index = MagicMock(return_value=None)
         future = datetime.now(timezone.utc) + timedelta(hours=10)
@@ -310,3 +311,131 @@ class TestLoadPublisherEnsureAware:
         dt = datetime(2026, 5, 14, 9, 0, 0)
         result = LoadPublisher._ensure_aware(dt)
         assert result.tzinfo is timezone.utc
+
+
+# ---------------------------------------------------------------------------
+# __init__ default value tests — kill mutations on LoadPublisher.__init__
+#
+# Mutants that survive (unregistered, caused by __init__ deduplication):
+#   mutmut_3:  self.hass = None
+#   mutmut_9:  self._battery_cap = None
+#   mutmut_10: BatteryCapacity(nominal_capacity_kwh=None, ...)
+#   mutmut_12: BatteryCapacity(nominal_capacity_kwh=...) — soh_sensor arg removed
+#   mutmut_15: IndexManager(max_deferrable_loads=None, cooldown_hours=0)
+#   mutmut_16: IndexManager(max_deferrable_loads=..., cooldown_hours=None)
+#   mutmut_17: IndexManager(cooldown_hours=0) — max_deferrable_loads arg removed
+#   mutmut_18: IndexManager(max_deferrable_loads=...) — cooldown_hours arg removed
+#   mutmut_19: IndexManager(..., cooldown_hours=1) instead of 0
+# ---------------------------------------------------------------------------
+
+
+class TestLoadPublisherInitState:
+    """Kill __init__ mutations by verifying the initialized state.
+
+    All tests create LoadPublisher with default config (no explicit config arg)
+    so that IndexManager is created internally from cfg defaults.
+    """
+
+    @pytest.fixture
+    def pub(self):
+        """LoadPublisher created with minimal args (uses internal defaults)."""
+        hass = MagicMock()
+        return LoadPublisher(hass, "vehicle_1"), hass
+
+    def test_hass_attribute_is_set(self, pub):
+        """self.hass must be the hass object passed to __init__.
+
+        Kills mutmut_3: self.hass = None
+        """
+        publisher, hass = pub
+        assert publisher.hass is hass, (
+            f"Expected hass to be the mock object, got {publisher.hass}"
+        )
+
+    def test_hass_attribute_is_not_none(self, pub):
+        """self.hass must not be None after construction.
+
+        Additional guard for mutmut_3.
+        """
+        publisher, hass = pub
+        assert publisher.hass is not None
+
+    def test_battery_cap_is_not_none(self, pub):
+        """self._battery_cap must not be None after construction.
+
+        Kills mutmut_9: self._battery_cap = None
+        """
+        publisher, _ = pub
+        assert publisher._battery_cap is not None, (
+            "Expected _battery_cap to be a BatteryCapacity instance, got None"
+        )
+
+    def test_battery_cap_nominal_capacity_matches_config(self, pub):
+        """_battery_cap.nominal_capacity_kwh must match the default config value.
+
+        Kills mutmut_10: BatteryCapacity(nominal_capacity_kwh=None, ...)
+        The default battery capacity is DEFAULT_BATTERY_CAPACITY_KWH = 50.0.
+        """
+        from custom_components.ev_trip_planner.const import DEFAULT_BATTERY_CAPACITY_KWH
+
+        publisher, _ = pub
+        assert publisher._battery_cap is not None
+        assert publisher._battery_cap.nominal_capacity_kwh == DEFAULT_BATTERY_CAPACITY_KWH, (
+            f"Expected nominal_capacity_kwh={DEFAULT_BATTERY_CAPACITY_KWH}, "
+            f"got {publisher._battery_cap.nominal_capacity_kwh}"
+        )
+
+    def test_battery_cap_soh_sensor_is_none(self, pub):
+        """_battery_cap.soh_sensor_entity_id must be None (no SOH sensor in default config).
+
+        Kills mutmut_12: BatteryCapacity(nominal_capacity_kwh=...) — soh_sensor arg removed
+        With mutant, the BatteryCapacity is created without soh_sensor_entity_id kwarg,
+        which means it falls back to the dataclass default (None). This is equivalent —
+        BUT we test it to ensure the attribute exists and is None.
+        """
+        publisher, _ = pub
+        assert publisher._battery_cap is not None
+        assert publisher._battery_cap.soh_sensor_entity_id is None
+
+    def test_index_manager_is_not_none(self, pub):
+        """self._index_manager must not be None after construction.
+
+        Kills mutmut_15/16/17/18 indirectly — if IndexManager() gets bad args,
+        construction fails or _index_manager is None.
+        """
+        publisher, _ = pub
+        assert publisher._index_manager is not None, (
+            "Expected _index_manager to be an IndexManager instance, got None"
+        )
+
+    def test_index_manager_cooldown_hours_is_zero(self, pub):
+        """Internal IndexManager must be created with cooldown_hours=0.
+
+        Kills mutmut_16: cooldown_hours=None
+        Kills mutmut_18: cooldown_hours arg removed (uses default 24)
+        Kills mutmut_19: cooldown_hours=1
+
+        LoadPublisher creates IndexManager(max_deferrable_loads=..., cooldown_hours=0)
+        to disable cooldown for the load publisher use case.
+        """
+        publisher, _ = pub
+        assert publisher._index_manager._index_cooldown_hours == 0, (
+            f"Expected _index_cooldown_hours=0, got "
+            f"{publisher._index_manager._index_cooldown_hours}"
+        )
+
+    def test_index_manager_max_deferrable_loads_matches_config(self, pub):
+        """Internal IndexManager max_deferrable_loads must match default config.
+
+        Kills mutmut_15: max_deferrable_loads=None
+        Kills mutmut_17: max_deferrable_loads arg removed (uses IndexManager default 50)
+
+        Default LoadPublisherConfig uses DEFAULT_MAX_DEFERRABLE_LOADS.
+        """
+        from custom_components.ev_trip_planner.const import DEFAULT_MAX_DEFERRABLE_LOADS
+
+        publisher, _ = pub
+        assert publisher._index_manager._max_deferrable_loads == DEFAULT_MAX_DEFERRABLE_LOADS, (
+            f"Expected _max_deferrable_loads={DEFAULT_MAX_DEFERRABLE_LOADS}, "
+            f"got {publisher._index_manager._max_deferrable_loads}"
+        )

@@ -125,6 +125,35 @@ class TestAsyncCreateTripSensor:
         )
         assert result is False
 
+    @pytest.mark.asyncio
+    async def test_success_returns_true(self, monkeypatch):
+        """Success path returns True — kills mutmut_75 (return True -> return False).
+
+        Mocks TripSensor construction to avoid HA entity platform dependency.
+        All guards pass: entry, trip_manager, coordinator, async_add_entities all present.
+        async_add_entities returns None (sync callback) — function returns True.
+        """
+        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
+
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.runtime_data.trip_manager = MagicMock()
+        entry.runtime_data.coordinator = MagicMock()
+        entry.runtime_data.coordinator.vehicle_id = "vehicle_1"
+        entry.runtime_data.sensor_async_add_entities = MagicMock(return_value=None)
+        hass.config_entries.async_get_entry.return_value = entry
+
+        # Patch TripSensor to avoid HA entity platform initialization
+        monkeypatch.setattr(setup_mod, "TripSensor", MagicMock())
+
+        result = await async_create_trip_sensor(
+            hass, "test_entry", {"id": "trip_001", "tipo": "recurrente"}
+        )
+        assert result is True, (
+            f"Expected True on success path, got {result} "
+            "(mutmut_75: return True → return False would fail here)"
+        )
+
 
 class TestAsyncUpdateTripSensor:
     """Test async_update_trip_sensor paths."""
@@ -315,6 +344,32 @@ class TestAsyncCreateTripEmhassSensor:
             hass, "test_entry", MagicMock(), "v1", "t1"
         )
         assert result is False
+
+    @pytest.mark.asyncio
+    async def test_success_returns_true(self, monkeypatch):
+        """Success path returns True — kills the extra async_create_trip_emhass_sensor survivor.
+
+        Mocks TripEmhassSensor construction to avoid HA entity platform dependency.
+        All guards pass: entry and async_add_entities present.
+        async_add_entities returns None (sync callback) — function returns True.
+        """
+        import custom_components.ev_trip_planner.sensor._async_setup as setup_mod
+
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.runtime_data.sensor_async_add_entities = MagicMock(return_value=None)
+        hass.config_entries.async_get_entry.return_value = entry
+
+        # Patch TripEmhassSensor to avoid HA entity platform initialization
+        monkeypatch.setattr(setup_mod, "TripEmhassSensor", MagicMock())
+
+        result = await async_create_trip_emhass_sensor(
+            hass, "test_entry", MagicMock(), "vehicle_1", "trip_001"
+        )
+        assert result is True, (
+            f"Expected True on success path, got {result} "
+            "(extra survived mutant: return True → return False would fail here)"
+        )
 
 
 class TestAsyncRemoveTripEmhassSensor:

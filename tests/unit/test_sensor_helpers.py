@@ -403,6 +403,55 @@ class TestExtractMatrixAndCount:
         assert matrix == []
         assert count == 0
 
+    def test_key_present_but_none_does_not_increment_count(self):
+        """Key 'p_deferrable_matrix' present but None: count must NOT increment.
+
+        Kills mutmut_11 (string -> "XXp_deferrable_matrixXX") and
+        mutmut_12 (string -> "P_DEFERRABLE_MATRIX"):
+
+        Original logic: if p_matrix (falsy) → elif "p_deferrable_matrix" not in params
+          → False (key IS present) → count stays 0.
+        Mutant logic: elif "XXp_deferrable_matrixXX" not in params
+          → True (mutated key is never present) → count incorrectly becomes 1.
+        """
+        active = [{"p_deferrable_matrix": None}]
+        matrix, count = extract_matrix_and_count(active)
+        assert matrix == []
+        assert count == 0, (
+            f"Expected count=0 when p_deferrable_matrix key is present but None, got {count}"
+        )
+
+    def test_key_present_but_empty_list_does_not_increment_count(self):
+        """Key 'p_deferrable_matrix' present with empty list: count must NOT increment.
+
+        Kills same mutmut_11/12 mutations.
+        An empty list is falsy, so p_matrix check fails, falls through to elif.
+        """
+        active = [{"p_deferrable_matrix": []}]
+        matrix, count = extract_matrix_and_count(active)
+        assert matrix == []
+        assert count == 0, (
+            f"Expected count=0 when p_deferrable_matrix is empty list, got {count}"
+        )
+
+    def test_key_absent_increments_count_not_key_present_none(self):
+        """Distinguish: key absent → count+1; key present with None → count stays.
+
+        Kills both mutations by testing the exact boundary:
+        - {'other_key': 1}: p_deferrable_matrix NOT in params → count=1 (correct)
+        - {'p_deferrable_matrix': None}: p_deferrable_matrix IS in params → count=0 (correct)
+        """
+        active_absent = [{"other_key": 1}]
+        active_present_none = [{"p_deferrable_matrix": None}]
+
+        _, count_absent = extract_matrix_and_count(active_absent)
+        _, count_present_none = extract_matrix_and_count(active_present_none)
+
+        assert count_absent == 1, f"Expected count=1 for absent key, got {count_absent}"
+        assert count_present_none == 0, (
+            f"Expected count=0 for present-but-None key, got {count_present_none}"
+        )
+
 
 # =============================================================================
 # collect_deferrable_arrays
@@ -454,13 +503,13 @@ class TestBuildAggregateResult:
         assert result["number_of_deferrable_loads"] == 3
 
     def test_includes_matrix_when_present(self):
-        result = build_aggregate_result([[100]], 2, {"a": 1})
+        result = build_aggregate_result([[100]], 2, {"a": [1]})
         assert result["p_deferrable_matrix"] == [[100]]
         assert result["number_of_deferrable_loads"] == 2
-        assert result["a"] == 1
+        assert result["a"] == [1]
 
     def test_excludes_matrix_when_empty(self):
-        result = build_aggregate_result([], 0, {"a": 1})
+        result = build_aggregate_result([], 0, {"a": [1]})
         assert "p_deferrable_matrix" not in result
         assert result["number_of_deferrable_loads"] == 0
 

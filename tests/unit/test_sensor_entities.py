@@ -64,7 +64,7 @@ class TestTripSensorInit:
 
     def test_entity_category_diagnostic(self):
         sensor = TripSensor(self._make_coordinator(), "v1", "t1")
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         assert sensor._attr_entity_category == EntityCategory.DIAGNOSTIC
 
@@ -275,12 +275,12 @@ class TestTripSensorDeviceInfo:
         sensor = TripSensor(coord, "vehicle_x", "trip_y")
         info = sensor.device_info
         assert info is not None
-        assert info["identifiers"] == {(DOMAIN, "vehicle_x_trip_y")}
-        assert info["name"] == "Trip trip_y - vehicle_x"
-        assert info["manufacturer"] == "Home Assistant"
-        assert info["model"] == "EV Trip Planner"
-        assert info["sw_version"] == "2026.3.0"
-        assert info["via_device"] == (DOMAIN, "vehicle_x")
+        assert info.get("identifiers") == {(DOMAIN, "vehicle_x_trip_y")}
+        assert info.get("name") == "Trip trip_y - vehicle_x"
+        assert info.get("manufacturer") == "Home Assistant"
+        assert info.get("model") == "EV Trip Planner"
+        assert info.get("sw_version") == "2026.3.0"
+        assert info.get("via_device") == (DOMAIN, "vehicle_x")
 
 
 # =============================================================================
@@ -328,7 +328,7 @@ class TestTripPlannerSensorInit:
         assert sensor._attr_has_entity_name is True
 
     def test_entity_category_diagnostic(self):
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         coord = MagicMock()
         coord.data = {}
@@ -487,8 +487,9 @@ class TestTripPlannerSensorDeviceAndAsyncAdded:
         )
         sensor = TripPlannerSensor(coord, "my_vehicle", desc)
         info = sensor.device_info
-        assert info["identifiers"] == {(DOMAIN, "my_vehicle")}
-        assert info["name"] == "EV Trip Planner my_vehicle"
+        assert info is not None
+        assert info.get("identifiers") == {(DOMAIN, "my_vehicle")}
+        assert info.get("name") == "EV Trip Planner my_vehicle"
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_no_restore_when_coordinator_has_data(self):
@@ -720,7 +721,8 @@ class TestTripEmhassSensorDeviceInfo:
         coord.data = {}
         sensor = TripEmhassSensor(coord, "v1", "t1")
         info = sensor.device_info
-        assert info["identifiers"] == {(DOMAIN, "v1")}
+        assert info is not None
+        assert info.get("identifiers") == {(DOMAIN, "v1")}
 
 
 # =============================================================================
@@ -887,6 +889,49 @@ class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
         matrix, count = sensor._extract_matrix_and_count([])
         assert matrix == []
         assert count == 0
+
+    def test_key_present_but_none_does_not_increment_count(self):
+        """Key 'p_deferrable_matrix' present but None: count must NOT increment.
+
+        Kills mutmut_11 (string -> "XXp_deferrable_matrixXX") and
+        mutmut_12 (string -> "P_DEFERRABLE_MATRIX") on entity_emhass_deferrable:
+
+        Original: elif "p_deferrable_matrix" not in params → False (key present) → no increment.
+        Mutant: elif "XXp_deferrable_matrixXX" not in params → True → count incorrectly becomes 1.
+        """
+        sensor = self._make_sensor()
+        active = [{"p_deferrable_matrix": None}]
+        matrix, count = sensor._extract_matrix_and_count(active)
+        assert matrix == []
+        assert count == 0, (
+            f"Expected count=0 when p_deferrable_matrix key is present but None, got {count}"
+        )
+
+    def test_key_present_but_empty_list_does_not_increment_count(self):
+        """Key 'p_deferrable_matrix' present with empty list: count must NOT increment.
+
+        Kills mutmut_11 and mutmut_12 on entity_emhass_deferrable.
+        """
+        sensor = self._make_sensor()
+        active = [{"p_deferrable_matrix": []}]
+        matrix, count = sensor._extract_matrix_and_count(active)
+        assert matrix == []
+        assert count == 0, (
+            f"Expected count=0 when p_deferrable_matrix is empty list, got {count}"
+        )
+
+    def test_absent_vs_present_none_count_behavior(self):
+        """Distinguish: key absent → count+1; key present with None → count=0.
+
+        Kills both mutmut_11 and mutmut_12 by testing the critical boundary.
+        """
+        sensor = self._make_sensor()
+        _, count_absent = sensor._extract_matrix_and_count([{"other_key": 1}])
+        _, count_present_none = sensor._extract_matrix_and_count([{"p_deferrable_matrix": None}])
+        assert count_absent == 1, f"Expected count=1 for absent key, got {count_absent}"
+        assert count_present_none == 0, (
+            f"Expected count=0 for present-but-None key, got {count_present_none}"
+        )
 
 
 class TestEmhassDeferrableLoadSensorCollectArrays:

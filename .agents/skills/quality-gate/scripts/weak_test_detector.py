@@ -14,6 +14,9 @@ Detects tests that violate quality criteria (A1-A8):
 
 Usage:
     python weak_test_detector.py <tests_dir> <src_dir>
+    # For layered test structure:
+    python weak_test_detector.py tests/unit custom_components/ 2>&1
+    python weak_test_detector.py tests/integration custom_components/ 2>&1
 
 Output:
     JSON with weak_tests array and summary statistics.
@@ -185,14 +188,14 @@ class WeakTestVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         if self.current_test is not None:
-            self.current_test["calls"] += 1
+            self._call_count += 1
 
             if isinstance(node.func, ast.Name):
                 if node.func.id in ("mock", "MagicMock", "AsyncMock", "patch"):
-                    self.current_test["mocks"] += 1
+                    self._mock_count += 1
             elif isinstance(node.func, ast.Attribute):
                 if node.func.attr in ("mock", "MagicMock", "AsyncMock"):
-                    self.current_test["mocks"] += 1
+                    self._mock_count += 1
                 if node.func.attr == "sleep":
                     self.current_test["has_sleep"] = True
 
@@ -200,9 +203,9 @@ class WeakTestVisitor(ast.NodeVisitor):
 
     def visit_Assert(self, node: ast.Assert) -> None:
         if self.current_test is not None:
-            self.current_test["assertions"] += 1
+            self._assertion_count += 1
 
-            if isinstance(node.test, (ast.NameConstant, ast.Constant)) and node.test.value is True:
+            if isinstance(node.test, (getattr(ast, "NameConstant", ast.Constant), ast.Constant)) and node.test.value is True:
                 self.current_test["has_always_true"] = True
 
             if isinstance(node.test, ast.Compare):
