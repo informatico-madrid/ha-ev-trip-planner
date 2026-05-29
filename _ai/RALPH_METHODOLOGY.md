@@ -1,6 +1,6 @@
 # Development Methodology — Smart Ralph Fork
 
-> **TL;DR**: This plugin was developed using [**`informatico-madrid/smart-ralph`**](https://github.com/informatico-madrid/smart-ralph),
+> **TL;DR**: This plugin was developed using [**`informatico-madrid/ralph-harness`**](https://github.com/informatico-madrid/ralph-harness),
 > a fork of [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) that extends the
 > spec-driven development loop with real-time agentic verification. The project is deliberately
 > a **testing lab for the plugin itself** — and also a functional, production-ready plugin.
@@ -11,7 +11,7 @@
 
 - [The Project as a Laboratory](#the-project-as-a-laboratory)
 - [What is Smart Ralph](#what-is-smart-ralph)
-- [The Fork: informatico-madrid/smart-ralph](#the-fork-informatico-madridsmartralph)
+- [The Fork: informatico-madrid/ralph-harness](#the-fork-informatico-madridralphharness)
 - [How This Project Was Developed](#how-this-project-was-developed)
 - [Spec History](#spec-history)
 - [Agent Configuration](#agent-configuration)
@@ -63,9 +63,9 @@ The pattern is based on the [Ralph agentic loop](https://ghuntley.com/ralph/) by
 
 ---
 
-## The Fork: informatico-madrid/smart-ralph
+## The Fork: informatico-madrid/ralph-harness
 
-**Repository:** [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)
+**Repository:** [`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness)
 **Upstream:** [`tzachbon/smart-ralph`](https://github.com/tzachbon/smart-ralph) (v3.x)
 
 The upstream stops at **Phase 4: Quality Gates** (lint, types, CI). This fork adds a
@@ -253,7 +253,7 @@ This project would not exist in its current form without the work of:
   The idea of "Ralph doesn't think too much, Ralph does the next task" is
   deceptively powerful.
 
-> The fork [`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)
+> The fork [`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness)
 > has a draft PR upstream with Phase 5 contributions. When the
 > divergences stabilize, the intention is to contribute back what is
 > generalizable — especially VE tasks and the Verification Contract.

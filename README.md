@@ -4,8 +4,9 @@
 
 [![HACS](https://img.shields.io/badge/HACS-Default-orange?style=for-the-badge)](https://github.com/custom-components/hacs)
 [![Version](https://img.shields.io/badge/version-0.5.24-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
+[![Version](https://img.shields.io/badge/version-0.5.24-blue?style=for-the-badge)](https://github.com/informatico-madrid/ha-ev-trip-planner/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/smart-ralph)
+[![Built with Smart Ralph](https://img.shields.io/badge/Built%20with-Smart%20Ralph%20Fork-blueviolet?style=for-the-badge)](https://github.com/informatico-madrid/ralph-harness)
 
 ## 🛠️ Built With
 
@@ -158,6 +159,8 @@ This project introduces a **Multi-Dimensional Charging Algorithm** that solves t
 
 **Mutation Testing Innovation:** This project achieved **effective-100% MSI** — every mutant is either killed by tests or registered as genuinely equivalent with a per-mutant dossier and decision-test proof. The model mirrors PHP's Infection framework (`@infection-ignore-all` + Covered MSI). See the [mutation-score-ramp spec](specs/mutation-score-ramp/) for the full journey from fabricated 62.5% to honest effective-100%.
 
+**Mutation Testing Innovation:** This project achieved **effective-100% MSI** — every mutant is either killed by tests or registered as genuinely equivalent with a per-mutant dossier and decision-test proof. The model mirrors PHP's Infection framework (`@infection-ignore-all` + Covered MSI). See the [mutation-score-ramp spec](specs/mutation-score-ramp/) for the full journey from fabricated 62.5% to honest effective-100%.
+
 ### The True Innovation: AI-Assisted Architecture
 
 This project demonstrates a **new paradigm in software development** — architecting complex systems through AI agents without writing code manually.
@@ -184,9 +187,11 @@ Vibe Coding → SpecKit SDD → Smart Ralph Fork → BMad Multi-Agent
 | **2026 Q2** | BMad + Ralph | Multi-agent orchestration with parallel verification |
 | **2026 Q2** | SOLID Decomposition | 9 god-classes → 9 SOLID packages, zero regressions |
 | **2026 Q2** | Mutation Score Ramp | effective-100% MSI with equivalent-mutant registry |
+| **2026 Q2** | SOLID Decomposition | 9 god-classes → 9 SOLID packages, zero regressions |
+| **2026 Q2** | Mutation Score Ramp | effective-100% MSI with equivalent-mutant registry |
 
 #### Unique Contribution: Phase 5 Verification Loop
-The fork [informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph) adds a verification layer that catches implementation errors BEFORE they propagate:
+The fork [informatico-madrid/ralph-harness](https://github.com/informatico-madrid/ralph-harness) adds a verification layer that catches implementation errors BEFORE they propagate:
 
 | Feature | Description |
 |---------|-------------|
@@ -199,10 +204,23 @@ The fork [informatico-madrid/smart-ralph](https://github.com/informatico-madrid/
 
 Started with "vibe coding" → accumulated debt → now systematically eliminated.
 
-| Gap | Status |
-|-----|--------|
-| Options flow incomplete | 🟡 Tracked, planned |
-| Tech deb                | 🟡 Tracked, planned |
+**Active Gaps:**
+
+| Gap | Impact | Fix Effort | Priority | Status |
+|-----|--------|------------|----------|--------|
+| Sidebar panel not removed on delete | Medium | Low | 🔴 High | Hypothesis documented |
+| Vehicle Status section empty | High | Medium | 🔴 High | Hypothesis documented |
+
+**RESOLVED by Spec 3-solid-refactor:**
+
+| Issue | Resolution |
+|-------|------------|
+| 4 God Class violations | ✅ Decomposed into 8 packages — 0 violations |
+| BUG-001: `ventana_horas` inflated | ✅ Fixed in [`calculations/windows.py`](custom_components/ev_trip_planner/calculations/windows.py) |
+| BUG-002: `return_buffer_hours` double-count | ✅ Fixed |
+| 3 DRY violations (validate_hora, is_trip_today, calculate_day_index) | ✅ Consolidated to canonical locations |
+| 60 KISS violations | ✅ 40 (-33%) after complexity refactoring |
+| Quality gate FAILED | ✅ PASS after decomposition |
 
 **Debt Management Score: 92%** — Gaps are documented, not hidden. 4 god-class violations resolved by SOLID decomposition. Mutation testing evolved from fabricated compliance to honest [effective-100% MSI](specs/mutation-score-ramp/equivalent-mutants.md) with an equivalent-mutant registry. This demonstrates mature engineering practice: when a target is self-contradictory, reframe it honestly rather than fabricate compliance.
 
@@ -220,6 +238,7 @@ This project demonstrates professional capabilities that translate to enterprise
 | **Technical Leadership** | Made architectural decisions, managed technical debt, contributed back to open source |
 | **Full-Stack Delivery** | Python backend + Lit frontend + Home Assistant integration + E2E testing |
 
+**Tech Stack**: Python 3.12+, Home Assistant, Lit 2.8.x, pytest, Playwright, BMad, Smart Ralph, mutmut (effective-100% MSI)
 **Tech Stack**: Python 3.12+, Home Assistant, Lit 2.8.x, pytest, Playwright, BMad, Smart Ralph, mutmut (effective-100% MSI)
 
 > 📖 **For the complete story**: See [_ai/PORTFOLIO.md](_ai/PORTFOLIO.md) — the detailed account of how 12,000+ lines were generated through AI-assisted architecture and the methodology evolution.
@@ -252,6 +271,7 @@ This project is open source and welcomes contributions. See [CONTRIBUTING.md](CO
 - **Optional**: EMHASS installed for energy optimization
 
 ### For Developers
+- Python 3.12+ (3.12 required for mutation testing; 3.14 has a known dbus-fast incompatibility)
 - Python 3.12+ (3.12 required for mutation testing; 3.14 has a known dbus-fast incompatibility)
 - Git
 - Docker (optional, for testing)
@@ -352,6 +372,7 @@ This project is open source and welcomes contributions. See [CONTRIBUTING.md](CO
 
 4. **Run tests**:
    ```bash
+   pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
    pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
    ```
 
@@ -683,7 +704,7 @@ The legacy Lovelace dashboard was created during the configuration flow. If you 
 
 ### 🤖 Smart Ralph Methodology
 
-This plugin was developed with **[`informatico-madrid/smart-ralph`](https://github.com/informatico-madrid/smart-ralph)**,
+This plugin was developed with **[`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness)**,
 a fork of [tzachbon/smart-ralph](https://github.com/tzachbon/smart-ralph) that implements
 a spec-driven development loop with specialized AI agents in parallel reviewing
 and executing each spec.
@@ -825,6 +846,125 @@ ha-ev-trip-planner/
 ├── hacs.json                        # HACS metadata
 ├── manifest.json                    # HA metadata
 └── README.md                        # This file
+│   ├── __init__.py                    # Entry point and setup
+│   ├── __init_helpers.py              # Init helpers
+│   ├── const.py                       # Constants
+│   ├── coordinator.py                 # Data coordinator
+│   ├── definitions.py                 # Entity definitions
+│   ├── diagnostics.py                 # HA diagnostics support
+│   ├── panel.py                       # Custom UI panel (Lit)
+│   ├── yaml_trip_storage.py           # Optional YAML storage
+│   ├── utils.py                       # Utilities
+│   ├── strings.json                   # Localizable strings
+│   ├── quality_scale.yaml             # HA quality scale config
+│   ├── translations/                  # Translations (en.json, es.json)
+│   │
+│   ├── emhass/                        # EMHASS adapter package (Facade + Composition)
+│   │   ├── __init__.py                # EMHASSAdapter facade
+│   │   ├── adapter.py                 # Main adapter
+│   │   ├── index_manager.py           # Index pool management
+│   │   ├── load_publisher.py          # Deferrable load publishing
+│   │   ├── error_handler.py           # Error handling
+│   │   └── _helpers.py                # Internal helpers
+│   │
+│   ├── trip/                          # Trip management package (State-Based Composition)
+│   │   ├── __init__.py                # TripManager facade
+│   │   ├── manager.py                 # Main trip manager
+│   │   ├── state.py                   # Trip state definitions
+│   │   ├── _crud.py                   # CRUD operations
+│   │   ├── _soc_helpers.py            # SOC calculations
+│   │   ├── _power_profile.py          # Power profile generation
+│   │   ├── _schedule.py               # Deferrable schedule
+│   │   ├── _emhass_sync.py            # EMHASS synchronization
+│   │   ├── _sensor_callbacks.py       # Sensor callbacks
+│   │   ├── _trip_lifecycle.py         # Trip lifecycle management
+│   │   ├── _trip_navigator.py         # Trip navigation
+│   │   ├── _soc_query.py              # SOC query helpers
+│   │   ├── _persistence.py            # Persistence layer
+│   │   ├── _types.py                  # Type definitions
+│   │   └── _helpers.py                # General helpers
+│   │
+│   ├── calculations/                  # Pure functions package (Functional Decomposition)
+│   │   ├── __init__.py
+│   │   ├── core.py                    # Core calculation engine
+│   │   ├── power.py                   # Power calculations
+│   │   ├── windows.py                 # Charging window calculations
+│   │   ├── deficit.py                 # Deficit propagation
+│   │   ├── schedule.py                # Schedule calculations
+│   │   └── _helpers.py                # Internal helpers
+│   │
+│   ├── services/                      # Service handlers package (Module Facade + Handler Factories)
+│   │   ├── __init__.py                # Service registry
+│   │   ├── _handler_factories.py      # Handler factories
+│   │   ├── cleanup.py                 # Cleanup operations
+│   │   ├── dashboard_helpers.py       # Dashboard helper functions
+│   │   ├── _helpers.py                # Internal helpers
+│   │   └── _utils.py                  # Utility functions
+│   │
+│   ├── vehicle/                       # Vehicle control package (Strategy Pattern)
+│   │   ├── __init__.py                # VehicleController + strategies
+│   │   ├── controller.py              # Vehicle controller
+│   │   ├── external.py                # External vehicle API
+│   │   └── strategy.py                # Strategy interface + implementations
+│   │
+│   ├── sensor/                        # Sensor platform package (Platform Decomposition)
+│   │   ├── __init__.py                # Sensor platform
+│   │   ├── _async_setup.py            # Async platform setup
+│   │   ├── _helpers.py                # Sensor helpers
+│   │   ├── entity_trip_planner.py     # Main trip planner sensor
+│   │   ├── entity_trip.py             # Trip data sensor
+│   │   ├── entity_trip_emhass.py      # EMHASS trip sensor
+│   │   └── entity_emhass_deferrable.py # EMHASS deferrable sensor
+│   │
+│   ├── config_flow/                   # Config flow package (Flow Type Decomposition)
+│   │   ├── __init__.py                # Config flow entry
+│   │   ├── main.py                    # Main config flow
+│   │   ├── options.py                 # Options flow
+│   │   ├── _emhass.py                 # EMHASS config helpers
+│   │   ├── _entities.py               # Entity config helpers
+│   │   └── _options_helpers.py        # Options helpers
+│   │
+│   ├── presence_monitor/              # Presence detection package
+│   │   ├── __init__.py                # PresenceMonitor
+│   │   └── README.md                  # Package documentation
+│   │
+│   ├── frontend/                      # Native Panel (Lit web components)
+│   │   ├── panel.js                   # Panel bundle (compiled)
+│   │   └── panel.css                  # Panel styles
+│   │
+│   └── services.yaml                  # YAML service definition
+├── tests/                             # Layered test architecture (170+ test files)
+│   ├── unit/                      # Unit tests (~120 tests, fast, no HA)
+│   ├── integration/               # Integration tests (~28 tests, HA fixtures)
+│   ├── e2e/                       # E2E Tests (Playwright)
+│   │   ├── create-trip.spec.ts
+│   │   ├── delete-trip.spec.ts
+│   │   ├── edit-trip.spec.ts
+│   │   ├── trip-list-view.spec.ts
+│   │   └── ...
+│   └── fixtures/                  # Test fixtures and helpers
+├── specs/                           # Smart Ralph specs history
+├── docs/                            # User/developer documentation
+│   ├── index.md                     # Documentation index
+│   ├── architecture.md              # System architecture
+│   ├── api-contracts.md             # API contracts
+│   ├── data-models.md               # Data models
+│   ├── development-guide.md         # Development guide
+│   ├── mutation-testing.md          # Mutation testing guide
+│   ├── REGLAS_DE_NEGOCIO.md         # Business rules
+│   └── *.md                         # Other documentation
+├── _ai/                             # AI agent documentation (dense/technical)
+│   ├── index.md                     # AI documentation index
+│   ├── PORTFOLIO.md                 # Project portfolio
+│   ├── SOLID_REFACTORING_CASE_STUDY.md
+│   └── *.md                         # Technical guides for AI agents
+├── plans/                           # Active development plans
+├── .roo/skills/                     # Roo agent skills
+├── .agents/skills/                  # BMad agent skills
+├── .github/workflows/               # CI/CD
+├── hacs.json                        # HACS metadata
+├── manifest.json                    # HA metadata
+└── README.md                        # This file
 ```
 
 ### Run Tests
@@ -834,10 +974,26 @@ ha-ev-trip-planner/
 cd /your/ha-ev-trip-planner/directory
 source venv/bin/activate
 pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
+pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner
 ```
 
 **Run a specific layer:**
+**Run a specific layer:**
 ```bash
+pytest tests/unit -v                          # Unit tests only
+pytest tests/integration -v                   # Integration tests only
+```
+
+**Run a specific file:**
+```bash
+pytest tests/unit/test_trip_manager_core.py -v
+pytest tests/integration/test_coordinator.py -v
+```
+
+**Run with coverage report:**
+```bash
+pytest tests/unit tests/integration -v --cov=custom_components/ev_trip_planner --cov-report=html
+open htmlcov/index.html
 pytest tests/unit -v                          # Unit tests only
 pytest tests/integration -v                   # Integration tests only
 ```
@@ -880,6 +1036,7 @@ npx playwright test tests/e2e/
 | [📖 docs/index.md](docs/index.md) | Documentation for users and developers |
 | [🤖 _ai/index.md](_ai/index.md) | Technical documentation for AI agents |
 | [📋 DOC_AUDIT_REPORT.md](DOC_AUDIT_REPORT.md) | Complete documentation audit report |
+| [📋 DOC_AUDIT_REPORT.md](DOC_AUDIT_REPORT.md) | Complete documentation audit report |
 
 ---
 
@@ -903,7 +1060,7 @@ This project stands on the shoulders of giants:
 
 - **[BMad Method](https://github.com/bmad-project/bmad)** — For the systematic AI-assisted development approach that guides the architecture and quality standards of this project
 - **[smart-ralph](https://github.com/tzachbon/smart-ralph)** — For the original EV trip planning concepts and initial inspiration
-- **[informatico-madrid/smart-ralph](https://github.com/informatico-madrid/smart-ralph)** — For the fork with development methodology specific to AI agents
+- **[ralph-harness](https://github.com/informatico-madrid/ralph-harness)** — For the fork with spec-driven development methodology and Phase 5 Verification Loop
 
 ---
 
