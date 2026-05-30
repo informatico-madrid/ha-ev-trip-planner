@@ -33,6 +33,28 @@ from custom_components.ev_trip_planner.const import (
 from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 # ===================================================================
+# Shared invariant helper
+# ===================================================================
+
+
+def _assert_emhass_invariant(results):
+    """Every window must charge no more than its available timeframe.
+    A zero-timeframe window must charge exactly 0h.
+    Violating this is precisely what makes EMHASS reject the optimization."""
+    for r in results:
+        ventana = r["ventana_horas"]
+        adjusted = r["adjusted_def_total_hours"]
+        if ventana == 0:
+            assert adjusted == 0.0, (
+                f"zero-timeframe window must charge 0h, got {adjusted}"
+            )
+        else:
+            assert adjusted <= ventana, (
+                f"adjusted {adjusted} exceeds timeframe {ventana}"
+            )
+
+
+# ===================================================================
 # Pure function tests: algorithm correctness
 # ===================================================================
 
@@ -73,16 +95,21 @@ class TestDeficitCascadeBackwards:
         assert results[0]["deficit_hours_to_propagate"] == 0.0
         assert results[0]["adjusted_def_total_hours"] == 4.0
 
+        _assert_emhass_invariant(results)
+
     def test_four_trips_chain_cascade(self):
-        """4-trip chain: first deficit trip is origin, charges ceil(window), cascades backwards.
+        """4-trip chain: ALL trips with deficit contribute to the carrier.
 
-        T1: window=10h, needs=2h → spare=8h
-        T2: window=4h, needs=5h → deficit=1h (ORIGIN, charges ceil(4)=4h)
-        T3: window=4h, needs=4h → spare=0h (unchanged, after origin)
-        T4: window=4h, needs=6h → deficit=2h (unchanged, after origin)
+        T1: window=10h, needs=2h → spare=8h — absorbs accumulated carrier
+        T2: window=4h,  needs=5h → deficit=1h (charges ceil(4)=4h, carrier+=1)
+        T3: window=4h,  needs=4h → spare=0h, passes carrier unchanged
+        T4: window=4h,  needs=6h → deficit=2h (charges ceil(4)=4h, carrier+=2)
 
-        Only the FIRST trip with deficit (T2) is the origin. Its own deficit
-        cascades backwards to T1. Trips after origin (T3, T4) are unchanged.
+        Backward pass (last→first):
+          i=3 T4: own_deficit=2, adjusted=4, carrier=2
+          i=2 T3: own_deficit=0, spare=0, absorbed=0, carrier=2, adjusted=4
+          i=1 T2: own_deficit=1, absorbed=0 (spare=0), adjusted=4, carrier+=1=3
+          i=0 T1: spare=8, absorbed=3, carrier=0, adjusted=2+3=5
         """
         windows = [
             {"ventana_horas": 10, "horas_carga_necesarias": 2},
@@ -92,34 +119,40 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T2: deficit origin — charges ceil(window)=4h
-        assert results[1]["deficit_hours_propagated"] == 0.0
-        assert results[1]["deficit_hours_to_propagate"] == 1.0
-        assert results[1]["adjusted_def_total_hours"] == 4.0
+        # T4: insufficient — charges ceil(4)=4, carrier=2
+        assert results[3]["deficit_hours_propagated"] == 0.0
+        assert results[3]["deficit_hours_to_propagate"] == 2.0
+        assert results[3]["adjusted_def_total_hours"] == 4.0
 
-        # T3: after origin, unchanged
+        # T3: spare=0, passes carrier through
         assert results[2]["deficit_hours_propagated"] == 0.0
-        assert results[2]["deficit_hours_to_propagate"] == 0.0
+        assert results[2]["deficit_hours_to_propagate"] == 2.0
         assert results[2]["adjusted_def_total_hours"] == 4.0
 
-        # T4: after origin, unchanged (own deficit not propagated)
-        assert results[3]["deficit_hours_propagated"] == 0.0
-        assert results[3]["deficit_hours_to_propagate"] == 0.0
-        assert results[3]["adjusted_def_total_hours"] == 6.0
+        # T2: insufficient — charges ceil(4)=4, carrier+=1=3
+        assert results[1]["deficit_hours_propagated"] == 0.0
+        assert results[1]["deficit_hours_to_propagate"] == 3.0
+        assert results[1]["adjusted_def_total_hours"] == 4.0
 
-        # T1: absorbs 1h from origin T2
-        assert results[0]["deficit_hours_propagated"] == 1.0
+        # T1: spare=8, absorbs carrier=3 → adjusted=5
+        assert results[0]["deficit_hours_propagated"] == 3.0
         assert results[0]["deficit_hours_to_propagate"] == 0.0
-        assert results[0]["adjusted_def_total_hours"] == 3.0
+        assert results[0]["adjusted_def_total_hours"] == 5.0
+
+        _assert_emhass_invariant(results)
 
     def test_first_trip_also_has_deficit(self):
-        """T1 is deficit origin — charges ceil(window), no trip before it to absorb.
+        """All 3 trips are insufficient — carrier accumulates, first trip absorbs what fits.
 
-        T1: window=2h, needs=3h → deficit=1h (ORIGIN, charges ceil(2)=2h)
-        T2: window=4h, needs=5h → deficit=1h (after origin, unchanged)
-        T3: window=4h, needs=6h → deficit=2h (after origin, unchanged)
+        T1: window=2h, needs=3h → deficit=1h (charges ceil(2)=2h, carrier+=1)
+        T2: window=4h, needs=5h → deficit=1h (charges ceil(4)=4h, carrier+=1)
+        T3: window=4h, needs=6h → deficit=2h (charges ceil(4)=4h, carrier+=2)
 
-        Since T1 is the first trip, its 1h deficit has nowhere to cascade.
+        Backward pass (last→first):
+          i=2 T3: own_deficit=2, adjusted=4, carrier=2
+          i=1 T2: own_deficit=1, spare=0, absorbed=0, adjusted=4, carrier+=1=3
+          i=0 T1: own_deficit=1, spare=0, absorbed=0, adjusted=2, carrier+=1=4
+          No trip has spare → carrier=4 remains unabsorbed.
         """
         windows = [
             {"ventana_horas": 2, "horas_carga_necesarias": 3},
@@ -128,20 +161,75 @@ class TestDeficitCascadeBackwards:
         ]
         results = calculate_hours_deficit_propagation(windows)
 
-        # T1: deficit origin — charges ceil(2)=2h, cascades 1h backwards (nowhere)
+        # T3: charges ceil(4)=4h, carrier=2
+        assert results[2]["deficit_hours_propagated"] == 0.0
+        assert results[2]["deficit_hours_to_propagate"] == 2.0
+        assert results[2]["adjusted_def_total_hours"] == 4.0
+
+        # T2: no spare, charges ceil(4)=4h, carrier=3
+        assert results[1]["deficit_hours_propagated"] == 0.0
+        assert results[1]["deficit_hours_to_propagate"] == 3.0
+        assert results[1]["adjusted_def_total_hours"] == 4.0
+
+        # T1: no spare, charges ceil(2)=2h, carrier=4 (unabsorbed — no earlier trip)
         assert results[0]["deficit_hours_propagated"] == 0.0
-        assert results[0]["deficit_hours_to_propagate"] == 1.0
+        assert results[0]["deficit_hours_to_propagate"] == 4.0
         assert results[0]["adjusted_def_total_hours"] == 2.0
 
-        # T2: after origin, unchanged
-        assert results[1]["deficit_hours_propagated"] == 0.0
-        assert results[1]["deficit_hours_to_propagate"] == 0.0
-        assert results[1]["adjusted_def_total_hours"] == 5.0
+        _assert_emhass_invariant(results)
 
-        # T3: after origin, unchanged (own deficit not propagated)
-        assert results[2]["deficit_hours_propagated"] == 0.0
-        assert results[2]["deficit_hours_to_propagate"] == 0.0
-        assert results[2]["adjusted_def_total_hours"] == 6.0
+    def test_five_windows_second_and_fourth_collapsed_both_propagate(self):
+        """Production bug reproduction: 5 trips; windows index 1 (2nd) and 3 (4th)
+        have 0h available but need 2h. BOTH must zero out and propagate backwards
+        to the immediately previous window with spare capacity.
+
+        W0: ventana=106, needs=5 → absorbs W1's 2h          → 7
+        W1: ventana=0,   needs=2 → collapsed, zeroed         → 0
+        W2: ventana=16,  needs=2 → absorbs W3's 2h           → 4
+        W3: ventana=0,   needs=2 → collapsed, zeroed         → 0  <-- BUG: stays 2
+        W4: ventana=16,  needs=2 → unaffected                → 2
+
+        Production incident:
+          def_start_timestep: [0, 108, 112, 132, 136]
+          def_end_timestep:   [106, 108, 128, 132, 152]
+          def_total_hours:    [7, 0, 2, 2, 2]  ← W3 kept 2h with 0h timeframe
+        """
+        windows = [
+            {"ventana_horas": 106, "horas_carga_necesarias": 5},
+            {"ventana_horas": 0, "horas_carga_necesarias": 2},
+            {"ventana_horas": 16, "horas_carga_necesarias": 2},
+            {"ventana_horas": 0, "horas_carga_necesarias": 2},
+            {"ventana_horas": 16, "horas_carga_necesarias": 2},
+        ]
+        results = calculate_hours_deficit_propagation(windows)
+        adjusted = [r["adjusted_def_total_hours"] for r in results]
+
+        assert adjusted[3] == 0.0, f"W3 (collapsed) must be 0h, got {adjusted[3]}"
+        assert adjusted == [7.0, 0.0, 4.0, 0.0, 2.0]
+        assert results[2]["deficit_hours_propagated"] == 2.0
+        assert results[0]["deficit_hours_propagated"] == 2.0
+        _assert_emhass_invariant(results)
+
+    def test_consecutive_collapsed_windows_accumulate_to_earlier(self):
+        """Edge case: two adjacent zero-timeframe windows — the deficit of BOTH
+        must accumulate and propagate to the first window with spare capacity.
+
+        W0: ventana=20, needs=2 → absorbs W2's 2h + W1's 2h = 4h → 6
+        W1: ventana=0,  needs=2 → collapsed, zeroed              → 0
+        W2: ventana=0,  needs=2 → collapsed, zeroed              → 0
+        """
+        windows = [
+            {"ventana_horas": 20, "horas_carga_necesarias": 2},
+            {"ventana_horas": 0, "horas_carga_necesarias": 2},
+            {"ventana_horas": 0, "horas_carga_necesarias": 2},
+        ]
+        results = calculate_hours_deficit_propagation(windows)
+        adjusted = [r["adjusted_def_total_hours"] for r in results]
+
+        assert adjusted == [6.0, 0.0, 0.0]
+        assert results[0]["deficit_hours_propagated"] == 4.0
+        assert results[1]["deficit_hours_to_propagate"] == 4.0
+        _assert_emhass_invariant(results)
 
 
 # ===================================================================
