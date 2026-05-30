@@ -117,10 +117,12 @@ class EMHASSAdapter:
         # Sub-component initialization
         self._index_manager = IndexManager()
         soc_sensor = None
+        soh_sensor = None
         if self._entry:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
             soc_sensor = entry_data.get("soc_sensor")
+            soh_sensor = entry_data.get("soh_sensor") or None
         self._load_publisher = LoadPublisher(
             hass=hass,
             vehicle_id=self.vehicle_id,  # pragma: no mutate  # EQ-087
@@ -130,6 +132,7 @@ class EMHASSAdapter:
                 charging_power_kw=charging_power_kw,
                 safety_margin_percent=safety_margin_percent,
                 soc_sensor=soc_sensor,
+                soh_sensor=soh_sensor,
             ),
         )
         self._error_handler = ErrorHandler(hass=hass)
@@ -305,8 +308,9 @@ class EMHASSAdapter:
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
 
-        # Pre-compute multi-trip charging windows and process trips
-        battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
+        # Pre-compute multi-trip charging windows and process trips.
+        # Use SOH-adjusted real capacity so battery degradation affects the plan.
+        battery_capacity_kwh = self._load_publisher.get_real_capacity_kwh()
         soc_current = await self._precompute_and_process_trips(
             trips, battery_capacity_kwh
         )
@@ -756,11 +760,14 @@ class EMHASSAdapter:
         }
 
     def _get_t_base(self) -> float:
-        """Read t_base from config entry with fallback to default."""
+        """Read t_base from config entry with fallback to default.
+
+        options takes precedence over data (options = user-editable via options flow).
+        """
         if not self._entry:
             return const.DEFAULT_T_BASE
-        entry_data = dict(getattr(self._entry, "options", {}) or {})
-        entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
+        entry_data = dict(getattr(self._entry, "data", {}) or {})
+        entry_data.update(dict(getattr(self._entry, "options", {}) or {}))
         return float(entry_data.get("t_base", const.DEFAULT_T_BASE))
 
     def _run_window_pipeline(self, soc_current: float = 50.0) -> None:
@@ -785,7 +792,7 @@ class EMHASSAdapter:
 
         from ..calculations.window_pipeline import PipelineContext, run_window_pipeline
 
-        battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
+        battery_capacity_kwh = self._load_publisher.get_real_capacity_kwh()
         charging_power_kw = self._load_publisher.charging_power_kw
         context = PipelineContext(
             charging_power_kw=charging_power_kw,
@@ -920,7 +927,7 @@ class EMHASSAdapter:
                     trip=trip,
                     trip_id=trip_id,
                     charging_power_kw=self._load_publisher.charging_power_kw,
-                    battery_capacity_kwh=self._load_publisher.battery_capacity_kwh,
+                    battery_capacity_kwh=self._load_publisher.get_real_capacity_kwh(),
                     safety_margin_percent=self._load_publisher.safety_margin_percent,
                     soc_current=soc_current,
                 ),

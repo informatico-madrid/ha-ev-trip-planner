@@ -322,3 +322,63 @@ async def test_real_capacity_scales_power_profile():
         f"but got {non_zero_full} > {non_zero_low}. "
         f"Energy: {energy_full:.0f} vs {energy_low:.0f}."
     )
+
+
+@pytest.mark.asyncio
+async def test_soh_sensor_wired_into_battery_capacity():
+    """T-SOH-WIRING: configured soh_sensor MUST flow into BatteryCapacity.
+
+    Production bug guard: the adapter previously hardcoded
+    soh_sensor_entity_id=None in LoadPublisher, so a configured SOH sensor was
+    ignored and the cap always used nominal capacity. With soh_sensor='sensor.x'
+    reading 50%, the real capacity must be nominal*0.5.
+    """
+    hass = MagicMock()
+    hass.config = MagicMock()
+    hass.config.config_dir = "/tmp/test_config"
+    hass.config.time_zone = timezone.utc
+    hass.data = {}
+    hass.services = MagicMock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = MagicMock(return_value=True)
+
+    def states_get(entity_id):
+        if entity_id == "sensor.test_soh":
+            return MagicMock(state="50")
+        return None
+
+    hass.states.get = states_get
+
+    mock_store = MagicMock()
+    mock_store.async_load = AsyncMock(return_value={})
+    mock_store.async_save = AsyncMock()
+
+    entry = MagicMock()
+    entry.entry_id = "test_entry_soh_wiring"
+    entry.data = {
+        "vehicle_name": "test_vehicle",
+        "max_deferrable_loads": 50,
+        "charging_power_kw": 11.0,
+        "battery_capacity_kwh": 60.0,
+        "safety_margin_percent": 20.0,
+        "soh_sensor": "sensor.test_soh",
+    }
+    entry.options = {}
+
+    with patch(
+        "custom_components.ev_trip_planner.emhass.adapter.Store",
+        return_value=mock_store,
+    ):
+        adapter = EMHASSAdapter(hass, entry)
+        await adapter.async_load()
+
+    # The configured SOH sensor must be wired into BatteryCapacity.
+    battery_cap = adapter._load_publisher._battery_cap
+    assert battery_cap.soh_sensor_entity_id == "sensor.test_soh", (
+        "soh_sensor from config must be passed to BatteryCapacity, "
+        f"got {battery_cap.soh_sensor_entity_id!r}"
+    )
+    # SOH=50% => real capacity = 60 * 0.5 = 30 kWh (not nominal 60).
+    assert battery_cap.get_capacity(hass) == pytest.approx(30.0), (
+        "Real capacity must reflect SOH 50% (30kWh), not nominal 60kWh"
+    )
