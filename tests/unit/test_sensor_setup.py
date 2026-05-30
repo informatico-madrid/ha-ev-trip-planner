@@ -66,7 +66,11 @@ class TestAsyncSetupEntryCompleteFlow:
         from custom_components.ev_trip_planner import sensor
 
         entities_captured = []
-        add_entities_cb = MagicMock(side_effect=lambda entities, update_before_add=False: entities_captured.extend(entities))
+        add_entities_cb = MagicMock(
+            side_effect=lambda entities, update_before_add=False: (
+                entities_captured.extend(entities)
+            )
+        )
 
         coordinator = self._make_coordinator()
         trip_manager = self._make_trip_manager()
@@ -80,7 +84,10 @@ class TestAsyncSetupEntryCompleteFlow:
         from custom_components.ev_trip_planner.sensor.entity_emhass_deferrable import (
             EmhassDeferrableLoadSensor,
         )
-        emhass_entities = [e for e in entities_captured if isinstance(e, EmhassDeferrableLoadSensor)]
+
+        emhass_entities = [
+            e for e in entities_captured if isinstance(e, EmhassDeferrableLoadSensor)
+        ]
         assert len(emhass_entities) == 1
 
     @pytest.mark.asyncio
@@ -124,7 +131,11 @@ class TestAsyncSetupEntryCompleteFlow:
         from custom_components.ev_trip_planner import sensor
 
         entities_captured = []
-        add_entities_cb = MagicMock(side_effect=lambda entities, update_before_add=False: entities_captured.extend(entities))
+        add_entities_cb = MagicMock(
+            side_effect=lambda entities, update_before_add=False: (
+                entities_captured.extend(entities)
+            )
+        )
 
         coordinator = MagicMock()
         coordinator.data = {
@@ -155,7 +166,10 @@ class TestAsyncSetupEntryCompleteFlow:
         entry = self._make_entry(coordinator, trip_manager)
         hass = MagicMock()
 
-        with caplog.at_level(logging.DEBUG, logger="custom_components.ev_trip_planner.sensor._async_setup"):
+        with caplog.at_level(
+            logging.DEBUG,
+            logger="custom_components.ev_trip_planner.sensor._async_setup",
+        ):
             await sensor.async_setup_entry(hass, entry, lambda e: None)
 
         assert any("Setting up sensors" in r.message for r in caplog.records)
@@ -205,7 +219,10 @@ class TestAsyncSetupEntryCompleteFlow:
         entry.runtime_data.coordinator = coordinator
         hass = MagicMock()
 
-        with caplog.at_level(logging.ERROR, logger="custom_components.ev_trip_planner.sensor._async_setup"):
+        with caplog.at_level(
+            logging.ERROR,
+            logger="custom_components.ev_trip_planner.sensor._async_setup",
+        ):
             result = await sensor.async_setup_entry(hass, entry, lambda e: None)
 
         assert result is False
@@ -220,11 +237,15 @@ class TestAsyncCreateTripSensors:
     should assert on the entity count and types returned.
     """
 
-    def _make_trip_manager(self, recurring=None, punctual=None, raise_on_recurring=False):
+    def _make_trip_manager(
+        self, recurring=None, punctual=None, raise_on_recurring=False
+    ):
         tm = MagicMock()
         crud = MagicMock()
         if raise_on_recurring:
-            crud.async_get_recurring_trips = AsyncMock(side_effect=RuntimeError("CRUD error"))
+            crud.async_get_recurring_trips = AsyncMock(
+                side_effect=RuntimeError("CRUD error")
+            )
         else:
             crud.async_get_recurring_trips = AsyncMock(return_value=recurring or [])
         crud.async_get_punctual_trips = AsyncMock(return_value=punctual or [])
@@ -252,7 +273,8 @@ class TestAsyncCreateTripSensors:
         result = await _async_create_trip_sensors(
             MagicMock(),
             self._make_trip_manager(recurring=[{"id": "r1", "tipo": "recurrente"}]),
-            "v1", "e1",
+            "v1",
+            "e1",
         )
         assert len(result) == 1
         assert isinstance(result[0], TripSensor)
@@ -267,7 +289,8 @@ class TestAsyncCreateTripSensors:
         result = await _async_create_trip_sensors(
             MagicMock(),
             self._make_trip_manager(punctual=[{"id": "p1", "tipo": "puntual"}]),
-            "v1", "e1",
+            "v1",
+            "e1",
         )
         assert len(result) == 1
         assert isinstance(result[0], TripSensor)
@@ -285,7 +308,8 @@ class TestAsyncCreateTripSensors:
                 recurring=[{"id": "r1"}, {"id": "r2"}],
                 punctual=[{"id": "p1"}],
             ),
-            "v1", "e1",
+            "v1",
+            "e1",
         )
         assert len(result) == 3
         for sensor in result:
@@ -301,7 +325,8 @@ class TestAsyncCreateTripSensors:
         result = await _async_create_trip_sensors(
             MagicMock(),
             self._make_trip_manager(raise_on_recurring=True),
-            "v1", "e1",
+            "v1",
+            "e1",
         )
         # Should return empty list, not raise
         assert result == []

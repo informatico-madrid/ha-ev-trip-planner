@@ -934,6 +934,7 @@ class TestEMHASSAdapterLoadSave:
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         await adapter.async_load()  # no raise = success (no-op stub)
 
+
 class TestEMHASSAdapterIndexDelegation:
     """Test facade index assign/release delegation."""
 
@@ -966,6 +967,8 @@ class TestEMHASSAdapterIndexDelegation:
         adapter = EMHASSAdapter(hass=mock_hass, entry=mock_entry)
         adapter._index_manager._index_map = {"a": 0, "b": 1, "c": 2}
         assert adapter.get_available_indices() == [0, 1, 2]
+
+
 class TestEMHASSAdapterGetCachedOptimizationResults:
     """Test get_cached_optimization_results."""
 

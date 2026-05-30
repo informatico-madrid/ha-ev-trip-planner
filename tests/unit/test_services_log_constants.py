@@ -6,7 +6,6 @@ mutmut replaces string literals in logger calls with None.
 """
 
 
-
 class TestUtilsLogConstants:
     """Test US-5 log constants in services/_utils.py."""
 
@@ -513,46 +512,48 @@ class TestHandlerFactoriesLogConstants:
             _LOG_UPDATING_TRIP,
         )
 
-        self._assert_all_non_empty([
-            ("_LOG_HANDLER_TRIP_LIST_CALLED", _LOG_HANDLER_TRIP_LIST_CALLED),
-            ("_LOG_HANDLER_GET_MANAGER_OK", _LOG_HANDLER_GET_MANAGER_OK),
-            ("_LOG_HANDLER_TRIP_GET_CALLED", _LOG_HANDLER_TRIP_GET_CALLED),
-            ("_LOG_HANDLER_TRIP_LIST_RESULT", _LOG_HANDLER_TRIP_LIST_RESULT),
-            ("_LOG_REFRESH", _LOG_REFRESH),
-            ("_LOG_CALL_DATA", _LOG_CALL_DATA),
-            ("_LOG_TRIP_LIST_SERVICE_CALLED", _LOG_TRIP_LIST_SERVICE_CALLED),
-            ("_LOG_RECURRING_TRIPS_BEFORE", _LOG_RECURRING_TRIPS_BEFORE),
-            ("_LOG_PUNCTUAL_TRIPS_BEFORE", _LOG_PUNCTUAL_TRIPS_BEFORE),
-            ("_LOG_GETTING_RECURRING", _LOG_GETTING_RECURRING),
-            ("_LOG_GOT_RECURRING", _LOG_GOT_RECURRING),
-            ("_LOG_GETTING_PUNCTUAL", _LOG_GETTING_PUNCTUAL),
-            ("_LOG_GOT_PUNCTUAL", _LOG_GOT_PUNCTUAL),
-            ("_LOG_RETRIEVED", _LOG_RETRIEVED),
-            ("_LOG_RECURRING_TRIP_ENTRY", _LOG_RECURRING_TRIP_ENTRY),
-            ("_LOG_PUNCTUAL_TRIP_ENTRY", _LOG_PUNCTUAL_TRIP_ENTRY),
-            ("_LOG_RECURRING_COUNT", _LOG_RECURRING_COUNT),
-            ("_LOG_PUNCTUAL_COUNT", _LOG_PUNCTUAL_COUNT),
-            ("_LOG_TOTAL_COUNT", _LOG_TOTAL_COUNT),
-            ("_LOG_FIRST_RECURRING", _LOG_FIRST_RECURRING),
-            ("_LOG_FIRST_PUNCTUAL", _LOG_FIRST_PUNCTUAL),
-            ("_LOG_ERROR_LISTING", _LOG_ERROR_LISTING),
-            ("_LOG_UPDATING_TRIP", _LOG_UPDATING_TRIP),
-            ("_LOG_ENTRY_NOT_FOUND", _LOG_ENTRY_NOT_FOUND),
-            ("_LOG_UPDATE_FAILED", _LOG_UPDATE_FAILED),
-            ("_LOG_CREATED_RECURRING", _LOG_CREATED_RECURRING),
-            ("_LOG_CREATED_PUNCTUAL", _LOG_CREATED_PUNCTUAL),
-            ("_LOG_INVALID_TRIP_TYPE", _LOG_INVALID_TRIP_TYPE),
-            ("_LOG_CALL_DATA_TRIP_GET", _LOG_CALL_DATA_TRIP_GET),
-            ("_LOG_TRIP_GET_SERVICE_CALLED", _LOG_TRIP_GET_SERVICE_CALLED),
-            ("_LOG_TRIP_GET_SUCCESS", _LOG_TRIP_GET_SUCCESS),
-            ("_LOG_TRIP_GET_NOT_FOUND", _LOG_TRIP_GET_NOT_FOUND),
-            ("_LOG_GETTING_ALL_TO_FIND", _LOG_GETTING_ALL_TO_FIND),
-            ("_LOG_FOUND_TRIPS_COUNT", _LOG_FOUND_TRIPS_COUNT),
-            ("_LOG_SEARCHING_FOR_ID", _LOG_SEARCHING_FOR_ID),
-            ("_LOG_FOUND_TRIP", _LOG_FOUND_TRIP),
-            ("_LOG_ERROR_GETTING_TRIP", _LOG_ERROR_GETTING_TRIP),
-            ("_LOG_FINDING_ALL_TO_FIND_ID", _LOG_FINDING_ALL_TO_FIND_ID),
-        ])
+        self._assert_all_non_empty(
+            [
+                ("_LOG_HANDLER_TRIP_LIST_CALLED", _LOG_HANDLER_TRIP_LIST_CALLED),
+                ("_LOG_HANDLER_GET_MANAGER_OK", _LOG_HANDLER_GET_MANAGER_OK),
+                ("_LOG_HANDLER_TRIP_GET_CALLED", _LOG_HANDLER_TRIP_GET_CALLED),
+                ("_LOG_HANDLER_TRIP_LIST_RESULT", _LOG_HANDLER_TRIP_LIST_RESULT),
+                ("_LOG_REFRESH", _LOG_REFRESH),
+                ("_LOG_CALL_DATA", _LOG_CALL_DATA),
+                ("_LOG_TRIP_LIST_SERVICE_CALLED", _LOG_TRIP_LIST_SERVICE_CALLED),
+                ("_LOG_RECURRING_TRIPS_BEFORE", _LOG_RECURRING_TRIPS_BEFORE),
+                ("_LOG_PUNCTUAL_TRIPS_BEFORE", _LOG_PUNCTUAL_TRIPS_BEFORE),
+                ("_LOG_GETTING_RECURRING", _LOG_GETTING_RECURRING),
+                ("_LOG_GOT_RECURRING", _LOG_GOT_RECURRING),
+                ("_LOG_GETTING_PUNCTUAL", _LOG_GETTING_PUNCTUAL),
+                ("_LOG_GOT_PUNCTUAL", _LOG_GOT_PUNCTUAL),
+                ("_LOG_RETRIEVED", _LOG_RETRIEVED),
+                ("_LOG_RECURRING_TRIP_ENTRY", _LOG_RECURRING_TRIP_ENTRY),
+                ("_LOG_PUNCTUAL_TRIP_ENTRY", _LOG_PUNCTUAL_TRIP_ENTRY),
+                ("_LOG_RECURRING_COUNT", _LOG_RECURRING_COUNT),
+                ("_LOG_PUNCTUAL_COUNT", _LOG_PUNCTUAL_COUNT),
+                ("_LOG_TOTAL_COUNT", _LOG_TOTAL_COUNT),
+                ("_LOG_FIRST_RECURRING", _LOG_FIRST_RECURRING),
+                ("_LOG_FIRST_PUNCTUAL", _LOG_FIRST_PUNCTUAL),
+                ("_LOG_ERROR_LISTING", _LOG_ERROR_LISTING),
+                ("_LOG_UPDATING_TRIP", _LOG_UPDATING_TRIP),
+                ("_LOG_ENTRY_NOT_FOUND", _LOG_ENTRY_NOT_FOUND),
+                ("_LOG_UPDATE_FAILED", _LOG_UPDATE_FAILED),
+                ("_LOG_CREATED_RECURRING", _LOG_CREATED_RECURRING),
+                ("_LOG_CREATED_PUNCTUAL", _LOG_CREATED_PUNCTUAL),
+                ("_LOG_INVALID_TRIP_TYPE", _LOG_INVALID_TRIP_TYPE),
+                ("_LOG_CALL_DATA_TRIP_GET", _LOG_CALL_DATA_TRIP_GET),
+                ("_LOG_TRIP_GET_SERVICE_CALLED", _LOG_TRIP_GET_SERVICE_CALLED),
+                ("_LOG_TRIP_GET_SUCCESS", _LOG_TRIP_GET_SUCCESS),
+                ("_LOG_TRIP_GET_NOT_FOUND", _LOG_TRIP_GET_NOT_FOUND),
+                ("_LOG_GETTING_ALL_TO_FIND", _LOG_GETTING_ALL_TO_FIND),
+                ("_LOG_FOUND_TRIPS_COUNT", _LOG_FOUND_TRIPS_COUNT),
+                ("_LOG_SEARCHING_FOR_ID", _LOG_SEARCHING_FOR_ID),
+                ("_LOG_FOUND_TRIP", _LOG_FOUND_TRIP),
+                ("_LOG_ERROR_GETTING_TRIP", _LOG_ERROR_GETTING_TRIP),
+                ("_LOG_FINDING_ALL_TO_FIND_ID", _LOG_FINDING_ALL_TO_FIND_ID),
+            ]
+        )
 
     def test_refresh_format(self):
         """_LOG_REFRESH has one %s placeholder."""

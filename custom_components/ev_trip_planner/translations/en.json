@@ -34,7 +34,7 @@
           "charging_power": "Maximum charging power in kW (e.g., 7.2 for 7.2kW, 22 for 22kW three-phase). Check your wallbox specs. Example: 7.2",
           "range_sensor": "Optional: Sensor showing remaining range in km. Look for sensors ending in '_range', '_range_est' or '_car_range_remaining'. Example: sensor.ovms_chispitas_metric_v_b_range_est",
           "charging_status": "Optional: Binary sensor that shows 'on' when the vehicle is charging. Look for sensors with 'charging', 'charge' or 'plugged' in the name. Example: binary_sensor.ovms_chispitas_charging",
-          "t_base": "Time you can keep the battery at high SOC without damaging it. Lower values = more aggressive battery protection. Range: 6-48h. Example: 24 (balance between protection and flexibility)",
+          "t_base": "Battery health aggressiveness. Controls how much charging hours are reduced when the window is wide (plenty of time before the trip). Lower = more aggressive (less charging when trip is far away). Range: 6-48h. Example: 24 (balance between health and flexibility)",
           "soh_sensor": "Optional: Sensor that shows battery state of health as a percentage (e.g., 87 for 87%). This is used to calculate real battery capacity. Look for sensors with 'soh', 'health' or 'capacity' in the name. Example: sensor.ovms_soh"
         }
       },

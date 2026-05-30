@@ -225,7 +225,9 @@ class TestIndexManagerLifecycle:
         idx = emhass_adapter._index_manager.assign_index("trip-1")
         emhass_adapter._index_manager.release_index("trip-1")
         # Trip-1's index should be in cooldown
-        assert idx in [r["index"] for r in emhass_adapter._index_manager._released_indices]
+        assert idx in [
+            r["index"] for r in emhass_adapter._index_manager._released_indices
+        ]
         # Trip-2 should get the next non-cooldown index
         idx2 = emhass_adapter._index_manager.assign_index("trip-2")
         assert idx2 != idx
@@ -295,9 +297,7 @@ class TestPublishCycle:
             "datetime": future,
             "kwh": 10.0,
         }
-        result = _run_async(
-            emhass_adapter.async_publish_all_deferrable_loads([trip])
-        )
+        result = _run_async(emhass_adapter.async_publish_all_deferrable_loads([trip]))
         assert result is True
 
     def test_publish_past_deadline_zero_hours(self, emhass_adapter):
@@ -309,9 +309,7 @@ class TestPublishCycle:
             "datetime": past,
             "kwh": 10.0,
         }
-        result = _run_async(
-            emhass_adapter.async_publish_all_deferrable_loads([trip])
-        )
+        result = _run_async(emhass_adapter.async_publish_all_deferrable_loads([trip]))
         assert result is True
         assert "pun_past" in emhass_adapter._cached_per_trip_params
         params = emhass_adapter._cached_per_trip_params["pun_past"]
@@ -322,9 +320,7 @@ class TestPublishCycle:
     def test_publish_no_id_skipped(self, emhass_adapter):
         """Trip without ID produces 0 cached params (skipped)."""
         trip = {"tipo": "puntual", "kwh": 10.0}
-        result = _run_async(
-            emhass_adapter.async_publish_all_deferrable_loads([trip])
-        )
+        result = _run_async(emhass_adapter.async_publish_all_deferrable_loads([trip]))
         # Adapter returns True (no exception), but trip is skipped
         assert result is True
         assert len(emhass_adapter._cached_per_trip_params) == 0
@@ -376,7 +372,9 @@ class TestRemoveCycle:
         result = _run_async(emhass_adapter.async_remove_deferrable_load("pun_test_001"))
         assert result is True
         assert len(emhass_adapter._index_map) == before_count - 1
-        assert len(emhass_adapter._index_manager._released_indices) == before_cooldown + 1
+        assert (
+            len(emhass_adapter._index_manager._released_indices) == before_cooldown + 1
+        )
 
     def test_remove_cleans_cache(self, emhass_adapter, realistic_trip):
         """async_remove_deferrable_load cleans _cached_per_trip_params."""
@@ -396,20 +394,31 @@ class TestRemoveCycle:
 class TestMultiTripPublish:
     """Test publishing multiple trips and asserting full state."""
 
-    def test_publish_two_trips(self, emhass_adapter, realistic_trip, realistic_recurring_trip):
+    def test_publish_two_trips(
+        self, emhass_adapter, realistic_trip, realistic_recurring_trip
+    ):
         """Two trips get different indices."""
-        _run_async(emhass_adapter.async_publish_all_deferrable_loads(
-            [realistic_trip, realistic_recurring_trip]
-        ))
+        _run_async(
+            emhass_adapter.async_publish_all_deferrable_loads(
+                [realistic_trip, realistic_recurring_trip]
+            )
+        )
         assert "pun_test_001" in emhass_adapter._index_map
         assert "rec_lun_001" in emhass_adapter._index_map
-        assert emhass_adapter._index_map["pun_test_001"] != emhass_adapter._index_map["rec_lun_001"]
+        assert (
+            emhass_adapter._index_map["pun_test_001"]
+            != emhass_adapter._index_map["rec_lun_001"]
+        )
 
-    def test_multi_assert_all_published(self, emhass_adapter, realistic_trip, realistic_recurring_trip):
+    def test_multi_assert_all_published(
+        self, emhass_adapter, realistic_trip, realistic_recurring_trip
+    ):
         """After publishing both trips, assert all state is correct."""
-        _run_async(emhass_adapter.async_publish_all_deferrable_loads(
-            [realistic_trip, realistic_recurring_trip]
-        ))
+        _run_async(
+            emhass_adapter.async_publish_all_deferrable_loads(
+                [realistic_trip, realistic_recurring_trip]
+            )
+        )
         # Both in published_trips
         assert "pun_test_001" in emhass_adapter._published_trips
         assert "rec_lun_001" in emhass_adapter._published_trips
@@ -431,12 +440,16 @@ class TestMultiTripPublish:
         """Three distinct trips get indices 0, 1, 2."""
         trips = []
         for i in range(3):
-            trips.append({
-                "id": f"trip_{i}",
-                "tipo": "puntual",
-                "datetime": (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
-                "kwh": 5.0,
-            })
+            trips.append(
+                {
+                    "id": f"trip_{i}",
+                    "tipo": "puntual",
+                    "datetime": (
+                        datetime.now(timezone.utc) + timedelta(hours=6)
+                    ).isoformat(),
+                    "kwh": 5.0,
+                }
+            )
         _run_async(emhass_adapter.async_publish_all_deferrable_loads(trips))
 
         for i in range(3):

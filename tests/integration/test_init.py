@@ -184,31 +184,42 @@ class TestAsyncSetupEntry:
         entry.data = {"vehicle_name": "test_vehicle", "battery_capacity_kwh": 50.0}
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             mock_storage = MagicMock()
             MockStorage.return_value = mock_storage
@@ -271,33 +282,45 @@ class TestAsyncSetupEntry:
         }
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-        ) as MockEMHASS, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.EMHASSAdapter",
+            ) as MockEMHASS,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             mock_storage = MagicMock()
             MockStorage.return_value = mock_storage
@@ -345,31 +368,42 @@ class TestAsyncSetupEntry:
         entry.data = {}  # No vehicle_name key
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             mock_storage = MagicMock()
             MockStorage.return_value = mock_storage
@@ -501,31 +535,42 @@ class TestAsyncSetupEntryBehavioral:
         entry.data = {"vehicle_name": "test_vehicle"}
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             MockStorage.return_value = MagicMock()
             mock_tm = MagicMock()
@@ -560,33 +605,45 @@ class TestAsyncSetupEntryBehavioral:
         }
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-        ) as MockEMHASS, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.EMHASSAdapter",
+            ) as MockEMHASS,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             MockStorage.return_value = MagicMock()
             mock_tm = MagicMock()
@@ -629,32 +686,43 @@ class TestAsyncSetupEntryBehavioral:
         entry.entry_id = "entry_1"
         cancel_handle = MagicMock()
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ) as MockRegisterSvc, patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
-        ) as MockTimer:
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ) as MockRegisterSvc,
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ) as MockTimer,
+        ):
             MockStorage.return_value = MagicMock()
             mock_tm = MagicMock()
             mock_tm._persistence = MagicMock()
@@ -691,31 +759,42 @@ class TestAsyncSetupEntryBehavioral:
         entry.data = FakeData()
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ) as MockPanel, patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ) as MockPanel,
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             MockStorage.return_value = MagicMock()
             mock_tm = MagicMock()
@@ -747,33 +826,45 @@ class TestAsyncSetupEntryBehavioral:
         entry.data = {"vehicle_name": "test", "planning_horizon_days": 7}
         entry.entry_id = "entry_1"
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-        ) as MockTM, patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-        ) as MockEMHASS, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+            ) as MockTM,
+            patch(
+                "custom_components.ev_trip_planner.EMHASSAdapter",
+            ) as MockEMHASS,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             MockStorage.return_value = MagicMock()
             mock_tm = MagicMock()
@@ -981,33 +1072,44 @@ class TestInitLifecycle:
         mock_tm._lifecycle = MagicMock()
         mock_tm._lifecycle.async_delete_all_trips = AsyncMock()
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-            return_value=mock_tm,
-        ), patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
-        ) as MockTimer:
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+                return_value=mock_tm,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ) as MockTimer,
+        ):
             MockStorage.return_value = MagicMock()
             mock_coord = MagicMock()
             mock_coord.async_config_entry_first_refresh = AsyncMock()
@@ -1065,34 +1167,46 @@ class TestInitLifecycle:
         mock_tm._lifecycle = MagicMock()
         mock_tm._lifecycle.async_delete_all_trips = AsyncMock()
 
-        with patch(
-            "custom_components.ev_trip_planner.async_cleanup_stale_storage",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.async_register_static_paths",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.build_presence_config",
-            return_value={},
-        ), patch(
-            "custom_components.ev_trip_planner.YamlTripStorage",
-        ) as MockStorage, patch(
-            "custom_components.ev_trip_planner.TripManager",
-            return_value=mock_tm,
-        ), patch(
-            "custom_components.ev_trip_planner.EMHASSAdapter",
-        ) as MockEMHASS, patch(
-            "custom_components.ev_trip_planner.TripPlannerCoordinator",
-        ) as MockCoord, patch(
-            "custom_components.ev_trip_planner.async_register_panel_for_entry",
-            new=AsyncMock(),
-        ), patch(
-            "custom_components.ev_trip_planner.register_services",
-        ), patch(
-            "custom_components.ev_trip_planner.async_track_time_interval",
+        with (
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_stale_storage",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_cleanup_orphaned_emhass_sensors",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_register_static_paths",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.build_presence_config",
+                return_value={},
+            ),
+            patch(
+                "custom_components.ev_trip_planner.YamlTripStorage",
+            ) as MockStorage,
+            patch(
+                "custom_components.ev_trip_planner.TripManager",
+                return_value=mock_tm,
+            ),
+            patch(
+                "custom_components.ev_trip_planner.EMHASSAdapter",
+            ) as MockEMHASS,
+            patch(
+                "custom_components.ev_trip_planner.TripPlannerCoordinator",
+            ) as MockCoord,
+            patch(
+                "custom_components.ev_trip_planner.async_register_panel_for_entry",
+                new=AsyncMock(),
+            ),
+            patch(
+                "custom_components.ev_trip_planner.register_services",
+            ),
+            patch(
+                "custom_components.ev_trip_planner.async_track_time_interval",
+            ),
         ):
             MockStorage.return_value = MagicMock()
 
@@ -1311,5 +1425,7 @@ class TestHourlyRefreshCallbackMultiAssert:
                 coordinator=None, trip_manager=mgr, emhass_adapter=adapter
             )
             await _hourly_refresh_callback(None, rt)
-            coord_logs = [r for r in caplog.records if "coordinator" in r.message.lower()]
+            coord_logs = [
+                r for r in caplog.records if "coordinator" in r.message.lower()
+            ]
             assert len(coord_logs) >= 1, "coordinator abort message"

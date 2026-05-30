@@ -118,7 +118,7 @@ class TestPopulatePerTripCacheEntryMissingPaths:
         entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {}
-        adapter._apply_deficit_propagation()  # Should not raise
+        adapter._run_window_pipeline()  # Should not raise
 
     def test_single_active_trip_returns_early(self):
         """Line 739: Less than 2 active trips returns early."""
@@ -128,14 +128,14 @@ class TestPopulatePerTripCacheEntryMissingPaths:
         adapter._cached_per_trip_params = {
             "trip_001": {"activo": True, "def_start_timestep": 0, "emhass_index": 0},
         }
-        adapter._apply_deficit_propagation()  # Should not raise
+        adapter._run_window_pipeline()  # Should not raise
 
 
-class TestBuildDeficitWindowsEmptyChargingWindow:
-    """Test _build_deficit_windows with empty charging windows (lines 777-778)."""
+class TestBuildPipelineWindowsEmptyChargingWindow:
+    """Test _build_pipeline_windows with empty charging windows."""
 
     def test_empty_charging_window_produces_zero_hours(self):
-        """Lines 777-778: Empty charging_window should produce zero horas_carga."""
+        """Empty charging_window should produce windows with 0 horas_carga."""
         hass = MagicMock()
         entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
@@ -158,22 +158,22 @@ class TestBuildDeficitWindowsEmptyChargingWindow:
                 "energia_necesaria_kwh": 5.0,
             },
         ]
-        windows, total_hours_list = adapter._build_deficit_windows(active)
+        windows, trip_ids = adapter._build_pipeline_windows(active)
         # Empty charging windows should produce windows with 0 horas_carga
         assert len(windows) == 2
         assert all(w.get("horas_carga_necesarias", 0) == 0 for w in windows)
-        assert total_hours_list == [0.0, 0.0]
+        assert len(trip_ids) == 2
 
 
-class TestApplyDeficitPropagationEarlyReturns:
-    """Test early returns in _apply_deficit_propagation (lines 744)."""
+class TestRunWindowPipelineEarlyReturns:
+    """Test early returns in _run_window_pipeline."""
 
     def test_windows_empty_returns_early(self):
-        """Line 744: Empty windows list returns early."""
+        """Empty windows list should return early without error."""
         hass = MagicMock()
         entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
-        # Two active trips but empty charging windows -> _build_deficit_windows returns empty
+        # Two active trips but empty charging windows -> _build_pipeline_windows returns empty
         adapter._cached_per_trip_params = {
             "trip_001": {
                 "activo": True,
@@ -189,22 +189,66 @@ class TestApplyDeficitPropagationEarlyReturns:
             },
         }
         # Should return early without error when windows are empty
-        adapter._apply_deficit_propagation()
+        adapter._run_window_pipeline()
 
 
-class TestApplyDeficitResults:
-    """Test _apply_deficit_results (lines 793, 797)."""
+class TestGetTBaseNoEntry:
+    """Test _get_t_base fallback when self._entry is None (line 761)."""
 
-    def test_apply_deficit_results_empty(self):
-        """Lines 793, 797: Empty results list should not raise."""
+    def test_get_t_base_returns_default_when_no_entry(self):
+        """Line 761: When _entry is None, _get_t_base returns DEFAULT_T_BASE."""
+        from custom_components.ev_trip_planner.const import DEFAULT_T_BASE
+
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        adapter._entry = None  # simulate no entry
+        result = adapter._get_t_base()
+        assert result == DEFAULT_T_BASE
+
+
+class TestRunWindowPipelineNoActiveTrips:
+    """Test _run_window_pipeline early return when no active trips (line 778)."""
+
+    def test_no_active_trips_returns_early(self):
+        """Line 778: Cached params present but no activo=True → early return."""
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        # params present but activo=False → _get_active_trips_sorted returns []
+        adapter._cached_per_trip_params = {
+            "trip_001": {"activo": False, "def_start_timestep": 0, "emhass_index": 0},
+        }
+        adapter._run_window_pipeline()  # Should not raise
+
+
+class TestApplyPipelineResults:
+    """Test _apply_pipeline_results."""
+
+    def test_apply_pipeline_results_adjusted_none_skips_entry(self):
+        """Line 856: Result with adjusted_def_total_hours=None should be skipped."""
+        hass = MagicMock()
+        entry = _make_valid_entry()
+        adapter = EMHASSAdapter(hass=hass, entry=entry)
+        trip_001 = {"def_start_timestep": 0, "emhass_index": 0, "power_watts": 3600}
+        adapter._cached_per_trip_params = {"trip_001": trip_001}
+        # Result with no adjusted_def_total_hours key → adjusted is None → skip
+        results = [{}]
+        active = [trip_001]
+        adapter._apply_pipeline_results(results, active, ["trip_001"])
+        # def_total_hours must NOT be set (entry was skipped)
+        assert "def_total_hours" not in trip_001
+
+    def test_apply_pipeline_results_empty(self):
+        """Empty results list should not raise."""
         hass = MagicMock()
         entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
         adapter._cached_per_trip_params = {}
-        adapter._apply_deficit_results([], [])
+        adapter._apply_pipeline_results([], [])
 
-    def test_apply_deficit_results_with_data(self):
-        """Lines 793, 797: Results with data should update cached params."""
+    def test_apply_pipeline_results_with_data(self):
+        """Results with data should update cached params."""
         hass = MagicMock()
         entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
@@ -218,7 +262,7 @@ class TestApplyDeficitResults:
         ]
         # active[0] must be the SAME OBJECT as trip_001 for identity check to pass
         active = [trip_001]
-        adapter._apply_deficit_results(results, active)
+        adapter._apply_pipeline_results(results, active)
         assert trip_001.get("def_total_hours") == 5.0
 
 
@@ -253,11 +297,11 @@ class TestFindTripIdForParams:
         assert result == "trip_001"
 
 
-class TestLine744EmptyWindows:
-    """Test line 744: early return when _build_deficit_windows returns empty."""
+class TestRunWindowPipelineEmptyWindows:
+    """Test early return in _run_window_pipeline when _build_pipeline_windows returns empty."""
 
-    def test_line_744_empty_windows_returns_early(self):
-        """Line 744: When _build_deficit_windows returns empty list, return early."""
+    def test_empty_windows_returns_early(self):
+        """When _build_pipeline_windows returns empty list, return early."""
         hass = MagicMock()
         entry = _make_valid_entry()
         adapter = EMHASSAdapter(hass=hass, entry=entry)
@@ -265,14 +309,13 @@ class TestLine744EmptyWindows:
             "trip_001": {"activo": True, "def_start_timestep": 0, "emhass_index": 0},
             "trip_002": {"activo": True, "def_start_timestep": 2, "emhass_index": 1},
         }
-        # Mock _build_deficit_windows to return empty list
+        # Mock _build_pipeline_windows to return empty list
         with patch.object(
-            adapter, "_build_deficit_windows", return_value=([], [])
+            adapter, "_build_pipeline_windows", return_value=([], [])
         ) as mock_build:
-            # Should return early at line 744 without calling calculate_hours_deficit_propagation
-            adapter._apply_deficit_propagation()
+            # Should return early without calling the pipeline transforms
+            adapter._run_window_pipeline()
             mock_build.assert_called_once()
-            # Should not reach the deficit calculation
 
 
 class TestLines650652KmFallbackAndLine695:

@@ -59,18 +59,16 @@ def _count_nonzero(profile):
 async def test_t_base_affects_charging_hours():
     """T056: T_BASE=6h should produce less total charging energy than T_BASE=48h.
 
-    Setup: 4 commute trips (6kWh each), SOC=60%, charging=7.4kW.
+    Setup: 4 trips (30kWh each → needs=5h), SOC=60%, charging=7.4kW.
     Trips are scheduled 20h apart (20h, 40h, 60h, 80h in future).
 
-    With SOC=60% and trip_kwh=6kWh on 60kWh battery:
-        soc_after_trip = 60 - (6/60)*100 = 50% (above 35% sweet spot)
-        → risk > 0 → SOC cap < 100%
+    With the slack-driven ramp (H_allowed = H_req / (1 + slack/k)):
+    - T_BASE=6h (k small): ramp is aggressive → fewer allowed hours per window
+    - T_BASE=48h (k large): ramp is conservative → more allowed hours per window
 
-    With T_BASE=6h (aggressive): tighter SOC cap → less total energy
-    With T_BASE=48h (conservative): looser SOC cap → more total energy
-
-    BUG: _t_base is NOT wired into the production path, so both produce the same.
-    This test MUST FAIL until T062 wires t_base through the charging decision.
+    trips must be ≥3h needs so that ceil(H_allowed) differs between k values.
+    6kWh/7.4kW = 0.81h → ceil = 1h (all k values give same result).
+    30kWh/7.4kW = 4.05h → ceil = 5h base; ramp differentiates well.
     """
     hass_6, store_6 = _make_mock_hass(soc_state=60.0)
     hass_48, store_48 = _make_mock_hass(soc_state=60.0)
@@ -117,7 +115,7 @@ async def test_t_base_affects_charging_hours():
     trips = [
         {
             "id": f"trip_{i}",
-            "kwh": 6.0,
+            "kwh": 30.0,  # 30kWh → needs=5h (ramp can differentiate k=6 vs k=48)
             "datetime": (now + timedelta(hours=20 + i * 20)).isoformat(),
         }
         for i in range(4)

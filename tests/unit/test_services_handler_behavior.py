@@ -109,9 +109,7 @@ class TestMakeTripListHandler:
         mock_mgr._crud.async_get_recurring_trips = AsyncMock(
             return_value=[{"id": "r1"}, {"id": "r2"}]
         )
-        mock_mgr._crud.async_get_punctual_trips = AsyncMock(
-            return_value=[{"id": "p1"}]
-        )
+        mock_mgr._crud.async_get_punctual_trips = AsyncMock(return_value=[{"id": "p1"}])
 
         handler = make_trip_list_handler(mock_hass)
         call = _make_service_call({"vehicle_id": "test_vehicle"})
@@ -188,10 +186,12 @@ class TestMakeTripGetHandler:
         )
 
         handler = make_trip_get_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         result = await handler(call)
 
@@ -211,10 +211,12 @@ class TestMakeTripGetHandler:
         mock_mgr._crud.async_get_punctual_trips = AsyncMock(return_value=[])
 
         handler = make_trip_get_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         result = await handler(call)
 
@@ -232,10 +234,12 @@ class TestMakeTripGetHandler:
         mock_mgr._crud.async_get_punctual_trips = AsyncMock(return_value=[])
 
         handler = make_trip_get_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "nonexistent",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "nonexistent",
+            }
+        )
 
         result = await handler(call)
 
@@ -255,10 +259,12 @@ class TestMakeTripGetHandler:
         mock_mgr._crud.async_get_punctual_trips = AsyncMock(return_value=[])
 
         handler = make_trip_get_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "t1",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "t1",
+            }
+        )
 
         result = await handler(call)
 
@@ -276,10 +282,12 @@ class TestMakeTripGetHandler:
         )
 
         handler = make_trip_get_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "t1",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "t1",
+            }
+        )
 
         result = await handler(call)
 
@@ -303,10 +311,12 @@ class TestMakeTripGetHandler:
         )
 
         handler = make_trip_get_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "rec_1",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "rec_1",
+            }
+        )
 
         result = await handler(call)
 
@@ -331,11 +341,13 @@ class TestMakeImportWeeklyPatternHandler:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_import_weekly_pattern_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "pattern": {"monday": [{"hora": "08:00", "km": 10, "kwh": 1.0}]},
-            "clear_existing": True,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "pattern": {"monday": [{"hora": "08:00", "km": 10, "kwh": 1.0}]},
+                "clear_existing": True,
+            }
+        )
 
         await handler(call)
 
@@ -355,16 +367,18 @@ class TestMakeImportWeeklyPatternHandler:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_import_weekly_pattern_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "pattern": {
-                "monday": [
-                    {"hora": "08:00", "km": 10, "kwh": 1.0},
-                    {"hora": "18:00", "km": 20, "kwh": 2.0},
-                ]
-            },
-            "clear_existing": False,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "pattern": {
+                    "monday": [
+                        {"hora": "08:00", "km": 10, "kwh": 1.0},
+                        {"hora": "18:00", "km": 20, "kwh": 2.0},
+                    ]
+                },
+                "clear_existing": False,
+            }
+        )
 
         await handler(call)
 
@@ -383,11 +397,13 @@ class TestMakeImportWeeklyPatternHandler:
         mock_mgr._crud.async_delete_trip = AsyncMock()
 
         handler = make_import_weekly_pattern_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "pattern": {},
-            # clear_existing not provided
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "pattern": {},
+                # clear_existing not provided
+            }
+        )
 
         await handler(call)
 
@@ -408,12 +424,14 @@ class TestMakeAddPunctualHandler:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_add_punctual_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "datetime": "2024-01-15T08:00:00",
-            "km": 10.0,
-            "kwh": 1.5,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "datetime": "2024-01-15T08:00:00",
+                "km": 10.0,
+                "kwh": 1.5,
+            }
+        )
 
         await handler(call)
 
@@ -433,13 +451,15 @@ class TestMakeAddPunctualHandler:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_add_punctual_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "datetime": "2024-01-15T08:00:00",
-            "km": 10.0,
-            "kwh": 1.5,
-            # No descripcion provided
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "datetime": "2024-01-15T08:00:00",
+                "km": 10.0,
+                "kwh": 1.5,
+                # No descripcion provided
+            }
+        )
 
         await handler(call)
 
@@ -456,13 +476,15 @@ class TestMakeAddPunctualHandler:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_add_punctual_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "datetime": "2024-01-15T08:00:00",
-            "km": 10.0,
-            "kwh": 1.5,
-            "descripcion": "my_description",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "datetime": "2024-01-15T08:00:00",
+                "km": 10.0,
+                "kwh": 1.5,
+                "descripcion": "my_description",
+            }
+        )
 
         await handler(call)
 
@@ -483,14 +505,16 @@ class TestMakeTripCreateHandler:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "recurrente",
-            "dia_semana": "monday",
-            "hora": "08:00",
-            "km": 10.0,
-            "kwh": 1.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "recurrente",
+                "dia_semana": "monday",
+                "hora": "08:00",
+                "km": 10.0,
+                "kwh": 1.0,
+            }
+        )
 
         await handler(call)
 
@@ -506,13 +530,15 @@ class TestMakeTripCreateHandler:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "datetime": "2024-01-15T08:00:00",
-            "km": 10.0,
-            "kwh": 1.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "datetime": "2024-01-15T08:00:00",
+                "km": 10.0,
+                "kwh": 1.0,
+            }
+        )
 
         await handler(call)
 
@@ -526,12 +552,14 @@ class TestMakeTripCreateHandler:
         )
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "invalid_type",
-            "km": 10.0,
-            "kwh": 1.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "invalid_type",
+                "km": 10.0,
+                "kwh": 1.0,
+            }
+        )
 
         await handler(call)
 
@@ -555,15 +583,19 @@ class TestMakeTripUpdateHandler:
         mock_mgr._crud.async_get_punctual_trips = AsyncMock(return_value=[])
 
         handler = make_trip_update_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-            "updates": {"km": 20.0},
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+                "updates": {"km": 20.0},
+            }
+        )
 
         await handler(call)
 
-        mock_mgr._crud.async_update_trip.assert_called_once_with("trip_123", {"km": 20.0})
+        mock_mgr._crud.async_update_trip.assert_called_once_with(
+            "trip_123", {"km": 20.0}
+        )
 
     @pytest.mark.asyncio
     async def test_handles_updates_from_data_fields(self, mock_hass, mock_mgr):
@@ -577,12 +609,14 @@ class TestMakeTripUpdateHandler:
         mock_mgr._crud.async_get_punctual_trips = AsyncMock(return_value=[])
 
         handler = make_trip_update_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-            "type": "recurrente",
-            "hora": "09:00",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+                "type": "recurrente",
+                "hora": "09:00",
+            }
+        )
 
         await handler(call)
 
@@ -605,10 +639,12 @@ class TestMakeDeleteTripHandler:
         mock_mgr._crud.async_delete_trip = AsyncMock()
 
         handler = make_delete_trip_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         await handler(call)
 
@@ -629,14 +665,18 @@ class TestMakePauseResumeHandler:
         mock_mgr._lifecycle.async_pause_recurring_trip = AsyncMock()
 
         handler = make_pause_recurring_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         await handler(call)
 
-        mock_mgr._lifecycle.async_pause_recurring_trip.assert_called_once_with("trip_123")
+        mock_mgr._lifecycle.async_pause_recurring_trip.assert_called_once_with(
+            "trip_123"
+        )
 
     @pytest.mark.asyncio
     async def test_resume_calls_async_resume_recurring_trip(self, mock_hass, mock_mgr):
@@ -649,21 +689,27 @@ class TestMakePauseResumeHandler:
         mock_mgr._lifecycle.async_resume_recurring_trip = AsyncMock()
 
         handler = make_resume_recurring_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         await handler(call)
 
-        mock_mgr._lifecycle.async_resume_recurring_trip.assert_called_once_with("trip_123")
+        mock_mgr._lifecycle.async_resume_recurring_trip.assert_called_once_with(
+            "trip_123"
+        )
 
 
 class TestMakeCompleteCancelHandler:
     """Targets 16 survivors in complete/cancel handlers."""
 
     @pytest.mark.asyncio
-    async def test_complete_calls_async_complete_punctual_trip(self, mock_hass, mock_mgr):
+    async def test_complete_calls_async_complete_punctual_trip(
+        self, mock_hass, mock_mgr
+    ):
         """Kill mutations: async_complete_punctual_trip → None."""
         from custom_components.ev_trip_planner.services._handler_factories import (
             make_complete_punctual_handler,
@@ -673,14 +719,18 @@ class TestMakeCompleteCancelHandler:
         mock_mgr._lifecycle.async_complete_punctual_trip = AsyncMock()
 
         handler = make_complete_punctual_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         await handler(call)
 
-        mock_mgr._lifecycle.async_complete_punctual_trip.assert_called_once_with("trip_123")
+        mock_mgr._lifecycle.async_complete_punctual_trip.assert_called_once_with(
+            "trip_123"
+        )
 
     @pytest.mark.asyncio
     async def test_cancel_calls_async_cancel_punctual_trip(self, mock_hass, mock_mgr):
@@ -693,14 +743,18 @@ class TestMakeCompleteCancelHandler:
         mock_mgr._lifecycle.async_cancel_punctual_trip = AsyncMock()
 
         handler = make_cancel_punctual_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_id": "trip_123",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_id": "trip_123",
+            }
+        )
 
         await handler(call)
 
-        mock_mgr._lifecycle.async_cancel_punctual_trip.assert_called_once_with("trip_123")
+        mock_mgr._lifecycle.async_cancel_punctual_trip.assert_called_once_with(
+            "trip_123"
+        )
 
 
 class TestMakeAddRecurringHandler:
@@ -716,13 +770,15 @@ class TestMakeAddRecurringHandler:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_add_recurring_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "dia_semana": "lunes",
-            "hora": "08:00",
-            "km": 10.0,
-            "kwh": 1.5,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "km": 10.0,
+                "kwh": 1.5,
+            }
+        )
 
         await handler(call)
 
@@ -743,14 +799,16 @@ class TestMakeAddRecurringHandler:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_add_recurring_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "dia_semana": "lunes",
-            "hora": "08:00",
-            "km": 10.0,
-            "kwh": 1.5,
-            "descripcion": "my_trip_desc",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "km": 10.0,
+                "kwh": 1.5,
+                "descripcion": "my_trip_desc",
+            }
+        )
 
         await handler(call)
 
@@ -767,14 +825,16 @@ class TestMakeAddRecurringHandler:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_add_recurring_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "dia_semana": "lunes",
-            "hora": "08:00",
-            "km": 10.0,
-            "kwh": 1.5,
-            # No descripcion provided
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "km": 10.0,
+                "kwh": 1.5,
+                # No descripcion provided
+            }
+        )
 
         await handler(call)
 
@@ -796,13 +856,15 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "datetime": "2024-01-15T08:00:00",
-            "km": 10.0,
-            "kwh": 1.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "datetime": "2024-01-15T08:00:00",
+                "km": 10.0,
+                "kwh": 1.0,
+            }
+        )
 
         await handler(call)
 
@@ -820,13 +882,15 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "trip_type": "puntual",
-            "km": 10.0,
-            "kwh": 1.0,
-            "datetime": "2024-01-15T08:00:00",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "trip_type": "puntual",
+                "km": 10.0,
+                "kwh": 1.0,
+                "datetime": "2024-01-15T08:00:00",
+            }
+        )
 
         await handler(call)
 
@@ -842,14 +906,16 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "recurrente",
-            "day_of_week": "monday",
-            "hora": "08:00",
-            "km": 10.0,
-            "kwh": 1.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "recurrente",
+                "day_of_week": "monday",
+                "hora": "08:00",
+                "km": 10.0,
+                "kwh": 1.0,
+            }
+        )
 
         await handler(call)
 
@@ -868,13 +934,15 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "datetime": "2024-06-15T14:30:00",
-            "km": 25.0,
-            "kwh": 3.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "datetime": "2024-06-15T14:30:00",
+                "km": 25.0,
+                "kwh": 3.0,
+            }
+        )
 
         await handler(call)
 
@@ -892,15 +960,17 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "datetime": "2024-06-15T14:30:00",
-            "km": 25.0,
-            "kwh": 3.0,
-            "descripcion": "Spanish desc",
-            "description": "English desc",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "datetime": "2024-06-15T14:30:00",
+                "km": 25.0,
+                "kwh": 3.0,
+                "descripcion": "Spanish desc",
+                "description": "English desc",
+            }
+        )
 
         await handler(call)
 
@@ -918,14 +988,16 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "datetime": "2024-06-15T14:30:00",
-            "km": 25.0,
-            "kwh": 3.0,
-            "description": "Only English",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "datetime": "2024-06-15T14:30:00",
+                "km": 25.0,
+                "kwh": 3.0,
+                "description": "Only English",
+            }
+        )
 
         await handler(call)
 
@@ -943,14 +1015,16 @@ class TestMakeTripCreateHandlerFull:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "recurrente",
-            "dia_semana": "martes",
-            "hora": "18:00",
-            "km": 15.0,
-            "kwh": 2.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "recurrente",
+                "dia_semana": "martes",
+                "hora": "18:00",
+                "km": 15.0,
+                "kwh": 2.0,
+            }
+        )
 
         await handler(call)
 
@@ -977,14 +1051,16 @@ class TestMakeTripCreateHandlerMultiAssert:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "recurrente",
-            "day_of_week": "wednesday",
-            "time": "20:00",
-            "km": 10.0,
-            "kwh": 1.5,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "recurrente",
+                "day_of_week": "wednesday",
+                "time": "20:00",
+                "km": 10.0,
+                "kwh": 1.5,
+            }
+        )
 
         result = await handler(call)
 
@@ -1006,13 +1082,15 @@ class TestMakeTripCreateHandlerMultiAssert:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "datetime": "2026-06-15T14:00:00",
-            "km": 25.0,
-            "kwh": 3.0,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "datetime": "2026-06-15T14:00:00",
+                "km": 25.0,
+                "kwh": 3.0,
+            }
+        )
 
         result = await handler(call)
 
@@ -1033,12 +1111,14 @@ class TestMakeTripCreateHandlerMultiAssert:
         mock_mgr._crud.async_add_punctual_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "puntual",
-            "km": 5.0,
-            "kwh": 0.5,
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "puntual",
+                "km": 5.0,
+                "kwh": 0.5,
+            }
+        )
 
         result = await handler(call)
 
@@ -1056,10 +1136,12 @@ class TestMakeTripCreateHandlerMultiAssert:
         )
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "invalid",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "invalid",
+            }
+        )
 
         result = await handler(call)
 
@@ -1077,15 +1159,17 @@ class TestMakeTripCreateHandlerMultiAssert:
         mock_mgr._crud.async_add_recurring_trip = AsyncMock()
 
         handler = make_trip_create_handler(mock_hass)
-        call = _make_service_call({
-            "vehicle_id": "test_vehicle",
-            "type": "recurrente",
-            "dia_semana": "lunes",
-            "hora": "08:00",
-            "km": 20.0,
-            "kwh": 2.5,
-            "descripcion": "Vuelta al trabajo",
-        })
+        call = _make_service_call(
+            {
+                "vehicle_id": "test_vehicle",
+                "type": "recurrente",
+                "dia_semana": "lunes",
+                "hora": "08:00",
+                "km": 20.0,
+                "kwh": 2.5,
+                "descripcion": "Vuelta al trabajo",
+            }
+        )
 
         result = await handler(call)
 
@@ -1096,4 +1180,3 @@ class TestMakeTripCreateHandlerMultiAssert:
         assert call_args[1]["descripcion"] == "Vuelta al trabajo"
         assert call_args[1]["km"] == 20.0
         assert call_args[1]["kwh"] == 2.5
-

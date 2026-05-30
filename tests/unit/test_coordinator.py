@@ -467,7 +467,9 @@ class TestRefreshTripsLogAssertions:
         coord.async_refresh = AsyncMock(return_value=MagicMock())
         await coord.async_refresh_trips()
         # The log should contain the list of keys, not the "None" string
-        log_records = [r for r in caplog.records if "async_refresh_trips START" in r.message]
+        log_records = [
+            r for r in caplog.records if "async_refresh_trips START" in r.message
+        ]
         assert len(log_records) >= 1
         # Verify the log message includes actual keys, proving the 'else' branch
         # was taken (kills mutations on 'is None' → 'is not None' bool flip)
@@ -483,7 +485,9 @@ class TestRefreshTripsLogAssertions:
         coord.data = None
         coord.async_refresh = AsyncMock(return_value=MagicMock())
         await coord.async_refresh_trips()
-        log_records = [r for r in caplog.records if "async_refresh_trips START" in r.message]
+        log_records = [
+            r for r in caplog.records if "async_refresh_trips START" in r.message
+        ]
         assert len(log_records) >= 1
         combined = " ".join(r.message for r in log_records)
         # When data is None, the string "None" should appear in the log

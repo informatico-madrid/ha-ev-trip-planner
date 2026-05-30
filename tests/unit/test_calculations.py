@@ -2466,7 +2466,9 @@ class TestMutationKillsChargingWindowPure:
         )
         for key in required_keys:
             assert key in result, f"Key {key} missing (mutation: return dict replaced)"
-            assert result[key] is not None, f"Key {key} is None (mutation: value → None)"
+            assert result[key] is not None, (
+                f"Key {key} is None (mutation: value → None)"
+            )
 
     def test_es_suficiente_type_assertion(self):
         """Mutant: es_suficiente boolean flip. Must assert type."""
@@ -2567,7 +2569,10 @@ class TestMutationKillsMultiTripWindows:
         )
 
         trips = [
-            (datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc), {"id": "t1", "kwh": 10.0})
+            (
+                datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc),
+                {"id": "t1", "kwh": 10.0},
+            )
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
@@ -2641,7 +2646,10 @@ class TestMutationKillsMultiTripWindows:
         )
 
         trips = [
-            (datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc), {"id": "t1", "kwh": 10.0})
+            (
+                datetime(2026, 4, 6, 18, 0, tzinfo=timezone.utc),
+                {"id": "t1", "kwh": 10.0},
+            )
         ]
         result = calculate_multi_trip_charging_windows(
             trips=trips,
@@ -2741,4 +2749,3 @@ class TestMutationKillsPowerProfile:
 # =============================================================================
 # Mutation-killing tests for top-survivor functions (task 2.10.3)
 # =============================================================================
-

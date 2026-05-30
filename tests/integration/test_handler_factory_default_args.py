@@ -323,9 +323,7 @@ class TestImportWeeklyPatternRemoveArgMutations:
         call.data = {
             "vehicle_id": "test_vehicle",
             "clear_existing": True,
-            "pattern": {
-                "lunes": [{"hora": "09:00", "km": 24, "kwh": 3.6}]
-            },
+            "pattern": {"lunes": [{"hora": "09:00", "km": 24, "kwh": 3.6}]},
         }
         await handler(call)
 

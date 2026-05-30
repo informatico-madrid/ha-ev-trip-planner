@@ -174,7 +174,9 @@ class TestTripSensorNativeValue:
     def test_punctual_trip_returns_estado(self):
         data = {
             "recurring_trips": {},
-            "punctual_trips": {"t1": {"id": "t1", "tipo": "puntual", "estado": "active"}},
+            "punctual_trips": {
+                "t1": {"id": "t1", "tipo": "puntual", "estado": "active"}
+            },
         }
         sensor = TripSensor(self._make_coordinator(data), "v1", "t1")
         assert sensor.native_value == "active"
@@ -391,9 +393,13 @@ class TestTripPlannerSensorNativeValue:
             return data.get("val", 0)
 
         desc = TripSensorEntityDescription(
-            key="val", name="Test", icon=None,
-            native_unit_of_measurement=None, state_class=None,
-            value_fn=capture_fn, attrs_fn=lambda data: {},
+            key="val",
+            name="Test",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
+            value_fn=capture_fn,
+            attrs_fn=lambda data: {},
         )
         sensor = TripPlannerSensor(coord, "v1", desc)
         _ = sensor.native_value
@@ -403,9 +409,13 @@ class TestTripPlannerSensorNativeValue:
         coord = MagicMock()
         coord.data = None
         desc = TripSensorEntityDescription(
-            key="k", name="T", icon=None,
-            native_unit_of_measurement=None, state_class=None,
-            value_fn=lambda data: "never", attrs_fn=lambda data: {},
+            key="k",
+            name="T",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
+            value_fn=lambda data: "never",
+            attrs_fn=lambda data: {},
         )
         sensor = TripPlannerSensor(coord, "v1", desc)
         assert sensor.native_value is None
@@ -414,8 +424,11 @@ class TestTripPlannerSensorNativeValue:
         coord = MagicMock()
         coord.data = {"other": 99}
         desc = TripSensorEntityDescription(
-            key="missing", name="T", icon=None,
-            native_unit_of_measurement=None, state_class=None,
+            key="missing",
+            name="T",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
             value_fn=lambda data: data.get("missing", 0),
             attrs_fn=lambda data: {},
         )
@@ -431,8 +444,11 @@ class TestTripPlannerSensorAttributes:
         coord = MagicMock()
         coord.data = {"recurring_trips": {"r1": {}}, "punctual_trips": {"p1": {}}}
         desc = TripSensorEntityDescription(
-            key="test", name="Test", icon=None,
-            native_unit_of_measurement=None, state_class=None,
+            key="test",
+            name="Test",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
             value_fn=lambda data: "val",
             attrs_fn=lambda data: attrs_result,
         )
@@ -448,9 +464,13 @@ class TestTripPlannerSensorAttributes:
         coord = MagicMock()
         coord.data = {"foo": "bar"}
         desc = TripSensorEntityDescription(
-            key="k", name="T", icon=None,
-            native_unit_of_measurement=None, state_class=None,
-            value_fn=lambda data: 0, attrs_fn=capture_fn,
+            key="k",
+            name="T",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
+            value_fn=lambda data: 0,
+            attrs_fn=capture_fn,
         )
         sensor = TripPlannerSensor(coord, "v1", desc)
         _ = sensor.extra_state_attributes
@@ -458,8 +478,11 @@ class TestTripPlannerSensorAttributes:
 
     def test_no_data_returns_empty_attrs(self):
         desc = TripSensorEntityDescription(
-            key="k", name="T", icon=None,
-            native_unit_of_measurement=None, state_class=None,
+            key="k",
+            name="T",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
             value_fn=lambda data: 0,
             attrs_fn=lambda data: {"never": "returned"},
         )
@@ -481,9 +504,13 @@ class TestTripPlannerSensorDeviceAndAsyncAdded:
         coord = MagicMock()
         coord.data = {}
         desc = TripSensorEntityDescription(
-            key="k", name="T", icon=None,
-            native_unit_of_measurement=None, state_class=None,
-            value_fn=lambda data: 0, attrs_fn=lambda data: {},
+            key="k",
+            name="T",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
+            value_fn=lambda data: 0,
+            attrs_fn=lambda data: {},
         )
         sensor = TripPlannerSensor(coord, "my_vehicle", desc)
         info = sensor.device_info
@@ -497,8 +524,11 @@ class TestTripPlannerSensorDeviceAndAsyncAdded:
         coord = MagicMock()
         coord.data = {"test": "value"}
         desc = TripSensorEntityDescription(
-            key="k", name="T", icon=None,
-            native_unit_of_measurement=None, state_class=None,
+            key="k",
+            name="T",
+            icon=None,
+            native_unit_of_measurement=None,
+            state_class=None,
             value_fn=lambda data: 0,
             attrs_fn=lambda data: {},
             restore=True,  # Enable restore, but data is present
@@ -510,7 +540,11 @@ class TestTripPlannerSensorDeviceAndAsyncAdded:
         )
         await sensor.async_added_to_hass()
         # Should NOT have restored because coordinator.data is not None
-        assert not hasattr(sensor, "_attr_native_value") or sensor._attr_native_value is None or sensor._attr_native_value == "restored_value"
+        assert (
+            not hasattr(sensor, "_attr_native_value")
+            or sensor._attr_native_value is None
+            or sensor._attr_native_value == "restored_value"
+        )
 
     @pytest.mark.asyncio
     async def test_async_added_to_hass_restores_when_data_none(self):
@@ -528,8 +562,11 @@ class TestTripPlannerSensorDeviceAndAsyncAdded:
             coord = MagicMock()
             coord.data = None
             desc = TripSensorEntityDescription(
-                key="k", name="T", icon=None,
-                native_unit_of_measurement=None, state_class=None,
+                key="k",
+                name="T",
+                icon=None,
+                native_unit_of_measurement=None,
+                state_class=None,
                 value_fn=lambda data: 0,
                 attrs_fn=lambda data: {},
                 restore=True,
@@ -591,11 +628,7 @@ class TestTripEmhassSensorNativeValue:
         return coord
 
     def test_returns_index_when_found(self):
-        data = {
-            "per_trip_emhass_params": {
-                "t1": {"emhass_index": 5, "other": "data"}
-            }
-        }
+        data = {"per_trip_emhass_params": {"t1": {"emhass_index": 5, "other": "data"}}}
         sensor = TripEmhassSensor(self._make_coordinator(data), "v1", "t1")
         assert sensor.native_value == 5
 
@@ -609,29 +642,17 @@ class TestTripEmhassSensorNativeValue:
         assert sensor.native_value == -1
 
     def test_returns_negative_one_when_index_missing(self):
-        data = {
-            "per_trip_emhass_params": {
-                "t1": {"other_field": "value"}
-            }
-        }
+        data = {"per_trip_emhass_params": {"t1": {"other_field": "value"}}}
         sensor = TripEmhassSensor(self._make_coordinator(data), "v1", "t1")
         assert sensor.native_value == -1
 
     def test_returns_negative_one_when_index_is_none(self):
-        data = {
-            "per_trip_emhass_params": {
-                "t1": {"emhass_index": None}
-            }
-        }
+        data = {"per_trip_emhass_params": {"t1": {"emhass_index": None}}}
         sensor = TripEmhassSensor(self._make_coordinator(data), "v1", "t1")
         assert sensor.native_value == -1
 
     def test_returns_zero_index(self):
-        data = {
-            "per_trip_emhass_params": {
-                "t1": {"emhass_index": 0}
-            }
-        }
+        data = {"per_trip_emhass_params": {"t1": {"emhass_index": 0}}}
         sensor = TripEmhassSensor(self._make_coordinator(data), "v1", "t1")
         assert sensor.native_value == 0
 
@@ -685,7 +706,9 @@ class TestTripEmhassSensorAttributes:
         attrs = sensor.extra_state_attributes
         # Should only contain TRIP_EMHASS_ATTR_KEYS keys, not extra_secret_field
         for key in attrs:
-            assert key in TRIP_EMHASS_ATTR_KEYS, f"Key {key} not in TRIP_EMHASS_ATTR_KEYS"
+            assert key in TRIP_EMHASS_ATTR_KEYS, (
+                f"Key {key} not in TRIP_EMHASS_ATTR_KEYS"
+            )
         assert "extra_secret_field" not in attrs
         assert attrs["emhass_index"] == 3
         assert attrs["def_total_hours"] == 2.5
@@ -770,6 +793,7 @@ class TestEmhassDeferrableLoadSensorInit:
         # Use object() instead of MagicMock to avoid any attribute access
         class PlainCoord:
             data = {}
+
         sensor = EmhassDeferrableLoadSensor(PlainCoord(), "fallback_entry")
         assert sensor._attr_name == "EMHASS Perfil Diferible fallback_entry"
 
@@ -853,7 +877,9 @@ class TestEmhassDeferrableLoadSensorExtractActiveTrips:
         }
         result = sensor._extract_active_trips_sorted(params)
         indices = [r.get("emhass_index") for r in result]
-        assert indices == [1, 3], f"Should be sorted by (timestep, index), got {indices}"
+        assert indices == [1, 3], (
+            f"Should be sorted by (timestep, index), got {indices}"
+        )
 
 
 class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
@@ -927,7 +953,9 @@ class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
         """
         sensor = self._make_sensor()
         _, count_absent = sensor._extract_matrix_and_count([{"other_key": 1}])
-        _, count_present_none = sensor._extract_matrix_and_count([{"p_deferrable_matrix": None}])
+        _, count_present_none = sensor._extract_matrix_and_count(
+            [{"p_deferrable_matrix": None}]
+        )
         assert count_absent == 1, f"Expected count=1 for absent key, got {count_absent}"
         assert count_present_none == 0, (
             f"Expected count=0 for present-but-None key, got {count_present_none}"
@@ -949,8 +977,18 @@ class TestEmhassDeferrableLoadSensorCollectArrays:
     def test_derives_all_four_arrays(self):
         sensor = self._make_sensor()
         active = [
-            {"def_total_hours": 2.0, "power_watts": 5000, "def_start_timestep": 5, "def_end_timestep": 20},
-            {"def_total_hours": 3.0, "power_watts": 7000, "def_start_timestep": 10, "def_end_timestep": 22},
+            {
+                "def_total_hours": 2.0,
+                "power_watts": 5000,
+                "def_start_timestep": 5,
+                "def_end_timestep": 20,
+            },
+            {
+                "def_total_hours": 3.0,
+                "power_watts": 7000,
+                "def_start_timestep": 10,
+                "def_end_timestep": 22,
+            },
         ]
         result = sensor._collect_arrays(active)
         assert result["def_total_hours_array"] == [2.0, 3.0]
@@ -1108,6 +1146,7 @@ class TestEmhassDeferrableLoadSensorExtraStateAttributes:
                 "emhass_status": None,
                 "per_trip_emhass_params": {},
             }
+
         sensor = EmhassDeferrableLoadSensor(PlainCoord(), "fallback_entry")
         attrs = sensor.extra_state_attributes
         assert attrs["vehicle_id"] == "fallback_entry"
@@ -1153,6 +1192,7 @@ class TestEmhassDeferrableLoadSensorDeviceInfo:
     def test_device_info_fallback_vehicle_id(self):
         class PlainCoord:
             data = {}
+
         sensor = EmhassDeferrableLoadSensor(PlainCoord(), "entry_99")
         info = sensor.device_info
         assert info["identifiers"] == {(DOMAIN, "entry_99")}

@@ -252,7 +252,9 @@ class TestHourlyRefreshCallbackLogAssertions:
             await _hourly_refresh_callback(None, rt)
         # Log should include "present" (since runtime_data is not None)
         log_text = " ".join(record.message for record in caplog.records)
-        assert "present" in log_text, "Log should say 'present' for non-None runtime_data"
+        assert "present" in log_text, (
+            "Log should say 'present' for non-None runtime_data"
+        )
 
     @pytest.mark.asyncio
     async def test_callback_no_coordinator_logs_abort(self, caplog):
@@ -323,12 +325,15 @@ class TestHourlyRefreshCallbackExactLogStrings:
             await _hourly_refresh_callback(None, rt)
         # Verify the START log uses the expected constant (catches XX mutations)
         start_logs = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if _LOG_HOURLY_CALLBACK_START.replace("%s", "").rstrip() in r.message
         ]
         assert len(start_logs) >= 1, "Should log the START message"
         # Verify the DONE log uses the exact constant string (catches case mutations)
-        done_logs = [r for r in caplog.records if _LOG_HOURLY_CALLBACK_REFRESH_DONE in r.message]
+        done_logs = [
+            r for r in caplog.records if _LOG_HOURLY_CALLBACK_REFRESH_DONE in r.message
+        ]
         assert len(done_logs) >= 1, (
             f"Log should contain exact DONE message '{_LOG_HOURLY_CALLBACK_REFRESH_DONE}'"
         )
@@ -372,7 +377,8 @@ class TestHourlyRefreshCallbackExactLogStrings:
         # Specific constant values must appear exactly (catches constant-value mutations)
         log_messages = " ".join(r.message for r in caplog.records)
         assert _LOG_HOURLY_CALLBACK_ALL_PRESENT in log_messages or (
-            _LOG_HOURLY_CALLBACK_ALL_PRESENT.replace("FLOW2-DEBUG", "XXFLOW2-DEBUG") not in log_messages
+            _LOG_HOURLY_CALLBACK_ALL_PRESENT.replace("FLOW2-DEBUG", "XXFLOW2-DEBUG")
+            not in log_messages
         ), "Log should contain the exact ALL_PRESENT message"
 
 

@@ -17,7 +17,7 @@ from ..calculations import (
     calculate_energy_needed,
     compute_safe_delta,
 )
-from ..const import DEFAULT_BATTERY_CAPACITY_KWH, DOMAIN
+from ..const import DOMAIN
 from .state import TripManagerState
 
 _LOGGER = logging.getLogger(__name__)
@@ -174,16 +174,6 @@ class SOCQuery:
     def _get_charging_power(self) -> float:
         """Obtiene la potencia de carga desde la configuración."""
         return self._state._soc_helpers._get_charging_power()
-
-    def _calcular_tasa_carga_soc(
-        self,
-        charging_power_kw: float,
-        battery_capacity_kwh: float = DEFAULT_BATTERY_CAPACITY_KWH,
-    ) -> float:
-        """Calcula la tasa de carga en % SOC/hora."""
-        return self._state._soc_helpers._calcular_tasa_carga_soc(
-            charging_power_kw, battery_capacity_kwh
-        )
 
     def _is_trip_today(self, trip: Dict[str, Any], today: date) -> bool:
         """Verifica si un viaje ocurre hoy."""

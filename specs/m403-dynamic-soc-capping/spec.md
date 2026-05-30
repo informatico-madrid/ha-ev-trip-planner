@@ -1,5 +1,35 @@
 # Spec: Dynamic SOC Capping for Battery Health
 
+> ⚠️ **NOTA DE ACTUALIZACIÓN (2026-05-30) — Implementado fuera de flujo SDD, sin nueva spec:**
+>
+> Esta spec cubría solo la dimensión **post-viaje** (`calculate_dynamic_soc_limit`, `risk<=0→100%`).
+> Se detectó un **gap no documentado aquí**: cuando EMHASS recibía una ventana de 99h para 7h
+> de carga con energía barata, cargaba al 100% inmediatamente (días antes del viaje).
+>
+> **Gap resuelto mediante extensión del código existente (2026-05-30):**
+>
+> Se añadió **Componente 1 — Rampa pre-viaje** (ortogonal al cap existente):
+> ```
+> slack = max(0, ventana_horas - horas_carga_necesarias)
+> H_allowed = horas_carga_necesarias / (1 + slack / k)     # k = t_base
+> ```
+> - `slack = 0` ⟹ `H_allowed = H_req` (factibilidad garantizada por construcción)
+> - Ejemplo: ventana=99h, needs=7h, k=24 → H_allowed=2h. EMHASS solo puede cargar 2h; el resto
+>   llega en rampa conforme la ventana se estrecha (recálculo cada 120s).
+>
+> **Arquitectura resultante — Pipeline funcional** (`calculations/window_pipeline.py`):
+> - `apply_soc_cap_transform(windows, ctx)` — Componentes 1+2 combinados
+> - `apply_deficit_transform(windows, ctx)` — wrapper de propagación de déficit (sin cambios)
+> - `run_window_pipeline(windows, ctx)` — compone ambos; orden: cap → déficit
+> - `PipelineContext` — dataclass frozen con `t_base`, `soc_current`, `charging_power_kw`, etc.
+>
+> `_apply_deficit_propagation()` del adapter reemplazado por `_run_window_pipeline()`.
+>
+> **Tests añadidos:** `tests/unit/test_soc_cap_transform.py`, `tests/unit/test_window_pipeline.py`
+>
+> **`analysis-consolidado.md` de esta spec está OBSOLETO:** el cap NO era dead code; estaba
+> conectado en producción desde antes de esta actualización.
+
 **Milestone**: 4.0.3
 **Target**: v0.5.23
 **Priority**: P1 - Battery Health & Cost Optimization

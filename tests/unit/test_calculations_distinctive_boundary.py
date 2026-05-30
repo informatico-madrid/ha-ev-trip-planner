@@ -701,7 +701,10 @@ class TestDeficitPropagationNoDeficit:
         results = calculate_hours_deficit_propagation(windows)
 
         for i, r in enumerate(results):
-            assert r["adjusted_def_total_hours"] == 2.0 or r["adjusted_def_total_hours"] == 3.0
+            assert (
+                r["adjusted_def_total_hours"] == 2.0
+                or r["adjusted_def_total_hours"] == 3.0
+            )
             assert r["deficit_hours_propagated"] == 0.0
             assert r["deficit_hours_to_propagate"] == 0.0
 
@@ -715,7 +718,9 @@ class TestDeficitPropagationNoDeficit:
             {"ventana_horas": 5, "horas_carga_necesarias": 2},
             {"ventana_horas": 4, "horas_carga_necesarias": 3},
         ]
-        results = calculate_hours_deficit_propagation(windows, def_total_hours=[2.345, 3.789])
+        results = calculate_hours_deficit_propagation(
+            windows, def_total_hours=[2.345, 3.789]
+        )
 
         assert results[0]["adjusted_def_total_hours"] == round(2.345, 2)
         assert results[1]["adjusted_def_total_hours"] == round(3.789, 2)
@@ -1040,11 +1045,14 @@ class TestCalculateDynamicSocLimitDistinctive:
             calculate_dynamic_soc_limit,
         )
 
-        assert calculate_dynamic_soc_limit(
-            t_hours=24.0,
-            soc_post_trip=30.0,
-            battery_capacity_kwh=75.0,
-        ) == 100.0
+        assert (
+            calculate_dynamic_soc_limit(
+                t_hours=24.0,
+                soc_post_trip=30.0,
+                battery_capacity_kwh=75.0,
+            )
+            == 100.0
+        )
 
     def test_boundary_high_limit(self):
         """soc=100, t_hours=48 → tight limit."""
@@ -1139,7 +1147,9 @@ class TestBatteryCapacityBoundary:
             BatteryCapacity,
         )
 
-        cap = BatteryCapacity(nominal_capacity_kwh=75.0, soh_sensor_entity_id="sensor.soh")
+        cap = BatteryCapacity(
+            nominal_capacity_kwh=75.0, soh_sensor_entity_id="sensor.soh"
+        )
         cap._soh_value = 150.0  # Set directly bypasses sensor clamp
         # _compute_capacity uses _soh_value directly without clamp
         assert cap.get_capacity() == 75.0 * 1.5  # 150% × 75 = 112.5
@@ -1151,7 +1161,9 @@ class TestBatteryCapacityBoundary:
             BatteryCapacity,
         )
 
-        cap = BatteryCapacity(nominal_capacity_kwh=75.0, soh_sensor_entity_id="sensor.soh")
+        cap = BatteryCapacity(
+            nominal_capacity_kwh=75.0, soh_sensor_entity_id="sensor.soh"
+        )
         cap._soh_value = 5.0  # Set directly bypasses sensor clamp
         # _compute_capacity uses _soh_value directly without clamp
         assert cap.get_capacity() == 75.0 * 0.05  # 5% × 75 = 3.75
@@ -1161,7 +1173,9 @@ class TestBatteryCapacityBoundary:
             BatteryCapacity,
         )
 
-        cap = BatteryCapacity(nominal_capacity_kwh=75.0, soh_sensor_entity_id="sensor.soh")
+        cap = BatteryCapacity(
+            nominal_capacity_kwh=75.0, soh_sensor_entity_id="sensor.soh"
+        )
         cap._soh_value = 73.5
         assert cap.get_capacity() == 75.0 * 0.735
 
@@ -1199,7 +1213,12 @@ class TestResolveTripDeadlineDistinctive:
 
         now = datetime(2026, 5, 11, 9, 0, 0, tzinfo=timezone.utc)
         # Recurring trip with accented day name
-        trip = {"id": "viaje_al_NIÑO", "day": "miércoles", "time": "18:00", "tipo": "recurrente"}
+        trip = {
+            "id": "viaje_al_NIÑO",
+            "day": "miércoles",
+            "time": "18:00",
+            "tipo": "recurrente",
+        }
         result = resolve_trip_deadline(trip, now)
         assert result is not None
 

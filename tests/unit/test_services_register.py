@@ -42,7 +42,9 @@ class TestRegisterServicesCalls:
 
         register_services(mock_hass)
 
-        registered_names = {c[0][1] for c in mock_hass.services.async_register.call_args_list}
+        registered_names = {
+            c[0][1] for c in mock_hass.services.async_register.call_args_list
+        }
         expected_names = {
             "add_recurring_trip",
             "add_punctual_trip",

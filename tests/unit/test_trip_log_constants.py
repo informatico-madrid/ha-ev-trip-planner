@@ -15,75 +15,54 @@ class TestTripCRUDLogConstants:
     """Assert values of log format string constants in _crud.py."""
 
     def test_log_add_recurring_debug_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert (
             _crud._LOG_ADD_RECURRING_DEBUG
             == "Adding recurring trip for vehicle %s: dia_semana=%s, hora=%s, km=%.1f, kwh=%.2f"
         )
 
     def test_log_add_recurring_info_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert _crud._LOG_ADD_RECURRING_INFO == "Added recurring trip %s for vehicle %s"
 
     def test_log_add_punctual_debug_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert (
             _crud._LOG_ADD_PUNCTUAL_DEBUG
             == "Adding punctual trip for vehicle %s: datetime=%s, km=%.1f, kwh=%.2f"
         )
 
     def test_log_add_punctual_info_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert _crud._LOG_ADD_PUNCTUAL_INFO == "Added punctual trip %s for vehicle %s"
 
     def test_log_update_debug_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert _crud._LOG_UPDATE_DEBUG == "Updating trip %s for vehicle %s: updates=%s"
 
     def test_log_update_info_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert _crud._LOG_UPDATE_INFO == "Updated %s trip %s for vehicle %s"
 
     def test_log_update_not_found_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert (
-            _crud._LOG_UPDATE_NOT_FOUND
-            == "Trip %s not found for update in vehicle %s"
+            _crud._LOG_UPDATE_NOT_FOUND == "Trip %s not found for update in vehicle %s"
         )
 
     def test_log_delete_debug_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert _crud._LOG_DELETE_DEBUG == "Deleting trip %s from vehicle %s"
 
     def test_log_delete_not_found_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert (
             _crud._LOG_DELETE_NOT_FOUND
             == "Trip %s not found for deletion in vehicle %s"
         )
 
     def test_log_delete_info_format(self):
-        _crud = pytest.importorskip(
-            "custom_components.ev_trip_planner.trip._crud"
-        )
+        _crud = pytest.importorskip("custom_components.ev_trip_planner.trip._crud")
         assert _crud._LOG_DELETE_INFO == "Deleted trip %s from vehicle %s"
 
 
@@ -154,7 +133,9 @@ class TestTripPersistenceLogConstants:
         _persistence = pytest.importorskip(
             "custom_components.ev_trip_planner.trip._persistence"
         )
-        assert _persistence._LOG_LOAD_START_DEBUG == "=== _load_trips START === vehicle=%s"
+        assert (
+            _persistence._LOG_LOAD_START_DEBUG == "=== _load_trips START === vehicle=%s"
+        )
 
     def test_log_load_cancel_warning(self):
         _persistence = pytest.importorskip(
@@ -175,7 +156,9 @@ class TestTripPersistenceLogConstants:
         _persistence = pytest.importorskip(
             "custom_components.ev_trip_planner.trip._persistence"
         )
-        assert _persistence._LOG_LOAD_YAML_ERROR == "Error cargando viajes desde YAML: %s"
+        assert (
+            _persistence._LOG_LOAD_YAML_ERROR == "Error cargando viajes desde YAML: %s"
+        )
 
     def test_log_save_yaml_fail_error(self):
         _persistence = pytest.importorskip(
@@ -205,66 +188,101 @@ class TestTripLifecycleLogConstants:
     """Assert values of log format string constants in _trip_lifecycle.py."""
 
     def test_log_coordinator_cleanup_warning_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
-        assert m._LOG_COORDINATOR_CLEANUP_WARNING == "Coordinator cleanup during delete_all: %s"
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
+        assert (
+            m._LOG_COORDINATOR_CLEANUP_WARNING
+            == "Coordinator cleanup during delete_all: %s"
+        )
 
     def test_log_deleted_all_info_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert m._LOG_DELETED_ALL_INFO == "Deleted all trips for vehicle %s"
 
     def test_log_paused_recurring_info_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert m._LOG_PAUSED_RECURRING_INFO == "Paused recurring trip %s for vehicle %s"
 
     def test_log_resumed_recurring_info_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
-        assert m._LOG_RESUMED_RECURRING_INFO == "Resumed recurring trip %s for vehicle %s"
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
+        assert (
+            m._LOG_RESUMED_RECURRING_INFO == "Resumed recurring trip %s for vehicle %s"
+        )
 
     def test_log_completed_punctual_info_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
-        assert m._LOG_COMPLETED_PUNCTUAL_INFO == "Completed punctual trip %s for vehicle %s"
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
+        assert (
+            m._LOG_COMPLETED_PUNCTUAL_INFO
+            == "Completed punctual trip %s for vehicle %s"
+        )
 
     def test_log_cancelled_punctual_info_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
-        assert m._LOG_CANCELLED_PUNCTUAL_INFO == "Cancelled punctual trip %s for vehicle %s"
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
+        assert (
+            m._LOG_CANCELLED_PUNCTUAL_INFO
+            == "Cancelled punctual trip %s for vehicle %s"
+        )
 
     def test_log_recurring_not_found_pause_warning_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert (
             m._LOG_RECURRING_NOT_FOUND_PAUSE_WARNING
             == "Recurring trip %s not found for pause in vehicle %s"
         )
 
     def test_log_recurring_not_found_resume_warning_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert (
             m._LOG_RECURRING_NOT_FOUND_RESUME_WARNING
             == "Recurring trip %s not found for resume in vehicle %s"
         )
 
     def test_log_punctual_not_found_complete_warning_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert (
             m._LOG_PUNCTUAL_NOT_FOUND_COMPLETE_WARNING
             == "Punctual trip %s not found for completion in vehicle %s"
         )
 
     def test_log_punctual_not_found_cancel_warning_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert (
             m._LOG_PUNCTUAL_NOT_FOUND_CANCEL_WARNING
             == "Punctual trip %s not found for cancellation in vehicle %s"
         )
 
     def test_log_trip_not_found_sensor_update_warning_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert (
             m._LOG_TRIP_NOT_FOUND_SENSOR_UPDATE_WARNING
             == "Trip %s not found for sensor update in vehicle %s"
         )
 
     def test_log_error_updating_trip_sensor_error_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._trip_lifecycle")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._trip_lifecycle"
+        )
         assert (
             m._LOG_ERROR_UPDATING_TRIP_SENSOR_ERROR
             == "Error updating trip sensor for trip %s: %s"
@@ -281,7 +299,10 @@ class TestTripSocHelpersLogConstants:
 
     def test_log_parse_failed_warning_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip._soc_helpers")
-        assert m._LOG_PARSE_FAILED_WARNING == "Failed to parse trip datetime: %s, falling back to now"
+        assert (
+            m._LOG_PARSE_FAILED_WARNING
+            == "Failed to parse trip datetime: %s, falling back to now"
+        )
 
     def test_log_parse_repr_warning_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip._soc_helpers")
@@ -395,7 +416,10 @@ class TestTripPowerProfileLogConstants:
 
     def test_log_missing_battery_config_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip._power_profile")
-        assert m._LOG_MISSING_BATTERY_CONFIG == "Missing 'battery_capacity_kwh' in vehicle_config"
+        assert (
+            m._LOG_MISSING_BATTERY_CONFIG
+            == "Missing 'battery_capacity_kwh' in vehicle_config"
+        )
 
     def test_log_missing_safety_margin_config_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip._power_profile")
@@ -406,7 +430,10 @@ class TestTripPowerProfileLogConstants:
 
     def test_log_missing_battery_entry_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip._power_profile")
-        assert m._LOG_MISSING_BATTERY_ENTRY == "Missing 'battery_capacity_kwh' in config entry"
+        assert (
+            m._LOG_MISSING_BATTERY_ENTRY
+            == "Missing 'battery_capacity_kwh' in config entry"
+        )
 
     def test_log_missing_safety_margin_entry_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip._power_profile")
@@ -425,42 +452,54 @@ class TestTripSensorCallbacksLogConstants:
     """Assert values of log format string constants in _sensor_callbacks.py."""
 
     def test_log_trip_data_required_for_trip_created_recurring_event_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._sensor_callbacks")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._sensor_callbacks"
+        )
         assert (
             m._LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_RECURRING_EVEN
             == "trip_data required for trip_created_recurring event"
         )
 
     def test_log_trip_data_required_for_trip_created_punctual_event_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._sensor_callbacks")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._sensor_callbacks"
+        )
         assert (
             m._LOG_TRIP_DATA_REQUIRED_FOR_TRIP_CREATED_PUNCTUAL_EVENT
             == "trip_data required for trip_created_punctual event"
         )
 
     def test_log_trip_id_required_for_trip_sensor_created_emhass_ev_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._sensor_callbacks")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._sensor_callbacks"
+        )
         assert (
             m._LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_CREATED_EMHASS_EV
             == "trip_id required for trip_sensor_created_emhass event"
         )
 
     def test_log_trip_id_required_for_trip_removed_event_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._sensor_callbacks")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._sensor_callbacks"
+        )
         assert (
             m._LOG_TRIP_ID_REQUIRED_FOR_TRIP_REMOVED_EVENT
             == "trip_id required for trip_removed event"
         )
 
     def test_log_trip_id_required_for_trip_sensor_removed_emhass_ev_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._sensor_callbacks")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._sensor_callbacks"
+        )
         assert (
             m._LOG_TRIP_ID_REQUIRED_FOR_TRIP_SENSOR_REMOVED_EMHASS_EV
             == "trip_id required for trip_sensor_removed_emhass event"
         )
 
     def test_log_trip_data_required_for_trip_sensor_updated_event_format(self):
-        m = pytest.importorskip("custom_components.ev_trip_planner.trip._sensor_callbacks")
+        m = pytest.importorskip(
+            "custom_components.ev_trip_planner.trip._sensor_callbacks"
+        )
         assert (
             m._LOG_TRIP_DATA_REQUIRED_FOR_TRIP_SENSOR_UPDATED_EVENT
             == "trip_data required for trip_sensor_updated event"
@@ -477,10 +516,7 @@ class TestTripManagerLogConstants:
 
     def test_log_emhass_adapter_set_debug_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip.manager")
-        assert (
-            m._LOG_EMHASS_ADAPTER_SET_DEBUG
-            == "EMHASS adapter set for vehicle %s"
-        )
+        assert m._LOG_EMHASS_ADAPTER_SET_DEBUG == "EMHASS adapter set for vehicle %s"
 
     def test_log_sanitize_recurring_warning_format(self):
         m = pytest.importorskip("custom_components.ev_trip_planner.trip.manager")

@@ -106,8 +106,8 @@ class TestPowerProfileWattsCompaction:
 
                 trips = [trip]
 
-                # Disable deficit propagation to keep test predictable
-                with patch.object(adapter, "_apply_deficit_propagation"):
+                # Disable window pipeline to keep test predictable
+                with patch.object(adapter, "_run_window_pipeline"):
                     result = await adapter.async_publish_all_deferrable_loads(
                         trips, charging_power_kw=3.6
                     )
@@ -208,7 +208,7 @@ class TestPowerProfileWattsCompaction:
 
                 trips = [trip1, trip2]
 
-                with patch.object(adapter, "_apply_deficit_propagation"):
+                with patch.object(adapter, "_run_window_pipeline"):
                     result = await adapter.async_publish_all_deferrable_loads(
                         trips, charging_power_kw=3.6
                     )

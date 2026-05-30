@@ -796,8 +796,8 @@ test.describe('Dynamic SOC Capping — Multi-Trip Scenarios', () => {
       `${(attrs6h.deferrables_schedule as any[]).length} deferrable loads`,
     );
 
-    // Step 7: Shorter T_BASE sees fewer future trips → higher SOC cap → more charging hours
-    expect(defHours6h).toBeGreaterThan(defHoursDefault);
+    // Step 7: Smaller T_BASE = more aggressive ramp cap → fewer allowed hours per window
+    expect(defHours6h).toBeLessThan(defHoursDefault);
 
     await cleanupTestTrips(page);
   });

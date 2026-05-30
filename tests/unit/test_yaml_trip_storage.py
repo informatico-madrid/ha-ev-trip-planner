@@ -295,9 +295,7 @@ class TestYamlTripStorageAsyncLoadEdgeCases:
         """Test async_load when stored_data is a dict but lacks 'data' key."""
         mock_store = MagicMock()
         # Dict with no 'data' key — falls through to line 46
-        mock_store.async_load = AsyncMock(
-            return_value={"trips": {"x": 1}, "other": 2}
-        )
+        mock_store.async_load = AsyncMock(return_value={"trips": {"x": 1}, "other": 2})
 
         with patch(
             "homeassistant.helpers.storage.Store",
@@ -354,9 +352,7 @@ class TestYamlTripStorageAsyncLoadEdgeCases:
         """
         mock_store = MagicMock()
         inner_data = {"trips": {"t1": {}}}
-        mock_store.async_load = AsyncMock(
-            return_value={"data": inner_data}
-        )
+        mock_store.async_load = AsyncMock(return_value={"data": inner_data})
 
         with patch(
             "homeassistant.helpers.storage.Store",

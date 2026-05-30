@@ -87,15 +87,22 @@ class TestErrorHandlerDefaultOperation:
         - mutant_1: _LOGGER.error(_LOG_MISSING_ID, "XXpublishXX") → contains "XXpublishXX"
         - mutant_2: _LOGGER.error(_LOG_MISSING_ID, "PUBLISH") → contains "PUBLISH" not "publish"
         """
-        with caplog.at_level(logging.ERROR, logger="custom_components.ev_trip_planner.emhass.error_handler"):
-            result = handler.handle_missing_id("trip-1")  # No operation arg — uses default
+        with caplog.at_level(
+            logging.ERROR,
+            logger="custom_components.ev_trip_planner.emhass.error_handler",
+        ):
+            result = handler.handle_missing_id(
+                "trip-1"
+            )  # No operation arg — uses default
         assert result is False
         # Verify the default "publish" was used, not "XXpublishXX" or "PUBLISH"
         assert any("publish" in record.message for record in caplog.records), (
             f"Expected 'publish' in log message. Records: {[r.message for r in caplog.records]}"
         )
         assert not any("XXpublishXX" in record.message for record in caplog.records)
-        assert not any("PUBLISH" == op for record in caplog.records for op in [record.message])
+        assert not any(
+            "PUBLISH" == op for record in caplog.records for op in [record.message]
+        )
 
     def test_handle_deadline_error_default_operation_in_log(self, handler, caplog):
         """handle_deadline_error() uses default operation='publish' in log message.
@@ -105,8 +112,13 @@ class TestErrorHandlerDefaultOperation:
         - mutant_1: _LOGGER.error(_LOG_DEADLINE_ERROR, trip_id, "XXpublishXX")
         - mutant_2: _LOGGER.error(_LOG_DEADLINE_ERROR, trip_id, "PUBLISH")
         """
-        with caplog.at_level(logging.ERROR, logger="custom_components.ev_trip_planner.emhass.error_handler"):
-            result = handler.handle_deadline_error("trip-1")  # No operation arg — uses default
+        with caplog.at_level(
+            logging.ERROR,
+            logger="custom_components.ev_trip_planner.emhass.error_handler",
+        ):
+            result = handler.handle_deadline_error(
+                "trip-1"
+            )  # No operation arg — uses default
         assert result is False
         # Verify the default "publish" was used
         assert any("publish" in record.message for record in caplog.records), (

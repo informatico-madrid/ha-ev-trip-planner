@@ -184,8 +184,16 @@ class TestGetCachedOptimizationResultsDebug:
         adapter._error_handler = MagicMock()
         adapter._published_trips = set()
         adapter._cached_per_trip_params = {
-            "trip1": {"def_total_hours": 2.0, "def_start_timestep": 0, "def_end_timestep": 10},
-            "trip2": {"def_total_hours": 3.0, "def_start_timestep": 5, "def_end_timestep": 15},
+            "trip1": {
+                "def_total_hours": 2.0,
+                "def_start_timestep": 0,
+                "def_end_timestep": 10,
+            },
+            "trip2": {
+                "def_total_hours": 3.0,
+                "def_start_timestep": 5,
+                "def_end_timestep": 15,
+            },
         }
         adapter._cached_power_profile = [0.0, 1.5, 2.0]
         adapter._cached_deferrables_schedule = []
@@ -230,7 +238,9 @@ class TestPopulatePerTripCacheSOCUnavailable:
         # and dt_util.now to return a fixed datetime
         fixed_dt = datetime(2026, 5, 17, 12, 0, 0, tzinfo=timezone.utc)
         with (
-            patch.object(adapter, "_get_current_soc", new_callable=AsyncMock, return_value=None),
+            patch.object(
+                adapter, "_get_current_soc", new_callable=AsyncMock, return_value=None
+            ),
             patch("homeassistant.util.dt.now", return_value=fixed_dt),
         ):
             trips = [
@@ -260,14 +270,21 @@ class TestApplyDeficitResultsEdgeCases:
         adapter.hass = MagicMock()
         adapter._cached_per_trip_params = {}
 
-        param1 = {"activo": True, "def_total_hours": 2.0, "def_start_timestep": 0, "emhass_index": 0, "power_watts": 7400.0, "charging_window": []}
+        param1 = {
+            "activo": True,
+            "def_total_hours": 2.0,
+            "def_start_timestep": 0,
+            "emhass_index": 0,
+            "power_watts": 7400.0,
+            "charging_window": [],
+        }
         active = [param1]
 
         results = [{"adjusted_def_total_hours": 3.0}]
 
-        # trip_id is None — should continue without crashing (line 1069)
+        # trip_id is None — should continue without crashing
         adapter._find_trip_id_for_params = MagicMock(return_value=None)
-        adapter._apply_deficit_results(results, active)
+        adapter._apply_pipeline_results(results, active)
 
 
 class TestGetCachedOptimizationResultsEmpty:
@@ -298,7 +315,7 @@ class TestGetCurrentSocSecondSensorCheck:
     @pytest.mark.asyncio
     async def test_get_current_soc_second_sensor_returns_none(self):
         """Lines 685, 688: Second SOC sensor check path when first parse failed.
-        
+
         This exercises the path where:
         - First sensor check at line 652 returns a state (not None)
         - Float parse fails at line 665 (ValueError)
@@ -322,10 +339,12 @@ class TestGetCurrentSocSecondSensorCheck:
 
         # First states.get returns a state that can't be parsed as float
         # Second states.get returns None (second sensor unavailable)
-        hass.states.get = MagicMock(side_effect=[
-            MagicMock(state="not_a_number"),  # line 652: parse fails → except path
-            None,                               # line 686: second sensor returns None
-        ])
+        hass.states.get = MagicMock(
+            side_effect=[
+                MagicMock(state="not_a_number"),  # line 652: parse fails → except path
+                None,  # line 686: second sensor returns None
+            ]
+        )
 
         adapter = EMHASSAdapter(hass, entry)
         result = await adapter._get_current_soc()

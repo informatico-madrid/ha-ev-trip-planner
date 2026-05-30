@@ -231,6 +231,7 @@ class TestAsyncRegisterPanelForEntry:
             import importlib
 
             import custom_components.ev_trip_planner.services.dashboard_helpers as dh
+
             importlib.reload(dh)
 
             result = await dh.async_register_panel_for_entry(
@@ -252,6 +253,7 @@ class TestAsyncRegisterPanelForEntry:
             import importlib
 
             import custom_components.ev_trip_planner.services.dashboard_helpers as dh
+
             importlib.reload(dh)
 
             result = await dh.async_register_panel_for_entry(
@@ -275,6 +277,7 @@ class TestAsyncRegisterPanelForEntry:
             import importlib
 
             import custom_components.ev_trip_planner.services.dashboard_helpers as dh
+
             importlib.reload(dh)
 
             result = await dh.async_register_panel_for_entry(
