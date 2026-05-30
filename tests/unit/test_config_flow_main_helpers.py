@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.data_entry_flow import FlowResultType
@@ -98,8 +98,10 @@ class TestReadEmhassConfig:
 
     def test_is_file_raises_oserror(self):
         """Path.is_file() OSError → returns None (line 42)."""
-        with patch.object(Path, "exists", return_value=True), \
-             patch.object(Path, "is_file", side_effect=OSError("permission denied")):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_file", side_effect=OSError("permission denied")),
+        ):
             assert _read_emhass_config("/some/path") is None
 
     def test_config_path_exists_raises_oserror(self):
@@ -109,8 +111,10 @@ class TestReadEmhassConfig:
         False (it's a directory, so config_path becomes .../config.json), second
         exists() raises OSError simulating a race condition.
         """
-        with patch.object(Path, "exists", side_effect=[True, OSError("race condition")]), \
-             patch.object(Path, "is_file", return_value=False):
+        with (
+            patch.object(Path, "exists", side_effect=[True, OSError("race condition")]),
+            patch.object(Path, "is_file", return_value=False),
+        ):
             assert _read_emhass_config("/some/path") is None
 
 
@@ -579,7 +583,12 @@ class TestValidateEmhassInput:
         Kills mutant: <10→<11 which would reject loads=10."""
         config_file = tmp_path / "config.json"
         config_file.write_text(
-            json.dumps({"number_of_deferrable_loads": 5, "end_timesteps_of_each_deferrable_load": [168]})
+            json.dumps(
+                {
+                    "number_of_deferrable_loads": 5,
+                    "end_timesteps_of_each_deferrable_load": [168],
+                }
+            )
         )
         ctx, validate, _, _ = self._make_ctx(
             user_input={"planning_horizon_days": 5, "max_deferrable_loads": 10},

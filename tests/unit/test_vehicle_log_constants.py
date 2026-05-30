@@ -6,8 +6,6 @@ mutmut replaces string literals in logger calls with None.
 """
 
 
-
-
 class TestVehicleControllerLogConstants:
     """Test US-5 log constants in VehicleController."""
 
@@ -123,7 +121,10 @@ class TestSwitchStrategyLogConstants:
         assert isinstance(_LOG_SWITCH_ACTIVATED, str) and _LOG_SWITCH_ACTIVATED
         assert isinstance(_LOG_SWITCH_ERROR, str) and _LOG_SWITCH_ERROR
         assert isinstance(_LOG_SWITCH_DEACTIVATED, str) and _LOG_SWITCH_DEACTIVATED
-        assert isinstance(_LOG_SWITCH_DEACTIVATE_ERROR, str) and _LOG_SWITCH_DEACTIVATE_ERROR
+        assert (
+            isinstance(_LOG_SWITCH_DEACTIVATE_ERROR, str)
+            and _LOG_SWITCH_DEACTIVATE_ERROR
+        )
         assert isinstance(_LOG_SWITCH_STATUS_ON, str) and _LOG_SWITCH_STATUS_ON
 
     def test_switch_activated_format(self):
@@ -184,7 +185,10 @@ class TestServiceStrategyLogConstants:
         assert isinstance(_LOG_SERVICE_ACTIVATED, str) and _LOG_SERVICE_ACTIVATED
         assert isinstance(_LOG_SERVICE_ERROR, str) and _LOG_SERVICE_ERROR
         assert isinstance(_LOG_SERVICE_DEACTIVATED, str) and _LOG_SERVICE_DEACTIVATED
-        assert isinstance(_LOG_SERVICE_DEACTIVATE_ERROR, str) and _LOG_SERVICE_DEACTIVATE_ERROR
+        assert (
+            isinstance(_LOG_SERVICE_DEACTIVATE_ERROR, str)
+            and _LOG_SERVICE_DEACTIVATE_ERROR
+        )
 
     def test_service_activated_format(self):
         """_LOG_SERVICE_ACTIVATED has placeholder."""
@@ -219,7 +223,10 @@ class TestServiceStrategyLogConstants:
             _LOG_SERVICE_DEACTIVATE_ERROR,
         )
 
-        result = _LOG_SERVICE_DEACTIVATE_ERROR % ("homeassistant.turn_off", Exception("fail"))
+        result = _LOG_SERVICE_DEACTIVATE_ERROR % (
+            "homeassistant.turn_off",
+            Exception("fail"),
+        )
         assert "homeassistant.turn_off" in result
 
 

@@ -146,7 +146,9 @@ class TestDetermineTripEstado:
         assert determine_trip_estado({"tipo": "recurrente"}) == "recurrente"
 
     def test_punctual_returns_estado(self):
-        assert determine_trip_estado({"tipo": "puntual", "estado": "active"}) == "active"
+        assert (
+            determine_trip_estado({"tipo": "puntual", "estado": "active"}) == "active"
+        )
 
     def test_punctual_defaults_to_pendiente(self):
         assert determine_trip_estado({"tipo": "puntual"}) == "pendiente"
@@ -226,9 +228,27 @@ class TestBuildTripAttributes:
 
     def test_all_exactly_eight_keys(self):
         """Ensure no extra keys and no missing keys."""
-        data = {"id": "t1", "tipo": "recurrente", "descripcion": "", "km": 0.0, "kwh": 0.0, "hora": "", "activo": True, "estado": "active"}
+        data = {
+            "id": "t1",
+            "tipo": "recurrente",
+            "descripcion": "",
+            "km": 0.0,
+            "kwh": 0.0,
+            "hora": "",
+            "activo": True,
+            "estado": "active",
+        }
         attrs = build_trip_attributes(data)
-        assert set(attrs.keys()) == {"trip_id", "trip_type", "descripcion", "km", "kwh", "fecha_hora", "activo", "estado"}
+        assert set(attrs.keys()) == {
+            "trip_id",
+            "trip_type",
+            "descripcion",
+            "km",
+            "kwh",
+            "fecha_hora",
+            "activo",
+            "estado",
+        }
         assert len(attrs) == 8
 
 
@@ -243,9 +263,15 @@ class TestBuildEmhassZeroedAttributes:
     def test_all_nine_keys(self):
         attrs = build_emhass_zeroed_attributes("t1")
         assert set(attrs.keys()) == {
-            "def_total_hours", "P_deferrable_nom", "def_start_timestep",
-            "def_end_timestep", "power_profile_watts", "trip_id",
-            "emhass_index", "kwh_needed", "deadline",
+            "def_total_hours",
+            "P_deferrable_nom",
+            "def_start_timestep",
+            "def_end_timestep",
+            "power_profile_watts",
+            "trip_id",
+            "emhass_index",
+            "kwh_needed",
+            "deadline",
         }
         assert len(attrs) == 9
 
@@ -466,8 +492,18 @@ class TestCollectDeferrableArrays:
 
     def test_all_arrays_correct(self):
         active = [
-            {"def_total_hours": 2.0, "power_watts": 5000, "def_start_timestep": 5, "def_end_timestep": 20},
-            {"def_total_hours": 3.0, "power_watts": 7000, "def_start_timestep": 10, "def_end_timestep": 22},
+            {
+                "def_total_hours": 2.0,
+                "power_watts": 5000,
+                "def_start_timestep": 5,
+                "def_end_timestep": 20,
+            },
+            {
+                "def_total_hours": 3.0,
+                "power_watts": 7000,
+                "def_start_timestep": 10,
+                "def_end_timestep": 22,
+            },
         ]
         result = collect_deferrable_arrays(active)
         assert result["def_total_hours_array"] == [2.0, 3.0]
@@ -539,6 +575,7 @@ class TestScanSensorsForEntities:
         )
         # Temporarily replace TRIP_SENSORS
         import custom_components.ev_trip_planner.sensor._helpers as helpers_mod
+
         orig = helpers_mod.TRIP_SENSORS
         helpers_mod.TRIP_SENSORS = (desc1, desc2)
         try:
@@ -554,6 +591,7 @@ class TestScanSensorsForEntities:
             exists_fn=lambda data: data is not None and len(data) > 0,
         )
         import custom_components.ev_trip_planner.sensor._helpers as helpers_mod
+
         orig = helpers_mod.TRIP_SENSORS
         helpers_mod.TRIP_SENSORS = (desc,)
         try:
@@ -575,21 +613,31 @@ class TestFindEntityIdByTrip:
         assert find_entity_id_by_trip("sensor.ev_trip_planner_e1_trip_t1", "t1") is True
 
     def test_no_match(self):
-        assert find_entity_id_by_trip("sensor.ev_trip_planner_e1_trip_t2", "t1") is False
+        assert (
+            find_entity_id_by_trip("sensor.ev_trip_planner_e1_trip_t2", "t1") is False
+        )
 
     def test_emhass_match(self):
-        assert find_entity_id_by_trip(
-            "sensor.ev_trip_planner_e1_emhass_t1", "t1", match_emhass=True
-        ) is True
+        assert (
+            find_entity_id_by_trip(
+                "sensor.ev_trip_planner_e1_emhass_t1", "t1", match_emhass=True
+            )
+            is True
+        )
 
     def test_emhass_no_match(self):
-        assert find_entity_id_by_trip(
-            "sensor.ev_trip_planner_e1_trip_t1", "t1", match_emhass=True
-        ) is False
+        assert (
+            find_entity_id_by_trip(
+                "sensor.ev_trip_planner_e1_trip_t1", "t1", match_emhass=True
+            )
+            is False
+        )
 
     def test_trip_id_substring(self):
         """Trip ID substring matching — 't1' should match in 't10' too."""
-        assert find_entity_id_by_trip("sensor.ev_trip_planner_e1_trip_t10", "t1") is True
+        assert (
+            find_entity_id_by_trip("sensor.ev_trip_planner_e1_trip_t10", "t1") is True
+        )
 
     def test_empty_entity_id(self):
         assert find_entity_id_by_trip("", "t1") is False

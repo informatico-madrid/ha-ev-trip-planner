@@ -655,7 +655,9 @@ class TestCalculateDeferrableParameters:
         )
 
         result = calculate_deferrable_parameters(
-            {"id": "t1", "kwh": 0.0}, power_kw=7.4, reference_dt=datetime.now(timezone.utc)
+            {"id": "t1", "kwh": 0.0},
+            power_kw=7.4,
+            reference_dt=datetime.now(timezone.utc),
         )
         assert result == {}
 
@@ -770,6 +772,7 @@ class TestCalculateDeferrableParameters:
         )
         assert result is not None
         assert result["total_energy_kwh"] == 3.142
+
 
 # =============================================================================
 # Tests for compute_safe_delta (calculations.core)

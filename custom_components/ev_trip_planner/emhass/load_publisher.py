@@ -57,6 +57,7 @@ class LoadPublisherConfig:
     max_deferrable_loads: int = DEFAULT_MAX_DEFERRABLE_LOADS
     index_manager: Optional[IndexManager] = None
     soc_sensor: Optional[str] = None
+    soh_sensor: Optional[str] = None
 
 
 # Backward compat re-export
@@ -99,12 +100,21 @@ class LoadPublisher(LoadPublisherBase):
         self._soc_sensor = cfg.soc_sensor
         self._battery_cap = BatteryCapacity(
             nominal_capacity_kwh=cfg.battery_capacity_kwh,
-            soh_sensor_entity_id=None,
+            soh_sensor_entity_id=cfg.soh_sensor,
         )
         self._index_manager = cfg.index_manager or IndexManager(
             max_deferrable_loads=cfg.max_deferrable_loads,
             cooldown_hours=0,
         )
+
+    def get_real_capacity_kwh(self) -> float:
+        """Return the SOH-adjusted real battery capacity (kWh).
+
+        Falls back to nominal capacity when no SOH sensor is configured or the
+        sensor is unavailable. This is the capacity that MUST feed the charging
+        calculations and the SOC cap so battery degradation affects the plan.
+        """
+        return self._battery_cap.get_capacity(self.hass)
 
     # CC-N-ACCEPTED: cc=13 — publish lifecycle has distinct error paths:
     # missing ID, index exhaustion, invalid deadline, past deadline,

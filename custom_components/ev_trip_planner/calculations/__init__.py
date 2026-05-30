@@ -54,6 +54,15 @@ from .windows import (
     calculate_multi_trip_charging_windows,
 )
 
+# Window transformation pipeline (SOC cap + deficit composition).
+from .window_pipeline import (
+    PipelineContext,
+    WindowTransform,
+    apply_deficit_transform,
+    apply_soc_cap_transform,
+    run_window_pipeline,
+)
+
 __all__ = [
     "BatteryCapacity",
     "calculate_charging_rate",
@@ -74,4 +83,9 @@ __all__ = [
     "generate_deferrable_schedule_from_trips",
     "DEFAULT_T_BASE",
     "SOH_CACHE_TTL_SECONDS",
+    "PipelineContext",
+    "WindowTransform",
+    "apply_deficit_transform",
+    "apply_soc_cap_transform",
+    "run_window_pipeline",
 ]

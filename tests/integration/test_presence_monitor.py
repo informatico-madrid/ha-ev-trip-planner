@@ -1755,12 +1755,21 @@ def test_log_constants_are_non_none_and_non_empty():
         LOG_RETURN_HOME_DETECTED,
     )
 
-    assert LOG_CREATED_PRESENCE_MONITOR is not None and len(LOG_CREATED_PRESENCE_MONITOR) > 0
+    assert (
+        LOG_CREATED_PRESENCE_MONITOR is not None
+        and len(LOG_CREATED_PRESENCE_MONITOR) > 0
+    )
     assert LOG_RETURN_HOME_DETECTED is not None and len(LOG_RETURN_HOME_DETECTED) > 0
     assert LOG_NOTIFICATION_SENT is not None and len(LOG_NOTIFICATION_SENT) > 0
     assert LOG_NOTIFICATION_FAILED is not None and len(LOG_NOTIFICATION_FAILED) > 0
-    assert LOG_HOME_DETECTION_NOT_CONFIGURED is not None and len(LOG_HOME_DETECTION_NOT_CONFIGURED) > 0
-    assert LOG_FAILED_PARSE_HORA_REGRESO is not None and len(LOG_FAILED_PARSE_HORA_REGRESO) > 0
+    assert (
+        LOG_HOME_DETECTION_NOT_CONFIGURED is not None
+        and len(LOG_HOME_DETECTION_NOT_CONFIGURED) > 0
+    )
+    assert (
+        LOG_FAILED_PARSE_HORA_REGRESO is not None
+        and len(LOG_FAILED_PARSE_HORA_REGRESO) > 0
+    )
 
 
 def test_log_created_presence_monitor_format():
@@ -1867,7 +1876,10 @@ def test_init_attributes_initialized_sensor_based(mock_hass):
     assert monitor._last_processed_soc is None
     # _soc_listener_unsub is set (not None) when soc_sensor is configured
     assert monitor._soc_listener_unsub is not None
-    assert monitor._return_info_entity_id == "sensor.ev_trip_planner_test_vehicle_return_info"
+    assert (
+        monitor._return_info_entity_id
+        == "sensor.ev_trip_planner_test_vehicle_return_info"
+    )
 
 
 def test_init_attributes_coordinate_based(mock_hass):
@@ -1904,7 +1916,9 @@ def test_init_with_trip_manager(mock_hass):
         CONF_HOME_SENSOR: "binary_sensor.vehicle_home",
     }
 
-    monitor = PresenceMonitor(mock_hass, "test_vehicle", config, trip_manager=mock_trip_manager)
+    monitor = PresenceMonitor(
+        mock_hass, "test_vehicle", config, trip_manager=mock_trip_manager
+    )
 
     assert monitor._trip_manager is mock_trip_manager
 
@@ -2218,9 +2232,11 @@ def test_validate_condition_is_native_state_without_fields(mock_hass):
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
 
     # condition: state, but missing both entity_id and state values
-    is_valid, error = monitor.validate_condition_is_native({
-        "condition": "state",
-    })
+    is_valid, error = monitor.validate_condition_is_native(
+        {
+            "condition": "state",
+        }
+    )
 
     assert is_valid is False
     assert "entity_id" in error
@@ -2238,14 +2254,18 @@ def test_validate_condition_is_native_all_condition_types(mock_hass):
     # Non-state condition types: no entity_id/state validation needed
     for cond_type in ["and", "or", "not", "device", "sun"]:
         is_valid, error = monitor.validate_condition_is_native({"condition": cond_type})
-        assert is_valid is True, f"Expected {cond_type} to be valid, got {is_valid}: {error}"
+        assert is_valid is True, (
+            f"Expected {cond_type} to be valid, got {is_valid}: {error}"
+        )
 
     # State condition WITH required fields should be valid
-    is_valid, error = monitor.validate_condition_is_native({
-        "condition": "state",
-        "entity_id": "sensor.test",
-        "state": "on",
-    })
+    is_valid, error = monitor.validate_condition_is_native(
+        {
+            "condition": "state",
+            "entity_id": "sensor.test",
+            "state": "on",
+        }
+    )
     assert is_valid is True
 
 
@@ -2416,9 +2436,7 @@ def test_calculate_distance_zero_mutation(mock_hass):
     monitor = PresenceMonitor(mock_hass, "test_vehicle", config)
 
     # Calculate distance at exact threshold
-    distance_at_threshold = monitor._calculate_distance(
-        (0.0, 0.0), (0.0, 0.0)
-    )
+    distance_at_threshold = monitor._calculate_distance((0.0, 0.0), (0.0, 0.0))
     assert distance_at_threshold == 0.0  # Same point = 0 distance
 
     # Test point exactly HOME_DISTANCE_THRESHOLD_METERS away (0 deg lat diff, specific lon diff)

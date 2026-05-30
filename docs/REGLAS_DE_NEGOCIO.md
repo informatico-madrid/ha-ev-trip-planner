@@ -182,9 +182,21 @@ SI déficit(Ventana_i) > 0 ENTONCES:
 
 ## 7. Regla: SOC Cap Dinámico
 
+> ⚠️ **ACTUALIZACIÓN 2026-05-30:** La regla SOC cap se amplió con dos componentes:
+> - **Componente 1 (pre-viaje, NUEVO):** Rampa por holgura — limita las horas de carga
+>   cuando la ventana es amplia. Fórmula: `H_allowed = H_req / (1 + slack/k)`.
+>   Resuelve el caso de EMHASS cargando al 100% días antes de un viaje cuando la
+>   energía está barata.
+> - **Componente 2 (post-viaje, CONSERVADO):** `calculate_dynamic_soc_limit` con la
+>   fórmula de riesgo original (`risk <= 0 → 100%`). Sigue siendo correcto para su
+>   dimensión (no caps innecesarios cuando el viaje vacía la batería).
+> - Ambas componentes están unificadas en un **pipeline de transformación de ventanas**
+>   (`calculations/window_pipeline.py`). Orden: cap → déficit (el déficit opera sobre
+>   horas ya limitadas por salud, garantizando factibilidad sin romper el cap).
+
 ### Problema que Resuelve
 
-Evitar que la batería se cargue a un SOC innecesariamente alto cuando el próximo viaje no lo requiere.
+Evitar que la batería se cargue a un SOC innecesariamente alto cuando el próximo viaje no lo requiere. En especial: evitar que EMHASS cargue al 100% días antes de un viaje cuando la energía está barata y la ventana es amplia.
 
 ### Principio
 

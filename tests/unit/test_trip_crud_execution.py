@@ -750,9 +750,7 @@ class TestLoadTripsMutationKills:
         # Should NOT have been overwritten
         assert "existing" in tm._state._trips
 
-
-# ── Targeted mutation-kill tests for _crud default_value mutations ──
-
+    # ── Targeted mutation-kill tests for _crud default_value mutations ──
 
     @pytest.mark.asyncio
     async def test_add_punctual_trip_without_descripcion_uses_default_empty(self):

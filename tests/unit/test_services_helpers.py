@@ -131,9 +131,7 @@ class TestGetStrNested:
 
     def test_primary_absent_uses_trip_type(self):
         """Falls back to trip_type when type is absent."""
-        result = get_str_nested(
-            {"trip_type": "puntual"}, "type", "trip_type"
-        )
+        result = get_str_nested({"trip_type": "puntual"}, "type", "trip_type")
         assert result == "puntual"
 
     def test_both_absent_returns_default(self):
@@ -150,7 +148,9 @@ class TestGetStrNested:
 
     def test_primary_none_uses_trip_type(self):
         """Primary is None (key exists but value is None) — falls back."""
-        result = get_str_nested({"type": None, "trip_type": "puntual"}, "type", "trip_type")
+        result = get_str_nested(
+            {"type": None, "trip_type": "puntual"}, "type", "trip_type"
+        )
         assert result == "puntual"
 
     def test_both_none_returns_default(self):
@@ -216,7 +216,10 @@ class TestGetOptionalStr:
     """Test get_optional_str — covers data.get("datetime") pattern."""
 
     def test_present_string(self):
-        assert get_optional_str({"datetime": "2026-01-01T10:00:00"}, "datetime") == "2026-01-01T10:00:00"
+        assert (
+            get_optional_str({"datetime": "2026-01-01T10:00:00"}, "datetime")
+            == "2026-01-01T10:00:00"
+        )
 
     def test_missing_returns_none(self):
         """Kill mutation: data.get("datetime") → data.get("datetime", "default")
@@ -255,10 +258,19 @@ class TestGetOr:
 
     def test_primary_missing_fallback_used(self):
         """Kill mutation: removing fallback key lookup → returns None instead of fallback value."""
-        assert get_or({"day_of_week": "monday"}, "dia_semana", "day_of_week") == "monday"
+        assert (
+            get_or({"day_of_week": "monday"}, "dia_semana", "day_of_week") == "monday"
+        )
 
     def test_both_present_returns_primary(self):
-        assert get_or({"dia_semana": "lunes", "day_of_week": "monday"}, "dia_semana", "day_of_week") == "lunes"
+        assert (
+            get_or(
+                {"dia_semana": "lunes", "day_of_week": "monday"},
+                "dia_semana",
+                "day_of_week",
+            )
+            == "lunes"
+        )
 
     def test_both_missing_returns_none(self):
         """Kill mutation: both key lookups removed → returns a non-None default."""
@@ -267,7 +279,12 @@ class TestGetOr:
 
     def test_primary_empty_uses_fallback(self):
         """Empty string is falsy → falls through to fallback."""
-        assert get_or({"dia_semana": "", "day_of_week": "monday"}, "dia_semana", "day_of_week") == "monday"
+        assert (
+            get_or(
+                {"dia_semana": "", "day_of_week": "monday"}, "dia_semana", "day_of_week"
+            )
+            == "monday"
+        )
 
     def test_primary_zero_uses_fallback(self):
         """Numeric zero is falsy → falls through to fallback."""

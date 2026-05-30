@@ -1138,6 +1138,7 @@ def mock_hass_calc():
 
 # === Shared test helpers for handler factory tests ===
 
+
 class _MockConfigEntry:
     """Minimal config entry for handler factory tests."""
 

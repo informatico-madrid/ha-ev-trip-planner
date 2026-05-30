@@ -105,7 +105,7 @@ class TestBuildModuleUrl:
         # Verify version prefix and timestamp are present
         assert cache_bust.startswith("3.0.11-")
         # Timestamp is numeric part after version
-        after_version = cache_bust[len("3.0.11-"):]
+        after_version = cache_bust[len("3.0.11-") :]
         ts_str = after_version.split("-")[0]
         assert ts_str.isdigit()
 
@@ -115,9 +115,7 @@ class TestBuildPanelKwargs:
 
     def test_build_kwargs_contains_expected_keys(self):
         """Test all expected keys are present."""
-        kwargs = build_panel_kwargs(
-            "path", "Vehicle", "url", {"vehicle_id": "v1"}
-        )
+        kwargs = build_panel_kwargs("path", "Vehicle", "url", {"vehicle_id": "v1"})
         expected_keys = {
             "frontend_url_path",
             "webcomponent_name",
@@ -240,9 +238,7 @@ class TestAsyncRegisterPanel:
 
         mock_hass_panel.config.components = {"panel_custom"}
 
-        await panel.async_register_panel(
-            mock_hass_panel, vehicle_id, "Test Vehicle"
-        )
+        await panel.async_register_panel(mock_hass_panel, vehicle_id, "Test Vehicle")
 
         mapping = mock_hass_panel.data[panel.VEHICLE_PANEL_MAPPING_KEY]
         assert mapping[vehicle_id] == expected_path
@@ -259,9 +255,7 @@ class TestAsyncRegisterPanel:
         vehicle_id = "test_vehicle"
         mock_hass_panel.config.components = {"panel_custom"}
 
-        await panel.async_register_panel(
-            mock_hass_panel, vehicle_id, "Test Vehicle"
-        )
+        await panel.async_register_panel(mock_hass_panel, vehicle_id, "Test Vehicle")
 
         call_kwargs = mock_panel_module.async_register_panel.call_args.kwargs
         config = call_kwargs["config"]
@@ -280,9 +274,7 @@ class TestAsyncRegisterPanel:
         """
         mock_hass_panel.config.components = {"panel_custom"}
 
-        await panel.async_register_panel(
-            mock_hass_panel, "v1", "My Electric Car"
-        )
+        await panel.async_register_panel(mock_hass_panel, "v1", "My Electric Car")
 
         call_kwargs = mock_panel_module.async_register_panel.call_args.kwargs
         assert call_kwargs["sidebar_title"] == "My Electric Car"
@@ -344,9 +336,7 @@ class TestAsyncRegisterPanel:
         """
         mock_hass_panel.config.components = {"panel_custom"}
 
-        mock_frontend_module.async_remove_panel.side_effect = Exception(
-            "remove failed"
-        )
+        mock_frontend_module.async_remove_panel.side_effect = Exception("remove failed")
 
         result = await panel.async_register_panel(
             mock_hass_panel,
@@ -412,9 +402,7 @@ class TestAsyncUnregisterPanel:
         vehicle_id = "test_vehicle"
         expected_path = f"ev-trip-planner-{vehicle_id}"
 
-        await panel.async_unregister_panel(
-            mock_hass_panel_with_mapping, vehicle_id
-        )
+        await panel.async_unregister_panel(mock_hass_panel_with_mapping, vehicle_id)
 
         call_args = mock_frontend_module.async_remove_panel.call_args
         # The call is: remove_fn(hass, frontend_url_path)
@@ -745,12 +733,8 @@ class TestPanelIntegration:
             "custom_components.ev_trip_planner.panel.panel_custom.async_register_panel",
             original_async_register,
         ):
-            r1 = await panel.async_register_panel(
-                hass, "car_alpha", "Alpha Car"
-            )
-            r2 = await panel.async_register_panel(
-                hass, "car_beta", "Beta Car"
-            )
+            r1 = await panel.async_register_panel(hass, "car_alpha", "Alpha Car")
+            r2 = await panel.async_register_panel(hass, "car_beta", "Beta Car")
 
         assert r1 is True
         assert r2 is True

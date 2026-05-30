@@ -27,6 +27,7 @@ import {
   cleanupTestTrips,
   createTestTrip,
   getFutureIso,
+  getFutureIsoHours,
   navigateToPanel,
 } from './trips-helpers';
 
@@ -430,6 +431,33 @@ async function changeSOH(page: Page, value: number): Promise<void> {
 }
 
 /**
+ * Reload the ev_trip_planner config entry.
+ *
+ * The EMHASS adapter caches the SOH-derived real battery capacity for 5 minutes
+ * (BatteryCapacity.SOH_CACHE_TTL_SECONDS, intentional hysteresis). Within a single
+ * e2e run, changing the SOH sensor therefore does NOT propagate. Reloading the entry
+ * recreates the adapter (fresh BatteryCapacity, empty cache) so the next publish reads
+ * the current SOH — modelling a real HA restart picking up a new SOH reading.
+ */
+async function reloadIntegration(page: Page): Promise<void> {
+  await page.goto('/developer-tools/state', { waitUntil: 'networkidle' });
+  await page.evaluate(async () => {
+    const haMain = document.querySelector('home-assistant') as any;
+    const hass = haMain?.hass;
+    if (!hass) throw new Error('HA frontend hass not found');
+    const entries = await hass.callWS({ type: 'config_entries/get' });
+    const entry = (entries as any[]).find((e) => e.domain === 'ev_trip_planner');
+    if (!entry) throw new Error('ev_trip_planner config entry not found');
+    await hass.callService('homeassistant', 'reload_config_entry', {
+      entry_id: entry.entry_id,
+    });
+  });
+  // Allow unload + re-setup + initial SOH read to complete.
+  await page.waitForTimeout(4000);
+  await navigateToPanel(page);
+}
+
+/**
  * Change T_BASE via options flow UI.
  * Navigate to integration config page, click Configure, fill form.
  */
@@ -726,7 +754,7 @@ test.describe('Dynamic SOC Capping — Multi-Trip Scenarios', () => {
   // --------------------------------------------------------------------------
   // T_BASE=6h: Aggressive capping — comparative vs T_BASE=24h baseline
   // --------------------------------------------------------------------------
-  test('T_BASE=6h narrow window — more charging hours than T_BASE=24h baseline', async ({ page }) => {
+  test('T_BASE=6h narrow window — fewer charging hours than T_BASE=24h baseline', async ({ page }) => {
     // Step 1: Set T_BASE=24h (baseline)
     await changeTBaseViaUI(page, 24);
     await changeSOC(page, 30);
@@ -796,8 +824,8 @@ test.describe('Dynamic SOC Capping — Multi-Trip Scenarios', () => {
       `${(attrs6h.deferrables_schedule as any[]).length} deferrable loads`,
     );
 
-    // Step 7: Shorter T_BASE sees fewer future trips → higher SOC cap → more charging hours
-    expect(defHours6h).toBeGreaterThan(defHoursDefault);
+    // Step 7: Smaller T_BASE = more aggressive ramp cap → fewer allowed hours per window
+    expect(defHours6h).toBeLessThan(defHoursDefault);
 
     await cleanupTestTrips(page);
   });
@@ -882,63 +910,72 @@ test.describe('Dynamic SOC Capping — Multi-Trip Scenarios', () => {
   });
 
   // --------------------------------------------------------------------------
-  // SOH=92%: Real battery capacity affects capping — comparative vs 100% SOH
+  // SOH affects capping ONLY near the trip (far converges, near differs).
+  //
+  // 4-point design (SAME low SOC=8% for all points — do NOT raise it):
+  //   P1: SOH 50%,  far window  (~96h)
+  //   P2: SOH 50%,  near window (~5h)
+  //   P3: SOH 100%, far window
+  //   P4: SOH 100%, near window
+  //
+  // Real (empirically established) behavior:
+  //   - FAR: P1 == P3 — the pre-trip ramp holds charging to the minimum for battery
+  //     health REGARDLESS of capacity, so SOH is invisible far from the trip.
+  //   - NEAR: P2 < P4 — when real charging happens near the trip, the degraded battery
+  //     (smaller real capacity) reaches its ceiling with less energy (e.g. 80% of 30kWh
+  //     vs 50% of 60kWh for the same trip) → fewer charging hours. "Se llega a un SOC
+  //     alto antes → el cap actúa antes."
+  //   - NEAR > FAR (P2>P1, P4>P3) — the ramp relaxes as the trip approaches. This also
+  //     guards the core fix: a single far-away trip is NOT charged to full early.
+  //
+  // SOC stays at 8% for ALL points (raising it would shrink the SOH delta below the
+  // 1-hour ceil granularity and hide the effect).
   // --------------------------------------------------------------------------
-  test('SOH=92% increases total charging hours vs SOH=100% baseline', async ({ page }) => {
-    // Step 1: Set SOH=100% (baseline)
-    await changeSOH(page, 100);
-    await changeSOC(page, 40);
+  test('SOH affects capping only near the trip (far converges, near differs)', async ({ page }) => {
+    // Reset T_BASE to 24 (default) — test 8 changes it to 48 and never restores
+    await changeTBaseViaUI(page, 24);
 
-    // Step 2: Create 1 trip at baseline SOH
-    await createTestTrip(page, 'puntual', getFutureIso(1, '10:00'), 150, 38, 'SOH 100% Baseline Trip');
+    const SOC = 8;
+    const TRIP_KWH = 18;
+    const TRIP_KM = 106;
 
-    // Step 3: Capture baseline total hours
-    await waitForEmhassSensor(page);
-    const baselineSensorId = (await discoverEmhassSensorEntityId(page))!;
-    expect(baselineSensorId).toBeTruthy();
-    await waitForNonZeroProfile(page, baselineSensorId);
-    const baselineAttrs = await getSensorAttributes(page, baselineSensorId!);
-    expect(baselineAttrs.emhass_status).toBe('ready');
-    const soh100 = getDefHoursTotal(baselineAttrs);
+    async function measureHours(soh: number, tripIso: string, label: string): Promise<number> {
+      await changeSOH(page, soh);
+      await changeSOC(page, SOC);
+      // Reload so the fresh BatteryCapacity reads the just-set SOH (bypasses the
+      // 5-min SOH cache that would otherwise hide the change within this run).
+      await reloadIntegration(page);
+      await createTestTrip(page, 'puntual', tripIso, TRIP_KM, TRIP_KWH, label);
+      await waitForEmhassSensor(page);
+      const sid = (await discoverEmhassSensorEntityId(page))!;
+      expect(sid).toBeTruthy();
+      await waitForNonZeroProfile(page, sid);
+      const attrs = await getSensorAttributes(page, sid!);
+      expect(attrs.emhass_status).toBe('ready');
+      const hours = getDefHoursTotal(attrs);
+      await verifyAttributesViaUI(page, 'emhass_perfil_diferible');
+      console.log(`${label}: def_total_hours sum = ${hours.toFixed(0)}h`);
+      await cleanupTestTrips(page);
+      return hours;
+    }
 
-    // Verify baseline attributes visible in UI
-    await verifyAttributesViaUI(page, 'emhass_perfil_diferible');
-
-    console.log(
-      `SOH=100% baseline: def_total_hours_array sum = ${soh100.toFixed(2)}h, ` +
-      `${(baselineAttrs.deferrables_schedule as any[]).length} deferrable loads`,
-    );
-
-    // Step 4: Switch SOH to 92%
-    await cleanupTestTrips(page);
-    await changeSOH(page, 92);
-    await changeSOC(page, 40);
-
-    // Step 5: Create same trip
-    await createTestTrip(page, 'puntual', getFutureIso(1, '10:00'), 150, 38, 'SOH 92% Test Trip');
-
-    // Step 6: Capture 92% SOH total hours
-    await waitForEmhassSensor(page);
-    const soh92SensorId = (await discoverEmhassSensorEntityId(page))!;
-    expect(soh92SensorId).toBeTruthy();
-    await waitForNonZeroProfile(page, soh92SensorId);
-    const attrs92 = await getSensorAttributes(page, soh92SensorId!);
-    expect(attrs92.emhass_status).toBe('ready');
-    const soh92 = getDefHoursTotal(attrs92);
-
-    // Verify 92% attributes visible in UI
-    await verifyAttributesViaUI(page, 'emhass_perfil_diferible');
+    // Far window ≈ 96h (4 days), near window ≈ 5h.
+    const far50 = await measureHours(50, getFutureIso(4, '10:00'), 'P1 SOH50 far');
+    const near50 = await measureHours(50, getFutureIsoHours(5), 'P2 SOH50 near');
+    const far100 = await measureHours(100, getFutureIso(4, '10:00'), 'P3 SOH100 far');
+    const near100 = await measureHours(100, getFutureIsoHours(5), 'P4 SOH100 near');
 
     console.log(
-      `SOH=92%: def_total_hours_array sum = ${soh92.toFixed(2)}h, ` +
-      `${(attrs92.deferrables_schedule as any[]).length} deferrable loads, ` +
-      `real capacity 55.2kWh used in capping`,
+      `4-point SOH: far50=${far50}h near50=${near50}h far100=${far100}h near100=${near100}h`,
     );
 
-    // Step 7: Assert SOH=92% increases total charging hours (higher drain due to smaller real capacity)
-    expect(soh92).toBeGreaterThan(soh100);
-
-    await cleanupTestTrips(page);
+    // FAR: SOH invisible — the health ramp holds both to the same minimum.
+    expect(far50).toBe(far100);
+    // NEAR: degraded battery reaches its (smaller) ceiling sooner → charges FEWER hours.
+    expect(near50).toBeLessThan(near100);
+    // Ramp relaxes as the trip approaches (single far trip is NOT charged full early).
+    expect(near50).toBeGreaterThan(far50);
+    expect(near100).toBeGreaterThan(far100);
   });
 
   // --------------------------------------------------------------------------

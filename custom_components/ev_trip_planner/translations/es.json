@@ -34,7 +34,7 @@
           "charging_power": "Potencia máxima de carga en kW (ej: 7.2 para 7.2kW, 22 para 22kW trifásico). Verifica las especificaciones de tu wallbox. Ejemplo: 7.2",
           "range_sensor": "Opcional: Sensor que muestra la autonomía restante en km. Busca sensores que terminen en '_range', '_range_est' o '_car_range_remaining'. Ejemplo: sensor.ovms_chispitas_metric_v_b_range_est o sensor.renault_range",
           "charging_status": "Opcional: Sensor binario que muestra 'on' cuando el vehículo está cargando. Busca sensores con 'charging', 'charge' o 'plugged' en el nombre. Ejemplo: binary_sensor.ovms_chispitas_charging o binary_sensor.renault_charging",
-          "t_base": "Tiempo que puedes mantener la batería a alto SOC sin dañarla. Valores más bajos = protección más agresiva de la batería. Rango: 6-48h. Ejemplo: 24 (balance entre protección y flexibilidad)",
+          "t_base": "Agresividad de la protección de batería. Controla cuánto reduce el sistema las horas de carga cuando la ventana es amplia (hay tiempo de sobra antes del viaje). Valores menores = más agresivo (menos carga cuando el viaje está lejos). Rango: 6-48h. Ejemplo: 24 (balance entre salud y flexibilidad)",
           "soh_sensor": "Opcional: Sensor que indica el estado de salud de la batería como porcentaje (ej: 87 para 87%). Se usa para calcular la capacidad real de la batería. Busca sensores con 'soh', 'health' o 'capacity' en el nombre. Ejemplo: sensor.ovms_soh"
         }
       },

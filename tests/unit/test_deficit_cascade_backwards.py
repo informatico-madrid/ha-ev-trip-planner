@@ -343,22 +343,27 @@ class TestAdapterDeficitCascadeIntegration:
                 "def_end_timestep": 109,
                 "charging_window": [{"ventana_horas": 0, "horas_carga_necesarias": 2}],
                 "emhass_index": 2,
-                "p_deferrable_matrix": [[3600.0 if 100 <= i < 102 else 0.0 for i in range(168)]],  # BUG: 2h charging at slots 100-101 BEFORE cascade
+                "p_deferrable_matrix": [
+                    [3600.0 if 100 <= i < 102 else 0.0 for i in range(168)]
+                ],  # BUG: 2h charging at slots 100-101 BEFORE cascade
             },
         }
 
-        adapter._apply_deficit_propagation()
+        adapter._run_window_pipeline()
 
         # Trip C: origin zeroed out (zero window cannot charge)
         assert adapter._cached_per_trip_params["trip_c"]["def_total_hours"] == 0
         # Trip B: absorbs 2h from trip C
         assert adapter._cached_per_trip_params["trip_b"]["def_total_hours"] == 4
-        # Trip A: unaffected
-        assert adapter._cached_per_trip_params["trip_a"]["def_total_hours"] == 2
+        # Trip A: SOC cap ramp reduces it (ventana=37h, needs=2h, slack=35, k=24 →
+        # H_allowed=2/(1+35/24)≈0.81 → ceil→1). Deficit carrier=0 at this point.
+        assert adapter._cached_per_trip_params["trip_a"]["def_total_hours"] == 1
 
         # p_deferrable_matrix must be recalculated after deficit propagation.
         # Origin trip_c with def_total=0 must have all-zeros matrix.
-        trip_c_matrix = adapter._cached_per_trip_params["trip_c"].get("p_deferrable_matrix", [])
+        trip_c_matrix = adapter._cached_per_trip_params["trip_c"].get(
+            "p_deferrable_matrix", []
+        )
         assert len(trip_c_matrix) > 0, "trip_c should have p_deferrable_matrix"
         trip_c_row = trip_c_matrix[0]
         assert all(v == 0 for v in trip_c_row), (
@@ -462,7 +467,7 @@ class TestAdapterDeficitCascadeIntegration:
             },
         }
 
-        adapter._apply_deficit_propagation()
+        adapter._run_window_pipeline()
 
         # After cascade: all def_total_hours must be int (via math.ceil), not float
         for tid in ["trip_a", "trip_b", "trip_c"]:

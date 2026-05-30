@@ -117,10 +117,12 @@ class EMHASSAdapter:
         # Sub-component initialization
         self._index_manager = IndexManager()
         soc_sensor = None
+        soh_sensor = None
         if self._entry:
             entry_data = dict(getattr(self._entry, "options", {}) or {})
             entry_data.update(dict(getattr(self._entry, "data", {}) or {}))
             soc_sensor = entry_data.get("soc_sensor")
+            soh_sensor = entry_data.get("soh_sensor") or None
         self._load_publisher = LoadPublisher(
             hass=hass,
             vehicle_id=self.vehicle_id,  # pragma: no mutate  # EQ-087
@@ -130,6 +132,7 @@ class EMHASSAdapter:
                 charging_power_kw=charging_power_kw,
                 safety_margin_percent=safety_margin_percent,
                 soc_sensor=soc_sensor,
+                soh_sensor=soh_sensor,
             ),
         )
         self._error_handler = ErrorHandler(hass=hass)
@@ -208,19 +211,6 @@ class EMHASSAdapter:
             Dict with emhass_power_profile, emhass_deferrables_schedule,
             emhass_status, and per_trip_emhass_params keys.
         """
-        _LOGGER.warning(
-            "BUG-DEBUG: get_cached_optimization_results returning per_trip=%d power_profile_nonzero=%d",
-            len(self._cached_per_trip_params),
-            sum(1 for x in (self._cached_power_profile or []) if x > 0),
-        )
-        for tid, tp in self._cached_per_trip_params.items():
-            _LOGGER.warning(
-                "BUG-DEBUG: get_cached per_trip[%s] def_total_hours=%s def_start=%s def_end=%s",
-                tid,
-                tp.get("def_total_hours"),
-                tp.get("def_start_timestep"),
-                tp.get("def_end_timestep"),
-            )
         return {
             "emhass_power_profile": self._cached_power_profile,
             "emhass_deferrables_schedule": self._cached_deferrables_schedule,  # pragma: no mutate  # EQ-086
@@ -296,11 +286,6 @@ class EMHASSAdapter:
         Returns:
             True if all trips were published successfully.
         """
-        _LOGGER.warning(
-            "BUG-DEBUG: async_publish_all_deferrable_loads ENTERED trips=%d shutting_down=%s",
-            len(trips),
-            self._shutting_down,
-        )
         if self._shutting_down:
             return False
 
@@ -323,20 +308,15 @@ class EMHASSAdapter:
         self._cached_power_profile = []
         self._cached_deferrables_schedule = []
 
-        # Pre-compute multi-trip charging windows and process trips
-        battery_capacity_kwh = self._load_publisher.battery_capacity_kwh
-        _LOGGER.warning(
-            "BUG-DEBUG: async_publish_all calling _precompute battery_capacity_kwh=%.2f",
-            battery_capacity_kwh,
+        # Pre-compute multi-trip charging windows and process trips.
+        # Use SOH-adjusted real capacity so battery degradation affects the plan.
+        battery_capacity_kwh = self._load_publisher.get_real_capacity_kwh()
+        soc_current = await self._precompute_and_process_trips(
+            trips, battery_capacity_kwh
         )
-        await self._precompute_and_process_trips(trips, battery_capacity_kwh)
 
-        # BUG-6: Run deficit propagation to handle cascading charging needs
-        _LOGGER.warning(
-            "BUG-DEBUG: async_publish_all calling _apply_deficit_propagation cached_per_trip=%d",
-            len(self._cached_per_trip_params),
-        )
-        self._apply_deficit_propagation()
+        # Run window pipeline: SOC cap (health) then deficit propagation (factibilidad)
+        self._run_window_pipeline(soc_current)
 
         # Build power profile and deferrables schedule
         horizon = self._get_horizon_hours()
@@ -350,20 +330,6 @@ class EMHASSAdapter:
         self._cached_power_profile = power_profile
         self._cached_deferrables_schedule = deferrables_schedule
         self._cached_emhass_status = "ready"
-
-        _LOGGER.warning(
-            "BUG-DEBUG: async_publish_all DONE cached_per_trip=%d power_profile_nonzero=%d",
-            len(self._cached_per_trip_params),
-            sum(1 for x in power_profile if x > 0),
-        )
-        for tid, tp in self._cached_per_trip_params.items():
-            _LOGGER.warning(
-                "BUG-DEBUG: async_publish_all cached[%s] def_total_hours=%s def_start=%s def_end=%s",
-                tid,
-                tp.get("def_total_hours"),
-                tp.get("def_start_timestep"),
-                tp.get("def_end_timestep"),
-            )
 
         return success
 
@@ -394,40 +360,10 @@ class EMHASSAdapter:
             # qg-accepted: AP05 — default SOC fallback
             soc_current = 50.0
 
-        _LOGGER.warning(
-            "BUG-DEBUG: _precompute_and_process_trips ENTERED trips=%d battery_capacity_kwh=%.2f soc_current=%.2f charging_power_kw=%s",
-            len(trips),
-            battery_capacity_kwh,
-            soc_current,
-            self._charging_power_kw,
-        )
-
         trip_deadlines = self._build_trip_deadlines(trips)
-        _LOGGER.warning(
-            "BUG-DEBUG: trip_deadlines built %d deadlines",
-            len(trip_deadlines),
-        )
-        for dl in trip_deadlines:
-            _LOGGER.warning(
-                "BUG-DEBUG: deadline trip_id=%s deadline=%s",
-                dl[1].get("id"),
-                dl[0],
-            )
-
         pre_computed_windows = self._compute_charging_windows(
             trip_deadlines, soc_current, battery_capacity_kwh, now
         )
-        _LOGGER.warning(
-            "BUG-DEBUG: pre_computed_windows=%d windows",
-            len(pre_computed_windows),
-        )
-        for w in pre_computed_windows:
-            _LOGGER.warning(
-                "BUG-DEBUG: window trip_id=%s inicio=%s fin=%s",
-                w.get("trip", {}).get("id"),
-                w.get("inicio_ventana"),
-                w.get("fin_ventana"),
-            )
 
         window_by_trip_id = self._build_window_lookup(pre_computed_windows)
         await self._process_trips_with_windows(
@@ -681,16 +617,13 @@ class EMHASSAdapter:
         safety_margin_percent = params.safety_margin_percent
         soc_current = params.soc_current
 
-        # Read t_base and planning_horizon from config entry
-        t_base = const.DEFAULT_T_BASE  # default
+        # Read planning_horizon from config entry
         # qg-accepted: AP05 — hours-per-day for horizon
         horizon_hours = const.DEFAULT_PLANNING_HORIZON * 24  # default: 7 days
         entry = self._entry
         if entry:
             entry_data = dict(getattr(entry, "options", {}) or {})
             entry_data.update(dict(getattr(entry, "data", {}) or {}))
-            # qg-accepted: AP05 — default t_base hours
-            t_base = float(entry_data.get("t_base", 24.0))
             # qg-accepted: AP05 — default planning horizon days
             horizon_days = int(entry_data.get("planning_horizon_days", 7))
             # qg-accepted: AP05 — hours-per-day conversion
@@ -776,78 +709,6 @@ class EMHASSAdapter:
             )
             total_hours = energy_info["horas_carga_necesarias"]
 
-            # BUG-4 + BUG-5: Apply dynamic SOC capping.
-            # t_base already read above from config entry.
-            # Smaller t_base = tighter SOC caps.
-            if t_base and charging_windows:
-                from ..calculations import calculate_dynamic_soc_limit
-
-                # Hours until trip departure
-                t_hours = (
-                    24.0  # qg-accepted: AP05 — standard 24h default for horizon calc
-                )
-                if charging_windows[0].get("fin_ventana"):
-                    t_hours = (
-                        (charging_windows[0]["fin_ventana"] - now).total_seconds()
-                        / 3600
-                    )  # qg-accepted: AP05 — seconds-to-hours conversion
-
-                # DEBUG: Print SOC capping values for debugging
-                print(
-                    f"[DEBUG SOC CAP] trip_id={trip_id}, t_hours={t_hours:.2f}, soc_current={soc_current}"
-                )
-
-                # Estimated SOC after trip: current energy minus trip-only energy.
-                # The trip energy is the distance/consumption, not the full
-                # energia_necesaria_kwh (which includes safety margin).
-                trip_kwh = trip.get("kwh", 0.0)
-                if not trip_kwh and "km" in trip:
-                    from ..utils import calcular_energia_kwh
-
-                    trip_kwh = calcular_energia_kwh(
-                        trip.get("km", 0.0),
-                        self._entry.data.get("kwh_per_km", self._default_consumption),
-                    )
-                soc_after = max(
-                    0.0, soc_current - (trip_kwh / battery_capacity_kwh) * const.SOC_MAX
-                )
-
-                print(
-                    f"[DEBUG SOC CAP] trip_kwh={trip_kwh:.2f}, battery={battery_capacity_kwh}, soc_after={soc_after:.2f}"
-                )
-
-                # Compute SOC cap using the dynamic algorithm
-                soc_cap = calculate_dynamic_soc_limit(
-                    t_hours, soc_after, battery_capacity_kwh, t_base=t_base
-                )
-
-                print(f"[DEBUG SOC CAP] soc_cap={soc_cap:.2f}, t_base={t_base}")
-
-                # If SOC cap is below maximum, reduce the energy accordingly.
-                # Skip capping when SOC is already at maximum — the battery is full
-                # and any remaining hours are for proactive future-trip charging.
-                if soc_cap < const.SOC_MAX and soc_current < const.SOC_MAX:
-                    current_energy = (
-                        soc_current / const.SOC_MAX
-                    ) * battery_capacity_kwh
-                    max_energy = (soc_cap / const.SOC_MAX) * battery_capacity_kwh
-                    capped_energy = max(0.0, max_energy - current_energy)
-                    capped_hours = (
-                        capped_energy / charging_power_kw
-                        if charging_power_kw > 0
-                        else 0.0
-                    )
-                    print(
-                        f"[DEBUG SOC CAP] current_energy={current_energy:.2f}, max_energy={max_energy:.2f}, capped_energy={capped_energy:.2f}, capped_hours={capped_hours:.2f}"
-                    )
-                    total_hours = math.ceil(capped_hours) if capped_hours > 0 else 0
-                    print(f"[DEBUG SOC CAP] total_hours (capped)={total_hours}")
-                    energy_info["energia_necesaria_kwh"] = capped_energy
-                else:
-                    print(
-                        f"[DEBUG SOC CAP] SOC cap not applied: soc_cap={soc_cap} >= 100 or soc_current={soc_current} >= 100"
-                    )
-
             # FIX: def_end_timestep must be based on fin_ventana (trip departure time),
             # not def_start + total_hours. The formula def_start + total_hours gives
             # charging duration (2h), but def_end_timestep should be the charging
@@ -898,66 +759,50 @@ class EMHASSAdapter:
             "p_deferrable_matrix": trip_matrix,
         }
 
-        _LOGGER.warning(
-            "BUG-DEBUG: _populate_per_trip_cache_entry DONE trip_id=%s def_total_hours=%.2f def_start_timestep=%d def_end_timestep=%d power_watts=%.0f",
-            trip_id,
-            total_hours,
-            def_start_timestep,
-            def_end_timestep,
-            _helpers.kw_to_watts(charging_power_kw),
-        )
+    def _get_t_base(self) -> float:
+        """Read t_base from config entry with fallback to default.
 
-    def _apply_deficit_propagation(self) -> None:
-        """Apply deficit propagation across all cached per-trip params.
+        options takes precedence over data (options = user-editable via options flow).
+        """
+        if not self._entry:
+            return const.DEFAULT_T_BASE
+        entry_data = dict(getattr(self._entry, "data", {}) or {})
+        entry_data.update(dict(getattr(self._entry, "options", {}) or {}))
+        return float(entry_data.get("t_base", const.DEFAULT_T_BASE))
 
-        Walks trips backward (last to first) and propagates unmet charging
-        hours to earlier trips with spare capacity. Updates def_total_hours
-        in-place for affected trips.
+    def _run_window_pipeline(self, soc_current: float = 50.0) -> None:
+        """Execute the window transformation pipeline across all active trips.
+
+        Applies SOC cap (health, Componentes 1+2) then deficit propagation
+        (factibilidad) in order. Updates def_total_hours, kwh_needed, and
+        p_deferrable_matrix in cache.
         """
         if not self._cached_per_trip_params:
             return
 
         active = self._get_active_trips_sorted()
-        _LOGGER.warning(
-            "BUG-DEBUG: _apply_deficit_propagation active=%d",
-            len(active),
-        )
-        for a in active:
-            _LOGGER.warning(
-                "BUG-DEBUG:   active_trip id=%s activo=%s def_total=%.1f start=%d",
-                str(a.get("emhass_index")),
-                a.get("activo"),
-                a.get("def_total_hours") or 0.0,
-                a.get("def_start_timestep"),
-            )
-        if len(active) < 2:
+        if not active:
             return
 
-        windows, total_hours_list = self._build_deficit_windows(active)
-        _LOGGER.warning(
-            "BUG-DEBUG: windows=%d total_hours_list=%s",
-            len(windows),
-            total_hours_list,
-        )
+        windows, trip_ids = self._build_pipeline_windows(active)
         if not windows:
             return
 
-        from ..calculations import calculate_hours_deficit_propagation
+        from homeassistant.util import dt as dt_util
 
-        results = calculate_hours_deficit_propagation(windows, total_hours_list)
-        _LOGGER.warning(
-            "BUG-DEBUG: results=%d",
-            len(results),
+        from ..calculations.window_pipeline import PipelineContext, run_window_pipeline
+
+        battery_capacity_kwh = self._load_publisher.get_real_capacity_kwh()
+        charging_power_kw = self._load_publisher.charging_power_kw
+        context = PipelineContext(
+            charging_power_kw=charging_power_kw,
+            battery_capacity_kwh=battery_capacity_kwh,
+            t_base=self._get_t_base(),
+            now=dt_util.now(),
+            soc_current=soc_current,
         )
-        for r in results:
-            _LOGGER.warning(
-                "BUG-DEBUG:   result adj=%.1f orig_def=%.1f win_h=%.1f need_h=%.1f",
-                r.get("adjusted_def_total_hours"),
-                r.get("def_total_hours", r.get("horas_carga_necesarias")),
-                r.get("ventana_horas"),
-                r.get("horas_carga_necesarias"),
-            )
-        self._apply_deficit_results(results, active)
+        results = run_window_pipeline(windows, context)
+        self._apply_pipeline_results(results, active, trip_ids)
 
     def _get_active_trips_sorted(self) -> List[Dict[str, Any]]:
         """Return active trips sorted by (start_timestep, index)."""
@@ -971,96 +816,78 @@ class EMHASSAdapter:
         )
         return active
 
-    def _build_deficit_windows(  # pragma: no mutate  # EQ-084
+    def _build_pipeline_windows(  # pragma: no mutate  # EQ-084
         self, active: List[Dict[str, Any]]
-    ) -> tuple[List[Dict[str, float]], List[float]]:
-        """Build windows and total_hours lists for deficit propagation."""
-        windows: List[Dict[str, float]] = []
-        total_hours_list: List[float] = []
+    ) -> tuple[List[Dict[str, Any]], List[str]]:
+        """Build window dicts and aligned trip_ids for the pipeline.
+
+        Includes all charging_window fields (ventana_horas, horas_carga_necesarias,
+        fin_ventana, trip, etc.) so pipeline transforms can access trip context.
+        """
+        windows: List[Dict[str, Any]] = []
+        trip_ids: List[str] = []
         for p in active:
             cws = p.get("charging_window", [])
-            _LOGGER.warning(
-                "BUG-DEBUG: _build_deficit_windows param_trip=%s cws=%s",
-                str(p.get("emhass_index")),
-                cws,
-            )
             if cws:
-                w = cws[0]
-                windows.append(
-                    {
-                        "ventana_horas": w.get("ventana_horas", 0),
-                        "horas_carga_necesarias": w.get("horas_carga_necesarias", 0),
-                    }
-                )
+                windows.append(cws[0].copy())
             else:
                 th = p.get("def_total_hours", 0)
-                windows.append(
-                    {
-                        "ventana_horas": th,
-                        "horas_carga_necesarias": th,
-                    }
-                )
-            total_hours_list.append(p.get("def_total_hours", 0))
-        return windows, total_hours_list
+                windows.append({"ventana_horas": th, "horas_carga_necesarias": th})
+            trip_id = self._find_trip_id_for_params(p)
+            trip_ids.append(trip_id or "")
+        return windows, trip_ids
 
-    def _apply_deficit_results(
+    def _apply_pipeline_results(
         self,
         results: List[Dict[str, Any]],
         active: List[Dict[str, Any]],
+        trip_ids: Optional[List[str]] = None,
     ) -> None:
-        """Apply deficit propagation results to cached params.
+        """Apply pipeline results to cached params.
 
-        Results come from calculate_hours_deficit_propagation stored at
-        results[i] = original index i, so they're in the same order as the
-        input windows list, which matches the active list order.
+        Results are in the same order as the input windows / active lists.
+        trip_ids, if provided, are used directly; otherwise identity lookup is used.
         """
-        _LOGGER.warning(
-            "BUG-DEBUG: _apply_deficit_results results=%d active=%d",
-            len(results),
-            len(active),
-        )
         for i, result in enumerate(results):
-            params = active[i]
-            trip_id = self._find_trip_id_for_params(params)
-            _LOGGER.warning(
-                "BUG-DEBUG:   applying result[%d] adj=%.1f to active[%d]=%s trip_id=%s",
-                i,
-                result.get("adjusted_def_total_hours"),
-                i,
-                id(params),
-                trip_id,
-            )
-            if trip_id is None:
+            if trip_ids is not None:
+                trip_id = trip_ids[i] if i < len(trip_ids) else None
+            else:
+                params = active[i] if i < len(active) else {}
+                trip_id = self._find_trip_id_for_params(params)
+
+            if not trip_id:
                 continue
 
             adjusted = result.get("adjusted_def_total_hours")
-            if adjusted is not None:
-                self._cached_per_trip_params[trip_id]["def_total_hours"] = math.ceil(
-                    adjusted
-                )
-                power_watts = params.get("power_watts", 0)
-                if power_watts > 0:
-                    self._cached_per_trip_params[trip_id]["kwh_needed"] = round(
-                        adjusted * (power_watts / 1000.0), 2
-                    )
+            if adjusted is None:
+                continue
 
-                # BUG-FIX: Recalculate p_deferrable_matrix after deficit propagation.
-                # The matrix was built BEFORE cascade with original def_total hours.
-                # After cascade, origin trip with def_total=0 must have all-zeros matrix.
-                horizon = self._get_horizon_hours()
-                from ..calculations.windows import build_deferrable_matrix_row
+            params = active[i] if i < len(active) else {}
+            self._cached_per_trip_params[trip_id]["def_total_hours"] = math.ceil(
+                adjusted
+            )
+            power_watts = params.get("power_watts", 0)
+            if power_watts > 0:
+                self._cached_per_trip_params[trip_id]["kwh_needed"] = round(
+                    adjusted * (power_watts / 1000.0), 2
+                )
 
-                new_def_total = math.ceil(adjusted)
-                end_timestep = self._cached_per_trip_params[trip_id].get(
-                    "def_end_timestep", 0
-                )
-                new_row = build_deferrable_matrix_row(
-                    horizon_hours=horizon,
-                    charging_power_kw=power_watts / 1000.0 if power_watts else 0.0,
-                    hours_needed=new_def_total,
-                    end_timestep=end_timestep,
-                )
-                self._cached_per_trip_params[trip_id]["p_deferrable_matrix"] = [new_row]
+            # Recalculate p_deferrable_matrix so the matrix stays consistent
+            # with the updated def_total_hours after cap + deficit.
+            horizon = self._get_horizon_hours()
+            from ..calculations.windows import build_deferrable_matrix_row
+
+            new_def_total = math.ceil(adjusted)
+            end_timestep = self._cached_per_trip_params[trip_id].get(
+                "def_end_timestep", 0
+            )
+            new_row = build_deferrable_matrix_row(
+                horizon_hours=horizon,
+                charging_power_kw=power_watts / 1000.0 if power_watts else 0.0,
+                hours_needed=new_def_total,
+                end_timestep=end_timestep,
+            )
+            self._cached_per_trip_params[trip_id]["p_deferrable_matrix"] = [new_row]
 
     def _find_trip_id_for_params(self, params: Dict[str, Any]) -> Optional[str]:
         """Find trip_id matching a params dict by identity."""
@@ -1100,7 +927,7 @@ class EMHASSAdapter:
                     trip=trip,
                     trip_id=trip_id,
                     charging_power_kw=self._load_publisher.charging_power_kw,
-                    battery_capacity_kwh=self._load_publisher.battery_capacity_kwh,
+                    battery_capacity_kwh=self._load_publisher.get_real_capacity_kwh(),
                     safety_margin_percent=self._load_publisher.safety_margin_percent,
                     soc_current=soc_current,
                 ),

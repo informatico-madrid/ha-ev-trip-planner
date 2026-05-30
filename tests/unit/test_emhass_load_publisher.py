@@ -380,7 +380,9 @@ class TestLoadPublisherInitState:
 
         publisher, _ = pub
         assert publisher._battery_cap is not None
-        assert publisher._battery_cap.nominal_capacity_kwh == DEFAULT_BATTERY_CAPACITY_KWH, (
+        assert (
+            publisher._battery_cap.nominal_capacity_kwh == DEFAULT_BATTERY_CAPACITY_KWH
+        ), (
             f"Expected nominal_capacity_kwh={DEFAULT_BATTERY_CAPACITY_KWH}, "
             f"got {publisher._battery_cap.nominal_capacity_kwh}"
         )
@@ -435,7 +437,10 @@ class TestLoadPublisherInitState:
         from custom_components.ev_trip_planner.const import DEFAULT_MAX_DEFERRABLE_LOADS
 
         publisher, _ = pub
-        assert publisher._index_manager._max_deferrable_loads == DEFAULT_MAX_DEFERRABLE_LOADS, (
+        assert (
+            publisher._index_manager._max_deferrable_loads
+            == DEFAULT_MAX_DEFERRABLE_LOADS
+        ), (
             f"Expected _max_deferrable_loads={DEFAULT_MAX_DEFERRABLE_LOADS}, "
             f"got {publisher._index_manager._max_deferrable_loads}"
         )

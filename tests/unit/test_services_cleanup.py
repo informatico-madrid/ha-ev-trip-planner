@@ -64,9 +64,7 @@ async def test_cleanup_stale_storage_uses_correct_store_key(tmp_path):
         return p
 
     with patch.object(cleanup, "Path", mock_path):
-        with patch.object(
-            cleanup, "ha_storage", Mock(Store=mock_store_class)
-        ):
+        with patch.object(cleanup, "ha_storage", Mock(Store=mock_store_class)):
             await cleanup.async_cleanup_stale_storage(hass, "test_vehicle")
 
     # Verify Store was called with the correct key
@@ -99,9 +97,7 @@ async def test_remove_entry_cleanup_uses_correct_store_key(tmp_path):
         return p
 
     with patch.object(cleanup, "Path", mock_path):
-        with patch.object(
-            cleanup, "ha_storage", Mock(Store=mock_store_class)
-        ):
+        with patch.object(cleanup, "ha_storage", Mock(Store=mock_store_class)):
             await cleanup.async_remove_entry_cleanup(hass, mock_entry)
 
     # Verify Store was called with the correct key

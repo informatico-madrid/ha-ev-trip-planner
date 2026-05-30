@@ -290,12 +290,29 @@ export function getFutureIso(daysOffset: number, timeStr: string = '08:00'): str
 }
 
 /**
+ * Computes an ISO datetime a fixed number of HOURS from now (handles day rollover).
+ * Use for "near" charging-window scenarios where the trip is imminent.
+ * @param hoursOffset - Hours from now to schedule the trip
+ * @returns ISO datetime string in 'YYYY-MM-DDTHH:MM' format
+ */
+export function getFutureIsoHours(hoursOffset: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date(Date.now() + hoursOffset * 3600 * 1000);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
  * Cleans up ALL visible trip cards from the panel by deleting them.
  * This is used in beforeEach to ensure a clean state before each test.
  * WARNING: Do NOT call this before tests that expect existing trips to be present.
  * @param page - Playwright Page object
  */
 export async function cleanupTestTrips(page: Page): Promise<void> {
+  // Ensure we're on the panel — callers may invoke this right after a
+  // devtools navigation (e.g. after verifyAttributesViaUI), where no
+  // .trip-card elements exist and cleanup would silently skip.
+  await navigateToPanel(page);
+
   // Wait for trip cards to be loaded
   await page.locator('.trip-card').waitFor({ timeout: 5_000 }).catch(() => {
     // No trips exist, nothing to clean

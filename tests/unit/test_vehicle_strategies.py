@@ -437,10 +437,13 @@ class TestCreateControlStrategy:
     async def test_switch_factory_asserts_entity_id_in_config(self):
         """SwitchStrategy factory stores entity_id in config dict."""
         hass = MagicMock()
-        strategy = create_control_strategy(hass, {
-            "control_type": "switch",
-            "charge_control_entity": "switch.ev_charger_main",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "switch",
+                "charge_control_entity": "switch.ev_charger_main",
+            },
+        )
         assert isinstance(strategy, SwitchStrategy)
         assert strategy.config == {"entity_id": "switch.ev_charger_main"}
 
@@ -448,11 +451,14 @@ class TestCreateControlStrategy:
     async def test_script_factory_asserts_script_ids(self):
         """ScriptStrategy factory stores full script IDs in config."""
         hass = MagicMock()
-        strategy = create_control_strategy(hass, {
-            "control_type": "script",
-            "charge_script_on": "script.start_ev_charging",
-            "charge_script_off": "script.stop_ev_charging",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "script",
+                "charge_script_on": "script.start_ev_charging",
+                "charge_script_off": "script.stop_ev_charging",
+            },
+        )
         assert isinstance(strategy, ScriptStrategy)
         assert strategy.config == {
             "script_on": "script.start_ev_charging",
@@ -665,9 +671,7 @@ class TestVehicleController:
         )
 
         await strategy.async_activate()
-        hass.services.async_call.assert_called_once_with(
-            "script", "start_charging", {}
-        )
+        hass.services.async_call.assert_called_once_with("script", "start_charging", {})
 
     @pytest.mark.asyncio
     async def test_strategy_activate_arguments_service(self):
@@ -684,9 +688,7 @@ class TestVehicleController:
         )
 
         await strategy.async_activate()
-        hass.services.async_call.assert_called_once_with(
-            "input_boolean", "turn_on", {}
-        )
+        hass.services.async_call.assert_called_once_with("input_boolean", "turn_on", {})
 
     @pytest.mark.asyncio
     async def test_strategy_deactivate_arguments_switch(self):
@@ -716,9 +718,7 @@ class TestVehicleController:
         )
 
         await strategy.async_deactivate()
-        hass.services.async_call.assert_called_once_with(
-            "script", "stop_charging", {}
-        )
+        hass.services.async_call.assert_called_once_with("script", "stop_charging", {})
 
     @pytest.mark.asyncio
     async def test_strategy_deactivate_arguments_service(self):

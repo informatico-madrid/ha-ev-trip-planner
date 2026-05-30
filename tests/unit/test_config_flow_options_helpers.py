@@ -111,5 +111,3 @@ class TestSafeDataDict:
         result = _safe_data_dict(data)
         result["key"] = "changed"
         assert data["key"] == "value"
-
-

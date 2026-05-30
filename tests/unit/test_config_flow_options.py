@@ -222,4 +222,6 @@ class TestAsyncGetOptionsFlow:
         assert soh_field is not None
         # EntitySelector.config is a dict with 'multiple' key
         config = soh_field.config  # type: ignore[union-attr]
-        assert config["multiple"] is False  # NOT multi-select (kills boolean flip mutant)
+        assert (
+            config["multiple"] is False
+        )  # NOT multi-select (kills boolean flip mutant)

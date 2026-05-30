@@ -42,10 +42,13 @@ class TestVehicleControllerIntegrationSwitch:
     @pytest.mark.asyncio
     async def test_switch_activate_deactivate_full_flow(self, hass):
         """Controller activate/deactivate with SwitchStrategy asserts full call args."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "switch",
-            "charge_control_entity": "switch.vespa_charger",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "switch",
+                "charge_control_entity": "switch.vespa_charger",
+            },
+        )
         controller = VehicleController(hass, VESPA_VESPA90)
         controller.set_strategy(strategy)
 
@@ -71,10 +74,13 @@ class TestVehicleControllerIntegrationSwitch:
     @pytest.mark.asyncio
     async def test_switch_get_status_via_hass_states(self, hass):
         """SwitchStrategy status reads from hass.states.get with distinctive entity."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "switch",
-            "charge_control_entity": "switch.tesla_charger",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "switch",
+                "charge_control_entity": "switch.tesla_charger",
+            },
+        )
         controller = VehicleController(hass, TESLA_MODEL3)
         controller.set_strategy(strategy)
 
@@ -95,12 +101,18 @@ class TestVehicleControllerIntegrationService:
     @pytest.mark.asyncio
     async def test_service_activate_deactivate_with_data_on(self, hass):
         """ServiceStrategy activate with charge_service_data_on asserts full call args."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "service",
-            "charge_service_on": "input_boolean.turn_on_charger",
-            "charge_service_off": "input_boolean.turn_off_charger",
-            "charge_service_data_on": {"entity_id": "switch.nissan_charger", "brightness": 255},
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "service",
+                "charge_service_on": "input_boolean.turn_on_charger",
+                "charge_service_off": "input_boolean.turn_off_charger",
+                "charge_service_data_on": {
+                    "entity_id": "switch.nissan_charger",
+                    "brightness": 255,
+                },
+            },
+        )
         controller = VehicleController(hass, NISSAN_LEAF)
         controller.set_strategy(strategy)
 
@@ -126,13 +138,16 @@ class TestVehicleControllerIntegrationService:
     @pytest.mark.asyncio
     async def test_service_activate_deactivate_with_full_data(self, hass):
         """ServiceStrategy with both charge_service_data_on and charge_service_data_off."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "service",
-            "charge_service_on": "homeassistant.turn_on",
-            "charge_service_off": "homeassistant.turn_off",
-            "charge_service_data_on": {"entity_id": "switch.charger1"},
-            "charge_service_data_off": {"entity_id": "switch.charger1"},
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "service",
+                "charge_service_on": "homeassistant.turn_on",
+                "charge_service_off": "homeassistant.turn_off",
+                "charge_service_data_on": {"entity_id": "switch.charger1"},
+                "charge_service_data_off": {"entity_id": "switch.charger1"},
+            },
+        )
         controller = VehicleController(hass, VESPA_VESPA90)
         controller.set_strategy(strategy)
 
@@ -142,7 +157,11 @@ class TestVehicleControllerIntegrationService:
 
         await controller.async_deactivate_charging()
         call2 = hass.services.async_call.call_args
-        assert call2[0] == ("homeassistant", "turn_off", {"entity_id": "switch.charger1"})
+        assert call2[0] == (
+            "homeassistant",
+            "turn_off",
+            {"entity_id": "switch.charger1"},
+        )
 
 
 class TestVehicleControllerIntegrationScript:
@@ -151,11 +170,14 @@ class TestVehicleControllerIntegrationScript:
     @pytest.mark.asyncio
     async def test_script_activate_deactivate_full_flow(self, hass):
         """ScriptStrategy activate/deactivate strips 'script.' prefix correctly."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "script",
-            "charge_script_on": "script.start_charging_vespa",
-            "charge_script_off": "script.stop_charging_vespa",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "script",
+                "charge_script_on": "script.start_charging_vespa",
+                "charge_script_off": "script.stop_charging_vespa",
+            },
+        )
         controller = VehicleController(hass, VESPA_VESPA90)
         controller.set_strategy(strategy)
 
@@ -182,11 +204,14 @@ class TestVehicleControllerIntegrationScript:
     @pytest.mark.asyncio
     async def test_script_status_always_false(self, hass):
         """ScriptStrategy status returns False (scripts don't report status)."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "script",
-            "charge_script_on": "script.start_charging",
-            "charge_script_off": "script.stop_charging",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "script",
+                "charge_script_on": "script.start_charging",
+                "charge_script_off": "script.stop_charging",
+            },
+        )
         controller = VehicleController(hass, TESLA_MODEL3)
         controller.set_strategy(strategy)
 
@@ -199,9 +224,12 @@ class TestVehicleControllerIntegrationExternal:
     @pytest.mark.asyncio
     async def test_external_activate_returns_true_no_service_call(self, hass):
         """ExternalStrategy activate is a no-op: returns True, zero service calls."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "external",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "external",
+            },
+        )
         controller = VehicleController(hass, NISSAN_LEAF)
         controller.set_strategy(strategy)
 
@@ -214,9 +242,12 @@ class TestVehicleControllerIntegrationExternal:
     @pytest.mark.asyncio
     async def test_external_deactivate_returns_true_no_service_call(self, hass):
         """ExternalStrategy deactivate is a no-op: returns True, zero service calls."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "external",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "external",
+            },
+        )
         controller = VehicleController(hass, VESPA_VESPA90)
         controller.set_strategy(strategy)
 
@@ -227,9 +258,12 @@ class TestVehicleControllerIntegrationExternal:
     @pytest.mark.asyncio
     async def test_external_status_always_false(self, hass):
         """ExternalStrategy status always returns False."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "external",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "external",
+            },
+        )
         controller = VehicleController(hass, TESLA_MODEL3)
         controller.set_strategy(strategy)
 
@@ -242,10 +276,13 @@ class TestCreateControlStrategyFactory:
     @pytest.mark.asyncio
     async def test_factory_switch_creates_correct_entity_id(self, hass):
         """SwitchStrategy from factory stores entity_id correctly."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "switch",
-            "charge_control_entity": "switch.vespa_90_charger",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "switch",
+                "charge_control_entity": "switch.vespa_90_charger",
+            },
+        )
         assert isinstance(strategy, SwitchStrategy)
         assert strategy.switch_entity_id == "switch.vespa_90_charger"
         # assert config unchanged
@@ -254,13 +291,19 @@ class TestCreateControlStrategyFactory:
     @pytest.mark.asyncio
     async def test_factory_service_with_all_fields(self, hass):
         """ServiceStrategy from factory with all config fields."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "service",
-            "charge_service_on": "scene.activate_charging",
-            "charge_service_off": "scene.deactivate_charging",
-            "charge_service_data_on": {"entity_id": "switch.charger", "transition": 5},
-            "charge_service_data_off": {"entity_id": "switch.charger"},
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "service",
+                "charge_service_on": "scene.activate_charging",
+                "charge_service_off": "scene.deactivate_charging",
+                "charge_service_data_on": {
+                    "entity_id": "switch.charger",
+                    "transition": 5,
+                },
+                "charge_service_data_off": {"entity_id": "switch.charger"},
+            },
+        )
         assert isinstance(strategy, ServiceStrategy)
         assert strategy.service_on == "scene.activate_charging"
         assert strategy.service_off == "scene.deactivate_charging"
@@ -270,11 +313,14 @@ class TestCreateControlStrategyFactory:
     @pytest.mark.asyncio
     async def test_factory_script_strips_prefix(self, hass):
         """ScriptStrategy from factory stores full script IDs."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "script",
-            "charge_script_on": "script.start_ev_charging",
-            "charge_script_off": "script.stop_ev_charging",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "script",
+                "charge_script_on": "script.start_ev_charging",
+                "charge_script_off": "script.stop_ev_charging",
+            },
+        )
         assert isinstance(strategy, ScriptStrategy)
         assert strategy.script_on == "script.start_ev_charging"
         assert strategy.script_off == "script.stop_ev_charging"
@@ -282,17 +328,23 @@ class TestCreateControlStrategyFactory:
     @pytest.mark.asyncio
     async def test_factory_external_default_on_unknown_type(self, hass):
         """Unknown control_type → ExternalStrategy."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "unknown_strategy",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "unknown_strategy",
+            },
+        )
         assert isinstance(strategy, ExternalStrategy)
 
     @pytest.mark.asyncio
     async def test_factory_external_on_none_control_type(self, hass):
         """control_type=none → ExternalStrategy."""
-        strategy = create_control_strategy(hass, {
-            "control_type": "none",
-        })
+        strategy = create_control_strategy(
+            hass,
+            {
+                "control_type": "none",
+            },
+        )
         assert isinstance(strategy, ExternalStrategy)
 
 

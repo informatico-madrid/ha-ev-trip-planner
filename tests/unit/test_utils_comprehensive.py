@@ -637,7 +637,7 @@ class TestIsTripTodayAdditionalMutationKills:
 
 class TestGetTripTimeKillMutants:
     """Tests to kill specific mutation survivors in get_trip_time.
-    
+
     Target mutations:
     - String mutations on '%H:%M' format
     - Boolean flip on 'if not hora'
@@ -676,6 +676,7 @@ class TestGetTripTimeKillMutants:
         Kills mutation: return None → return type, or identity mutation."""
         result = get_trip_time({"hora": "12:00"})
         from datetime import datetime
+
         assert isinstance(result, datetime)
 
     def test_get_trip_time_string_format_hora_key(self):

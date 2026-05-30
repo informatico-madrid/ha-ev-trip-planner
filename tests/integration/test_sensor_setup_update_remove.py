@@ -162,12 +162,8 @@ class TestAsyncSetupEntry:
 
             await async_setup_entry(hass, mock_config_entry, capture_add_entities)
 
-        assert hasattr(
-            mock_config_entry.runtime_data, "sensor_async_add_entities"
-        )
-        assert callable(
-            mock_config_entry.runtime_data.sensor_async_add_entities
-        )
+        assert hasattr(mock_config_entry.runtime_data, "sensor_async_add_entities")
+        assert callable(mock_config_entry.runtime_data.sensor_async_add_entities)
 
 
 # =============================================================================
@@ -210,9 +206,7 @@ class TestAsyncCreateTripSensor:
                 async_create_trip_sensor,
             )
 
-            result = await async_create_trip_sensor(
-                hass, "test_entry", trip_data
-            )
+            result = await async_create_trip_sensor(hass, "test_entry", trip_data)
 
         assert result is True
         assert mock_config_entry.runtime_data.sensor_async_add_entities.called
@@ -223,16 +217,12 @@ class TestAsyncCreateTripSensor:
         hass: HomeAssistant,
     ):
         """Test that async_create_trip_sensor returns False when entry is not found."""
-        with patch.object(
-            hass.config_entries, "async_get_entry", return_value=None
-        ):
+        with patch.object(hass.config_entries, "async_get_entry", return_value=None):
             from custom_components.ev_trip_planner.sensor._async_setup import (
                 async_create_trip_sensor,
             )
 
-            result = await async_create_trip_sensor(
-                hass, "nonexistent", {"id": "t1"}
-            )
+            result = await async_create_trip_sensor(hass, "nonexistent", {"id": "t1"})
 
         assert result is False
 
@@ -256,9 +246,7 @@ class TestAsyncCreateTripSensor:
                 async_create_trip_sensor,
             )
 
-            result = await async_create_trip_sensor(
-                hass, "test_entry", {"id": "t1"}
-            )
+            result = await async_create_trip_sensor(hass, "test_entry", {"id": "t1"})
 
         assert result is False
 
@@ -282,9 +270,7 @@ class TestAsyncCreateTripSensor:
                 async_create_trip_sensor,
             )
 
-            result = await async_create_trip_sensor(
-                hass, "test_entry", {"id": "t1"}
-            )
+            result = await async_create_trip_sensor(hass, "test_entry", {"id": "t1"})
 
         assert result is False
 
@@ -316,9 +302,7 @@ class TestAsyncCreateTripSensor:
                 async_create_trip_sensor,
             )
 
-            result = await async_create_trip_sensor(
-                hass, "test_entry", trip_data
-            )
+            result = await async_create_trip_sensor(hass, "test_entry", trip_data)
 
         assert result is True
         call_args = mock_config_entry.runtime_data.sensor_async_add_entities.call_args
@@ -364,11 +348,14 @@ class TestAsyncUpdateTripSensor:
         def mock_async_entries(config_entry_arg, entry_id):
             return [mock_entity] if entry_id == "test_entry" else []
 
-        with patch.object(
-            hass.config_entries, "async_get_entry", return_value=mock_config_entry
-        ), patch(
-            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
-            side_effect=mock_async_entries,
+        with (
+            patch.object(
+                hass.config_entries, "async_get_entry", return_value=mock_config_entry
+            ),
+            patch(
+                "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+                side_effect=mock_async_entries,
+            ),
         ):
             from custom_components.ev_trip_planner.sensor._async_setup import (
                 async_update_trip_sensor,
@@ -387,16 +374,12 @@ class TestAsyncUpdateTripSensor:
         hass: HomeAssistant,
     ):
         """Test update fails when entry not found."""
-        with patch.object(
-            hass.config_entries, "async_get_entry", return_value=None
-        ):
+        with patch.object(hass.config_entries, "async_get_entry", return_value=None):
             from custom_components.ev_trip_planner.sensor._async_setup import (
                 async_update_trip_sensor,
             )
 
-            result = await async_update_trip_sensor(
-                hass, "nonexistent", {"id": "t1"}
-            )
+            result = await async_update_trip_sensor(hass, "nonexistent", {"id": "t1"})
 
         assert result is False
 
@@ -454,19 +437,18 @@ class TestAsyncRemoveTripSensor:
         def mock_async_entries(config_entry_arg, entry_id):
             return [mock_entry] if entry_id == "test_entry" else []
 
-        with patch(
-            "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
-            side_effect=mock_async_entries,
-        ), patch.object(
-            hass, "entity_registry", mock_registry
+        with (
+            patch(
+                "custom_components.ev_trip_planner.sensor._async_setup.async_entries_for_config_entry",
+                side_effect=mock_async_entries,
+            ),
+            patch.object(hass, "entity_registry", mock_registry),
         ):
             from custom_components.ev_trip_planner.sensor._async_setup import (
                 async_remove_trip_sensor,
             )
 
-            result = await async_remove_trip_sensor(
-                hass, "test_entry", "trip_001"
-            )
+            result = await async_remove_trip_sensor(hass, "test_entry", "trip_001")
 
         assert result is True
         mock_registry.async_remove.assert_called_once()
@@ -477,16 +459,12 @@ class TestAsyncRemoveTripSensor:
         mock_registry = MagicMock()
         mock_registry.async_entries_for_config_entry.return_value = []
 
-        with patch.object(
-            hass, "entity_registry", mock_registry
-        ):
+        with patch.object(hass, "entity_registry", mock_registry):
             from custom_components.ev_trip_planner.sensor._async_setup import (
                 async_remove_trip_sensor,
             )
 
-            result = await async_remove_trip_sensor(
-                hass, "test_entry", "nonexistent"
-            )
+            result = await async_remove_trip_sensor(hass, "test_entry", "nonexistent")
 
         assert result is False
 
@@ -530,9 +508,7 @@ class TestAsyncCreateTripEmhassSensor:
         hass: HomeAssistant,
     ):
         """Test EMHASS sensor creation fails when entry not found."""
-        with patch.object(
-            hass.config_entries, "async_get_entry", return_value=None
-        ):
+        with patch.object(hass.config_entries, "async_get_entry", return_value=None):
             from custom_components.ev_trip_planner.sensor._async_setup import (
                 async_create_trip_emhass_sensor,
             )

@@ -526,17 +526,6 @@ class TestSOCMixin:
         power = tm._state._soc._get_charging_power()
         assert power == 11.0  # DEFAULT_CHARGING_POWER = 11.0
 
-    def test_calcular_tasa_carga_soc(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        # 3.6 kW / 50 kWh * 100 = 7.2 %/hour
-        rate = tm._state._soc._calcular_tasa_carga_soc(3.6, 50.0)
-        assert rate == pytest.approx(7.2)
-
-    def test_calcular_tasa_carga_soc_zero_power(self, mock_hass):
-        tm = _make_tm(mock_hass)
-        rate = tm._state._soc._calcular_tasa_carga_soc(0.0, 50.0)
-        assert rate == 0.0
-
     def test_get_day_index(self, mock_hass):
         tm = _make_tm(mock_hass)
         assert tm._state._soc_helpers._get_day_index("lunes") == 0
