@@ -235,8 +235,8 @@ layer3: layer3a
 # Layer 4: Security & Defense (8 tools, 3 priority levels)
 layer4:
 	@echo "Running Layer 4: Security & Defense..."
-	@echo "  → Unified security scanner (8 tools)..."
-	@python3 .claude/skills/quality-gate/scripts/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
+	@echo "  → Unified security scanner (8 tools, scanning .venv-314-clean = HA 2026.x production env)..."
+	@.venv-314-clean/bin/python .claude/skills/quality-gate/scripts/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
 	@echo "=== Layer 4 Complete ==="
 
 # Quality Gate: Full 6-layer (L3A → L1 → L2 → L3B → L4, with E2E)

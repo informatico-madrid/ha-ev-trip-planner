@@ -491,7 +491,7 @@ def run_bandit(project_root: str, verbose: bool = False, config: dict | None = N
         return result
 
     cmd = [
-        ".venv/bin/bandit",
+        sys.executable, "-m", "bandit",
         "-r", *targets,
         "-f", "json",
         "--severity-level", "low",
@@ -517,7 +517,11 @@ def run_bandit(project_root: str, verbose: bool = False, config: dict | None = N
         return result
 
     try:
-        data = json.loads(stdout) if stdout.strip() else {}
+        # bandit may prefix stdout with a progress bar before the JSON object;
+        # find the first '{' to strip any non-JSON preamble.
+        json_start = stdout.find("{")
+        json_str = stdout[json_start:] if json_start >= 0 else ""
+        data = json.loads(json_str) if json_str.strip() else {}
         for issue in data.get("results", []):
             result.findings.append(Finding(
                 tool="bandit",
@@ -533,6 +537,7 @@ def run_bandit(project_root: str, verbose: bool = False, config: dict | None = N
             "files_scanned": len({f.file for f in result.findings}) if result.findings else "N/A",
             "metrics": data.get("metrics", {}),
         }
+        result.status = "PASS"
     except json.JSONDecodeError:
         result.error_output = f"Failed to parse bandit JSON output: {stdout[:500]}"
 
@@ -555,8 +560,8 @@ def run_safety(project_root: str, verbose: bool = False, config: dict | None = N
     rc, stdout, stderr, elapsed = _run(cmd, project_root, timeout=120, verbose=verbose)
     result.duration_s = elapsed
 
-    if rc == -1:
-        # Try pip-audit as fallback
+    if rc == -1 or (rc != 0 and "No module named" in stderr):
+        # Try pip-audit as fallback (safety not installed or module missing)
         return _run_pip_audit_fallback(project_root, verbose, elapsed)
 
     if rc == -2:
@@ -626,6 +631,7 @@ def _run_pip_audit_fallback(project_root: str, verbose: bool, elapsed: float) ->
                     category="dependency_vulnerability",
                 ))
         result.metadata = {"tool": "pip-audit", "vulnerabilities_found": len(result.findings)}
+        result.status = "PASS"
     except json.JSONDecodeError:
         result.metadata = {"tool": "pip-audit", "raw_output": stdout[:500]}
 
@@ -685,6 +691,7 @@ def run_gitleaks(project_root: str, verbose: bool = False, config: dict | None =
         result.error_output = "Failed to parse gitleaks report"
 
     result.metadata = {"secrets_found": len(result.findings)}
+    result.status = "PASS"
     return result
 
 
@@ -694,13 +701,25 @@ def run_semgrep(project_root: str, verbose: bool = False, config: dict | None = 
     """Run semgrep with security rules (OWASP + HA-specific)."""
     result = ToolResult(tool="semgrep", status="SKIPPED", priority=ToolPriority.RECOMMENDED)
 
-    # Check if semgrep is available
-    try:
-        subprocess.run([sys.executable, "-m", "semgrep", "--version"], capture_output=True, timeout=10)
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        result.status = "SKIPPED"
-        result.error_output = "semgrep not installed. Install: pip install semgrep"
-        return result
+    # Check if semgrep is available — PATH binary first, then venv, then module
+    semgrep_bin = shutil.which("semgrep")
+    semgrep_cmd: list[str] = []
+    if not semgrep_bin:
+        # Try common venv locations
+        for venv_bin in (".venv/bin/semgrep", "scripts/.venv/bin/semgrep"):
+            candidate = Path(project_root) / venv_bin
+            if candidate.exists():
+                semgrep_bin = str(candidate)
+                break
+    if not semgrep_bin:
+        try:
+            subprocess.run([sys.executable, "-m", "semgrep", "--version"], capture_output=True, timeout=10)
+        except (FileNotFoundError, subprocess.TimeoutExpired, ModuleNotFoundError):
+            result.status = "SKIPPED"
+            result.error_output = "semgrep not installed. Install: pip install semgrep"
+            return result
+        semgrep_bin = sys.executable
+        semgrep_cmd = ["-m", "semgrep"]
 
     # Build config: p/security-audit + p/owasp-top-ten + custom HA rules + JS rules
     configs = ["p/security-audit", "p/owasp-top-ten"]
@@ -720,8 +739,7 @@ def run_semgrep(project_root: str, verbose: bool = False, config: dict | None = 
     if project_rules.exists():
         configs.append(str(project_rules))
 
-    cmd = [
-        sys.executable, "-m", "semgrep",
+    cmd = [semgrep_bin, *semgrep_cmd,
         "--config", ",".join(configs),
         "--json",
         "--quiet",
@@ -900,7 +918,7 @@ def run_deptry(project_root: str, verbose: bool = False, config: dict | None = N
         "unused_deps": len(unused_deps),
         "transitive_deps": len(transitive_deps),
     }
-
+    result.status = "PASS"
     return result
 
 
@@ -969,6 +987,7 @@ def run_vulture(project_root: str, verbose: bool = False, config: dict | None = 
             ))
 
     result.metadata = {"dead_code_items": len(result.findings)}
+    result.status = "PASS"
     return result
 
 
@@ -1187,12 +1206,14 @@ def run_all_scans(
         known_pattern_bonus=known_pattern_bonus,
     )
 
-    # Update individual tool statuses based on findings (confidence-aware)
-    # Note: runners default to SKIPPED even when findings exist, so we always update
-    # status for tools that have findings or ran successfully. This MUST run before
-    # determine_pass_fail so SKIPPED→PASS transitions are visible.
+    # Update individual tool statuses based on findings (confidence-aware).
+    # Runners that executed successfully but left status as "SKIPPED" (legacy
+    # default) are promoted to "PASS" here so determine_pass_fail can
+    # distinguish "tool ran cleanly" from "tool was truly skipped/missing".
     for result in scan_result.tools:
-        if result.status in ("SKIPPED", "PASS", "FAIL"):
+        if result.status == "SKIPPED" and (result.findings or result.duration_s > 0.05):
+            result.status = "PASS"
+        if result.status in ("PASS", "FAIL"):
             has_blocking = any(
                 f.severity.weight >= threshold.weight
                 and f.confidence_score >= confidence_threshold
