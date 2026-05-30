@@ -383,7 +383,7 @@ class TestStagingBugReproduction:
         # (large slack in window → fewer hours → correct battery health behavior).
         # Spec says 2 trips; correct behavior is <= 4 slots (≤2h per trip).
         assert non_zero_count <= 4, (
-            f"Should have at most 4 charging slots (≤2h per trip × 2 trips), got {non_zero_count}."
+            f"Should have at most 4 charging slots (<=2h per trip x 2 trips), got {non_zero_count}."
         )
         assert non_zero_count > 0, "Should have at least some charging slots"
 

@@ -9,7 +9,7 @@
 > **Gap resuelto mediante extensión del código existente (2026-05-30):**
 >
 > Se añadió **Componente 1 — Rampa pre-viaje** (ortogonal al cap existente):
-> ```
+> ```text
 > slack = max(0, ventana_horas - horas_carga_necesarias)
 > H_allowed = horas_carga_necesarias / (1 + slack / k)     # k = t_base
 > ```
