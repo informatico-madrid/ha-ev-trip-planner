@@ -30,6 +30,10 @@ La fuente es el sensor agregado **EMHASS Perfil Diferible** cuyo atributo
 | `def_end_timestep_array` | Límite de la ventana |
 | `def_total_hours_array` | Horas solicitadas para cada carga |
 | `p_deferrable_nom_array` | Potencia nominal de cada carga |
+| `planning_reference` | Fecha UTC que corresponde al paso 0 de EMHASS |
+| `deadline_array` | Hora exacta de salida, con zona horaria |
+| `window_start_array` | Inicio real de disponibilidad de cada viaje |
+| `unserved_energy_kwh_array` | Carga solicitada que no cabe antes de la salida |
 
 El backend actual utiliza pasos de **una hora**. La energía del resumen es la
 integral del perfil agregado: `sum(power_profile_watts) / 1000` kWh. Las filas
@@ -39,10 +43,21 @@ combina el perfil usando el máximo de las filas.
 Las ventanas disponibles y la carga propuesta son cosas distintas. El panel
 representa los valores publicados, sin recalcular ni recortar el perfil.
 
-**Es la entrada propuesta a EMHASS, no la salida de su optimización.** El
-sensor actual no publica una fecha base absoluta para los pasos. Por eso el
-eje muestra horas relativas (`0 h`, `+24 h`...) y `last_updated` se presenta
-únicamente como hora de actualización del sensor, no como origen exacto del eje.
+**Es la entrada propuesta a EMHASS, no la salida de su optimización.** Desde el
+frontend 4.1, el sensor publica `planning_reference` y las salidas exactas. El
+panel muestra el eje en la zona horaria de HA. `last_updated` sigue siendo
+únicamente la hora de actualización del sensor, no el origen del eje.
+
+La referencia sigue la rejilla horaria de EMHASS con `method_ts_round=nearest`,
+redondeando el índice en UTC. Las proyecciones se reubican cuando avanza esa
+referencia y el cálculo se actualiza en los límites `:00` y `:30` UTC.
+
+El final de carga se redondea **hacia abajo**: una salida a las 12:35 permite
+pasos completos hasta las 12:00, nunca un paso de 12:00 a 13:00. La ventana
+real conserva su marcador de salida a las 12:35. Esto es distinto de redondear
+hacia arriba la duración solicitada de carga. Si no caben las horas pedidas,
+se publica la energía pendiente; un límite 0 también lleva horas y potencia 0,
+porque EMHASS interpreta un `def_end_timestep=0` aislado como ausencia de límite.
 
 Las filas de la matriz están ordenadas por ventana; `deferrables_schedule`
 puede tener otro orden. El índice EMHASS solo se muestra si la ventana permite

@@ -10,7 +10,7 @@ import asyncio
 import functools
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Awaitable, Callable, TypeAlias
 
 from homeassistant.components.sensor import SensorEntity
@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_registry import async_migrate_entries
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_track_utc_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from . import __init_helpers  # US-5: pure helpers for mutation testability
@@ -172,7 +172,9 @@ def _build_cache_report(adapter: Any) -> __init_helpers.CacheReport:
 
 async def async_migrate_entry(
     hass: HomeAssistant, entry: ConfigEntry
-) -> bool:  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
+) -> (
+    bool
+):  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
     """Migrate config entry to latest schema version."""
     new_data = entry.data.copy()
     changed = False
@@ -223,7 +225,9 @@ async def async_migrate_entry(
 # qg-accepted: complexity=14 is inherent to HA integration setup flow
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry
-) -> bool:  # pragma: no mutate — 66 equivalent survivors (HA lifecycle log text, None-in-log, default_value)
+) -> (
+    bool
+):  # pragma: no mutate — 66 equivalent survivors (HA lifecycle log text, None-in-log, default_value)
     """Set up EV Trip Planner from a config entry."""
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)
@@ -312,16 +316,19 @@ async def async_setup_entry(
         hass, entry, vehicle_id, vehicle_name
     )  # pragma: no cover reason=HA lifecycle — panel registration during entry setup
 
-    # T3.1: Setup hourly refresh timer OUTSIDE coordinator
-    # This timer triggers every hour to rotate recurring trips
-    # Timer is registered here to avoid infinite loop in coordinator
+    # Refresh OUTSIDE the coordinator at the hourly grid's rounding boundaries.
+    # EMHASS nearest-hour forecasts change origin at :00 / :30. An interval
+    # measured from setup time leaves cached offsets stale for optimization.
     # Use module-level _hourly_refresh_callback for testability
     # EC-001 FIX: Save cancel handle to prevent timer leak on unload
-    runtime_data = entry.runtime_data  # pragma: no cover reason=HA lifecycle — accessing runtime_data during entry setup
-    runtime_data.hourly_refresh_cancel = async_track_time_interval(  # pragma: no cover reason=HA lifecycle — timer registration during entry setup
+    runtime_data = (
+        entry.runtime_data
+    )  # pragma: no cover reason=HA lifecycle — accessing runtime_data during entry setup
+    runtime_data.hourly_refresh_cancel = async_track_utc_time_change(  # pragma: no cover reason=HA lifecycle — timer registration during entry setup
         hass,
         functools.partial(_hourly_refresh_callback, runtime_data=runtime_data),
-        timedelta(hours=1),
+        minute=[0, 30],
+        second=1,
     )
 
     register_services(

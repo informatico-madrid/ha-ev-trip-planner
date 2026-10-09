@@ -33,7 +33,7 @@ _LOG_REMOVED_PANEL_MAPPING = "Removed panel mapping for vehicle_id=%s"
 
 # Panel configuration constants
 PANEL_COMPONENT_NAME = "ev-trip-planner-panel"
-PANEL_FRONTEND_VERSION = "4.0.0"
+PANEL_FRONTEND_VERSION = "4.1.0"
 PANEL_URL_PREFIX = "ev-trip-planner"
 DEFAULT_SIDEBAR_ICON = "mdi:car-electric"
 

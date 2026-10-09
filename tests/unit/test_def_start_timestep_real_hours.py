@@ -113,10 +113,10 @@ async def test_def_start_matches_actual_hours_until_departure(mock_hass, mock_st
     print(f"DEBUG: actual_total_hours = {actual_total_hours}")
 
     # Expected: def_start = 0 (inicio_ventana = now since car is home)
-    # def_end = 8 (fin_ventana = trip departure at 09:40 = 7.33 hours from now, ceiling = 8)
+    # Grid origin is 02:00. A full slot must end by 09:40, so end=7 (09:00).
     # total_hours = 2 (actual charging time needed)
     expected_def_start = 0
-    expected_def_end = 8
+    expected_def_end = 7
 
     print(f"\nDEBUG: Now = {now}")
     print(f"DEBUG: Trip departure = {trip_departure}")
@@ -137,6 +137,9 @@ async def test_def_start_matches_actual_hours_until_departure(mock_hass, mock_st
         f"def_end_timestep ({actual_def_end}) should be {expected_def_end} "
         f"(fin_ventana = trip departure at {trip_departure})"
     )
+    reference = datetime.fromisoformat(params["planning_reference"])
+    assert reference + timedelta(hours=actual_def_end) <= trip_departure
+    assert params["p_deferrable_matrix"][0][actual_def_end] == 0
 
 
 @pytest.mark.asyncio
@@ -197,9 +200,7 @@ async def test_def_end_uses_trip_departure_not_hours_available(mock_hass, mock_s
 
     # FIX VERIFIED: def_end is based on fin_ventana (trip departure time),
     # NOT def_start + total_hours.
-    # The window is 8 hours wide (from 02:20 to 09:40 = 7.33h, ceiling = 8),
-    # and charging takes 2 hours (def_total_hours).
-    # def_end should be 8 (fin_ventana = trip departure).
-    assert actual_def_end == 8, (
-        f"def_end ({actual_def_end}) should be 8 (hours until trip departure at {trip_departure})"
+    # The whole-hour end must not extend past 09:40. End=7 on a 02:00 grid.
+    assert actual_def_end == 7, (
+        f"def_end ({actual_def_end}) should be 7 (last complete slot before {trip_departure})"
     )

@@ -54,3 +54,16 @@
 - En esta versión, la descarga de la integración borra viajes persistidos.
   No utilizar `reload_config_entry` para invalidar recursos hasta corregir ese
   comportamiento. El reinicio normal de HA sigue un ciclo de parada distinto.
+
+## Referencia de los índices de tiempo (2026-10-09)
+
+- Una coincidencia aproximada con GMT+2 no demuestra un error de zona: contrastar
+  la hora real de salida, la referencia del proveedor y el primer índice de EMHASS.
+- El origen de EMHASS con `nearest` se redondea en UTC. Los índices relativos
+  cacheados necesitan una referencia explícita y proyección al avanzar la rejilla.
+- Redondear hacia arriba la energía/duración no implica redondear hacia arriba
+  el límite de salida. Un paso completo no puede terminar después de la salida.
+- En EMHASS, un fin 0 significa ausencia de límite. Sin capacidad temporal, poner
+  también duración y potencia 0, y mostrar la carga que no cabe.
+- El entorno Python local antiguo no tiene todas las APIs de HA actual. Verificar
+  cambios del backend con la versión real en un contenedor de pruebas aislado.

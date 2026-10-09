@@ -14,8 +14,8 @@ from typing import Any, Dict, Optional
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.util import dt as dt_util
 
+from ..calculations import calculate_charging_rate  # pragma: no mutate  # EQ-129
 from ..calculations import (
-    calculate_charging_rate,  # pragma: no mutate  # EQ-129
     calculate_day_index,
     calculate_trip_time,
 )
@@ -53,12 +53,12 @@ class SOCHelpers:
         if isinstance(trip_datetime, datetime):
             dt = trip_datetime
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
+                dt = dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+            return dt.astimezone(timezone.utc)
         try:
             parsed = dt_util.parse_datetime(trip_datetime)
             if parsed is not None and parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=timezone.utc)
+                parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
             if parsed is None:
                 _LOGGER.warning(_LOG_PARSE_FAILED_WARNING, repr(trip_datetime))
                 return None if allow_none else datetime.now(timezone.utc)
@@ -104,9 +104,10 @@ class SOCHelpers:
             get_str(trip, "dia_semana", "") or None,
             get_str(trip, "datetime", "") or None,
             datetime.now(timezone.utc),
+            tz=dt_util.DEFAULT_TIME_ZONE,
         )
         if result is not None:
-            return result.replace(tzinfo=timezone.utc)
+            return result.astimezone(timezone.utc)
         return result
 
     def _get_day_index(self, day_name: str) -> int:

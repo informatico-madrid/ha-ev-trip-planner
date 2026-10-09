@@ -59,6 +59,36 @@ test('availability and actual non-zero matrix slots remain distinct', () => {
   assert.deepEqual(plain(plan.loads[0].segments), [{ start: 2, end: 4, watts: 3400 }]);
 });
 
+test('the precise departure remains 12:35 while the last whole slot ends at 12:00', () => {
+  const plan = buildChargingPlan(sensor({
+    power_profile_watts: [0, 3400, 3400, 0], p_deferrable_matrix: [[0, 3400, 3400, 0]],
+    def_total_hours_array: [2], p_deferrable_nom_array: [3400],
+    def_start_timestep_array: [0], def_end_timestep_array: [3],
+    planning_reference: '2026-10-09T07:00:00+00:00',
+    deadline_array: ['2026-10-09T10:35:00+00:00'],
+    window_start_array: ['2026-10-09T06:31:00+00:00'],
+  }));
+  const panel = new EVTripPlannerPanel();
+  panel._hass = { config: { time_zone: 'Europe/Madrid' } };
+  panel._plan = plan;
+  assert.equal(plan.loads[0].end, 3);
+  assert.ok(plan.loads[0].departureSlot > 3 && plan.loads[0].departureSlot < 4);
+  assert.equal(panel._slotTime(3), '12:00');
+  assert.equal(panel._slotTime(plan.loads[0].departureSlot), '12:35');
+  assert.deepEqual(plain(plan.loads[0].segments), [{ start: 1, end: 3, watts: 3400 }]);
+});
+
+test('insufficient full-slot capacity is visible instead of implying completed charging', () => {
+  const plan = buildChargingPlan(sensor({
+    power_profile_watts: [0], p_deferrable_matrix: [[0]],
+    def_total_hours_array: [0], p_deferrable_nom_array: [0],
+    def_start_timestep_array: [0], def_end_timestep_array: [0],
+    unserved_energy_kwh_array: [3.4],
+  }));
+  assert.equal(plan.energyKwh, 0);
+  assert.ok(plan.warnings.some(warning => warning.includes('3,4 kWh')));
+});
+
 test('matches schedule indices by window, never by insertion order', () => {
   const plan = buildChargingPlan(sensor({
     power_profile_watts: [3400, 0, 3400, 0],

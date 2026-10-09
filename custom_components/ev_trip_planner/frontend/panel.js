@@ -1,7 +1,7 @@
 /** Native Home Assistant charging-planning panel. */
 import { LitElement, html, css } from '/ev-trip-planner/lit-bundle.js';
 
-const VERSION = '4.0.0';
+const VERSION = '4.1.0';
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const NUMBER = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 const normalize = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -61,6 +61,8 @@ export function buildChargingPlan(sensor) {
   if (profile.some(watts => watts === null || watts < 0)) return empty;
   if (!profile.length && number(attrs.number_of_deferrable_loads) !== 0) return empty;
   const warnings = [];
+  const referenceMs = Date.parse(attrs.planning_reference || '');
+  const hasReference = Number.isFinite(referenceMs);
   const matrix = Array.isArray(attrs.p_deferrable_matrix) ? attrs.p_deferrable_matrix : [];
   const schedule = Array.isArray(attrs.deferrables_schedule) ? attrs.deferrables_schedule : [];
   const loads = matrix.flatMap((rawRow, index) => {
@@ -77,16 +79,24 @@ export function buildChargingPlan(sensor) {
     const end = number(attrs.def_end_timestep_array?.[index]);
     const hours = number(attrs.def_total_hours_array?.[index]);
     const nominal = number(attrs.p_deferrable_nom_array?.[index]);
+    const deadline = attrs.deadline_array?.[index];
+    const deadlineMs = Date.parse(deadline || '');
+    const availableMs = Date.parse(attrs.window_start_array?.[index] || '');
+    const departureSlot = hasReference && Number.isFinite(deadlineMs) ? (deadlineMs - referenceMs) / 3600000 : null;
+    const availabilityStart = hasReference && Number.isFinite(availableMs) ? (availableMs - referenceMs) / 3600000 : null;
+    const unserved = number(attrs.unserved_energy_kwh_array?.[index]) || 0;
     const validWindow = start !== null && end !== null && start >= 0 && end >= start && end <= profile.length;
     if (!validWindow) warnings.push(`La ventana de la carga ${index + 1} no está disponible.`);
     if (hours === null || nominal === null) warnings.push(`Faltan parámetros de la carga ${index + 1}.`);
+    if (unserved > 0) warnings.push(`Carga ${index + 1}: faltan ${fmt(unserved)} kWh de la carga solicitada para completarla antes de la salida.`);
     // Schedule records are in insertion order; matrix rows are sorted by window.
     // Only expose the EMHASS index when its published window uniquely matches.
     const matches = validWindow ? schedule.filter(item =>
       number(item.start_timestep) === start && number(item.end_timestep) === end) : [];
     return [{
       index, start: validWindow ? start : null, end: validWindow ? end : null,
-      hours, nominal, emhassIndex: matches.length === 1 ? number(matches[0].index) : null,
+      hours, nominal, deadline, departureSlot, availabilityStart,
+      emhassIndex: matches.length === 1 ? number(matches[0].index) : null,
       profile: row, segments: powerSegments(row),
       energyKwh: row.reduce((sum, watts) => sum + watts, 0) / 1000,
     }];
@@ -95,6 +105,7 @@ export function buildChargingPlan(sensor) {
   // double-count overlapping charging slots and misrepresent the published plan.
   return {
     available: true, profile, loads, horizon: profile.length, warnings, sensor,
+    reference: hasReference ? attrs.planning_reference : null,
     energyKwh: profile.reduce((sum, watts) => sum + watts, 0) / 1000,
     chargingHours: profile.filter(watts => watts > 0).length,
     peakKw: profile.reduce((peak, watts) => Math.max(peak, watts), 0) / 1000,
@@ -327,6 +338,15 @@ export class EVTripPlannerPanel extends LitElement {
     }).format(date)}`;
   }
 
+  _slotTime(step, compact = false) {
+    if (!this._plan.reference) return `${step ? `+${step}` : '0'} h`;
+    const date = new Date(Date.parse(this._plan.reference) + step * 3600000);
+    return new Intl.DateTimeFormat('es-ES', {
+      ...(compact ? { weekday: 'short' } : {}), hour: '2-digit', minute: '2-digit',
+      timeZone: this._zone(),
+    }).format(date);
+  }
+
   render() {
     if (!this._hass || !this._vehicleId) {
       return html`<link rel="stylesheet" href="/ev-trip-planner/panel.css?v=${VERSION}">
@@ -405,6 +425,7 @@ export class EVTripPlannerPanel extends LitElement {
         : !plan.horizon ? html`<div class="empty-state"><ha-icon icon="mdi:battery-check-outline"></ha-icon>
           <h3>No hay cargas previstas</h3><p>El sensor no publica cargas diferibles en este momento.</p></div>` : html`
           <div class="plan-toolbar"><div class="plan-meta">${visible < plan.horizon ? `${visible} de ${plan.horizon} h visibles` : `${fmt(plan.horizon)} h de horizonte`} · Pasos de 1 h
+            ${plan.reference ? html`<span>Origen del perfil: ${this._dateLabel(plan.reference)}</span>` : ''}
             <span>${this._publicationTime()}</span></div>
             <div class="segmented-control" role="group" aria-label="Tramo de la planificación">
               <button aria-pressed=${this._range === '48h'} @click=${() => { this._range = '48h'; }}>Próximas 48 h</button>
@@ -419,7 +440,7 @@ export class EVTripPlannerPanel extends LitElement {
                 ${columns.map((watts, step) => html`<div class="power-cell" title="Paso ${step}–${step + 1}: ${fmt(watts / 1000)} kW">
                   <span class="power-bar" data-step=${step} data-watts=${watts}
                     style="height: ${plan.peakKw > 0 ? watts / 1000 / plan.peakKw * 100 : 0}%"></span></div>`)}
-              </div><div class="time-axis">${ticks.map(step => html`<span style="left: ${step / visible * 100}%">${step ? `+${step}` : '0'} h</span>`)}</div></div>
+              </div><div class="time-axis">${ticks.map(step => html`<span style="left: ${step / visible * 100}%">${this._slotTime(step, visible > 48)}</span>`)}</div></div>
             </div>
           </div>
           ${plan.loads.length ? html`<div class="loads-heading"><h3>Ventanas por carga</h3><span>${plan.loads.length} cargas publicadas</span></div>
@@ -429,8 +450,8 @@ export class EVTripPlannerPanel extends LitElement {
               </div>
             </div>` : ''}
           <div class="chart-legend"><span><i class="legend-charge"></i>Carga propuesta</span>
-            <span><i class="legend-window"></i>Ventana disponible</span><span><i class="legend-deadline"></i>Límite de la ventana</span></div>
-          <p class="plan-explanation">Las horas del eje son relativas al cálculo del plan, no horas del reloj.
+            <span><i class="legend-window"></i>Ventana disponible</span><span><i class="legend-deadline"></i>Hora de salida</span></div>
+          <p class="plan-explanation">${plan.reference ? 'El eje muestra la hora local de Home Assistant. Los pasos de carga completos terminan antes de la salida.' : 'Las horas del eje son relativas al cálculo del plan.'}
             Este es el perfil publicado por EV Trip Planner; EMHASS decide el horario optimizado final.</p>
           ${plan.warnings.length ? html`<div class="notice warning" role="status">${plan.warnings.join(' ')}</div>` : ''}
           ${this._renderPlanDetails()}
@@ -448,21 +469,24 @@ export class EVTripPlannerPanel extends LitElement {
   }
 
   _renderLoad(load, visible, tickSize) {
-    const start = load.start === null ? null : Math.min(load.start, visible);
-    const end = load.end === null ? null : Math.min(load.end, visible);
+    const realStart = load.availabilityStart ?? load.start;
+    const realEnd = load.departureSlot ?? load.end;
+    const start = realStart === null ? null : Math.max(0, Math.min(realStart, visible));
+    const end = realEnd === null ? null : Math.max(0, Math.min(realEnd, visible));
     const segments = load.segments.filter(segment => segment.start < visible);
     return html`<div class="load-row" style="--load-color: var(--load-${load.index % 3})">
       <div class="load-label"><strong><span class="load-dot"></span>Carga ${load.index + 1}</strong>
-        <span>${fmt(load.energyKwh)} kWh · ${fmt(load.hours)} h</span></div>
+        <span>${fmt(load.energyKwh)} kWh · ${fmt(load.hours)} h</span>
+        ${load.deadline ? html`<span>Salida ${this._dateLabel(load.deadline)}</span>` : ''}</div>
       <div class="load-track" style="--tick-width: ${tickSize / visible * 100}%" role="img"
         aria-label="Carga ${load.index + 1}. Ventana: ${load.start === null ? 'no disponible' : `pasos ${load.start} a ${load.end}`}. Perfil: ${load.segments.map(segment => `pasos ${segment.start} a ${segment.end}`).join(', ') || 'sin carga'}.">
         ${start !== null && end > start ? html`<span class="availability-band" style="left: ${start / visible * 100}%; width: ${(end - start) / visible * 100}%"
-          title="Ventana disponible: +${load.start} h a +${load.end} h"></span>` : ''}
+          title="Ventana disponible: ${this._slotTime(realStart)} a ${this._slotTime(realEnd)}"></span>` : ''}
         ${segments.map(segment => html`<span class="charging-band"
           style="left: ${segment.start / visible * 100}%; width: ${(Math.min(segment.end, visible) - segment.start) / visible * 100}%"
-          title="Carga propuesta: +${segment.start} h a +${segment.end} h · ${fmt(segment.watts / 1000)} kW"></span>`)}
-        ${load.end !== null && load.end <= visible ? html`<span class="deadline-marker" style="left: ${load.end / visible * 100}%"
-          title="Límite de la ventana: +${load.end} h"></span>` : ''}
+          title="Carga propuesta: ${this._slotTime(segment.start)} a ${this._slotTime(segment.end)} · ${fmt(segment.watts / 1000)} kW"></span>`)}
+        ${realEnd !== null && realEnd >= 0 && realEnd <= visible ? html`<span class="deadline-marker" style="left: ${realEnd / visible * 100}%"
+          title="Hora de salida: ${this._slotTime(realEnd)}"></span>` : ''}
         ${!segments.length && load.segments.length ? html`<span class="outside-range">Carga a +${load.segments[0].start} h · fuera de este tramo</span>` : ''}
       </div></div>`;
   }
@@ -471,9 +495,10 @@ export class EVTripPlannerPanel extends LitElement {
     return html`<details class="plan-details"><summary>Ver parámetros publicados para EMHASS</summary>
       <p class="sensor-reference">Sensor de origen: <code>${this._plan.sensor?.entity_id || 'Sin identificar'}</code></p>
       <div class="table-scroll"><table><caption>Parámetros de las cargas, en el orden de la matriz publicada</caption>
-        <thead><tr><th scope="col">Carga</th><th scope="col">Índice EMHASS</th><th scope="col">Inicio</th><th scope="col">Límite</th><th scope="col">Duración</th><th scope="col">Potencia nominal</th></tr></thead>
+        <thead><tr><th scope="col">Carga</th><th scope="col">Índice EMHASS</th><th scope="col">Inicio</th><th scope="col">Fin de pasos completos</th><th scope="col">Salida</th><th scope="col">Duración</th><th scope="col">Potencia nominal</th></tr></thead>
         <tbody>${this._plan.loads.map(load => html`<tr><th scope="row">${load.index + 1}</th><td>${fmt(load.emhassIndex)}</td>
-          <td>${fmt(load.start)} h</td><td>${fmt(load.end)} h</td><td>${fmt(load.hours)} h</td><td>${fmt(load.nominal === null ? null : load.nominal / 1000)} kW</td></tr>`)}</tbody>
+          <td>${fmt(load.start)} h</td><td>${fmt(load.end)} h${load.end !== null && this._plan.reference ? ` · ${this._slotTime(load.end)}` : ''}</td>
+          <td>${load.deadline ? this._dateLabel(load.deadline) : '—'}</td><td>${fmt(load.hours)} h</td><td>${fmt(load.nominal === null ? null : load.nominal / 1000)} kW</td></tr>`)}</tbody>
       </table></div></details>`;
   }
 

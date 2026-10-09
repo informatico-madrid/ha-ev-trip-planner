@@ -242,7 +242,6 @@ def calculate_trip_time(  # pragma: no mutate  # EQ-036
         now = reference_dt
         target_day = calculate_day_index(dia_semana or "lunes")
         local_time = datetime.strptime(hora, "%H:%M").time()
-        hour = local_time.hour
 
         if tz is not None:
             # BUG FIX: hora is local time, convert to UTC
@@ -255,7 +254,7 @@ def calculate_trip_time(  # pragma: no mutate  # EQ-036
             day_of_week = local_now.weekday()
             # qg-accepted: AP05
             days_ahead = (target_day - day_of_week) % 7
-            if days_ahead == 0 and local_now.hour > hour:
+            if days_ahead == 0 and local_now.time().replace(tzinfo=None) > local_time:
                 # qg-accepted: AP05
                 days_ahead = 7
             # Create deadline in local timezone, then convert to UTC
@@ -271,7 +270,7 @@ def calculate_trip_time(  # pragma: no mutate  # EQ-036
             day_of_week = now.weekday()
             # qg-accepted: AP05
             days_ahead = (target_day - day_of_week) % 7
-            if days_ahead == 0 and now.hour > hour:
+            if days_ahead == 0 and now.time().replace(tzinfo=None) > local_time:
                 # qg-accepted: AP05
                 days_ahead = 7
             return datetime.combine(
@@ -281,16 +280,10 @@ def calculate_trip_time(  # pragma: no mutate  # EQ-036
     elif trip_tipo == TRIP_TYPE_PUNCTUAL:
         if not datetime_str:
             return None
-        # Handle both with and without seconds (isoformat produces HH:MM:SS)
-        try:
-            # Try without seconds first (original format)
-            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M").replace(
-                tzinfo=timezone.utc
-            )
-        except ValueError:
-            return datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S").replace(
-                tzinfo=timezone.utc
-            )
+        parsed = datetime.fromisoformat(datetime_str)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=tz or timezone.utc)
+        return parsed.astimezone(timezone.utc)
     return None
 
 

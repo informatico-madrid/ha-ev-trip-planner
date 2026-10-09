@@ -265,8 +265,11 @@ class LoadPublisher(LoadPublisherBase):
         if deadline:
             if isinstance(deadline, str):
                 dt = datetime.fromisoformat(deadline)
-                return self._ensure_aware(dt)
-            return self._ensure_aware(deadline)
+            else:
+                dt = deadline
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+            return dt.astimezone(timezone.utc)
 
         trip_type = trip.get("tipo", "")
         is_recurring = trip_type in ("recurrente", "recurring")
@@ -339,7 +342,7 @@ class LoadPublisher(LoadPublisherBase):
                         hour=hour, minute=minute, second=0, microsecond=0
                     )
                     deadline += timedelta(days=delta_days)
-                    return self._ensure_aware(deadline)
+                    return deadline.astimezone(timezone.utc)
 
         return None
 

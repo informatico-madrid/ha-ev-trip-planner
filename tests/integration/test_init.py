@@ -218,7 +218,7 @@ class TestAsyncSetupEntry:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             mock_storage = MagicMock()
@@ -319,7 +319,7 @@ class TestAsyncSetupEntry:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             mock_storage = MagicMock()
@@ -402,7 +402,7 @@ class TestAsyncSetupEntry:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             mock_storage = MagicMock()
@@ -569,7 +569,7 @@ class TestAsyncSetupEntryBehavioral:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             MockStorage.return_value = MagicMock()
@@ -642,7 +642,7 @@ class TestAsyncSetupEntryBehavioral:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             MockStorage.return_value = MagicMock()
@@ -674,7 +674,7 @@ class TestAsyncSetupEntryBehavioral:
 
     @pytest.mark.asyncio
     async def test_setup_entry_timer_registered(self) -> None:
-        """async_track_time_interval should be called after runtime_data assignment.
+        """Aligned grid refresh should be registered after runtime_data assignment.
 
         Catches mutants that change the timer registration or omit the call.
         """
@@ -720,7 +720,7 @@ class TestAsyncSetupEntryBehavioral:
                 "custom_components.ev_trip_planner.register_services",
             ) as MockRegisterSvc,
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ) as MockTimer,
         ):
             MockStorage.return_value = MagicMock()
@@ -738,6 +738,7 @@ class TestAsyncSetupEntryBehavioral:
 
             # Timer should have been registered
             assert MockTimer.called
+            assert MockTimer.call_args.kwargs == {"minute": [0, 30], "second": 1}
             # runtime_data.hourly_refresh_cancel should be set
             assert entry.runtime_data.hourly_refresh_cancel is cancel_handle
 
@@ -793,7 +794,7 @@ class TestAsyncSetupEntryBehavioral:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             MockStorage.return_value = MagicMock()
@@ -863,7 +864,7 @@ class TestAsyncSetupEntryBehavioral:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             MockStorage.return_value = MagicMock()
@@ -1107,7 +1108,7 @@ class TestInitLifecycle:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ) as MockTimer,
         ):
             MockStorage.return_value = MagicMock()
@@ -1205,7 +1206,7 @@ class TestInitLifecycle:
                 "custom_components.ev_trip_planner.register_services",
             ),
             patch(
-                "custom_components.ev_trip_planner.async_track_time_interval",
+                "custom_components.ev_trip_planner.async_track_utc_time_change",
             ),
         ):
             MockStorage.return_value = MagicMock()

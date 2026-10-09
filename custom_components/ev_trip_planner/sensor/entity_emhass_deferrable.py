@@ -118,6 +118,12 @@ class EmhassDeferrableLoadSensor(
             "def_end_timestep_array": [
                 p.get("def_end_timestep", 0) for p in active_trips
             ],
+            "window_start_array": [p.get("window_start") for p in active_trips],
+            "deadline_array": [p.get("deadline") for p in active_trips],
+            "trip_id_array": [p.get("trip_id") for p in active_trips],
+            "unserved_energy_kwh_array": [
+                p.get("unserved_energy_kwh", 0) for p in active_trips
+            ],
         }
 
     def _build_aggregate_result(
@@ -152,6 +158,11 @@ class EmhassDeferrableLoadSensor(
             "emhass_status": self.coordinator.data.get("emhass_status"),
             "vehicle_id": vehicle_id,
         }
+        reference = self.coordinator.data.get("emhass_planning_reference")
+        if reference:
+            attrs["planning_reference"] = reference
+            attrs["timestep_minutes"] = 60
+            attrs["time_grid_rounding"] = "nearest"
 
         per_trip_params = self.coordinator.data.get("per_trip_emhass_params", {})
         if per_trip_params:
@@ -181,7 +192,9 @@ class EmhassDeferrableLoadSensor(
 
     async def async_will_remove_from_hass(
         self,
-    ) -> None:  # pragma: no cover reason=HA entity lifecycle — async_will_remove_from_hass called only when entity is removed from HA entity registry, requires HA runtime
+    ) -> (
+        None
+    ):  # pragma: no cover reason=HA entity lifecycle — async_will_remove_from_hass called only when entity is removed from HA entity registry, requires HA runtime
         """Clean up when entity is removed from Home Assistant."""
         trip_manager = getattr(self.coordinator, "trip_manager", None)
         if (

@@ -7,22 +7,19 @@ import math
 import operator
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import (
-    datetime,  # noqa: F401 — re-export for test mock path (conftest.py:822)
-)
+from datetime import datetime  # noqa: F401 — re-export for test mock path
 from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import (
-    Store,  # noqa: F401 — re-export for test compatibility
-)
+from homeassistant.helpers.storage import Store  # noqa: F401 — test compatibility
 
 from .. import const
 from ..calculations import _helpers
 from .error_handler import ErrorHandler
 from .index_manager import IndexManager
 from .load_publisher import LoadPublisher, LoadPublisherConfig
+from .time_grid import as_utc, plan_snapshot, planning_reference, window_slots
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +52,7 @@ class PerTripCacheParams:
     battery_capacity_kwh: float
     safety_margin_percent: float
     soc_current: float
+    planning_reference: Optional[datetime] = None
 
 
 class EMHASSAdapter:
@@ -211,12 +209,28 @@ class EMHASSAdapter:
             Dict with emhass_power_profile, emhass_deferrables_schedule,
             emhass_status, and per_trip_emhass_params keys.
         """
-        return {
+        result = {
             "emhass_power_profile": self._cached_power_profile,
             "emhass_deferrables_schedule": self._cached_deferrables_schedule,  # pragma: no mutate  # EQ-086
             "emhass_status": self._cached_emhass_status,
             "per_trip_emhass_params": self._cached_per_trip_params,
         }
+        if any(
+            p.get("deadline") and p.get("window_start")
+            for p in self._cached_per_trip_params.values()
+        ):
+            from homeassistant.util import dt as dt_util
+
+            now = dt_util.now()
+            result.update(
+                plan_snapshot(
+                    self._cached_per_trip_params,
+                    planning_reference(now),
+                    self._get_horizon_hours(),
+                    now,
+                )
+            )
+        return result
 
     async def update_charging_power(self, force: bool = False) -> None:
         """Update charging power and republish sensor attributes if changed.
@@ -345,6 +359,7 @@ class EMHASSAdapter:
         from homeassistant.util import dt as dt_util
 
         now = dt_util.now()
+        reference = planning_reference(now)
         soc_current = await self._get_current_soc()
         # If SOC sensor is not yet available (e.g., during initial setup),
         # fall back to 50.0 so the publish pipeline can still compute real
@@ -353,9 +368,11 @@ class EMHASSAdapter:
             _LOGGER.info(
                 "SOC sensor unavailable — using default 50.0 for trip window "
                 "computation. Ensure '%s' returns a numeric value.",
-                self._entry.data.get("soc_sensor", "unknown")
-                if self._entry
-                else "unknown",
+                (
+                    self._entry.data.get("soc_sensor", "unknown")
+                    if self._entry
+                    else "unknown"
+                ),
             )
             # qg-accepted: AP05 — default SOC fallback
             soc_current = 50.0
@@ -367,7 +384,7 @@ class EMHASSAdapter:
 
         window_by_trip_id = self._build_window_lookup(pre_computed_windows)
         await self._process_trips_with_windows(
-            trips, battery_capacity_kwh, soc_current, window_by_trip_id
+            trips, battery_capacity_kwh, soc_current, window_by_trip_id, reference
         )
 
         return soc_current
@@ -430,6 +447,7 @@ class EMHASSAdapter:
         battery_capacity_kwh: float,
         soc_current: float,
         window_by_trip_id: Dict[str, Dict[str, Any]],
+        reference: Optional[datetime] = None,
     ) -> None:
         """Process each trip using pre-computed windows."""
         for trip in trips:
@@ -451,6 +469,7 @@ class EMHASSAdapter:
                             battery_capacity_kwh=battery_capacity_kwh,
                             safety_margin_percent=self._load_publisher.safety_margin_percent,
                             soc_current=soc_current,
+                            planning_reference=reference,
                         ),
                         pre_computed_inicio_ventana=pre_computed_inicio,
                         pre_computed_fin_ventana=pre_computed_fin,
@@ -647,9 +666,6 @@ class EMHASSAdapter:
         charging_windows: List[Dict[str, Any]] = []
 
         if deadline_dt is not None:
-            # qg-accepted: AP05 — seconds-to-hours conversion
-            hours_available = (deadline_dt - now).total_seconds() / 3600
-
             # Calculate charging windows
             if pre_computed_charging_window:
                 # Batch mode: use pre-computed windows that have multi-trip context.
@@ -660,42 +676,6 @@ class EMHASSAdapter:
                     trip=trip,
                     soc_current=soc_current,
                 )
-
-            def_end_timestep = min(int(max(0, hours_available)), horizon_hours)
-
-            # Use pre-computed ventana if provided (batch mode)
-            _pre_computed_fin = False
-            if pre_computed_inicio_ventana is not None:
-                delta_hours = (
-                    (
-                        self._load_publisher._ensure_aware(pre_computed_inicio_ventana)
-                        - now
-                    ).total_seconds()
-                    / 3600
-                )  # qg-accepted: AP05 — seconds-to-hours conversion
-                # RULE: Each fraction of hour = 1 full hour slot. math.ceil() because 1 minute = 1 slot.
-                def_start_timestep = max(0, min(math.ceil(delta_hours), horizon_hours))
-            elif charging_windows and charging_windows[0].get("inicio_ventana"):
-                inicio = charging_windows[0]["inicio_ventana"]
-                delta_hours = (
-                    (self._load_publisher._ensure_aware(inicio) - now).total_seconds()
-                    / 3600
-                )  # qg-accepted: AP05 — seconds-to-hours conversion
-                def_start_timestep = max(0, min(int(delta_hours), horizon_hours))
-
-            # Handle pre-computed fin_ventana (batch/test mode)
-            if pre_computed_fin_ventana is not None:
-                delta_fin = (
-                    (
-                        self._load_publisher._ensure_aware(pre_computed_fin_ventana)
-                        - now
-                    ).total_seconds()
-                    / 3600
-                )  # qg-accepted: AP05 — seconds-to-hours conversion
-                def_end_timestep = max(
-                    0, min(int(math.ceil(delta_fin - 0.001)), horizon_hours)
-                )
-                _pre_computed_fin = True
 
             # Calculate energy parameters FIRST so def_total_hours is available
             from ..calculations import calculate_energy_needed
@@ -709,29 +689,23 @@ class EMHASSAdapter:
             )
             total_hours = energy_info["horas_carga_necesarias"]
 
-            # FIX: def_end_timestep must be based on fin_ventana (trip departure time),
-            # not def_start + total_hours. The formula def_start + total_hours gives
-            # charging duration (2h), but def_end_timestep should be the charging
-            # window end = when the trip departs (~7h away).
-            if _pre_computed_fin:
-                pass  # pre-computed def_end_timestep stays as-is
-            elif charging_windows and charging_windows[0].get("fin_ventana"):
-                # Use trip departure time (fin_ventana) for charging window end
-                fin = charging_windows[0]["fin_ventana"]
-                # qg-accepted: AP05 — seconds-to-hours conversion
-                delta_fin = (
-                    self._load_publisher._ensure_aware(fin) - now
-                ).total_seconds() / 3600
-                def_end_timestep = max(
-                    0, min(int(math.ceil(delta_fin - 0.001)), horizon_hours)
-                )
-            else:
-                # Fallback: use deadline (trip departure) if no charging window available
-                def_end_timestep = min(int(max(0, hours_available)), horizon_hours)
-
         # Build p_deferrable_matrix for this trip using shared function
         # The charging slots are placed at the END of the window (just before trip departure)
         from ..calculations.windows import build_deferrable_matrix_row
+
+        reference = params.planning_reference or planning_reference(now)
+        window_start = pre_computed_inicio_ventana
+        if window_start is None and charging_windows:
+            window_start = charging_windows[0].get("inicio_ventana")
+        window_start = window_start or now
+        window_end = pre_computed_fin_ventana
+        if window_end is None and charging_windows:
+            window_end = charging_windows[0].get("fin_ventana")
+        window_end = window_end or deadline_dt
+        if window_end is not None:
+            def_start_timestep, def_end_timestep = window_slots(
+                window_start, window_end, reference, horizon_hours, now
+            )
 
         row = build_deferrable_matrix_row(
             horizon_hours=horizon_hours,
@@ -751,12 +725,19 @@ class EMHASSAdapter:
             "def_end_timestep": def_end_timestep,
             "def_total_hours": total_hours,
             "total_hours": total_hours,
-            "power_watts": _helpers.kw_to_watts(charging_power_kw)
-            if total_hours > 0
-            else 0.0,
+            "power_watts": (
+                _helpers.kw_to_watts(charging_power_kw) if total_hours > 0 else 0.0
+            ),
             "kwh_needed": total_hours * charging_power_kw,
             "charging_window": charging_windows,
             "p_deferrable_matrix": trip_matrix,
+            "trip_id": trip_id,
+            "planning_reference": reference.isoformat(),
+            "window_start": as_utc(window_start).isoformat(),
+            "deadline": (
+                as_utc(window_end).isoformat() if window_end is not None else None
+            ),
+            "configured_power_watts": _helpers.kw_to_watts(charging_power_kw),
         }
 
     def _get_t_base(self) -> float:

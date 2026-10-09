@@ -47,7 +47,7 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
         "safety_margin_percent": 10.0,
     }
 
-    now = datetime.now(timezone.utc)
+    now = datetime(2026, 10, 9, 6, 5, tzinfo=timezone.utc)
 
     # Scenario: Trip deadline is 96 hours away
     # Charging window starts at hour 90 (6 hours before deadline)
@@ -108,16 +108,17 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
     )
 
     # Now call the actual code
-    await adapter._populate_per_trip_cache_entry(
-        PerTripCacheParams(
-            trip=trip,
-            trip_id=trip["id"],
-            charging_power_kw=3.6,
-            battery_capacity_kwh=60.0,
-            safety_margin_percent=10.0,
-            soc_current=50.0,
-        ),
-    )
+    with patch("homeassistant.util.dt.now", return_value=now):
+        await adapter._populate_per_trip_cache_entry(
+            PerTripCacheParams(
+                trip=trip,
+                trip_id=trip["id"],
+                charging_power_kw=3.6,
+                battery_capacity_kwh=60.0,
+                safety_margin_percent=10.0,
+                soc_current=50.0,
+            ),
+        )
 
     params = adapter._cached_per_trip_params.get(trip["id"])
     actual_def_start = params.get("def_start_timestep")
@@ -143,6 +144,8 @@ async def test_def_end_timestep_when_inicio_ventana_equals_hours_available(
     assert actual_def_end == expected_def_end, (
         f"def_end ({actual_def_end}) should equal fin_ventana hours from now ({expected_def_end})"
     )
+    reference = datetime.fromisoformat(params["planning_reference"])
+    assert reference + timedelta(hours=actual_def_end) <= deadline
 
 
 if __name__ == "__main__":

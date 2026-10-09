@@ -154,11 +154,16 @@ def resolve_trip_deadline(  # pragma: no mutate  # EQ-034
     if deadline is not None:
         if isinstance(deadline, str):
             try:
-                return _ensure_aware(datetime.fromisoformat(deadline))
+                parsed = datetime.fromisoformat(deadline)
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=tz or timezone.utc)
+                return parsed.astimezone(timezone.utc)
             except ValueError:
                 _LOGGER.debug(_LOG_INVALID_DATETIME, trip.get("id"))
                 return None
-        return _ensure_aware(deadline)
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=tz or timezone.utc)
+        return deadline.astimezone(timezone.utc)
 
     canon = normalize_trip_fields(trip)
     if canon is None:

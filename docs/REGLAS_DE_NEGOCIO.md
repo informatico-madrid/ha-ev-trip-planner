@@ -143,10 +143,19 @@ es_suficiente = ventana_horas >= horas_carga_necesarias
 | Parámetro EMHASS | Fórmula |
 |-------------------|---------|
 | `def_start_timestep` | Slot donde empieza la ventana |
-| `def_end_timestep` | Slot donde termina (hora de salida) |
+| `def_end_timestep` | Límite exclusivo del último paso completo que termina antes de la salida |
 | `def_total_hours` | `ceil(kwh_necesarios / charging_power_kw)` |
 | `charging_start` | `def_end_timestep - def_total_hours` |
 | `charging_end` | `def_end_timestep` |
+
+> **Corrección 2026-10-09:** los índices se calculan sobre una referencia
+> explícita `planning_reference` alineada con EMHASS (`nearest`, pasos de 1 h,
+> redondeo UTC). El final de la ventana de pasos completos usa `floor`, no
+> `ceil`: una salida a las 12:35 debe impedir un paso que termine a las 13:00.
+> La fecha exacta de salida se conserva separadamente. Los parámetros en caché
+> se proyectan de nuevo al avanzar la rejilla y se refrescan a `:00` / `:30` UTC.
+> No cabe aplicar una resta fija de dos horas: los tiempos se interpretan en
+> la zona horaria de HA y se convierten a UTC, respetando los cambios de hora.
 
 ---
 
