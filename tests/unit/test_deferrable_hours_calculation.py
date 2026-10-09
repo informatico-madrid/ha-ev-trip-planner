@@ -47,20 +47,12 @@ class TestDeferrableHoursCalculation:
         )
         self.mock_hass.states.get.return_value = self.mock_soc_sensor
 
-    async def test_def_total_hours_origin_must_be_ceil_of_window(self):
+    async def test_partial_window_does_not_invent_a_full_hour_of_charge(self):
         """
-        Origin trip with tight window → ceil(window) > 0, NOT 0.
-
-        Scenario:
-        - SOC 50% (25 kWh), 2 trips each needing 10 kWh (3h charging)
-        - First trip departs in ~30 min → ventana ~0.5h → ceil = 1h
-        - Second trip departs later → ample window → 3h
-        - After deficit propagation: origin gets ceil(0.5)=1h, not 0
-
-        Business rule (REGLAS_DE_NEGOCIO.md §6):
-        "se carga lo máximo posible" — a partial window still charges.
-        Internal calcs use float, but final def_total_hours is always ceil.
-        ceil(0.01..1.0) = 1. So origin with any positive window → def_total_hours == 1.
+        The first trip fits existing energy and has no complete charging slot.
+        After its consumption and idle loss, one hour before the second trip
+        preserves the reserve. A partial window cannot permit charging after
+        departure merely because the duration was rounded up.
         """
         # Fixed reference time: Thursday 17:30 UTC
         ref_now = datetime(2026, 5, 21, 17, 30, 0, tzinfo=timezone.utc)
@@ -100,24 +92,23 @@ class TestDeferrableHoursCalculation:
 
         params = adapter._cached_per_trip_params
 
-        # trip_a: first by start_timestep, has tight window ~0.5h
-        # After deficit propagation: ceil(0.5) = 1h, NOT 0
+        # The half-hour window contains no complete slot; current SOC covers it.
         a = params.get("trip_a", {})
         a_def = a.get("def_total_hours", 0)
         print(f"trip_a: def_total_hours={a_def} power_watts={a.get('power_watts', 0)}")
 
-        # trip_b: later trip, ample window → 3h
+        # The later trip needs only the amount missing after prior consumption.
         b = params.get("trip_b", {})
         b_def = b.get("def_total_hours", 0)
         print(f"trip_b: def_total_hours={b_def} power_watts={b.get('power_watts', 0)}")
 
-        # Strict assertion: origin with any positive window → ceil = 1
-        assert a_def == 1, (
-            f"trip_a: window ~0.5h should ceil to 1h, got {a_def} (must not be 0)"
-        )
-        assert b_def == 3, f"trip_b: ample window → 3h, got {b_def}"
-        assert a.get("power_watts", 0) > 0, "trip_a: power_watts must be > 0"
+        # Quantities must match physical slots and preserve both return reserves.
+        assert a_def == 0
+        assert a.get("power_watts", 0) == 0
+        assert b_def == 1
         assert b.get("power_watts", 0) > 0, "trip_b: power_watts must be > 0"
+        assert a["soc_after_trip"] >= 10
+        assert b["soc_after_trip"] >= 10
 
 
 if __name__ == "__main__":

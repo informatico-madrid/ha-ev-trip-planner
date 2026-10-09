@@ -25,10 +25,12 @@ REFERENCE = datetime(2026, 10, 9, 10, tzinfo=UTC)
 
 
 @pytest.fixture
-def adapter(monkeypatch):
+def adapter(request):
     """Production-shaped configuration, with no HA services or storage writes."""
-    monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
-    monkeypatch.setattr(dt_util, "now", lambda: REFERENCE.astimezone(MADRID))
+    patcher = pytest.MonkeyPatch()
+    request.addfinalizer(patcher.undo)
+    patcher.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
+    patcher.setattr(dt_util, "now", lambda: REFERENCE.astimezone(MADRID))
     hass = MagicMock()
     hass.config.time_zone = "Europe/Madrid"
     hass.states.get.side_effect = lambda entity: SimpleNamespace(

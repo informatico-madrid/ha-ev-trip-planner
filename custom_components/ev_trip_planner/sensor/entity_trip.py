@@ -111,11 +111,19 @@ class TripSensor(
     @property
     def device_info(self) -> DeviceInfo | None:
         """Return device info for the trip sensor."""
-        return dr.DeviceInfo(
-            identifiers={(DOMAIN, f"{self._vehicle_id}_{self._trip_id}")},
-            name=f"Trip {self._trip_id} - {self._vehicle_id}",
-            manufacturer="Home Assistant",
-            model="EV Trip Planner",
-            sw_version="2026.3.0",
-            via_device=(DOMAIN, self._vehicle_id),
-        )
+        info: dict[str, Any] = {
+            "identifiers": {(DOMAIN, f"{self._vehicle_id}_{self._trip_id}")},
+            "name": f"Trip {self._trip_id} - {self._vehicle_id}",
+            "manufacturer": "Home Assistant",
+            "model": "EV Trip Planner",
+            "sw_version": "2026.3.0",
+        }
+        if "via_device_id" in getattr(dr.DeviceInfo, "__annotations__", {}):
+            registry = dr.async_get(self.coordinator.hass)
+            parent = registry.async_get_device(identifiers={(DOMAIN, self._vehicle_id)})
+            if parent is not None:
+                info["via_device_id"] = parent.id
+        else:
+            # Older supported HA releases still link parents by identifiers.
+            info["via_device"] = (DOMAIN, self._vehicle_id)
+        return dr.DeviceInfo(**info)

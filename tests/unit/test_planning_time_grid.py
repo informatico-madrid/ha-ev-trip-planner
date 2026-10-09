@@ -22,6 +22,13 @@ from custom_components.ev_trip_planner.emhass.time_grid import (
 MADRID = ZoneInfo("Europe/Madrid")
 
 
+@pytest.fixture
+def timezone_patch():
+    """Restore the timezone before HA's autouse cleanup verifier runs."""
+    with pytest.MonkeyPatch.context() as patcher:
+        yield patcher
+
+
 def make_adapter():
     """Build an isolated adapter; no Home Assistant server or real services."""
     hass = MagicMock()
@@ -42,11 +49,11 @@ def make_adapter():
 
 
 @pytest.mark.asyncio
-async def test_friday_1235_window_excludes_hour_12_to_13(monkeypatch):
+async def test_friday_1235_window_excludes_hour_12_to_13(timezone_patch):
     now = datetime(2026, 10, 9, 8, 5, 28, tzinfo=MADRID)
     departure = datetime(2026, 10, 9, 12, 35, tzinfo=MADRID)
-    monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
-    monkeypatch.setattr(dt_util, "now", lambda: now)
+    timezone_patch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
+    timezone_patch.setattr(dt_util, "now", lambda: now)
     adapter = make_adapter()
     adapter._index_map = {"friday": 0}
     trip = {
@@ -69,10 +76,10 @@ async def test_friday_1235_window_excludes_hour_12_to_13(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cached_window_rebases_when_optimizer_grid_advances(monkeypatch):
+async def test_cached_window_rebases_when_optimizer_grid_advances(timezone_patch):
     now = datetime(2026, 10, 9, 8, 5, 28, tzinfo=MADRID)
     departure = datetime(2026, 10, 9, 12, 35, tzinfo=MADRID)
-    monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
+    timezone_patch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
     adapter = make_adapter()
     adapter._index_map = {"friday": 0}
     trip = {
@@ -101,10 +108,10 @@ async def test_cached_window_rebases_when_optimizer_grid_advances(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_no_complete_slot_means_no_unconstrained_emhass_load(monkeypatch):
+async def test_no_complete_slot_means_no_unconstrained_emhass_load(timezone_patch):
     now = datetime(2026, 10, 9, 8, 5, tzinfo=MADRID)
     departure = datetime(2026, 10, 9, 12, 35, tzinfo=MADRID)
-    monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
+    timezone_patch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
     adapter = make_adapter()
     adapter._index_map = {"friday": 0}
     trip = {
@@ -131,8 +138,8 @@ async def test_no_complete_slot_means_no_unconstrained_emhass_load(monkeypatch):
 
 
 @pytest.mark.parametrize("month,day,offset", [(10, 9, 2), (12, 11, 1)])
-def test_punctual_naive_datetime_is_local_ha_time(monkeypatch, month, day, offset):
-    monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
+def test_punctual_naive_datetime_is_local_ha_time(timezone_patch, month, day, offset):
+    timezone_patch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
     publisher = object.__new__(LoadPublisher)
     departure = publisher._calculate_deadline(
         {"tipo": "puntual", "datetime": f"2026-{month:02}-{day:02}T12:35"}
@@ -142,8 +149,8 @@ def test_punctual_naive_datetime_is_local_ha_time(monkeypatch, month, day, offse
     assert departure.astimezone(timezone.utc).hour == 12 - offset
 
 
-def test_explicit_utc_offset_is_preserved_for_punctual_trips(monkeypatch):
-    monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
+def test_explicit_utc_offset_is_preserved_for_punctual_trips(timezone_patch):
+    timezone_patch.setattr(dt_util, "DEFAULT_TIME_ZONE", MADRID)
     publisher = object.__new__(LoadPublisher)
     departure = publisher._calculate_deadline(
         {"tipo": "puntual", "datetime": "2026-10-09T10:35:00+00:00"}

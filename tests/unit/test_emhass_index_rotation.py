@@ -150,8 +150,10 @@ class TestEMHASSIndexRotation:
                 bugs.append(f"{trip_id}: def_start={ds} out of range [0, 168)")
             if not 0 <= de <= 168:
                 bugs.append(f"{trip_id}: def_end={de} out of range [0, 168]")
-            if dt <= 0:
-                bugs.append(f"{trip_id}: def_total_hours={dt} must be > 0")
+            if dt < 0 or dt > de - ds:
+                bugs.append(f"{trip_id}: charging hours must fit the available window")
+            if params["soc_after_trip"] < 10:
+                bugs.append(f"{trip_id}: return safety reserve was not preserved")
             # FIX: def_end is based on fin_ventana (trip departure), NOT def_start + def_total_hours.
             # The old invariant de == ds + dt was WRONG.
             # def_end should be proportional to the deadline (hours until trip departure).

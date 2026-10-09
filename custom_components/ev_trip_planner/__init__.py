@@ -170,11 +170,10 @@ def _build_cache_report(adapter: Any) -> __init_helpers.CacheReport:
     return __init_helpers.build_cache_report(adapter)
 
 
+# 16 equivalent survivors: HA migration logs, None-in-log and default values.
 async def async_migrate_entry(
     hass: HomeAssistant, entry: ConfigEntry
-) -> (
-    bool
-):  # pragma: no mutate — 16 equivalent survivors (HA migration log text, None-in-log, default_value)
+) -> bool:  # pragma: no mutate
     """Migrate config entry to latest schema version."""
     new_data = entry.data.copy()
     changed = False
@@ -223,11 +222,10 @@ async def async_migrate_entry(
 # optional EMHASS adapter (with 2 sub-steps). Each conditional is a domain
 # requirement, not code smell.
 # qg-accepted: complexity=14 is inherent to HA integration setup flow
+# 66 equivalent survivors: HA lifecycle logs, None-in-log and default values.
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry
-) -> (
-    bool
-):  # pragma: no mutate — 66 equivalent survivors (HA lifecycle log text, None-in-log, default_value)
+) -> bool:  # pragma: no mutate
     """Set up EV Trip Planner from a config entry."""
     vehicle_name_raw = entry.data.get("vehicle_name") or ""
     vehicle_id = normalize_vehicle_id(vehicle_name_raw)
@@ -321,9 +319,8 @@ async def async_setup_entry(
     # measured from setup time leaves cached offsets stale for optimization.
     # Use module-level _hourly_refresh_callback for testability
     # EC-001 FIX: Save cancel handle to prevent timer leak on unload
-    runtime_data = (
-        entry.runtime_data
-    )  # pragma: no cover reason=HA lifecycle — accessing runtime_data during entry setup
+    # HA lifecycle: runtime_data access during entry setup.
+    runtime_data = entry.runtime_data  # pragma: no cover
     runtime_data.hourly_refresh_cancel = async_track_utc_time_change(  # pragma: no cover reason=HA lifecycle — timer registration during entry setup
         hass,
         functools.partial(_hourly_refresh_callback, runtime_data=runtime_data),

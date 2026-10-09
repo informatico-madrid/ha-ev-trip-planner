@@ -1,0 +1,9 @@
+# Reproducible dependencies for the essential GitHub checks only.
+homeassistant==2026.9.4
+pytest-homeassistant-custom-component==0.13.367
+pytest==9.0.3
+pytest-cov==7.1.0
+pytest-randomly==5.0.0
+pytest-xdist==3.8.0
+ruff==0.16.10
+pyright==1.1.414

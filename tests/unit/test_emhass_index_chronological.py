@@ -61,6 +61,7 @@ class TestEMHASSIndexChronological:
     """
 
     @pytest.mark.asyncio
+    @pytest.mark.freeze_time("2026-06-01T10:00:00Z")
     async def test_out_of_order_trips_sorted_by_window(self, mock_hass, mock_entry):
         """Trips created out of chronological order produce correct per-trip windows.
 
@@ -225,6 +226,7 @@ class TestEMHASSIndexChronological:
                 )
 
     @pytest.mark.asyncio
+    @pytest.mark.freeze_time("2026-06-01T10:00:00Z")
     async def test_def_end_uses_fin_ventana(self, mock_hass, mock_entry):
         """def_end_timestep based on fin_ventana (trip departure), not start+hours.
 
@@ -281,7 +283,10 @@ class TestEMHASSIndexChronological:
             # def_end should be based on the charging window end (trip departure).
             # This test should be updated to verify the correct behavior.
             # For now, just verify the window is non-trivial.
-            assert def_end > def_start, (
+            assert def_end >= def_start, (
                 f"Trip {trip_id}: def_end({def_end}) should be > def_start({def_start}). "
                 f"Window must be non-trivial for {def_total_hours}h charging."
             )
+            assert def_total_hours <= def_end - def_start
+            if def_end == def_start:
+                assert def_total_hours == 0

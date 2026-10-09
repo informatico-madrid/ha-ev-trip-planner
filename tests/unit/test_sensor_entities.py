@@ -10,7 +10,7 @@ Covers:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -275,14 +275,39 @@ class TestTripSensorDeviceInfo:
         coord = MagicMock()
         coord.data = {}
         sensor = TripSensor(coord, "vehicle_x", "trip_y")
-        info = sensor.device_info
+        with patch(
+            "custom_components.ev_trip_planner.sensor.entity_trip.dr.async_get"
+        ) as get_registry:
+            parent = get_registry.return_value.async_get_device.return_value
+            parent.id = "vehicle-parent-id"
+            info = sensor.device_info
         assert info is not None
         assert info.get("identifiers") == {(DOMAIN, "vehicle_x_trip_y")}
         assert info.get("name") == "Trip trip_y - vehicle_x"
         assert info.get("manufacturer") == "Home Assistant"
         assert info.get("model") == "EV Trip Planner"
         assert info.get("sw_version") == "2026.3.0"
-        assert info.get("via_device") == (DOMAIN, "vehicle_x")
+        assert info.get("via_device_id") == "vehicle-parent-id"
+        get_registry.return_value.async_get_device.assert_called_once_with(
+            identifiers={(DOMAIN, "vehicle_x")}
+        )
+
+    def test_parent_identifier_compatibility_for_older_ha(self):
+        from custom_components.ev_trip_planner.sensor.entity_trip import dr
+
+        sensor = TripSensor(MagicMock(), "vehicle_x", "trip_y")
+        with patch.object(dr.DeviceInfo, "__annotations__", {}):
+            info = sensor.device_info
+        assert info["via_device"] == (DOMAIN, "vehicle_x")
+
+    def test_missing_parent_is_not_published_as_an_invalid_device_id(self):
+        sensor = TripSensor(MagicMock(), "vehicle_x", "trip_y")
+        with patch(
+            "custom_components.ev_trip_planner.sensor.entity_trip.dr.async_get"
+        ) as get_registry:
+            get_registry.return_value.async_get_device.return_value = None
+            info = sensor.device_info
+        assert "via_device_id" not in info
 
 
 # =============================================================================
@@ -706,9 +731,9 @@ class TestTripEmhassSensorAttributes:
         attrs = sensor.extra_state_attributes
         # Should only contain TRIP_EMHASS_ATTR_KEYS keys, not extra_secret_field
         for key in attrs:
-            assert key in TRIP_EMHASS_ATTR_KEYS, (
-                f"Key {key} not in TRIP_EMHASS_ATTR_KEYS"
-            )
+            assert (
+                key in TRIP_EMHASS_ATTR_KEYS
+            ), f"Key {key} not in TRIP_EMHASS_ATTR_KEYS"
         assert "extra_secret_field" not in attrs
         assert attrs["emhass_index"] == 3
         assert attrs["def_total_hours"] == 2.5
@@ -877,9 +902,10 @@ class TestEmhassDeferrableLoadSensorExtractActiveTrips:
         }
         result = sensor._extract_active_trips_sorted(params)
         indices = [r.get("emhass_index") for r in result]
-        assert indices == [1, 3], (
-            f"Should be sorted by (timestep, index), got {indices}"
-        )
+        assert indices == [
+            1,
+            3,
+        ], f"Should be sorted by (timestep, index), got {indices}"
 
 
 class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
@@ -929,9 +955,9 @@ class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
         active = [{"p_deferrable_matrix": None}]
         matrix, count = sensor._extract_matrix_and_count(active)
         assert matrix == []
-        assert count == 0, (
-            f"Expected count=0 when p_deferrable_matrix key is present but None, got {count}"
-        )
+        assert (
+            count == 0
+        ), f"Expected count=0 when p_deferrable_matrix key is present but None, got {count}"
 
     def test_key_present_but_empty_list_does_not_increment_count(self):
         """Key 'p_deferrable_matrix' present with empty list: count must NOT increment.
@@ -942,9 +968,9 @@ class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
         active = [{"p_deferrable_matrix": []}]
         matrix, count = sensor._extract_matrix_and_count(active)
         assert matrix == []
-        assert count == 0, (
-            f"Expected count=0 when p_deferrable_matrix is empty list, got {count}"
-        )
+        assert (
+            count == 0
+        ), f"Expected count=0 when p_deferrable_matrix is empty list, got {count}"
 
     def test_absent_vs_present_none_count_behavior(self):
         """Distinguish: key absent → count+1; key present with None → count=0.
@@ -957,9 +983,9 @@ class TestEmhassDeferrableLoadSensorExtractMatrixAndCount:
             [{"p_deferrable_matrix": None}]
         )
         assert count_absent == 1, f"Expected count=1 for absent key, got {count_absent}"
-        assert count_present_none == 0, (
-            f"Expected count=0 for present-but-None key, got {count_present_none}"
-        )
+        assert (
+            count_present_none == 0
+        ), f"Expected count=0 for present-but-None key, got {count_present_none}"
 
 
 class TestEmhassDeferrableLoadSensorCollectArrays:

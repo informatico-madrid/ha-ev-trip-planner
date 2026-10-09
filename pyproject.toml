@@ -14,6 +14,9 @@ include = '\.pyi?$'
 line-length = 88
 
 [tool.ruff.lint]
+# Preserve the project's pre-0.16 policy instead of inheriting changing defaults.
+# Ruff 0.16 expanded its default set from 59 to 413 rules.
+select = ["E4", "E7", "E9", "F"]
 ignore = ["E501"]
 
 [tool.isort]

@@ -112,3 +112,15 @@
   una ventana amplia debe coexistir con pocos slots sugeridos al final.
 - Verificar los arrays publicados por el sensor y consumidos por el optimizador,
   además del dibujo; una gráfica correcta no demuestra por sí sola disponibilidad.
+
+## CI proporcionada al producto (2026-10-09)
+
+- GitHub bloquea errores funcionales, lint/formato básico y tipos. SOLID/KISS,
+  antipatrones, seguridad extensiva, mutación y E2E se conservan en local.
+- Separar dependencias de CI y desarrollo: no instalar herramientas avanzadas
+  que no se van a ejecutar en cada push.
+- Declarar reglas y versiones de herramientas; Ruff 0.16 amplió sus defaults
+  de 59 a 413 y convirtió una dependencia abierta en cientos de fallos nuevos.
+- Validar la suite completa con los plugins y la versión de HA declarados,
+  además de las regresiones seleccionadas. Las fixtures deben restaurar su zona
+  horaria antes del verificador de limpieza de Home Assistant.

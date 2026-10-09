@@ -200,11 +200,10 @@ class EmhassDeferrableLoadSensor(
             sw_version="2026.3.0",
         )
 
+    # HA lifecycle: removal requires a live entity registry and HA runtime.
     async def async_will_remove_from_hass(
         self,
-    ) -> (
-        None
-    ):  # pragma: no cover reason=HA entity lifecycle — async_will_remove_from_hass called only when entity is removed from HA entity registry, requires HA runtime
+    ) -> None:  # pragma: no cover
         """Clean up when entity is removed from Home Assistant."""
         trip_manager = getattr(self.coordinator, "trip_manager", None)
         if (

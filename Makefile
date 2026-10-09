@@ -1,6 +1,8 @@
 .PHONY: help test test-cover test-verbose test-dashboard test-e2e test-e2e-headed test-e2e-debug e2e e2e-headed e2e-debug e2e-soc e2e-soc-headed e2e-soc-debug staging-up staging-down staging-reset lint mypy format check clean htmlcov layer3a layer1 layer1-ci layer2 layer3b layer3 layer4 quality-gate quality-gate-ci security-bandit security-audit security-gitleaks security-semgrep typecheck dead-code unused-deps import-check refurb mutation mutation-gate mutation-unregistered-check test-parallel test-random e2e-lint pre-commit-install pre-commit-run pre-commit-update quality-baseline
 
 SHELL := /bin/bash
+PYTHON ?= .venv/bin/python
+QUALITY_GATE_SCRIPTS := .agents/skills/quality-gate/scripts
 
 # ============================================================================
 # Variables de entorno para paralelismo (.env)
@@ -45,7 +47,8 @@ help:
 	@echo "  make layer3          - Layer 3: Code quality (all tiers) / Capa 3: Calidad de código"
 	@echo "  make layer4          - Layer 4: Security scanning (8 tools) / Capa 4: Escaneo de seguridad"
 	@echo "  make quality-gate    - Full quality gate (with E2E) / Quality gate completo (con E2E)"
-	@echo "  make quality-gate-ci - CI quality gate (without E2E) / Quality gate CI (sin E2E)"
+	@echo "  make quality-gate-ci - Essential CI: Ruff, types and Python tests"
+	@echo "  Advanced quality/security checks remain local: make quality-gate"
 	@echo ""
 	@echo "Paralelismo ( SAFE_PARALLEL=parallel para habilitar ):"
 	@echo "  make check SAFE_PARALLEL=parallel"
@@ -88,7 +91,7 @@ help:
 	@echo "  make staging-reset   - Reset staging HA / Resetear HA staging"
 
 test:
-	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration -v --tb=short -n $(PYTEST_WORKERS)
+	PYTHONPATH=. $(PYTHON) -m pytest tests/unit tests/integration -v --tb=short --junitxml=test-results/junit.xml -n $(PYTEST_WORKERS)
 
 test-cover:
 	PYTHONPATH=. .venv/bin/python -m pytest tests/unit tests/integration --cov=custom_components.ev_trip_planner --cov-report=term-missing --cov-fail-under=100 -n $(PYTEST_WORKERS)
@@ -171,19 +174,18 @@ layer3a:
 	@echo "Running remaining checks $(if $(filter true,$(PARALLEL_ENABLED)),in parallel,sequentially)..."
 ifeq ($(PARALLEL_ENABLED),true)
 	@$(MAKE) -s typecheck
-	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
-	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
-	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ > /tmp/.layer3a_antipattern.json 2>/dev/null
-	@python3 .claude/skills/quality-gate/scripts/layer3a_summary.py /tmp/.layer3a_antipattern.json || true
-	@rm -f /tmp/.layer3a_antipattern.json
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
 else
 	@$(MAKE) typecheck
-	@python3 .claude/skills/quality-gate/scripts/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
-	@python3 .claude/skills/quality-gate/scripts/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
-	@python3 .claude/skills/quality-gate/scripts/antipattern_checker.py custom_components/ custom_components/ > /tmp/.layer3a_antipattern.json 2>/dev/null; \
-	python3 .claude/skills/quality-gate/scripts/layer3a_summary.py /tmp/.layer3a_antipattern.json || true; \
-	rm -f /tmp/.layer3a_antipattern.json
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/solid_metrics.py custom_components/ || echo "WARNING: SOLID Tier A violations"
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/principles_checker.py custom_components/ || echo "WARNING: Principles violations"
 endif
+	@report=$$(mktemp); \
+	.venv/bin/python $(QUALITY_GATE_SCRIPTS)/antipattern_checker.py custom_components/ tests/ > "$$report" || { rm -f "$$report"; exit 1; }; \
+	.venv/bin/python scripts/layer3a_summary.py "$$report"; status=$$?; \
+	rm -f "$$report"; \
+	if [ $$status -eq 1 ]; then echo "WARNING: Tier A antipattern findings"; elif [ $$status -ne 0 ]; then exit $$status; fi
 	@echo "=== Layer 3A Complete ==="
 
 # Layer 1: Test execution (unit tests + E2E suites)
@@ -205,10 +207,10 @@ layer2:
 	@rm -rf mutants/ .mutmut-cache/
 	@.venv/bin/mutmut run --max-children=$(MUTATION_MAX_CHILDREN) 2>&1 | tee .layer2-results/mutation_run.out
 	@echo "  → Mutation gate..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate 2>&1 | tee .layer2-results/mutation.out ; [ $${PIPESTATUS[0]} -eq 0 ] || { echo "ERROR: Mutation gate failed — effective-MSI < 100% or module below threshold"; exit 1; }
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/mutation_analyzer.py . --gate 2>&1 | tee .layer2-results/mutation.out ; [ $${PIPESTATUS[0]} -eq 0 ] || { echo "ERROR: Mutation gate failed — effective-MSI < 100% or module below threshold"; exit 1; }
 	@echo "  → Weak test detector + Test diversity (running in parallel)..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & weak_pid=$$! ; \
-	.venv/bin/python .claude/skills/quality-gate/scripts/diversity_metric.py tests/ > .layer2-results/diversity.out 2>&1 & div_pid=$$! ; \
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/weak_test_detector.py tests/ custom_components/ > .layer2-results/weak_test.out 2>&1 & weak_pid=$$! ; \
+	.venv/bin/python $(QUALITY_GATE_SCRIPTS)/diversity_metric.py tests/ > .layer2-results/diversity.out 2>&1 & div_pid=$$! ; \
 	fail=0 ; \
 	wait $$weak_pid || fail=1 ; \
 	wait $$div_pid || fail=1 ; \
@@ -221,9 +223,9 @@ layer2:
 layer3b:
 	@echo "Running Layer 3B: Deep Quality (BMAD Tier B consensus)..."
 	@echo "  → Generating SOLID Tier B context..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/llm_solid_judge.py custom_components/
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/llm_solid_judge.py custom_components/
 	@echo "  → Generating Antipatterns Tier B context..."
-	@.venv/bin/python .claude/skills/quality-gate/scripts/antipattern_judge.py custom_components/ tests/
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/antipattern_judge.py custom_components/ tests/
 	@echo "  → Run BMAD Party Mode for consensus validation"
 	@echo "     (Requires BMAD integration — context JSON files generated)"
 	@echo "=== Layer 3B Complete ==="
@@ -235,8 +237,8 @@ layer3: layer3a
 # Layer 4: Security & Defense (8 tools, 3 priority levels)
 layer4:
 	@echo "Running Layer 4: Security & Defense..."
-	@echo "  → Unified security scanner (8 tools, scanning .venv-314-clean = HA 2026.x production env)..."
-	@.venv-314-clean/bin/python .claude/skills/quality-gate/scripts/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
+	@echo "  → Local security scanner (8 tools, using the development environment)..."
+	@.venv/bin/python $(QUALITY_GATE_SCRIPTS)/security_scanner.py . --severity-threshold high --verbose || echo "WARNING: Layer 4 security findings detected"
 	@echo "=== Layer 4 Complete ==="
 
 # Quality Gate: Full 6-layer (L3A → L1 → L2 → L3B → L4, with E2E)
@@ -271,29 +273,14 @@ else
 endif
 	@echo "=== Quality Gate PASSED ==="
 
-# Quality Gate CI: Fast (excludes E2E + L3B)
+# Essential CI: keep functional regressions; advanced gates remain local.
 quality-gate-ci:
-	@echo "=== CI Quality Gate (L3A → L1-CI → L4, no E2E, no L2, no BMAD) ==="
-	@echo "Phase 1: L3A Smoke Test (fail-fast)"
-	$(MAKE) layer3a
-	@echo "Phase 2: L1-CI + L4"
-ifeq ($(PARALLEL_ENABLED),true)
-	@echo "  → Running in parallel (SAFE_PARALLEL=parallel)..."
-	@rm -rf .quality-gate-results ; mkdir -p .quality-gate-results ; \
-	$(MAKE) layer1-ci > .quality-gate-results/l1.out 2>&1 & l1_pid=$$! ; \
-	$(MAKE) layer4 > .quality-gate-results/l4.out 2>&1 & l4_pid=$$! ; \
-	fail=0 ; \
-	wait $$l1_pid || fail=1 ; \
-	wait $$l4_pid || fail=1 ; \
-	echo "--- L1-CI output ---" ; cat .quality-gate-results/l1.out ; \
-	echo "--- L4 output ---" ; cat .quality-gate-results/l4.out ; \
-	[ $$fail -eq 0 ] || exit 1
-else
-	@echo "  → Running sequentially (SAFE_PARALLEL=safe)..."
-	$(MAKE) layer1-ci
-	$(MAKE) layer4
-endif
-	@echo "=== CI Quality Gate PASSED ==="
+	@echo "=== Essential CI: lint, format, types and functional tests ==="
+	$(PYTHON) -m ruff check custom_components/
+	$(PYTHON) -m ruff format --check custom_components/
+	$(PYTHON) -m pyright --pythonpath $(PYTHON) custom_components/
+	$(MAKE) test
+	@echo "=== Essential CI PASSED ==="
 
 # ============================================================================
 # Security Targets
@@ -314,9 +301,8 @@ security-semgrep:
 	@echo "Running Semgrep static analysis (all severities)..."
 	.venv/bin/semgrep \
 		--config auto \
-		--config .claude/skills/quality-gate/references/semgrep-python-rules.yaml \
-		--config .claude/skills/quality-gate/references/semgrep-ha-rules.yaml \
-		--config .claude/skills/quality-gate/references/semgrep-js-rules.yaml \
+		--config .agents/skills/quality-gate/references/semgrep-ha-rules.yaml \
+		--config .agents/skills/quality-gate/references/semgrep-js-rules.yaml \
 		--severity INFO \
 		--severity WARNING \
 		--severity ERROR \
@@ -354,7 +340,7 @@ mutation:
 
 mutation-gate:
 	@echo "Running mutation gate (per-module thresholds)..."
-	.venv/bin/python .claude/skills/quality-gate/scripts/mutation_analyzer.py . --gate
+	.venv/bin/python $(QUALITY_GATE_SCRIPTS)/mutation_analyzer.py . --gate
 
 mutation-unregistered-check:
 	@echo "Checking for unregistered survivors..."

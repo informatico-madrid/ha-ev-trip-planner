@@ -7,11 +7,8 @@ Adapted to SOLID API:
 - Patch `emhass.adapter.Store` not `emhass_adapter.Store`
 - Uses `async_publish_all_deferrable_loads()` → inspect `_cached_power_profile`
 
-BUG-4: T_BASE is NOT wired into the production path.
-With T_BASE=6h (aggressive) vs T_BASE=48h (conservative), the power profiles
-should differ. Currently they are identical because _t_base is not used.
-
-This test MUST FAIL until T062 wires t_base through the charging decision.
+Resolved-trip planning must preserve energy demand and physical availability
+regardless of a health preference. Legacy SOC formula tests remain separate.
 """
 
 from __future__ import annotations
@@ -56,19 +53,14 @@ def _count_nonzero(profile):
 
 
 @pytest.mark.asyncio
-async def test_t_base_affects_charging_hours():
-    """T056: T_BASE=6h should produce less total charging energy than T_BASE=48h.
+async def test_t_base_does_not_erase_trip_demand_or_narrow_physical_availability():
+    """Changing a health preference must preserve energy and optimizer freedom.
 
     Setup: 4 trips (30kWh each → needs=5h), SOC=60%, charging=7.4kW.
     Trips are scheduled 20h apart (20h, 40h, 60h, 80h in future).
 
-    With the slack-driven ramp (H_allowed = H_req / (1 + slack/k)):
-    - T_BASE=6h (k small): ramp is aggressive → fewer allowed hours per window
-    - T_BASE=48h (k large): ramp is conservative → more allowed hours per window
-
-    trips must be ≥3h needs so that ceil(H_allowed) differs between k values.
-    6kWh/7.4kW = 0.81h → ceil = 1h (all k values give same result).
-    30kWh/7.4kW = 4.05h → ceil = 5h base; ramp differentiates well.
+    Neither setting may reduce the original consumption or the charging window
+    sent to EMHASS. The feasible chain must retain the same energy balance.
     """
     hass_6, store_6 = _make_mock_hass(soc_state=60.0)
     hass_48, store_48 = _make_mock_hass(soc_state=60.0)
@@ -153,13 +145,14 @@ async def test_t_base_affects_charging_hours():
     non_zero_6 = _count_nonzero(profile_6)
     non_zero_48 = _count_nonzero(profile_48)
 
-    assert energy_6 < energy_48, (
-        f"Expected T_BASE=6h to produce less total charging energy "
-        f"({energy_6:.0f} Wh) than T_BASE=48h ({energy_48:.0f} Wh), "
-        f"but they are equal or reversed. "
-        f"Non-zero hours: {non_zero_6} vs {non_zero_48}. "
-        "This indicates _t_base is NOT wired into the production path."
-    )
+    assert energy_6 == energy_48
+    assert non_zero_6 == non_zero_48 > 0
+    for trip in trips:
+        first = adapter_6._cached_per_trip_params[trip["id"]]
+        second = adapter_48._cached_per_trip_params[trip["id"]]
+        assert first["def_start_timestep"] == second["def_start_timestep"]
+        assert first["def_end_timestep"] == second["def_end_timestep"]
+        assert first["energy_unserved_kwh"] == second["energy_unserved_kwh"] == 0
 
 
 @pytest.mark.asyncio
@@ -230,9 +223,9 @@ async def test_soc_caps_applied_to_kwh_calculation():
         hours = params["def_total_hours"]
         # BUG-1: Should be ceil'd int, not float
         # This test verifies the cache structure is correct even if value type is wrong
-        assert isinstance(hours, (int, float)), (
-            f"def_total_hours is not numeric: {type(hours)}"
-        )
+        assert isinstance(
+            hours, (int, float)
+        ), f"def_total_hours is not numeric: {type(hours)}"
         assert hours >= 0, f"def_total_hours negative: {hours}"
 
 
@@ -379,6 +372,6 @@ async def test_soh_sensor_wired_into_battery_capacity():
         f"got {battery_cap.soh_sensor_entity_id!r}"
     )
     # SOH=50% => real capacity = 60 * 0.5 = 30 kWh (not nominal 60).
-    assert battery_cap.get_capacity(hass) == pytest.approx(30.0), (
-        "Real capacity must reflect SOH 50% (30kWh), not nominal 60kWh"
-    )
+    assert battery_cap.get_capacity(hass) == pytest.approx(
+        30.0
+    ), "Real capacity must reflect SOH 50% (30kWh), not nominal 60kWh"

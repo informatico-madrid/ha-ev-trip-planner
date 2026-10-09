@@ -292,19 +292,22 @@ class TestStagingBugReproduction:
         print("=" * 60)
 
         # PRIMARY ASSERTIONS: These match staging
-        assert start_array == [0, 44], (
-            f"def_start_timestep should be [0, 44], got {start_array}"
-        )
-        assert end_array == [40, 76], (
-            f"def_end_timestep should be [40, 76], got {end_array}"
-        )
+        assert start_array == [
+            0,
+            44,
+        ], f"def_start_timestep should be [0, 44], got {start_array}"
+        assert end_array == [
+            40,
+            76,
+        ], f"def_end_timestep should be [40, 76], got {end_array}"
 
-        # With SOC cap ramp, def_total_hours is reduced from the base value.
-        # Large window (39h, 75h) with small needs (2h) → large slack → cap reduces to 1h each.
-        # Both trips get [1, 1]: correct behavior (SOC health protected).
-        assert total_hours_array == [1, 1], (
-            f"def_total_hours should be [1, 1] (SOC cap ramp reduces large-slack windows), "
+        # Existing energy covers both consumptions and the final reserve.
+        assert total_hours_array == [0, 0], (
+            f"def_total_hours should be [0, 0] when the battery already covers the chain, "
             f"got {total_hours_array}."
+        )
+        assert all(
+            p["soc_after_trip"] >= 10 for p in adapter._cached_per_trip_params.values()
         )
 
     @pytest.mark.asyncio
@@ -382,10 +385,15 @@ class TestStagingBugReproduction:
         # With SOC cap ramp active, charging hours per trip are reduced
         # (large slack in window → fewer hours → correct battery health behavior).
         # Spec says 2 trips; correct behavior is <= 4 slots (≤2h per trip).
-        assert non_zero_count <= 4, (
-            f"Should have at most 4 charging slots (<=2h per trip x 2 trips), got {non_zero_count}."
+        assert (
+            non_zero_count <= 4
+        ), f"Should have at most 4 charging slots (<=2h per trip x 2 trips), got {non_zero_count}."
+        assert (
+            non_zero_count == 0
+        ), "Existing battery energy covers both trips and reserve"
+        assert all(
+            p["soc_after_trip"] >= 10 for p in adapter._cached_per_trip_params.values()
         )
-        assert non_zero_count > 0, "Should have at least some charging slots"
 
 
 # =============================================================================
@@ -575,10 +583,10 @@ class TestAdapterConfigEntryIntegration:
         # EXPECTED (correct behavior): def_total_hours = [2, 2]
         # ACTUAL (buggy behavior): def_total_hours = [7, 6] if adapter uses defaults
 
-        # With correct config (battery=28kWh, SOC=65%, charging=3.4kW):
-        # base horas_carga = 2h, but SOC cap ramp reduces it (large slack → 1h).
-        # [1, 1] is the correct post-cap behavior.
-        assert total_hours_array == [1, 1], (
-            f"With correct config, def_total_hours should be [1, 1] (SOC cap active), "
+        # With correct config, 65% of 28 kWh already covers both trips and reserve.
+        assert total_hours_array == [0, 0], (
+            f"With correct config, covered trips should need [0, 0] charging hours, "
             f"got {total_hours_array}."
         )
+        assert cache1["battery_capacity_kwh"] == 28
+        assert cache2["soc_after_trip"] >= 10

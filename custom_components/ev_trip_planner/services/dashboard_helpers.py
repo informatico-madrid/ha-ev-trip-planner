@@ -62,12 +62,15 @@ async def async_register_static_paths(  # pragma: no mutate — 64 equivalent su
 
     This must be called early before any browser tries to load the panel.
     """
+    StaticPathConfig: type[Any] | None = None
     try:
-        from homeassistant.components.http import StaticPathConfig
+        from homeassistant.components import http
 
-        HAS_STATIC_PATH_CONFIG = True
-    except ImportError:  # pragma: no cover reason=HA version dependency — static_path_config only available in newer HA versions, tested via integration
-        HAS_STATIC_PATH_CONFIG = False
+        # Keep compatibility with both the original class and its newer re-export.
+        StaticPathConfig = getattr(http, "StaticPathConfig", None)
+    except ImportError:  # pragma: no cover
+        # Older HA versions may not provide the static path configuration type.
+        pass
 
     component_dir = Path(__file__).parent.parent
     panel_js_path = component_dir / "frontend" / "panel.js"
@@ -78,32 +81,32 @@ async def async_register_static_paths(  # pragma: no mutate — 64 equivalent su
 
     if panel_js_path.exists():
         static_paths.append(
-            StaticPathConfig(  # pyright: ignore[reportPossiblyUnboundVariable]  # pyright: ignore[reportPossiblyUnboundVariable]
+            StaticPathConfig(
                 "/ev-trip-planner/panel.js",
                 str(panel_js_path),
                 cache_headers=False,
             )
-            if HAS_STATIC_PATH_CONFIG
+            if StaticPathConfig is not None
             else ("/ev-trip-planner/panel.js", str(panel_js_path), False)
         )
     if lit_bundle_path.exists():
         static_paths.append(
-            StaticPathConfig(  # pyright: ignore[reportPossiblyUnboundVariable]
+            StaticPathConfig(
                 "/ev-trip-planner/lit-bundle.js",
                 str(lit_bundle_path),
                 cache_headers=False,
             )
-            if HAS_STATIC_PATH_CONFIG
+            if StaticPathConfig is not None
             else ("/ev-trip-planner/lit-bundle.js", str(lit_bundle_path), False)
         )
     if panel_css_path.exists():
         static_paths.append(
-            StaticPathConfig(  # pyright: ignore[reportPossiblyUnboundVariable]
+            StaticPathConfig(
                 "/ev-trip-planner/panel.css",
                 str(panel_css_path),
                 cache_headers=False,
             )
-            if HAS_STATIC_PATH_CONFIG
+            if StaticPathConfig is not None
             else ("/ev-trip-planner/panel.css", str(panel_css_path), False)
         )
 

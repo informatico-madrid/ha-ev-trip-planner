@@ -903,6 +903,7 @@ class EMHASSAdapter:
             self._cached_per_trip_params[trip_id]["def_total_hours"] = math.ceil(
                 adjusted
             )
+            self._cached_per_trip_params[trip_id]["total_hours"] = math.ceil(adjusted)
             power_watts = params.get("power_watts", 0)
             if power_watts > 0:
                 self._cached_per_trip_params[trip_id]["kwh_needed"] = round(

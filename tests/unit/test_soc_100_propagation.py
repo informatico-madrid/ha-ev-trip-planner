@@ -23,16 +23,13 @@ from custom_components.ev_trip_planner.emhass.adapter import EMHASSAdapter
 
 
 class TestSOC100Propagation:
-    """Verifies proactive charging at SOC 100% uses power profile clamping."""
+    """A full battery needs no first charge; later trips use the carried balance."""
 
     @pytest.mark.asyncio
     async def test_soc_100_first_trip_must_not_have_2_hours(self):
         """
-        Verifies proactive charging at SOC 100% assigns charge hours to trips.
-
-        Reproduces user report scenario where def_total_hours and P_deferrable_nom
-        were zeroed out incorrectly. With proactive charging, even at SOC 100%,
-        trips should receive minimum charge hours.
+        Avoid unnecessary charge when the first trip is already covered, then
+        charge for subsequent consumption while keeping SOC bounded and reserve.
         """
         hass = MagicMock()
         hass.config = MagicMock()
@@ -93,21 +90,15 @@ class TestSOC100Propagation:
 
         assert result is True
 
-        # Proactive charging: even at SOC 100%, trips require minimum charge
+        # Charging is determined by the chain balance, not forced for every trip.
         per_trip_params = adapter._cached_per_trip_params
 
         primer_viaje_params = per_trip_params.get("primer_viaje", {})
         def_hours = primer_viaje_params.get("def_total_hours", 0)
         power_nom = primer_viaje_params.get("power_watts", 0.0)
 
-        if def_hours > 0:
-            # With proactive charging, the first trip should have charge hours
-            pass
-        else:
-            # If this fails, proactive charging is NOT wired at SOC 100%
-            assert def_hours > 0, (
-                f"With proactive charging at SOC 100%, primer_viaje must have charge hours > 0, got {def_hours}"
-            )
+        assert def_hours == 0
+        assert power_nom == 0
 
         for trip in trips:
             trip_id = trip["id"]
@@ -116,13 +107,11 @@ class TestSOC100Propagation:
                 def_hours = params.get("def_total_hours", 0)
                 power_nom = params.get("power_watts", 0.0)
 
-                # With proactive charging, def_hours and power_watts should both be > 0
-                assert def_hours > 0, (
-                    f"Trip {trip_id} failed proactive charging: def_total_hours is {def_hours} at SOC 100%"
-                )
-                assert power_nom > 0, (
-                    f"Trip {trip_id} failed proactive charging: power_watts is {power_nom} at SOC 100%"
-                )
+                # Zero demand must also have zero power; later demand stays feasible.
+                assert def_hours >= 0
+                assert (power_nom > 0) == (def_hours > 0)
+                assert 0 <= params["soc_departure"] <= 100
+                assert params["soc_after_trip"] >= 10
 
     @pytest.mark.asyncio
     async def test_soc_100_impossible_physics(self):
@@ -147,7 +136,7 @@ class TestSOC100Propagation:
             horas_carga_maximas = energia_adicional_maxima / charging_power_kw
 
         # With SOC 100%, nothing can be charged
-        assert energia_adicional_maxima == 0.0, (
-            "With SOC 100%, no additional energy can be charged"
-        )
+        assert (
+            energia_adicional_maxima == 0.0
+        ), "With SOC 100%, no additional energy can be charged"
         assert horas_carga_maximas == 0.0, "With SOC 100%, there cannot be charge hours"

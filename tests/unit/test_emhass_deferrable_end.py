@@ -131,14 +131,11 @@ async def test_populate_cache_entry_def_end_uses_fin_ventana(mock_hass, mock_sto
     params = adapter._cached_per_trip_params.get(trip["id"])
     def_end = params.get("def_end_timestep")
 
-    # FIX VERIFIED: def_end is based on fin_ventana (trip departure time),
-    # NOT def_start + total_hours.
-    # In this case: def_start=0 (car home), def_total_hours=8 (charging time),
-    # def_end should be 48 (hours until trip departure at 09:40 next day).
-    # The window is 48 hours wide (departure - now), and charging takes 8 hours.
-    assert def_end == 48, (
-        f"def_end ({def_end}) should be 48 (hours until trip departure at {deadline})"
-    )
+    # The rounded grid origin is independent of the exact departure timestamp.
+    reference = datetime.fromisoformat(params["planning_reference"])
+    slot_end = reference + timedelta(hours=def_end)
+    assert slot_end <= deadline
+    assert slot_end + timedelta(hours=1) > deadline
 
 
 if __name__ == "__main__":

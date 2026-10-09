@@ -702,6 +702,16 @@ The legacy Lovelace dashboard was created during the configuration flow. If you 
 
 ## 📊 Development
 
+### CI and local validation
+
+GitHub runs essential lint/format checks, integration type checks, the complete
+Python unit/integration suite and native-panel tests using `requirements_ci.txt`.
+Advanced quality, security, mutation and E2E analyses remain available locally
+through `requirements_dev.txt` and the dedicated Make targets.
+
+See [CI esencial y validación avanzada local](docs/CI_VALIDATION.md) for commands
+and the separation of responsibilities.
+
 ### 🤖 Smart Ralph Methodology
 
 This plugin was developed with **[`informatico-madrid/ralph-harness`](https://github.com/informatico-madrid/ralph-harness)**,
