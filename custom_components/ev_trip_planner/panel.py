@@ -33,6 +33,7 @@ _LOG_REMOVED_PANEL_MAPPING = "Removed panel mapping for vehicle_id=%s"
 
 # Panel configuration constants
 PANEL_COMPONENT_NAME = "ev-trip-planner-panel"
+PANEL_FRONTEND_VERSION = "4.0.0"
 PANEL_URL_PREFIX = "ev-trip-planner"
 DEFAULT_SIDEBAR_ICON = "mdi:car-electric"
 
@@ -75,7 +76,13 @@ def build_module_url(
     Returns:
         The module URL string with cache-busting query param
     """
-    cache_bust = "3.0.11-" + str(int(time.time())) + "-" + str(hash(vehicle_id))
+    cache_bust = (
+        PANEL_FRONTEND_VERSION
+        + "-"
+        + str(int(time.time()))
+        + "-"
+        + str(hash(vehicle_id))
+    )
     return f"/{DOMAIN.replace('_', '-')}/panel.js?t={cache_bust}"
 
 

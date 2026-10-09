@@ -7,6 +7,7 @@ from homeassistant.components import panel_custom as ha_panel_custom
 
 from custom_components.ev_trip_planner import panel
 from custom_components.ev_trip_planner.panel import (
+    PANEL_FRONTEND_VERSION,
     build_frontend_url_path,
     build_module_url,
     build_panel_config,
@@ -73,8 +74,8 @@ class TestBuildModuleUrl:
     def test_build_module_url_contains_cache_bust(self):
         """Test URL contains cache-busting component."""
         url = build_module_url("test_vehicle")
-        # cache_bust format: 3.0.11-{timestamp}-{hash}
-        assert "3.0.11-" in url
+        # cache_bust format: frontend_version-{timestamp}-{hash}
+        assert f"{PANEL_FRONTEND_VERSION}-" in url
 
     def test_build_module_url_is_unique_per_vehicle(self):
         """Different vehicle_ids produce different URLs."""
@@ -103,11 +104,23 @@ class TestBuildModuleUrl:
         cache_bust = url.split("?t=")[1]
         # Format: version-timestamp-hash (hash may be negative = contains -)
         # Verify version prefix and timestamp are present
-        assert cache_bust.startswith("3.0.11-")
+        prefix = f"{PANEL_FRONTEND_VERSION}-"
+        assert cache_bust.startswith(prefix)
         # Timestamp is numeric part after version
-        after_version = cache_bust[len("3.0.11-") :]
+        after_version = cache_bust[len(prefix) :]
         ts_str = after_version.split("-")[0]
         assert ts_str.isdigit()
+
+    def test_frontend_release_changes_url_at_same_registration_time(self):
+        """A new frontend must invalidate cached modules even at the same time."""
+        with patch.object(panel.time, "time", return_value=123456789):
+            with patch.object(panel, "PANEL_FRONTEND_VERSION", "4.0.0"):
+                old_url = build_module_url("same_vehicle")
+            with patch.object(panel, "PANEL_FRONTEND_VERSION", "4.0.1"):
+                new_url = build_module_url("same_vehicle")
+        assert old_url != new_url
+        assert "?t=4.0.0-123456789-" in old_url
+        assert "?t=4.0.1-123456789-" in new_url
 
 
 class TestBuildPanelKwargs:
