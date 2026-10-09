@@ -98,7 +98,8 @@ energia_actual = capacidad_real × (soc_percent / 100)
 ### Energía Disponible Segura (Given Safety Margin)
 
 ```
-energia_segura = energia_actual × (1 - safety_margin_percent / 100)
+energia_reserva = capacidad_real × (safety_margin_percent / 100)
+energia_segura = max(0, energia_actual - energia_reserva)
 ```
 
 ### Energía para Viaje
@@ -106,6 +107,11 @@ energia_segura = energia_actual × (1 - safety_margin_percent / 100)
 ```
 energia_viaje = distancia_km × consumo_kwh_per_km
 ```
+
+Si el viaje tiene `kwh` explícitos, estos tienen prioridad, incluso cuando son 0.
+La distancia se convierte con el consumo configurado únicamente cuando falta
+ese campo. La reserva se exige **después** del consumo, no como un multiplicador
+de la energía actual.
 
 ### SOC Post-Viaje
 
@@ -190,6 +196,23 @@ SI déficit(Ventana_i) > 0 ENTONCES:
 ---
 
 ## 7. Regla: SOC Cap Dinámico
+
+> **Corrección 2026-10-09 — ruta real de publicación EMHASS:** las ventanas con
+> ID de viaje, salida y rejilla resueltos usan `calculations/energy_chain.py`.
+> Se transporta una sola energía de batería entre viajes, descontando cada
+> consumo y añadiendo únicamente la carga que cabe. La necesidad futura se
+> anticipa hacia ventanas anteriores cuando después no haya tiempo para cargar,
+> sin superar la capacidad física. Se exige la reserva configurada tras cada
+> viaje y se publica la energía no servida, incluida la imposibilidad por
+> capacidad. **La disponibilidad física se conserva completa**: desde el regreso
+> anterior hasta la siguiente salida. La matriz sugiere las horas necesarias al
+> final de esa ventana, pero `def_start_timestep` y `def_end_timestep` permiten a
+> EMHASS anticiparlas dentro de todo el intervalo disponible. Una preferencia de
+> carga tardía **no puede sustituir el inicio físico ni reducir la demanda**.
+> El modelo usa potencia nominal de red y eficiencia prevista del 85 % por
+> defecto, coherente con el gráfico existente, y espera de 0.02 puntos SOC/h.
+> Las transformaciones por horas que se describen debajo se conservan para
+> callers antiguos sin datos energéticos completos o transformaciones explícitas.
 
 > ⚠️ **ACTUALIZACIÓN 2026-05-30:** La regla SOC cap se amplió con dos componentes:
 > - **Componente 1 (pre-viaje, NUEVO):** Rampa por holgura — limita las horas de carga

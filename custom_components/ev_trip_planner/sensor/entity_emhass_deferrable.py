@@ -99,7 +99,7 @@ class EmhassDeferrableLoadSensor(
 
     def _collect_arrays(
         self, active_trips: List[Dict[str, Any]]
-    ) -> Dict[str, List[float]]:
+    ) -> Dict[str, List[Any]]:
         """Derive deferrable arrays from scalar cache fields.
 
         The single source of truth is the scalar fields (def_total_hours,
@@ -123,6 +123,12 @@ class EmhassDeferrableLoadSensor(
             "trip_id_array": [p.get("trip_id") for p in active_trips],
             "unserved_energy_kwh_array": [
                 p.get("unserved_energy_kwh", 0) for p in active_trips
+            ],
+            "soc_departure_array": [p.get("soc_departure") for p in active_trips],
+            "soc_after_trip_array": [p.get("soc_after_trip") for p in active_trips],
+            "trip_energy_kwh_array": [p.get("trip_energy_kwh") for p in active_trips],
+            "reserve_shortfall_kwh_array": [
+                p.get("reserve_shortfall_kwh", 0) for p in active_trips
             ],
         }
 
@@ -169,6 +175,10 @@ class EmhassDeferrableLoadSensor(
             active = self._extract_active_trips_sorted(per_trip_params)
             aggregated = self._aggregate_trip_params(active)
             attrs.update(aggregated)
+            if active and "battery_capacity_kwh" in active[0]:
+                attrs["battery_capacity_kwh"] = active[0]["battery_capacity_kwh"]
+                attrs["safety_margin_percent"] = active[0]["safety_margin_percent"]
+                attrs["charging_efficiency"] = active[0]["charging_efficiency"]
         else:
             attrs["number_of_deferrable_loads"] = 0
 

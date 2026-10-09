@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-09 - Trip-chain reserves and full EMHASS availability
+
+### Added
+- Renewed native charging-planning panel with proposed power, available windows,
+  departure deadlines and streamlined trip management.
+- Per-trip projected departure/return SOC, battery capacity, charging efficiency,
+  reserve shortfalls and unmet-energy attributes.
+- Sequential energy planning with backward anticipation when a later charging
+  window cannot supply the next trip's demand.
+
+### Fixed
+- Carry one battery's energy through the complete trip chain, rather than reusing
+  the initial SOC independently for every trip.
+- Preserve the configured safety reserve after each feasible trip and report
+  demand that cannot be met because of charging time or battery capacity.
+- Keep physical availability separate from charging duration: EMHASS can choose
+  any allowed slots across the full window, while the matrix suggests charging
+  at its end.
+- Preserve unmet energy when projecting cached plans onto the current grid.
+- Recalculate when actual SOC/SOH data arrives after startup or changes later.
+- Honor explicit kWh, including zero, and use configured consumption for trips
+  whose energy must be derived from distance.
+- Align deadlines with EMHASS's explicit UTC-rounded hourly reference; full
+  charging slots cannot end after departure, and local punctual trips retain
+  Home Assistant's timezone.
+
+### Changed
+- Interpret nominal charging power consistently with predicted charging
+  efficiency (85% by default) and carry rounding surplus into subsequent trips.
+- Update the integration manifest to match the release version.
+
+### Validation
+- 688 Python tests and 25 native-panel tests passed.
+- Type checks, formatting and whitespace checks passed.
+- Verified in Home Assistant: a Monday trip requiring four charging hours keeps
+  its full Saturday-to-Monday availability window and its return safety reserve.
+
 ## [0.5.21] - 2026-04-26 - EMHASS Per-Trip Sensors & Hotfixes (M4.0.1 COMPLETED)
 
 ### Added

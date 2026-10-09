@@ -41,7 +41,8 @@ class TestResolveTripDeadline:
         assert result.year == 2026
         assert result.month == 6
         assert result.day == 15
-        assert result.hour == 14
+        # Normalizing to UTC must preserve the instant specified by +02:00.
+        assert result == datetime(2026, 6, 15, 12, 30, tzinfo=timezone.utc)
         assert result.minute == 30
         assert result.tzinfo is not None
 

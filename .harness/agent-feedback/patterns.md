@@ -67,3 +67,48 @@
   también duración y potencia 0, y mostrar la carga que no cabe.
 - El entorno Python local antiguo no tiene todas las APIs de HA actual. Verificar
   cambios del backend con la versión real en un contenedor de pruebas aislado.
+
+## Consumo, cadena energética y snapshots (2026-10-09)
+
+- Un cambio observado después de reiniciar no prueba que el reinicio lo causó:
+  contrastar servicios registrados, almacenamiento e historial de atributos.
+- Las listas de diccionarios publicadas por entidades necesitan snapshots
+  independientes. Compartir objetos mutables con CRUD puede modificar los
+  atributos anteriores y ocultar el cambio al comparar estados.
+- No confundir el objetivo `xnl/suffsoc` de OVMS con una autoparada habilitada
+  ni con el cap dinámico del planificador. Consultar también `xnl/autocharge`.
+  En el firmware observado la consulta disponible es `config list`, no
+  `config get`; evitar comandos `set` para investigar.
+- La factibilidad debe contrastarse con la demanda original. Un déficit cero
+  calculado después de reducir esa demanda mediante un cap no garantiza energía
+  suficiente ni reserva después de los viajes.
+- El SOC inicial pertenece a una batería, no a cada viaje independientemente:
+  transportar su energía por la cadena y comprobar capacidad, carga y consumos.
+- Verificar la presencia de `kwh` y el cableado del consumo configurado: cero
+  explícito no equivale a campo ausente en la implementación actual.
+
+## Reserva y protección de batería (2026-10-09)
+
+- Separar disponibilidad física, cantidad necesaria y posición sugerida de la
+  carga. La preferencia de cargar al final no puede recortar los límites enviados
+  a EMHASS ni reducir la energía necesaria para viaje y reserva.
+- El redondeo por horas puede dejar energía sobrante: transportarla al siguiente
+  viaje, limitarla a la capacidad y no solicitar otra vez el mismo consumo.
+- Conservar los déficits energéticos al proyectar una caché a otra rejilla;
+  limitar horas por tiempo no debe sustituir un déficit físico por cero.
+- Mantener la misma convención de potencia nominal, eficiencia y espera en el
+  backend y en la gráfica. Publicar capacidad, eficiencia y SOC previstos para
+  verificar el resultado directamente en HA.
+- El SOC/SOH de MQTT puede llegar después del primer cálculo de arranque:
+  invalidar la caché y recalcular cuando lleguen valores reales. No verificar
+  únicamente que el selector de sensor esté guardado o la integración cargada.
+
+## Ventana disponible frente a carga sugerida (2026-10-09)
+
+- Al corregir las horas de carga se introdujo un recorte indebido del inicio de
+  ventana mediante `t_base`. Lo observó el usuario por los puntitos del panel;
+  el mismo recorte llegaba al payload EMHASS. Mantener el inicio físico.
+- Comprobar conjuntamente `window_start`, `def_start_timestep`, horas y matriz:
+  una ventana amplia debe coexistir con pocos slots sugeridos al final.
+- Verificar los arrays publicados por el sensor y consumidos por el optimizador,
+  además del dibujo; una gráfica correcta no demuestra por sí sola disponibilidad.

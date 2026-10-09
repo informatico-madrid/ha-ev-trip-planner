@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.storage import Store  # noqa: F401 — test compatibility
 
 from .. import const
@@ -268,6 +269,39 @@ class EMHASSAdapter:
         self._config_entry_listener = self.config_entry.async_on_unload(
             self.config_entry.add_update_listener(self._handle_config_entry_update)
         )
+        config = dict(self.config_entry.data)
+        config.update(dict(self.config_entry.options))
+        battery_entities = [
+            entity
+            for entity in (config.get("soc_sensor"), config.get("soh_sensor"))
+            if isinstance(entity, str) and entity
+        ]
+        if battery_entities:
+            self.config_entry.async_on_unload(
+                async_track_state_change_event(
+                    self.hass, battery_entities, self._handle_battery_state_change
+                )
+            )
+
+    async def _handle_battery_state_change(self, event: Any) -> None:
+        """Replan when real battery data arrives, including after startup fallback."""
+        if self._shutting_down:
+            return
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+        if new_state is None or (old_state and old_state.state == new_state.state):
+            return
+        try:
+            if not math.isfinite(float(new_state.state)):
+                return
+        except (ValueError, TypeError):
+            return
+        runtime = getattr(self._entry, "runtime_data", None)
+        if not runtime or not runtime.trip_manager or not runtime.coordinator:
+            return
+        self._load_publisher._battery_cap._soh_cached_at = None
+        await runtime.trip_manager._schedule.publish_deferrable_loads()
+        await runtime.coordinator.async_refresh_trips()
 
     async def _handle_config_entry_update(
         self, hass: HomeAssistant, config_entry: ConfigEntry
@@ -329,7 +363,7 @@ class EMHASSAdapter:
             trips, battery_capacity_kwh
         )
 
-        # Run window pipeline: SOC cap (health) then deficit propagation (factibilidad)
+        # Plan one battery through the resolved windows, with reserve and health timing.
         self._run_window_pipeline(soc_current)
 
         # Build power profile and deferrables schedule
@@ -754,9 +788,9 @@ class EMHASSAdapter:
     def _run_window_pipeline(self, soc_current: float = 50.0) -> None:
         """Execute the window transformation pipeline across all active trips.
 
-        Applies SOC cap (health, Componentes 1+2) then deficit propagation
-        (factibilidad) in order. Updates def_total_hours, kwh_needed, and
-        p_deferrable_matrix in cache.
+        Carries battery energy through actual trips, anticipates charge when
+        necessary, and preserves the return reserve. Updates hours, deficits,
+        predicted SOC and the allowed charging window in cache.
         """
         if not self._cached_per_trip_params:
             return
@@ -775,12 +809,22 @@ class EMHASSAdapter:
 
         battery_capacity_kwh = self._load_publisher.get_real_capacity_kwh()
         charging_power_kw = self._load_publisher.charging_power_kw
+        config = dict(getattr(self._entry, "data", {}) or {})
+        config.update(dict(getattr(self._entry, "options", {}) or {}))
         context = PipelineContext(
             charging_power_kw=charging_power_kw,
             battery_capacity_kwh=battery_capacity_kwh,
             t_base=self._get_t_base(),
             now=dt_util.now(),
             soc_current=soc_current,
+            safety_margin_percent=self._load_publisher.safety_margin_percent,
+            consumption_kwh_per_km=float(
+                config.get("kwh_per_km", const.DEFAULT_CONSUMPTION)
+            ),
+            # Same grid-to-battery convention as the existing SOC dashboard.
+            charging_efficiency=float(config.get("charging_efficiency_percent", 85.0))
+            / 100.0,
+            standby_soc_per_hour=0.02,
         )
         results = run_window_pipeline(windows, context)
         self._apply_pipeline_results(results, active, trip_ids)
@@ -793,7 +837,11 @@ class EMHASSAdapter:
             if params.get("activo", False)
         ]
         active.sort(
-            key=lambda x: (x.get("def_start_timestep", 0), x.get("emhass_index", 0))
+            key=lambda x: (
+                x.get("deadline", ""),
+                x.get("def_start_timestep", 0),
+                x.get("emhass_index", 0),
+            )
         )
         return active
 
@@ -814,6 +862,12 @@ class EMHASSAdapter:
             else:
                 th = p.get("def_total_hours", 0)
                 windows.append({"ventana_horas": th, "horas_carga_necesarias": th})
+            if p.get("planning_reference") and "trip" in windows[-1]:
+                windows[-1].update(
+                    def_start_timestep=p["def_start_timestep"],
+                    def_end_timestep=p["def_end_timestep"],
+                    planning_reference=p["planning_reference"],
+                )
             trip_id = self._find_trip_id_for_params(p)
             trip_ids.append(trip_id or "")
         return windows, trip_ids
@@ -844,6 +898,8 @@ class EMHASSAdapter:
                 continue
 
             params = active[i] if i < len(active) else {}
+            if result.get("chain_energy_planned"):
+                self._apply_energy_chain_result(params, result)
             self._cached_per_trip_params[trip_id]["def_total_hours"] = math.ceil(
                 adjusted
             )
@@ -869,6 +925,37 @@ class EMHASSAdapter:
                 end_timestep=end_timestep,
             )
             self._cached_per_trip_params[trip_id]["p_deferrable_matrix"] = [new_row]
+
+    def _apply_energy_chain_result(
+        self, params: Dict[str, Any], result: Dict[str, Any]
+    ) -> None:
+        """Publish the chain balance without replacing the physical availability."""
+
+        for key in (
+            "soc_start",
+            "soc_departure",
+            "soc_after_trip",
+            "trip_energy_kwh",
+            "charged_energy_kwh",
+            "energy_unserved_kwh",
+            "capacity_shortfall_kwh",
+            "charging_shortfall_kwh",
+            "trip_shortfall_kwh",
+            "reserve_shortfall_kwh",
+            "es_suficiente",
+            "chain_feasible",
+            "charging_efficiency",
+            "battery_capacity_kwh",
+            "safety_margin_percent",
+        ):
+            params[key] = result[key]
+        params["power_watts"] = (
+            params.get("configured_power_watts", 0)
+            if result["adjusted_def_total_hours"] > 0
+            else 0.0
+        )
+        if result["adjusted_def_total_hours"] == 0:
+            params["kwh_needed"] = 0.0
 
     def _find_trip_id_for_params(self, params: Dict[str, Any]) -> Optional[str]:
         """Find trip_id matching a params dict by identity."""
@@ -913,6 +1000,7 @@ class EMHASSAdapter:
                     soc_current=soc_current,
                 ),
             )
+            self._run_window_pipeline(soc_current)
 
         # Delegate actual publish to LoadPublisher
         result = await self._load_publisher.publish(trip)

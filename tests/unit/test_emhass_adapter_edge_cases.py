@@ -330,11 +330,11 @@ class TestPopulateCacheWithPreComputedWindows:
             pre_computed_fin_ventana=future,
         )
         cached = adapter._cached_per_trip_params["trip_002"]
-        # def_end_timestep should be 6 (ceil(6.0 - 0.001) = 6)
-        assert cached["def_end_timestep"] == 6, (
-            f"Expected def_end_timestep=6 (pre_computed 6h, ceil(6.0 - 0.001)), "
-            f"got {cached['def_end_timestep']}"
-        )
+        # The origin is rounded separately; only full slots before departure fit.
+        reference = datetime.fromisoformat(cached["planning_reference"])
+        end = reference + timedelta(hours=cached["def_end_timestep"])
+        assert end <= future
+        assert end + timedelta(hours=1) > future
 
 
 # ---------------------------------------------------------------------------

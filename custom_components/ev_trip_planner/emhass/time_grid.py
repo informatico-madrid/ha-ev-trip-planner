@@ -82,7 +82,11 @@ def project_trip(
         total_hours=hours,
         power_watts=nominal if hours else 0.0,
         kwh_needed=hours * nominal / 1000,
-        unserved_energy_kwh=max(0, requested - hours) * nominal / 1000,
+        unserved_energy_kwh=float(params.get("energy_unserved_kwh", 0))
+        + max(0, requested - hours)
+        * nominal
+        / 1000
+        * float(params.get("charging_efficiency", 1.0)),
         planning_reference=reference.isoformat(),
         p_deferrable_matrix=[
             build_deferrable_matrix_row(horizon, nominal / 1000, hours, end)

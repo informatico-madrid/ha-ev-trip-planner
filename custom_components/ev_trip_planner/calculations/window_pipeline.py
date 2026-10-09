@@ -1,7 +1,8 @@
 """Window transformation pipeline for charging schedule optimization.
 
 Each transform is a pure function: (List[WindowDict], PipelineContext) -> List[WindowDict].
-Transforms compose via run_window_pipeline, applied in order:
+Resolved trip windows use one sequential energy balance with a return reserve.
+Legacy hour-only windows retain their transforms, applied in order:
   1. apply_soc_cap_transform  — limits charging hours per window (SOC health)
   2. apply_deficit_transform  — propagates unmet hours backward (factibilidad)
 
@@ -19,7 +20,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Protocol
 
+from ..const import DEFAULT_CONSUMPTION, DEFAULT_SAFETY_MARGIN
 from .core import calculate_dynamic_soc_limit
+from .energy_chain import EnergyChainContext, plan_energy_chain
 
 WindowDict = Dict[str, Any]
 
@@ -33,6 +36,10 @@ class PipelineContext:
     t_base: float  # aggressiveness mando (k in the ramp formula, hours unit)
     now: datetime
     soc_current: float = field(default=50.0)  # used by Componente 2 (post-trip cap)
+    safety_margin_percent: float = DEFAULT_SAFETY_MARGIN
+    consumption_kwh_per_km: float = DEFAULT_CONSUMPTION
+    charging_efficiency: float = 1.0
+    standby_soc_per_hour: float = 0.0
 
 
 class WindowTransform(Protocol):
@@ -134,13 +141,38 @@ def run_window_pipeline(
     ctx: PipelineContext,
     transforms: List[WindowTransform] | None = None,
 ) -> List[WindowDict]:
-    """Apply a sequence of transforms to the window list.
+    """Plan resolved trips sequentially, or apply explicitly requested transforms.
 
-    Default order: [apply_soc_cap_transform, apply_deficit_transform]
-    The order is significant: SOC cap (health) runs before deficit propagation
-    (factibilidad) so the deficit step operates on already-capped needs.
+    Real trip data must retain its original energy demand. Health protection
+    does not narrow physical availability or erase that demand. Legacy
+    hour-only callers and custom transform lists keep their existing contract.
     """
     if transforms is None:
+        if windows and all(
+            all(
+                key in w
+                for key in (
+                    "trip",
+                    "def_start_timestep",
+                    "def_end_timestep",
+                    "planning_reference",
+                )
+            )
+            for w in windows
+        ):
+            return plan_energy_chain(
+                windows,
+                EnergyChainContext(
+                    capacity_kwh=ctx.battery_capacity_kwh,
+                    charging_power_kw=ctx.charging_power_kw,
+                    soc_current=ctx.soc_current,
+                    safety_margin_percent=ctx.safety_margin_percent,
+                    consumption_kwh_per_km=ctx.consumption_kwh_per_km,
+                    charging_efficiency=ctx.charging_efficiency,
+                    now=ctx.now,
+                    standby_soc_per_hour=ctx.standby_soc_per_hour,
+                ),
+            )
         transforms = [apply_soc_cap_transform, apply_deficit_transform]
 
     current = windows
