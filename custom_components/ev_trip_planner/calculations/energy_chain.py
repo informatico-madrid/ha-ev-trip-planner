@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from ..const import DEFAULT_T_BASE
 from ..utils import calcular_energia_kwh
+from .core import calculate_dynamic_soc_limit
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,7 @@ class EnergyChainContext:
     charging_efficiency: float
     now: datetime
     standby_soc_per_hour: float = 0.0
+    t_base: float = DEFAULT_T_BASE
 
 
 def _trip_energy(trip: dict[str, Any], consumption: float) -> float:
@@ -70,6 +73,50 @@ def _departure_targets(
     return targets
 
 
+def _anticipatory_hours(
+    window: dict[str, Any],
+    ctx: EnergyChainContext,
+    minimum_start: float,
+    remaining_energy: float,
+    consumption: float,
+) -> int:
+    """Bound useful early charge, never the mandatory trip-and-reserve demand.
+
+    Reuse the slack ramp on the remaining chain demand, not an already-zero
+    single-trip deficit. Optional full slots round down so neither the ramp,
+    battery headroom nor remaining demand is exceeded. The post-trip cap uses
+    the projected charge of this stage rather than the vehicle's initial SOC.
+    """
+    slot_energy = ctx.charging_power_kw * ctx.charging_efficiency
+    if slot_energy <= 0:
+        return 0
+    stored_per_hour = slot_energy + ctx.capacity_kwh * ctx.standby_soc_per_hour / 100
+    headroom = max(0.0, min(ctx.capacity_kwh, remaining_energy) - minimum_start)
+    full_hours = headroom / stored_per_hour
+    available = max(
+        0, int(window["def_end_timestep"]) - int(window["def_start_timestep"])
+    )
+    window_hours = max(0.0, float(window.get("ventana_horas", available)))
+    slack = max(0.0, window_hours - full_hours)
+    allowed = math.floor(full_hours / (1.0 + slack / ctx.t_base) + 1e-9)
+    hours = min(allowed, available)
+    if hours <= 0:
+        return 0
+    soc_after = max(
+        0.0,
+        (minimum_start + hours * stored_per_hour - consumption)
+        / ctx.capacity_kwh
+        * 100,
+    )
+    soc_cap = calculate_dynamic_soc_limit(
+        window_hours, soc_after, ctx.capacity_kwh, t_base=ctx.t_base
+    )
+    capped_hours = math.floor(
+        (ctx.capacity_kwh * soc_cap / 100 - minimum_start) / stored_per_hour + 1e-9
+    )
+    return max(0, min(hours, capped_hours))
+
+
 def plan_energy_chain(
     windows: list[dict[str, Any]], ctx: EnergyChainContext
 ) -> list[dict[str, Any]]:
@@ -87,6 +134,8 @@ def plan_energy_chain(
         raise ValueError("Capacity and charging efficiency must be positive")
     if ctx.charging_power_kw < 0 or not 0 <= ctx.safety_margin_percent <= 100:
         raise ValueError("Invalid charging power or safety margin")
+    if not math.isfinite(ctx.t_base) or ctx.t_base <= 0:
+        raise ValueError("t_base must be finite and positive")
 
     energies = [_trip_energy(w["trip"], ctx.consumption_kwh_per_km) for w in windows]
     slots = [
@@ -97,6 +146,7 @@ def plan_energy_chain(
     stored = ctx.capacity_kwh * max(0, min(100, ctx.soc_current)) / 100
     slot_energy = ctx.charging_power_kw * ctx.charging_efficiency
     reserve = ctx.capacity_kwh * ctx.safety_margin_percent / 100
+    remaining_energy = sum(energies) + reserve
     results = []
     chain_feasible = True
     previous_departure = ctx.now
@@ -115,6 +165,17 @@ def plan_energy_chain(
             if slot_energy > 0
             else 0
         )
+        # The backwards targets remain the hard minimum. Health limits only
+        # additional energy brought forward for later trips, which is then
+        # carried by the same stored-energy balance into the next iteration.
+        anticipated_hours = _anticipatory_hours(
+            w, ctx, minimum_start, remaining_energy, consumption
+        )
+        if anticipated_hours > required_hours:
+            required_hours = anticipated_hours
+            charge_needed = min(
+                ctx.capacity_kwh - minimum_start, required_hours * slot_energy
+            )
         hours = min(required_hours, available_slots)
         stored = max(0, stored - max(0, elapsed - hours) * idle_rate)
         charged = min(ctx.capacity_kwh - stored, hours * slot_energy)
@@ -156,4 +217,5 @@ def plan_energy_chain(
             }
         )
         previous_departure = w["fin_ventana"]
+        remaining_energy -= consumption
     return results

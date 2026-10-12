@@ -171,6 +171,7 @@ def run_window_pipeline(
                     charging_efficiency=ctx.charging_efficiency,
                     now=ctx.now,
                     standby_soc_per_hour=ctx.standby_soc_per_hour,
+                    t_base=ctx.t_base,
                 ),
             )
         transforms = [apply_soc_cap_transform, apply_deficit_transform]

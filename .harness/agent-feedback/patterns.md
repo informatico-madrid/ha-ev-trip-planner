@@ -124,3 +124,17 @@
 - Validar la suite completa con los plugins y la versión de HA declarados,
   además de las regresiones seleccionadas. Las fixtures deben restaurar su zona
   horaria antes del verificador de limpieza de Home Assistant.
+
+## Anticipación y alcance del planificador (2026-10-12)
+
+- Corregir el SOC encadenado no implica retirar la política de anticipación.
+  Revisar el diff y el recorrido efectivo de `t_base`, no solo su lectura.
+- Separar el mínimo energético de la carga anticipada acotada. La protección
+  solo limita la parte adicional y nunca borra una necesidad imprescindible.
+- Adelantar energía debe reducir la carga posterior; comprobar el balance y
+  los arrays/matrices publicados, además de las horas del primer viaje.
+- Cuando la tarea es preparar datos para EMHASS, mantener ese alcance. El
+  comportamiento interno del optimizador no justifica ampliar una corrección
+  localizada a su código o a un contrato nuevo.
+- El SOC real puede cambiar durante las pruebas. Distinguir la simulación
+  congelada solicitada por el usuario de la verificación con el estado actual.

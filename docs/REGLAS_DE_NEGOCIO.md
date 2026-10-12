@@ -214,6 +214,18 @@ SI déficit(Ventana_i) > 0 ENTONCES:
 > Las transformaciones por horas que se describen debajo se conservan para
 > callers antiguos sin datos energéticos completos o transformaciones explícitas.
 
+> **Corrección 2026-10-12 — anticipación con SOC encadenado:** la ruta energética
+> vuelve a recibir `t_base`. Los objetivos mínimos y déficits del balance del
+> 9 de octubre se conservan. Sobre la demanda pendiente de toda la cadena se
+> calcula un presupuesto adicional, limitado por capacidad, disponibilidad,
+> rampa de holgura y cap post-viaje. El cap utiliza el SOC proyectado tras cargar
+> en esa etapa, no el SOC inicial del vehículo para todos los viajes. Las horas
+> opcionales usan `floor`; las imprescindibles mantienen `ceil` y tienen
+> prioridad. La carga adicional se transporta a la siguiente etapa y reduce
+> su necesidad; no se vuelve a solicitar el mismo consumo. Los límites físicos
+> y el formato publicado a EMHASS se conservan. La elección de horarios por
+> precio pertenece a EMHASS y no se modifica en esta corrección.
+
 > ⚠️ **ACTUALIZACIÓN 2026-05-30:** La regla SOC cap se amplió con dos componentes:
 > - **Componente 1 (pre-viaje, NUEVO):** Rampa por holgura — limita las horas de carga
 >   cuando la ventana es amplia. Fórmula: `H_allowed = H_req / (1 + slack/k)`.
