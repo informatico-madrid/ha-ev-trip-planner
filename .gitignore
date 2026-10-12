@@ -82,6 +82,7 @@ tests/e2e/playwright-screenshots/*
 tests/e2e/test-results/.last-run.json
 .playwright-mcp/console-*.log
 *.png
+!docs/images/*.png
 test-ha/test-ha/config*
 tests/ha-manual/
 playwright-results.json

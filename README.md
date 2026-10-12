@@ -44,6 +44,14 @@
 
 ---
 
+## 📸 Panel en producción
+
+![Planificación de carga de Chispitas: energía propuesta, perfil para EMHASS, ventanas por carga y viajes programados](docs/images/panel-chispitas.png)
+
+*Panel nativo de Chispitas en producción: energía y horas propuestas, perfil de carga para EMHASS con sus ventanas y los viajes semanales programados.*
+
+---
+
 ## 🎯 Features
 
 For the complete milestone history and project roadmap, see [ROADMAP.md](ROADMAP.md).
