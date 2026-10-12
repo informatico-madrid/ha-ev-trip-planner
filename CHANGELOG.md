@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-10-12 - Restore bounded anticipation with chained SOC
+
+### Fixed
+- Connect `t_base` to the resolved trip-chain planning path.
+- Anticipate useful energy for later trips within the slack ramp, battery
+  headroom, remaining demand and projected post-trip health cap.
+- Carry anticipated charge forward so later trips request less energy instead
+  of counting the same consumption again.
+- Preserve mandatory charging, return reserves, physical availability and
+  explicit capacity/time shortfalls from the 0.8.0 energy-chain correction.
+- Round optional full charging slots down while retaining upward rounding for
+  mandatory demand; keep the published EMHASS format and nominal charger power.
+
+### Validation
+- 2759 Python tests passed, including 25 new anticipation regression cases.
+- 100% line and branch coverage for the energy-chain module.
+- Ruff, Black and type checks passed; GitHub CI and native-panel tests passed.
+- Verified in production: at 58% SOC and `t_base=15`, Tuesday requests one
+  charging hour and predicts approximately 70.1% departure SOC. The frozen
+  43% SOC scenario requests two hours and reduces Wednesday's charge accordingly.
+
 ## [0.8.0] - 2026-10-09 - Trip-chain reserves and full EMHASS availability
 
 ### Added
