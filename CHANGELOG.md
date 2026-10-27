@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-10-27 - Exclude expired trips from charging plans
+
+### Fixed
+- Exclude punctual departures at or before the current instant before building
+  the EMHASS charging windows and sequential battery-energy balance.
+- Prevent past pending trips from consuming today's measured SOC a second time
+  and incorrectly requesting a full battery recharge for the next trip.
+- Preserve historical trip records and interpret naive departure timestamps in
+  Home Assistant's configured timezone.
+- Clear the published charging plan when all supplied punctual trips have expired.
+
+### Validation
+- 2762 Python tests passed, with one skipped test.
+- Regression cases cover naive local timestamps, UTC timestamps, exact-departure
+  expiry, imminent future trips, cache clearing and the published EMHASS arrays.
+- Ruff, formatting and type checks passed.
+- Verified in production at 78% SOC: the next trip requests two charging hours
+  instead of eight, and EMHASS successfully generates and publishes a new plan.
+
 ## [0.8.1] - 2026-10-12 - Restore bounded anticipation with chained SOC
 
 ### Fixed

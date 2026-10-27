@@ -337,6 +337,18 @@ class EMHASSAdapter:
         if self._shutting_down:
             return False
 
+        from homeassistant.util import dt as dt_util
+
+        # Past departures are already reflected in the measured battery SOC.
+        now = dt_util.now()
+        trips = [
+            trip
+            for trip in trips
+            if not trip.get("datetime")
+            or (deadline := self._calculate_deadline_from_trip(trip)) is None
+            or deadline > now
+        ]
+
         # When no trips remain, clear cache to reflect empty state
         if not trips:
             self._cached_power_profile = []

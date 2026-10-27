@@ -81,6 +81,84 @@ def context(**kwargs):
     )
 
 
+@pytest.mark.parametrize(
+    "past_departure",
+    [
+        "2026-10-23T18:00",
+        "2026-10-23T16:00:00+00:00",
+        "2026-10-27T10:00:00+00:00",
+    ],
+)
+@pytest.mark.asyncio
+async def test_expired_pending_trip_does_not_empty_current_soc(
+    adapter, monkeypatch, past_departure
+):
+    """A past pending trip must not turn a measured 78% into a fictitious 0%."""
+    now = datetime(2026, 10, 27, 10, tzinfo=UTC)
+    monkeypatch.setattr(dt_util, "now", lambda: now.astimezone(MADRID))
+    adapter.hass.states.get.side_effect = lambda entity: SimpleNamespace(
+        state="82" if entity == "sensor.soh" else "78"
+    )
+    trips = [
+        {
+            "id": "expired",
+            "tipo": "puntual",
+            "estado": "pendiente",
+            "datetime": past_departure,
+            "kwh": 18,
+        },
+        {
+            "id": "wednesday",
+            "tipo": "recurrente",
+            "dia_semana": "3",
+            "hora": "07:30",
+            "kwh": 26,
+        },
+    ]
+    before = deepcopy(trips)
+
+    await adapter.async_publish_all_deferrable_loads(trips)
+    snapshot = adapter.get_cached_optimization_results()
+    params = snapshot["per_trip_emhass_params"]
+
+    assert "expired" not in params
+    assert params["wednesday"]["soc_start"] == pytest.approx(78)
+    assert params["wednesday"]["def_total_hours"] == 2
+    assert params["wednesday"]["capacity_shortfall_kwh"] > 0
+    coordinator = MagicMock()
+    coordinator.data = snapshot
+    attrs = EmhassDeferrableLoadSensor(coordinator, "test").extra_state_attributes
+    assert attrs["trip_id_array"] == ["wednesday"]
+    assert attrs["def_total_hours_array"] == [2]
+    assert attrs["number_of_deferrable_loads"] == 1
+    assert trips == before
+
+
+@pytest.mark.asyncio
+async def test_pending_trip_expires_at_its_exact_departure(adapter, monkeypatch):
+    """A future trip with no full slot remains visible, then leaves the plan."""
+    now = datetime(2026, 10, 27, 10, tzinfo=UTC)
+    monkeypatch.setattr(dt_util, "now", lambda: now.astimezone(MADRID))
+    trip = {
+        "id": "soon",
+        "tipo": "punctual",
+        "estado": "pendiente",
+        "datetime": "2026-10-27T11:15:00+01:00",
+        "kwh": 18,
+    }
+    before = deepcopy(trip)
+    await adapter.async_publish_all_deferrable_loads([trip])
+    assert "soon" in adapter.get_cached_optimization_results()["per_trip_emhass_params"]
+
+    now += timedelta(minutes=15)
+    await adapter.async_publish_all_deferrable_loads([trip])
+    snapshot = adapter.get_cached_optimization_results()
+    assert snapshot["per_trip_emhass_params"] == {}
+    assert snapshot["emhass_power_profile"] == []
+    assert snapshot["emhass_deferrables_schedule"] == []
+    assert trip == before
+
+
 @pytest.mark.asyncio
 async def test_monday_charges_from_empty_saturday_and_preserves_ten_percent(adapter):
     trips = [

@@ -300,8 +300,8 @@ class TestPublishCycle:
         result = _run_async(emhass_adapter.async_publish_all_deferrable_loads([trip]))
         assert result is True
 
-    def test_publish_past_deadline_zero_hours(self, emhass_adapter):
-        """Trip with past deadline gets 0 def_total_hours (no charging window)."""
+    def test_publish_past_deadline_excluded(self, emhass_adapter):
+        """Past departures must not consume today's measured battery energy."""
         past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         trip = {
             "id": "pun_past",
@@ -311,11 +311,9 @@ class TestPublishCycle:
         }
         result = _run_async(emhass_adapter.async_publish_all_deferrable_loads([trip]))
         assert result is True
-        assert "pun_past" in emhass_adapter._cached_per_trip_params
-        params = emhass_adapter._cached_per_trip_params["pun_past"]
-        # Past deadline → zero-length charging window (start==end==0)
-        assert params["def_start_timestep"] == 0
-        assert params["def_end_timestep"] == 0
+        assert emhass_adapter._cached_per_trip_params == {}
+        assert emhass_adapter._cached_power_profile == []
+        assert emhass_adapter._cached_deferrables_schedule == []
 
     def test_publish_no_id_skipped(self, emhass_adapter):
         """Trip without ID produces 0 cached params (skipped)."""
