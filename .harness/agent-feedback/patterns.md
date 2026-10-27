@@ -138,3 +138,12 @@
   localizada a su código o a un contrato nuevo.
 - El SOC real puede cambiar durante las pruebas. Distinguir la simulación
   congelada solicitada por el usuario de la verificación con el estado actual.
+
+## Viajes vencidos y aislamiento del reloj (2026-10-27)
+
+- Un viaje puntual vencido no puede consumir el SOC medido hoy: excluirlo antes
+  de construir las ventanas y el balance energético, conservando el historial.
+- No mezclar dos propietarios de `monkeypatch` sobre `dt_util.now`: si una fixture
+  restaura el reloj antes que otra, puede reinstalarse el reloj simulado anterior.
+  Usar `patch.object` acotado por `with` dentro del test para devolver el reloj
+  antes de desmontar la fixture. Comprobar el orden aleatorio que falló en CI.

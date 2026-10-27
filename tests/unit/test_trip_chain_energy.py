@@ -90,12 +90,9 @@ def context(**kwargs):
     ],
 )
 @pytest.mark.asyncio
-async def test_expired_pending_trip_does_not_empty_current_soc(
-    adapter, monkeypatch, past_departure
-):
+async def test_expired_pending_trip_does_not_empty_current_soc(adapter, past_departure):
     """A past pending trip must not turn a measured 78% into a fictitious 0%."""
     now = datetime(2026, 10, 27, 10, tzinfo=UTC)
-    monkeypatch.setattr(dt_util, "now", lambda: now.astimezone(MADRID))
     adapter.hass.states.get.side_effect = lambda entity: SimpleNamespace(
         state="82" if entity == "sensor.soh" else "78"
     )
@@ -117,8 +114,9 @@ async def test_expired_pending_trip_does_not_empty_current_soc(
     ]
     before = deepcopy(trips)
 
-    await adapter.async_publish_all_deferrable_loads(trips)
-    snapshot = adapter.get_cached_optimization_results()
+    with patch.object(dt_util, "now", return_value=now.astimezone(MADRID)):
+        await adapter.async_publish_all_deferrable_loads(trips)
+        snapshot = adapter.get_cached_optimization_results()
     params = snapshot["per_trip_emhass_params"]
 
     assert "expired" not in params
@@ -135,10 +133,9 @@ async def test_expired_pending_trip_does_not_empty_current_soc(
 
 
 @pytest.mark.asyncio
-async def test_pending_trip_expires_at_its_exact_departure(adapter, monkeypatch):
+async def test_pending_trip_expires_at_its_exact_departure(adapter):
     """A future trip with no full slot remains visible, then leaves the plan."""
     now = datetime(2026, 10, 27, 10, tzinfo=UTC)
-    monkeypatch.setattr(dt_util, "now", lambda: now.astimezone(MADRID))
     trip = {
         "id": "soon",
         "tipo": "punctual",
@@ -147,12 +144,16 @@ async def test_pending_trip_expires_at_its_exact_departure(adapter, monkeypatch)
         "kwh": 18,
     }
     before = deepcopy(trip)
-    await adapter.async_publish_all_deferrable_loads([trip])
-    assert "soon" in adapter.get_cached_optimization_results()["per_trip_emhass_params"]
+    with patch.object(dt_util, "now", side_effect=lambda: now.astimezone(MADRID)):
+        await adapter.async_publish_all_deferrable_loads([trip])
+        assert (
+            "soon"
+            in adapter.get_cached_optimization_results()["per_trip_emhass_params"]
+        )
 
-    now += timedelta(minutes=15)
-    await adapter.async_publish_all_deferrable_loads([trip])
-    snapshot = adapter.get_cached_optimization_results()
+        now += timedelta(minutes=15)
+        await adapter.async_publish_all_deferrable_loads([trip])
+        snapshot = adapter.get_cached_optimization_results()
     assert snapshot["per_trip_emhass_params"] == {}
     assert snapshot["emhass_power_profile"] == []
     assert snapshot["emhass_deferrables_schedule"] == []
